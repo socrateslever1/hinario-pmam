@@ -336,7 +336,7 @@ export default function Admin() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");
+    navigate("/login");
   };
 
   if (loading) {

@@ -22,3 +22,5 @@
 - [x] Gerenciamento de informações do rodapé pelo painel
 - [x] Gerenciamento completo de missões CFAP pelo painel
 - [x] Tela de login dedicada com email/senha
+- [x] Bug: Botão de login some após logout na Área do Xerife
+- [x] Bug: Links do rodapé não estão funcionando (navegação interna)

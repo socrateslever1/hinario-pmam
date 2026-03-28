@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Shield, Music, BookOpen, Target, Info, Settings, Star } from "lucide-react";
+import { Menu, Shield, Music, BookOpen, Target, Info, Star, LogIn } from "lucide-react";
 import { useState } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -53,7 +53,7 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {isAdminOrMaster && (
+          {isAdminOrMaster ? (
             <Link href="/xerife">
               <Button
                 variant={location.startsWith("/xerife") ? "default" : "ghost"}
@@ -62,6 +62,17 @@ export default function Navbar() {
               >
                 <Star className="h-4 w-4" />
                 Área do Xerife
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button
+                variant={location === "/login" ? "default" : "ghost"}
+                size="sm"
+                className={`gap-2 ${location === "/login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
+              >
+                <LogIn className="h-4 w-4" />
+                Entrar
               </Button>
             </Link>
           )}
@@ -96,11 +107,18 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              {isAdminOrMaster && (
+              {isAdminOrMaster ? (
                 <Link href="/xerife" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
                     <Star className="h-4 w-4" />
                     Área do Xerife
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/login" onClick={() => setOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
+                    <LogIn className="h-4 w-4" />
+                    Entrar
                   </Button>
                 </Link>
               )}

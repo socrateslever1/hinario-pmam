@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Shield, Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -20,16 +21,32 @@ export default function Footer() {
               <p className="text-sm text-white/60 mt-1">
                 {settings?.footer_text || "Hinos e Canções Militares da Polícia Militar do Amazonas"}
               </p>
-              <p className="text-xs text-white/40 mt-1">Edição 2023</p>
+              <p className="text-xs text-white/40 mt-1">Edição 2025</p>
             </div>
           </div>
           <div>
             <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider">Navegação</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/" className="hover:text-[#c4a84b] transition-colors">Página Inicial</a></li>
-              <li><a href="/hinos" className="hover:text-[#c4a84b] transition-colors">Catálogo de Hinos</a></li>
-              <li><a href="/cfap-2026" className="hover:text-[#c4a84b] transition-colors">CFAP 2026</a></li>
-              <li><a href="/sobre" className="hover:text-[#c4a84b] transition-colors">Sobre o Hinário</a></li>
+              <li>
+                <Link href="/" className="text-white/60 hover:text-[#c4a84b] transition-colors no-underline">
+                  Página Inicial
+                </Link>
+              </li>
+              <li>
+                <Link href="/hinos" className="text-white/60 hover:text-[#c4a84b] transition-colors no-underline">
+                  Catálogo de Hinos
+                </Link>
+              </li>
+              <li>
+                <Link href="/cfap-2026" className="text-white/60 hover:text-[#c4a84b] transition-colors no-underline">
+                  CFAP 2026
+                </Link>
+              </li>
+              <li>
+                <Link href="/sobre" className="text-white/60 hover:text-[#c4a84b] transition-colors no-underline">
+                  Sobre o Hinário
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
@@ -37,19 +54,19 @@ export default function Footer() {
             <div className="space-y-2 text-sm">
               {settings?.footer_phone && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <Phone className="h-3.5 w-3.5 text-[#c4a84b]" />
+                  <Phone className="h-3.5 w-3.5 text-[#c4a84b] shrink-0" />
                   {settings.footer_phone}
                 </p>
               )}
               {settings?.footer_email && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <Mail className="h-3.5 w-3.5 text-[#c4a84b]" />
+                  <Mail className="h-3.5 w-3.5 text-[#c4a84b] shrink-0" />
                   {settings.footer_email}
                 </p>
               )}
               {settings?.footer_address && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <MapPin className="h-3.5 w-3.5 text-[#c4a84b]" />
+                  <MapPin className="h-3.5 w-3.5 text-[#c4a84b] shrink-0" />
                   {settings.footer_address}
                 </p>
               )}

@@ -47,8 +47,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
+      // Only set admin role for initial insert, NOT for updates
       values.role = 'admin';
-      updateSet.role = 'admin';
+      // Do NOT add role to updateSet - preserve existing role in DB
     }
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
