@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Shield, Music, BookOpen, Target, Info, Settings } from "lucide-react";
+import { Menu, Shield, Music, BookOpen, Target, Info, Settings, Star } from "lucide-react";
 import { useState } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -18,6 +18,8 @@ export default function Navbar() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+
+  const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -51,11 +53,15 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {isAuthenticated && user?.role === "admin" && (
-            <Link href="/admin">
-              <Button variant={location === "/admin" ? "default" : "ghost"} size="sm" className={`gap-2 ${location === "/admin" ? "bg-[#1a3a2a] text-white" : ""}`}>
-                <Settings className="h-4 w-4" />
-                Admin
+          {isAdminOrMaster && (
+            <Link href="/xerife">
+              <Button
+                variant={location.startsWith("/xerife") ? "default" : "ghost"}
+                size="sm"
+                className={`gap-2 ${location.startsWith("/xerife") ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
+              >
+                <Star className="h-4 w-4" />
+                Área do Xerife
               </Button>
             </Link>
           )}
@@ -90,15 +96,14 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              {isAuthenticated && user?.role === "admin" && (
-                <Link href="/admin" onClick={() => setOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start gap-3">
-                    <Settings className="h-4 w-4" />
-                    Painel Admin
+              {isAdminOrMaster && (
+                <Link href="/xerife" onClick={() => setOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
+                    <Star className="h-4 w-4" />
+                    Área do Xerife
                   </Button>
                 </Link>
               )}
-
             </div>
           </SheetContent>
         </Sheet>

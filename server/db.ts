@@ -180,6 +180,61 @@ export async function upsertSetting(key: string, value: string) {
     .onDuplicateKeyUpdate({ set: { settingValue: value } });
 }
 
+// ===== AUTH EMAIL/SENHA =====
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createUserWithPassword(data: { name: string; email: string; password: string; role: 'user' | 'admin' | 'master' }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const openId = `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await db.insert(users).values({
+    openId,
+    name: data.name,
+    email: data.email,
+    password: data.password,
+    loginMethod: 'email',
+    role: data.role,
+  });
+  return getUserByEmail(data.email);
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    loginMethod: users.loginMethod,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users).orderBy(desc(users.createdAt));
+}
+
+export async function updateUserRole(id: number, role: 'user' | 'admin' | 'master') {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ role }).where(eq(users.id, id));
+}
+
+export async function deleteUser(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(users).where(eq(users.id, id));
+}
+
+export async function updateUserPassword(id: number, password: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ password }).where(eq(users.id, id));
+}
+
 // ===== STATS =====
 export async function getStats() {
   const db = await getDb();

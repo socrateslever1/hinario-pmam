@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -8,10 +8,21 @@ import * as db from "./db";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { notifyOwner } from "./_core/notification";
+import { sdk } from "./_core/sdk";
+import bcrypt from "bcryptjs";
 
+// Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores" });
+  }
+  return next({ ctx });
+});
+
+// Only Master can access
+const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "master") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao Xerife Master" });
   }
   return next({ ctx });
 });
@@ -24,6 +35,29 @@ export const appRouter = router({
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
+    }),
+    loginEmail: publicProcedure.input(z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+    })).mutation(async ({ input, ctx }) => {
+      const user = await db.getUserByEmail(input.email);
+      if (!user || !user.password) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+      }
+      const valid = await bcrypt.compare(input.password, user.password);
+      if (!valid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+      }
+      // Create session token
+      const sessionToken = await sdk.createSessionToken(user.openId, {
+        name: user.name || "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      // Update last signed in
+      await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
     }),
   }),
 
@@ -142,6 +176,75 @@ export const appRouter = router({
       const { url } = await storagePut(fileKey, buffer, input.contentType);
       await db.updateHymn(input.hymnId, { audioUrl: url });
       return { success: true, url };
+    }),
+  }),
+
+  // Settings do site (rodapé, etc.)
+  settings: router({
+    get: publicProcedure.input(z.object({ key: z.string() })).query(async ({ input }) => {
+      const value = await db.getSetting(input.key);
+      return { key: input.key, value: value ?? null };
+    }),
+    getAll: publicProcedure.query(async () => {
+      const keys = ["footer_phone", "footer_email", "footer_address", "footer_text", "footer_instagram", "footer_facebook"];
+      const results: Record<string, string | null> = {};
+      for (const key of keys) {
+        results[key] = (await db.getSetting(key)) ?? null;
+      }
+      return results;
+    }),
+    update: adminProcedure.input(z.object({
+      key: z.string(),
+      value: z.string(),
+    })).mutation(async ({ input }) => {
+      await db.upsertSetting(input.key, input.value);
+      return { success: true };
+    }),
+    updateBatch: adminProcedure.input(z.object({
+      settings: z.array(z.object({ key: z.string(), value: z.string() })),
+    })).mutation(async ({ input }) => {
+      for (const s of input.settings) {
+        await db.upsertSetting(s.key, s.value);
+      }
+      return { success: true };
+    }),
+  }),
+
+  // Gerenciamento de usuários (apenas master)
+  users: router({
+    list: masterProcedure.query(async () => {
+      return db.getAllUsers();
+    }),
+    create: masterProcedure.input(z.object({
+      name: z.string(),
+      email: z.string().email(),
+      password: z.string().min(4),
+      role: z.enum(["user", "admin"]),
+    })).mutation(async ({ input }) => {
+      const existing = await db.getUserByEmail(input.email);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Email já cadastrado" });
+      const hashedPassword = await bcrypt.hash(input.password, 12);
+      await db.createUserWithPassword({ ...input, password: hashedPassword });
+      return { success: true };
+    }),
+    updateRole: masterProcedure.input(z.object({
+      id: z.number(),
+      role: z.enum(["user", "admin"]),
+    })).mutation(async ({ input }) => {
+      await db.updateUserRole(input.id, input.role);
+      return { success: true };
+    }),
+    resetPassword: masterProcedure.input(z.object({
+      id: z.number(),
+      password: z.string().min(4),
+    })).mutation(async ({ input }) => {
+      const hashedPassword = await bcrypt.hash(input.password, 12);
+      await db.updateUserPassword(input.id, hashedPassword);
+      return { success: true };
+    }),
+    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteUser(input.id);
+      return { success: true };
     }),
   }),
 });

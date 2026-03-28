@@ -10,6 +10,7 @@ import HymnDetail from "./pages/HymnDetail";
 import Cfap2026 from "./pages/Cfap2026";
 import About from "./pages/About";
 import Admin from "./pages/Admin";
+import Login from "./pages/Login";
 
 function Router() {
   return (
@@ -19,7 +20,8 @@ function Router() {
       <Route path="/hino/:id" component={HymnDetail} />
       <Route path="/cfap-2026" component={Cfap2026} />
       <Route path="/sobre" component={About} />
-      <Route path="/admin" component={Admin} />
+      <Route path="/xerife" component={Admin} />
+      <Route path="/login" component={Login} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

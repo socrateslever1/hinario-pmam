@@ -14,4 +14,11 @@
 - [x] Sistema de notificação para alunos CFAP
 - [x] Páginas informativas sobre história/significado de cada hino (página Sobre)
 - [x] Navegação responsiva e mobile-friendly
-- [x] Testes vitest (13 testes passando)
+- [x] Testes vitest (24 testes passando)
+- [x] Renomear "Admin" para "Área do Xerife" em todo o site
+- [x] Criar sistema de login próprio com email/senha (sem OAuth)
+- [x] Criar usuário master socrates.lever@gmail.com / 123456
+- [x] Permitir que o master crie outros usuários
+- [x] Gerenciamento de informações do rodapé pelo painel
+- [x] Gerenciamento completo de missões CFAP pelo painel
+- [x] Tela de login dedicada com email/senha
