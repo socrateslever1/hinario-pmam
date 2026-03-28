@@ -1,11 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, hymns, InsertHymn, cfapMissions, InsertCfapMission, siteSettings } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -22,22 +21,16 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
-
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
     return;
   }
-
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
-
     const textFields = ["name", "email", "loginMethod"] as const;
     type TextField = (typeof textFields)[number];
-
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
@@ -45,9 +38,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values[field] = normalized;
       updateSet[field] = normalized;
     };
-
     textFields.forEach(assignNullable);
-
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
@@ -59,18 +50,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = 'admin';
       updateSet.role = 'admin';
     }
-
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
     }
-
     if (Object.keys(updateSet).length === 0) {
       updateSet.lastSignedIn = new Date();
     }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -79,14 +65,131 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ===== HYMNS =====
+export async function getAllHymns() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hymns).orderBy(asc(hymns.number));
+}
+
+export async function getActiveHymns() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hymns).where(eq(hymns.isActive, true)).orderBy(asc(hymns.number));
+}
+
+export async function getHymnById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(hymns).where(eq(hymns.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getHymnByNumber(number: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(hymns).where(eq(hymns.number, number)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getHymnsByCategory(category: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hymns)
+    .where(and(eq(hymns.category, category as any), eq(hymns.isActive, true)))
+    .orderBy(asc(hymns.number));
+}
+
+export async function createHymn(hymn: InsertHymn) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(hymns).values(hymn);
+  return result;
+}
+
+export async function updateHymn(id: number, data: Partial<InsertHymn>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(hymns).set(data).where(eq(hymns.id, id));
+}
+
+export async function deleteHymn(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(hymns).where(eq(hymns.id, id));
+}
+
+// ===== CFAP MISSIONS =====
+export async function getAllMissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cfapMissions).orderBy(desc(cfapMissions.createdAt));
+}
+
+export async function getActiveMissions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cfapMissions)
+    .where(eq(cfapMissions.isActive, true))
+    .orderBy(desc(cfapMissions.createdAt));
+}
+
+export async function getMissionById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(cfapMissions).where(eq(cfapMissions.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createMission(mission: InsertCfapMission) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(cfapMissions).values(mission);
+  return result;
+}
+
+export async function updateMission(id: number, data: Partial<InsertCfapMission>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(cfapMissions).set(data).where(eq(cfapMissions.id, id));
+}
+
+export async function deleteMission(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(cfapMissions).where(eq(cfapMissions.id, id));
+}
+
+// ===== SITE SETTINGS =====
+export async function getSetting(key: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(siteSettings).where(eq(siteSettings.settingKey, key)).limit(1);
+  return result.length > 0 ? result[0]?.settingValue : undefined;
+}
+
+export async function upsertSetting(key: string, value: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(siteSettings).values({ settingKey: key, settingValue: value })
+    .onDuplicateKeyUpdate({ set: { settingValue: value } });
+}
+
+// ===== STATS =====
+export async function getStats() {
+  const db = await getDb();
+  if (!db) return { totalHymns: 0, totalMissions: 0, totalUsers: 0 };
+  const [hymnCount] = await db.select({ count: sql<number>`count(*)` }).from(hymns);
+  const [missionCount] = await db.select({ count: sql<number>`count(*)` }).from(cfapMissions);
+  const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+  return {
+    totalHymns: hymnCount?.count ?? 0,
+    totalMissions: missionCount?.count ?? 0,
+    totalUsers: userCount?.count ?? 0,
+  };
+}

@@ -1,28 +1,149 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import * as db from "./db";
+import { storagePut } from "./storage";
+import { nanoid } from "nanoid";
+import { notifyOwner } from "./_core/notification";
+
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores" });
+  }
+  return next({ ctx });
+});
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  hymns: router({
+    list: publicProcedure.query(async () => {
+      return db.getActiveHymns();
+    }),
+    listAll: adminProcedure.query(async () => {
+      return db.getAllHymns();
+    }),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const hymn = await db.getHymnById(input.id);
+      if (!hymn) throw new TRPCError({ code: "NOT_FOUND", message: "Hino não encontrado" });
+      return hymn;
+    }),
+    getByNumber: publicProcedure.input(z.object({ number: z.number() })).query(async ({ input }) => {
+      const hymn = await db.getHymnByNumber(input.number);
+      if (!hymn) throw new TRPCError({ code: "NOT_FOUND", message: "Hino não encontrado" });
+      return hymn;
+    }),
+    getByCategory: publicProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
+      return db.getHymnsByCategory(input.category);
+    }),
+    create: adminProcedure.input(z.object({
+      number: z.number(),
+      title: z.string(),
+      subtitle: z.string().optional(),
+      author: z.string().optional(),
+      composer: z.string().optional(),
+      category: z.enum(["nacional", "militar", "pmam", "arma", "oracao"]),
+      lyrics: z.string(),
+      description: z.string().optional(),
+      youtubeUrl: z.string().optional(),
+      audioUrl: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      await db.createHymn(input);
+      return { success: true };
+    }),
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      number: z.number().optional(),
+      title: z.string().optional(),
+      subtitle: z.string().optional(),
+      author: z.string().optional(),
+      composer: z.string().optional(),
+      category: z.enum(["nacional", "militar", "pmam", "arma", "oracao"]).optional(),
+      lyrics: z.string().optional(),
+      description: z.string().optional(),
+      youtubeUrl: z.string().nullable().optional(),
+      audioUrl: z.string().nullable().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.updateHymn(id, data);
+      return { success: true };
+    }),
+    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteHymn(input.id);
+      return { success: true };
+    }),
+  }),
+
+  missions: router({
+    list: publicProcedure.query(async () => {
+      return db.getActiveMissions();
+    }),
+    listAll: adminProcedure.query(async () => {
+      return db.getAllMissions();
+    }),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const mission = await db.getMissionById(input.id);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+      return mission;
+    }),
+    create: adminProcedure.input(z.object({
+      title: z.string(),
+      content: z.string(),
+      priority: z.enum(["normal", "urgente", "critica"]).default("normal"),
+    })).mutation(async ({ input, ctx }) => {
+      await db.createMission({ ...input, authorId: ctx.user.id });
+      await notifyOwner({
+        title: `Nova Missão CFAP: ${input.title}`,
+        content: `Uma nova missão foi publicada na página CFAP 2026: ${input.title}`,
+      });
+      return { success: true };
+    }),
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      title: z.string().optional(),
+      content: z.string().optional(),
+      priority: z.enum(["normal", "urgente", "critica"]).optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.updateMission(id, data);
+      return { success: true };
+    }),
+    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteMission(input.id);
+      return { success: true };
+    }),
+  }),
+
+  admin: router({
+    stats: adminProcedure.query(async () => {
+      return db.getStats();
+    }),
+    uploadAudio: adminProcedure.input(z.object({
+      hymnId: z.number(),
+      fileName: z.string(),
+      fileBase64: z.string(),
+      contentType: z.string(),
+    })).mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const fileKey = `hymns/audio/${input.hymnId}-${nanoid(8)}-${input.fileName}`;
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+      await db.updateHymn(input.hymnId, { audioUrl: url });
+      return { success: true, url };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
