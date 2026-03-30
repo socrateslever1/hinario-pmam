@@ -1,6 +1,6 @@
-import { eq, desc, asc, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, hymns, InsertHymn, cfapMissions, InsertCfapMission, siteSettings } from "../drizzle/schema";
+import { InsertUser, users, hymns, InsertHymn, cfapMissions, InsertCfapMission, siteSettings, comments, likes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -101,16 +101,13 @@ export async function getHymnByNumber(number: number) {
 export async function getHymnsByCategory(category: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(hymns)
-    .where(and(eq(hymns.category, category as any), eq(hymns.isActive, true)))
-    .orderBy(asc(hymns.number));
+  return db.select().from(hymns).where(eq(hymns.category, category as any)).orderBy(asc(hymns.number));
 }
 
 export async function createHymn(hymn: InsertHymn) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(hymns).values(hymn);
-  return result;
+  await db.insert(hymns).values(hymn);
 }
 
 export async function updateHymn(id: number, data: Partial<InsertHymn>) {
@@ -125,7 +122,7 @@ export async function deleteHymn(id: number) {
   await db.delete(hymns).where(eq(hymns.id, id));
 }
 
-// ===== CFAP MISSIONS =====
+// ===== MISSIONS =====
 export async function getAllMissions() {
   const db = await getDb();
   if (!db) return [];
@@ -135,9 +132,7 @@ export async function getAllMissions() {
 export async function getActiveMissions() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(cfapMissions)
-    .where(eq(cfapMissions.isActive, true))
-    .orderBy(desc(cfapMissions.createdAt));
+  return db.select().from(cfapMissions).where(eq(cfapMissions.isActive, true)).orderBy(desc(cfapMissions.createdAt));
 }
 
 export async function getMissionById(id: number) {
@@ -248,4 +243,113 @@ export async function getStats() {
     totalMissions: missionCount?.count ?? 0,
     totalUsers: userCount?.count ?? 0,
   };
+}
+
+// ===== LIKES =====
+export async function addLike(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Check if already liked
+  const existing = await db.select().from(likes)
+    .where(and(
+      eq(likes.targetType, targetType),
+      eq(likes.targetId, targetId),
+      eq(likes.visitorId, visitorId)
+    )).limit(1);
+  
+  if (existing.length > 0) {
+    return; // Already liked
+  }
+  
+  // Add like and increment counter
+  await db.insert(likes).values({ targetType, targetId, visitorId });
+  
+  if (targetType === 'hymn') {
+    await db.update(hymns).set({ likesCount: sql`likesCount + 1` }).where(eq(hymns.id, targetId));
+  } else {
+    await db.update(cfapMissions).set({ likesCount: sql`likesCount + 1` }).where(eq(cfapMissions.id, targetId));
+  }
+}
+
+export async function removeLike(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(likes).where(and(
+    eq(likes.targetType, targetType),
+    eq(likes.targetId, targetId),
+    eq(likes.visitorId, visitorId)
+  ));
+  
+  if (targetType === 'hymn') {
+    await db.update(hymns).set({ likesCount: sql`GREATEST(likesCount - 1, 0)` }).where(eq(hymns.id, targetId));
+  } else {
+    await db.update(cfapMissions).set({ likesCount: sql`GREATEST(likesCount - 1, 0)` }).where(eq(cfapMissions.id, targetId));
+  }
+}
+
+export async function hasLiked(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
+  const db = await getDb();
+  if (!db) return false;
+  
+  const result = await db.select().from(likes)
+    .where(and(
+      eq(likes.targetType, targetType),
+      eq(likes.targetId, targetId),
+      eq(likes.visitorId, visitorId)
+    )).limit(1);
+  
+  return result.length > 0;
+}
+
+// ===== COMMENTS =====
+export async function addComment(targetType: 'hymn' | 'mission', targetId: number, authorName: string, content: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(comments).values({ targetType, targetId, authorName, content });
+}
+
+export async function getComments(targetType: 'hymn' | 'mission', targetId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(comments)
+    .where(and(
+      eq(comments.targetType, targetType),
+      eq(comments.targetId, targetId)
+    ))
+    .orderBy(desc(comments.createdAt));
+}
+
+export async function deleteComment(commentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(comments).where(eq(comments.id, commentId));
+}
+
+// ===== MISSION STATUS & DATES =====
+export async function updateMissionStatus(id: number, status: 'ativa' | 'cumprida' | 'inativa', dueDate?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  if (dueDate) {
+    await db.update(cfapMissions).set({ status, dueDate: dueDate as any }).where(eq(cfapMissions.id, id));
+  } else {
+    await db.update(cfapMissions).set({ status }).where(eq(cfapMissions.id, id));
+  }
+}
+
+// ===== VIEWS =====
+export async function incrementViews(targetType: 'hymn' | 'mission', targetId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  if (targetType === 'hymn') {
+    await db.update(hymns).set({ viewsCount: sql`viewsCount + 1` }).where(eq(hymns.id, targetId));
+  } else {
+    await db.update(cfapMissions).set({ viewsCount: sql`viewsCount + 1` }).where(eq(cfapMissions.id, targetId));
+  }
 }

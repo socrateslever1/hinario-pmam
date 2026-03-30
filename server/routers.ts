@@ -247,6 +247,54 @@ export const appRouter = router({
       return { success: true };
     }),
   }),
+
+  // Likes e Comentários
+  likes: router({
+    toggle: publicProcedure.input(z.object({
+      targetType: z.enum(["hymn", "mission"]),
+      targetId: z.number(),
+      visitorId: z.string(),
+      liked: z.boolean(),
+    })).mutation(async ({ input }) => {
+      if (input.liked) {
+        await db.removeLike(input.targetType, input.targetId, input.visitorId);
+      } else {
+        await db.addLike(input.targetType, input.targetId, input.visitorId);
+      }
+      return { success: true };
+    }),
+    hasLiked: publicProcedure.input(z.object({
+      targetType: z.enum(["hymn", "mission"]),
+      targetId: z.number(),
+      visitorId: z.string(),
+    })).query(async ({ input }) => {
+      return db.hasLiked(input.targetType, input.targetId, input.visitorId);
+    }),
+  }),
+
+  comments: router({
+    list: publicProcedure.input(z.object({
+      targetType: z.enum(["hymn", "mission"]),
+      targetId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getComments(input.targetType, input.targetId);
+    }),
+    add: publicProcedure.input(z.object({
+      targetType: z.enum(["hymn", "mission"]),
+      targetId: z.number(),
+      authorName: z.string().min(1).max(100),
+      content: z.string().min(1).max(1000),
+    })).mutation(async ({ input }) => {
+      await db.addComment(input.targetType, input.targetId, input.authorName, input.content);
+      return { success: true };
+    }),
+    delete: adminProcedure.input(z.object({
+      commentId: z.number(),
+    })).mutation(async ({ input }) => {
+      await db.deleteComment(input.commentId);
+      return { success: true };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

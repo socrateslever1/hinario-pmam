@@ -62,7 +62,7 @@ export default function Login() {
                 Acesso Restrito
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Informe suas credenciais para acessar o painel de gerenciamento
+                Informe suas credenciais para acessar a área do Xerife
               </p>
             </div>
 

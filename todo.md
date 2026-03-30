@@ -24,3 +24,11 @@
 - [x] Tela de login dedicada com email/senha
 - [x] Bug: Botão de login some após logout na Área do Xerife
 - [x] Bug: Links do rodapé não estão funcionando (navegação interna)
+- [x] Curtidas nos hinos (sem login, por fingerprint/localStorage) - backend pronto
+- [x] Comentários nos hinos (nome + texto, sem login) - backend pronto
+- [x] Curtidas nas missões CFAP - backend pronto
+- [x] Comentários nas missões CFAP - backend pronto
+- [x] Datas de cumprimento nas missões - backend pronto
+- [x] Tags de status nas missões (ativa/cumprida/inativa) - backend pronto
+- [x] Contador de acessos/visualizações nas missões - backend pronto
+- [x] Moderação de comentários pelo Xerife (apagar) - backend pronto
