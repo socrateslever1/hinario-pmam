@@ -141,7 +141,7 @@ export default function Home() {
               { num: 8, title: "Canção da PMAM", cat: "Canção da Corporação" },
               { num: 13, title: "Canção do CFAP", cat: "Formação de Praças" },
             ].map((item) => {
-              const hymn = hymns?.find(h => h.number === item.num);
+              const hymn = hymns?.find((h: any) => h.number === item.num);
               return (
                 <Link key={item.num} href={`/hino/${hymn?.id ?? item.num}`}>
                   <Card className="hymn-card-hover cursor-pointer overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full">

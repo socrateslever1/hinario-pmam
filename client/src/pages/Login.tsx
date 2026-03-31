@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import type { User } from "@shared/types";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
 
@@ -18,10 +19,22 @@ export default function Login() {
 
   const utils = trpc.useUtils();
   const loginMut = trpc.auth.loginEmail.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Login realizado com sucesso!");
-      utils.auth.me.invalidate();
-      setTimeout(() => navigate("/xerife"), 500);
+      utils.auth.me.setData(undefined, (current): User => ({
+        id: result.user.id,
+        openId: current?.openId ?? `session-${result.user.id}`,
+        name: result.user.name,
+        email: result.user.email,
+        password: current?.password ?? null,
+        loginMethod: current?.loginMethod ?? "email",
+        role: result.user.role,
+        createdAt: current?.createdAt ?? new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      }));
+      void utils.auth.me.invalidate();
+      navigate("/xerife");
     },
     onError: (e) => {
       toast.error(e.message || "Email ou senha inválidos");
@@ -62,7 +75,7 @@ export default function Login() {
                 Acesso Restrito
               </h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Informe suas credenciais para acessar a área do Xerife
+                Informe suas credenciais para acessar o painel de gerenciamento
               </p>
             </div>
 

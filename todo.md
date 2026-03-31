@@ -32,3 +32,4 @@
 - [x] Tags de status nas missões (ativa/cumprida/inativa) - backend pronto
 - [x] Contador de acessos/visualizações nas missões - backend pronto
 - [x] Moderação de comentários pelo Xerife (apagar) - backend pronto
+- [x] Bug: DialogTitle faltando no diálogo da página CFAP 2026

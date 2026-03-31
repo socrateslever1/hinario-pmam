@@ -3,5 +3,52 @@
  * Import shared types from this single entry point.
  */
 
-export type * from "../drizzle/schema";
+export interface User {
+  id: number;
+  openId: string;
+  name: string | null;
+  email: string | null;
+  password?: string | null;
+  loginMethod: string | null;
+  role: 'user' | 'admin' | 'master';
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  lastSignedIn: Date | string | null;
+}
+
+export interface Hymn {
+  id: number;
+  number: number;
+  title: string;
+  subtitle: string | null;
+  author: string | null;
+  composer: string | null;
+  category: 'nacional' | 'militar' | 'pmam' | 'arma' | 'oracao';
+  lyrics: string;
+  description: string | null;
+  youtubeUrl: string | null;
+  audioUrl: string | null;
+  lyricsSync?: Array<{ time: number; text: string }> | null;
+  isActive: boolean;
+  likesCount: number;
+  viewsCount: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface CfapMission {
+  id: number;
+  title: string;
+  content: string;
+  priority: 'normal' | 'urgente' | 'critica';
+  status: 'ativa' | 'cumprida' | 'inativa';
+  dueDate: string | null;
+  isActive: boolean;
+  authorId: number | null;
+  likesCount: number;
+  viewsCount: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export * from "./_core/errors";

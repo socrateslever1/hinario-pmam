@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -18,8 +19,12 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
-  Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut
+  Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
+  Clock
 } from "lucide-react";
+import LyricsMarker from "@/components/LyricsMarker";
+import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
+import { useIsMobile } from "@/hooks/useMobile";
 
 const categoryOptions = [
   { value: "nacional", label: "Hino Nacional" },
@@ -35,8 +40,8 @@ const priorityOptions = [
   { value: "critica", label: "Crítica" },
 ];
 
-function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState({
+function getDefaultHymnFormState(hymn?: any) {
+  return {
     number: hymn?.number ?? 0,
     title: hymn?.title ?? "",
     subtitle: hymn?.subtitle ?? "",
@@ -47,17 +52,41 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
     description: hymn?.description ?? "",
     youtubeUrl: hymn?.youtubeUrl ?? "",
     audioUrl: hymn?.audioUrl ?? "",
-  });
+  };
+}
+
+function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
+  const [form, setForm] = useState(() => getDefaultHymnFormState(hymn));
 
   const utils = trpc.useUtils();
   const createMut = trpc.hymns.create.useMutation({
-    onSuccess: () => { toast.success("Hino criado!"); utils.hymns.invalidate(); onSuccess(); },
+    onSuccess: async () => {
+      toast.success("Hino criado!");
+      await Promise.all([
+        utils.hymns.list.invalidate(),
+        utils.hymns.listAll.invalidate(),
+      ]);
+      onSuccess();
+    },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.hymns.update.useMutation({
-    onSuccess: () => { toast.success("Hino atualizado!"); utils.hymns.invalidate(); onSuccess(); },
+    onSuccess: async (_data, variables) => {
+      toast.success("Hino atualizado!");
+      await Promise.all([
+        utils.hymns.list.invalidate(),
+        utils.hymns.listAll.invalidate(),
+        utils.hymns.getById.invalidate({ id: variables.id }),
+        utils.hymns.getByNumber.invalidate({ number: variables.number }),
+      ]);
+      onSuccess();
+    },
     onError: (e) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    setForm(getDefaultHymnFormState(hymn));
+  }, [hymn]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,7 +300,7 @@ function UsersTab() {
       </div>
 
       <div className="space-y-2">
-        {usersList?.map((u) => (
+        {usersList?.map((u: any) => (
           <Card key={u.id} className="border-border/50">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -308,11 +337,14 @@ function UsersTab() {
 }
 
 export default function Admin() {
+  const isMobile = useIsMobile();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [, navigate] = useLocation();
   const [hymnDialogOpen, setHymnDialogOpen] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [missionDialogOpen, setMissionDialogOpen] = useState(false);
   const [editingHymn, setEditingHymn] = useState<any>(null);
+  const [syncingHymn, setSyncingHymn] = useState<any>(null);
   const [editingMission, setEditingMission] = useState<any>(null);
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
@@ -324,14 +356,30 @@ export default function Admin() {
 
   const utils = trpc.useUtils();
   const deleteHymn = trpc.hymns.delete.useMutation({
-    onSuccess: () => { toast.success("Hino removido"); utils.hymns.invalidate(); utils.admin.invalidate(); },
+    onSuccess: async (_data, variables) => {
+      toast.success("Hino removido");
+      await Promise.all([
+        utils.hymns.list.invalidate(),
+        utils.hymns.listAll.invalidate(),
+        utils.hymns.getById.invalidate({ id: variables.id }),
+        utils.admin.invalidate(),
+      ]);
+    },
     onError: (e) => toast.error(e.message),
   });
   const deleteMission = trpc.missions.delete.useMutation({
     onSuccess: () => { toast.success("Missão removida"); utils.missions.invalidate(); utils.admin.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
-  const toggleHymn = trpc.hymns.update.useMutation({ onSuccess: () => { utils.hymns.invalidate(); } });
+  const toggleHymn = trpc.hymns.update.useMutation({
+    onSuccess: async (_data, variables) => {
+      await Promise.all([
+        utils.hymns.list.invalidate(),
+        utils.hymns.listAll.invalidate(),
+        utils.hymns.getById.invalidate({ id: variables.id }),
+      ]);
+    },
+  });
   const toggleMission = trpc.missions.update.useMutation({ onSuccess: () => { utils.missions.invalidate(); } });
 
   const handleLogout = async () => {
@@ -471,12 +519,12 @@ export default function Admin() {
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle></DialogHeader>
-                    <HymnForm hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
+                    <HymnForm key={editingHymn?.id ?? "new"} hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
               </div>
               <div className="space-y-2">
-                {hymns?.map((hymn) => (
+                {hymns?.map((hymn: any) => (
                   <Card key={hymn.id} className="border-border/50">
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -489,7 +537,53 @@ export default function Admin() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
                         {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
+                        {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
+                          <Target className="h-4 w-4 text-[#c4a84b]" />
+                        )}
                         <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+                        
+                        {isMobile ? (
+                          <Drawer
+                            open={syncDialogOpen && syncingHymn?.id === hymn.id}
+                            onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
+                          >
+                            <DrawerTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
+                                <Clock className="h-4 w-4" />
+                              </Button>
+                            </DrawerTrigger>
+                            <DrawerContent className="h-[94vh] max-h-[94vh]">
+                              <DrawerHeader className="border-b pb-4 text-left">
+                                <DrawerTitle>Sincronizar Letra</DrawerTitle>
+                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
+                              </DrawerHeader>
+                              <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
+                                <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
+                              </div>
+                            </DrawerContent>
+                          </Drawer>
+                        ) : (
+                          <Dialog
+                            open={syncDialogOpen && syncingHymn?.id === hymn.id}
+                            onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
+                          >
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
+                                <Clock className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="h-[min(94vh,960px)] max-w-[96vw] w-[min(96vw,1280px)] gap-0 overflow-hidden p-0">
+                              <DialogHeader className="border-b px-6 py-5 pr-14">
+                                <DialogTitle>Sincronizar Letra</DialogTitle>
+                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
+                              </DialogHeader>
+                              <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
+                                <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+
                         <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -529,7 +623,7 @@ export default function Admin() {
                 </Card>
               ) : (
                 <div className="space-y-2">
-                  {missions.map((mission) => (
+                  {missions.map((mission: any) => (
                     <Card key={mission.id} className="border-border/50">
                       <CardContent className="p-4 flex items-center gap-4">
                         <div className="flex-1 min-w-0">

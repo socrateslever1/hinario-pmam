@@ -1,355 +1,377 @@
-import { eq, and, sql, desc, asc } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, hymns, InsertHymn, cfapMissions, InsertCfapMission, siteSettings, comments, likes } from "../drizzle/schema";
+import { query } from "./mysql";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
-
-export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
-  }
-  return _db;
+// Helper to map snake_case to camelCase
+function mapUser(u: any) {
+  if (!u) return u;
+  return {
+    id: u.id,
+    openId: u.open_id,
+    name: u.name,
+    email: u.email,
+    password: u.password,
+    loginMethod: u.login_method,
+    role: u.role,
+    createdAt: u.created_at,
+    updatedAt: u.updated_at,
+    lastSignedIn: u.last_signed_in
+  };
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
+function normalizeCategory(category: unknown) {
+  if (typeof category !== "string") return category;
+  return category
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function mapHymn(h: any) {
+  if (!h) return h;
+  // Handle lyricsSync potential string/object parsing
+  let lyricsSync = h.lyrics_sync;
+  if (typeof lyricsSync === 'string') {
+    try {
+      lyricsSync = JSON.parse(lyricsSync);
+    } catch {
+      lyricsSync = null;
+    }
+  }
+  
+  return {
+    id: h.id,
+    number: h.number,
+    title: h.title,
+    subtitle: h.subtitle,
+    author: h.author,
+    composer: h.composer,
+    category: normalizeCategory(h.category),
+    lyrics: h.lyrics,
+    description: h.description,
+    youtubeUrl: h.youtube_url,
+    audioUrl: h.audio_url,
+    lyricsSync,
+    isActive: h.is_active === 1 || h.is_active === true,
+    likesCount: h.likes_count,
+    viewsCount: h.views_count,
+    createdAt: h.created_at,
+    updatedAt: h.updated_at
+  };
+}
+
+function mapMission(m: any) {
+  if (!m) return m;
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.content,
+    priority: m.priority,
+    status: m.status,
+    dueDate: m.due_date,
+    isActive: m.is_active === 1 || m.is_active === true,
+    authorId: m.author_id,
+    likesCount: m.likes_count,
+    viewsCount: m.views_count,
+    createdAt: m.created_at,
+    updatedAt: m.updated_at
+  };
+}
+
+export async function upsertUser(user: any): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+  
+  const lastSignedIn = user.lastSignedIn ? new Date(user.lastSignedIn) : new Date();
+  const normalizedEmail = typeof user.email === "string"
+    ? user.email.trim().toLowerCase()
+    : null;
+  const resolvedRole = user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : undefined);
+
+  const columns = ["open_id", "last_signed_in"];
+  const placeholders = ["?", "?"];
+  const params: any[] = [user.openId, lastSignedIn];
+  const updates = ["last_signed_in = VALUES(last_signed_in)", "updated_at = CURRENT_TIMESTAMP"];
+
+  if (user.name !== undefined) {
+    columns.push("name");
+    placeholders.push("?");
+    params.push(user.name ?? null);
+    updates.push("name = VALUES(name)");
   }
-  try {
-    const values: InsertUser = { openId: user.openId };
-    const updateSet: Record<string, unknown> = {};
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-    textFields.forEach(assignNullable);
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      // Only set admin role for initial insert, NOT for updates
-      values.role = 'admin';
-      // Do NOT add role to updateSet - preserve existing role in DB
-    }
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
+
+  if (user.email !== undefined) {
+    columns.push("email");
+    placeholders.push("?");
+    params.push(normalizedEmail);
+    updates.push("email = VALUES(email)");
   }
+
+  if (user.loginMethod !== undefined) {
+    columns.push("login_method");
+    placeholders.push("?");
+    params.push(user.loginMethod ?? null);
+    updates.push("login_method = VALUES(login_method)");
+  }
+
+  if (user.password !== undefined) {
+    columns.push("password");
+    placeholders.push("?");
+    params.push(user.password ?? null);
+    updates.push("password = VALUES(password)");
+  }
+
+  if (resolvedRole !== undefined) {
+    columns.push("role");
+    placeholders.push("?");
+    params.push(resolvedRole);
+    updates.push("role = VALUES(role)");
+  }
+
+  const sql = `
+    INSERT INTO pmam_users (${columns.join(", ")})
+    VALUES (${placeholders.join(", ")})
+    ON DUPLICATE KEY UPDATE ${updates.join(", ")}
+  `;
+
+  await query(sql, params);
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const rows = await query('SELECT * FROM pmam_users WHERE open_id = ? LIMIT 1', [openId]);
+  return mapUser(rows[0]);
 }
 
 // ===== HYMNS =====
 export async function getAllHymns() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(hymns).orderBy(asc(hymns.number));
+  const rows = await query('SELECT * FROM pmam_hymns ORDER BY number ASC');
+  return rows.map(mapHymn);
 }
 
 export async function getActiveHymns() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(hymns).where(eq(hymns.isActive, true)).orderBy(asc(hymns.number));
+  const rows = await query('SELECT * FROM pmam_hymns WHERE is_active = 1 ORDER BY number ASC');
+  return rows.map(mapHymn);
 }
 
 export async function getHymnById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(hymns).where(eq(hymns.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const rows = await query('SELECT * FROM pmam_hymns WHERE id = ? LIMIT 1', [id]);
+  return mapHymn(rows[0]);
 }
 
 export async function getHymnByNumber(number: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(hymns).where(eq(hymns.number, number)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const rows = await query('SELECT * FROM pmam_hymns WHERE number = ? LIMIT 1', [number]);
+  return mapHymn(rows[0]);
 }
 
 export async function getHymnsByCategory(category: string) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(hymns).where(eq(hymns.category, category as any)).orderBy(asc(hymns.number));
+  const rows = await query(
+    'SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 ORDER BY number ASC',
+    [category]
+  );
+  return rows.map(mapHymn);
 }
 
-export async function createHymn(hymn: InsertHymn) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(hymns).values(hymn);
+export async function createHymn(hymn: any) {
+  const lyricsSync = hymn.lyricsSync ? JSON.stringify(hymn.lyricsSync) : null;
+  const sql = `
+    INSERT INTO pmam_hymns 
+    (number, title, subtitle, author, composer, category, lyrics, description, youtube_url, audio_url, lyrics_sync, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  const result = await query(sql, [
+    hymn.number,
+    hymn.title,
+    hymn.subtitle || null,
+    hymn.author || null,
+    hymn.composer || null,
+    hymn.category,
+    hymn.lyrics,
+    hymn.description || null,
+    hymn.youtubeUrl || null,
+    hymn.audioUrl || null,
+    lyricsSync,
+    hymn.isActive ?? 1
+  ]);
+
+  return result; // MySQL result contains insertId
 }
 
-export async function updateHymn(id: number, data: Partial<InsertHymn>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(hymns).set(data).where(eq(hymns.id, id));
+export async function updateHymn(id: number, hymn: any) {
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  const fields: Record<string, string> = {
+    number: 'number',
+    title: 'title',
+    subtitle: 'subtitle',
+    author: 'author',
+    composer: 'composer',
+    category: 'category',
+    lyrics: 'lyrics',
+    description: 'description',
+    youtubeUrl: 'youtube_url',
+    audioUrl: 'audio_url',
+    lyricsSync: 'lyrics_sync',
+    isActive: 'is_active'
+  };
+
+  for (const [key, dbKey] of Object.entries(fields)) {
+    if (hymn[key] !== undefined) {
+      updates.push(`${dbKey} = ?`);
+      let val = hymn[key];
+      if (key === 'lyricsSync') val = val ? JSON.stringify(val) : null;
+      if (key === 'isActive') val = val ? 1 : 0;
+      params.push(val);
+    }
+  }
+
+  if (updates.length === 0) return;
+
+  const sql = `UPDATE pmam_hymns SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  params.push(id);
+
+  await query(sql, params);
 }
 
 export async function deleteHymn(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.delete(hymns).where(eq(hymns.id, id));
+  await query('DELETE FROM pmam_hymns WHERE id = ?', [id]);
 }
 
-// ===== MISSIONS =====
+// ===== CFAP MISSIONS =====
 export async function getAllMissions() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(cfapMissions).orderBy(desc(cfapMissions.createdAt));
+  const rows = await query('SELECT * FROM pmam_cfap_missions ORDER BY created_at DESC');
+  return rows.map(mapMission);
 }
 
 export async function getActiveMissions() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(cfapMissions).where(eq(cfapMissions.isActive, true)).orderBy(desc(cfapMissions.createdAt));
+  const rows = await query('SELECT * FROM pmam_cfap_missions WHERE is_active = 1 ORDER BY created_at DESC');
+  return rows.map(mapMission);
 }
 
 export async function getMissionById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(cfapMissions).where(eq(cfapMissions.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const rows = await query('SELECT * FROM pmam_cfap_missions WHERE id = ? LIMIT 1', [id]);
+  return mapMission(rows[0]);
 }
 
-export async function createMission(mission: InsertCfapMission) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.insert(cfapMissions).values(mission);
+export async function createMission(mission: any) {
+  const sql = `
+    INSERT INTO pmam_cfap_missions 
+    (title, content, priority, status, due_date, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  const result = await query(sql, [
+    mission.title,
+    mission.content,
+    mission.priority || 'normal',
+    mission.status || 'ativa',
+    mission.dueDate || null,
+    mission.isActive ?? 1,
+    mission.authorId || null
+  ]);
+
   return result;
 }
 
-export async function updateMission(id: number, data: Partial<InsertCfapMission>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(cfapMissions).set(data).where(eq(cfapMissions.id, id));
+export async function updateMission(id: number, mission: any) {
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  const fields: Record<string, string> = {
+    title: 'title',
+    content: 'content',
+    priority: 'priority',
+    status: 'status',
+    dueDate: 'due_date',
+    isActive: 'is_active'
+  };
+
+  for (const [key, dbKey] of Object.entries(fields)) {
+    if (mission[key] !== undefined) {
+      updates.push(`${dbKey} = ?`);
+      let val = mission[key];
+      if (key === 'isActive') val = val ? 1 : 0;
+      params.push(val);
+    }
+  }
+
+  if (updates.length === 0) return;
+
+  const sql = `UPDATE pmam_cfap_missions SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  params.push(id);
+
+  await query(sql, params);
 }
 
 export async function deleteMission(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.delete(cfapMissions).where(eq(cfapMissions.id, id));
+  await query('DELETE FROM pmam_cfap_missions WHERE id = ?', [id]);
 }
 
 // ===== SITE SETTINGS =====
 export async function getSetting(key: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(siteSettings).where(eq(siteSettings.settingKey, key)).limit(1);
-  return result.length > 0 ? result[0]?.settingValue : undefined;
+  const rows = await query('SELECT setting_value FROM pmam_site_settings WHERE setting_key = ? LIMIT 1', [key]);
+  return rows[0]?.setting_value;
 }
 
 export async function upsertSetting(key: string, value: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(siteSettings).values({ settingKey: key, settingValue: value })
-    .onDuplicateKeyUpdate({ set: { settingValue: value } });
+  const sql = `
+    INSERT INTO pmam_site_settings (setting_key, setting_value)
+    VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP
+  `;
+  await query(sql, [key, value]);
 }
 
 // ===== AUTH EMAIL/SENHA =====
 export async function getUserByEmail(email: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const normalizedEmail = email.trim().toLowerCase();
+  const rows = await query('SELECT * FROM pmam_users WHERE email = ? LIMIT 1', [normalizedEmail]);
+  return mapUser(rows[0]);
 }
 
 export async function createUserWithPassword(data: { name: string; email: string; password: string; role: 'user' | 'admin' | 'master' }) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
   const openId = `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  await db.insert(users).values({
-    openId,
-    name: data.name,
-    email: data.email,
-    password: data.password,
-    loginMethod: 'email',
-    role: data.role,
-  });
-  return getUserByEmail(data.email);
+  const normalizedEmail = data.email.trim().toLowerCase();
+  
+  const sql = `
+    INSERT INTO pmam_users (open_id, name, email, password, login_method, role)
+    VALUES (?, ?, ?, ?, 'email', ?)
+  `;
+  
+  await query(sql, [openId, data.name, normalizedEmail, data.password, data.role]);
+  return getUserByEmail(normalizedEmail);
 }
 
 export async function getAllUsers() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select({
-    id: users.id,
-    name: users.name,
-    email: users.email,
-    role: users.role,
-    loginMethod: users.loginMethod,
-    createdAt: users.createdAt,
-    lastSignedIn: users.lastSignedIn,
-  }).from(users).orderBy(desc(users.createdAt));
+  const rows = await query(
+    'SELECT id, open_id, name, email, role, login_method, created_at, updated_at, last_signed_in FROM pmam_users ORDER BY created_at DESC'
+  );
+  return rows.map(mapUser);
 }
 
 export async function updateUserRole(id: number, role: 'user' | 'admin' | 'master') {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(users).set({ role }).where(eq(users.id, id));
+  await query('UPDATE pmam_users SET role = ? WHERE id = ?', [role, id]);
 }
 
 export async function deleteUser(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.delete(users).where(eq(users.id, id));
+  await query('DELETE FROM pmam_users WHERE id = ?', [id]);
 }
 
 export async function updateUserPassword(id: number, password: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(users).set({ password }).where(eq(users.id, id));
+  await query('UPDATE pmam_users SET password = ? WHERE id = ?', [password, id]);
 }
 
 // ===== STATS =====
 export async function getStats() {
-  const db = await getDb();
-  if (!db) return { totalHymns: 0, totalMissions: 0, totalUsers: 0 };
-  const [hymnCount] = await db.select({ count: sql<number>`count(*)` }).from(hymns);
-  const [missionCount] = await db.select({ count: sql<number>`count(*)` }).from(cfapMissions);
-  const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+  const [hymnRes] = await query('SELECT COUNT(*) as count FROM pmam_hymns');
+  const [missionRes] = await query('SELECT COUNT(*) as count FROM pmam_cfap_missions');
+  const [userRes] = await query('SELECT COUNT(*) as count FROM pmam_users');
+
   return {
-    totalHymns: hymnCount?.count ?? 0,
-    totalMissions: missionCount?.count ?? 0,
-    totalUsers: userCount?.count ?? 0,
+    totalHymns: hymnRes?.count || 0,
+    totalMissions: missionRes?.count || 0,
+    totalUsers: userRes?.count || 0,
   };
-}
-
-// ===== LIKES =====
-export async function addLike(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  // Check if already liked
-  const existing = await db.select().from(likes)
-    .where(and(
-      eq(likes.targetType, targetType),
-      eq(likes.targetId, targetId),
-      eq(likes.visitorId, visitorId)
-    )).limit(1);
-  
-  if (existing.length > 0) {
-    return; // Already liked
-  }
-  
-  // Add like and increment counter
-  await db.insert(likes).values({ targetType, targetId, visitorId });
-  
-  if (targetType === 'hymn') {
-    await db.update(hymns).set({ likesCount: sql`likesCount + 1` }).where(eq(hymns.id, targetId));
-  } else {
-    await db.update(cfapMissions).set({ likesCount: sql`likesCount + 1` }).where(eq(cfapMissions.id, targetId));
-  }
-}
-
-export async function removeLike(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.delete(likes).where(and(
-    eq(likes.targetType, targetType),
-    eq(likes.targetId, targetId),
-    eq(likes.visitorId, visitorId)
-  ));
-  
-  if (targetType === 'hymn') {
-    await db.update(hymns).set({ likesCount: sql`GREATEST(likesCount - 1, 0)` }).where(eq(hymns.id, targetId));
-  } else {
-    await db.update(cfapMissions).set({ likesCount: sql`GREATEST(likesCount - 1, 0)` }).where(eq(cfapMissions.id, targetId));
-  }
-}
-
-export async function hasLiked(targetType: 'hymn' | 'mission', targetId: number, visitorId: string) {
-  const db = await getDb();
-  if (!db) return false;
-  
-  const result = await db.select().from(likes)
-    .where(and(
-      eq(likes.targetType, targetType),
-      eq(likes.targetId, targetId),
-      eq(likes.visitorId, visitorId)
-    )).limit(1);
-  
-  return result.length > 0;
-}
-
-// ===== COMMENTS =====
-export async function addComment(targetType: 'hymn' | 'mission', targetId: number, authorName: string, content: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.insert(comments).values({ targetType, targetId, authorName, content });
-}
-
-export async function getComments(targetType: 'hymn' | 'mission', targetId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  
-  return db.select().from(comments)
-    .where(and(
-      eq(comments.targetType, targetType),
-      eq(comments.targetId, targetId)
-    ))
-    .orderBy(desc(comments.createdAt));
-}
-
-export async function deleteComment(commentId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  await db.delete(comments).where(eq(comments.id, commentId));
-}
-
-// ===== MISSION STATUS & DATES =====
-export async function updateMissionStatus(id: number, status: 'ativa' | 'cumprida' | 'inativa', dueDate?: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  if (dueDate) {
-    await db.update(cfapMissions).set({ status, dueDate: dueDate as any }).where(eq(cfapMissions.id, id));
-  } else {
-    await db.update(cfapMissions).set({ status }).where(eq(cfapMissions.id, id));
-  }
-}
-
-// ===== VIEWS =====
-export async function incrementViews(targetType: 'hymn' | 'mission', targetId: number) {
-  const db = await getDb();
-  if (!db) return;
-  
-  if (targetType === 'hymn') {
-    await db.update(hymns).set({ viewsCount: sql`viewsCount + 1` }).where(eq(hymns.id, targetId));
-  } else {
-    await db.update(cfapMissions).set({ viewsCount: sql`viewsCount + 1` }).where(eq(cfapMissions.id, targetId));
-  }
 }

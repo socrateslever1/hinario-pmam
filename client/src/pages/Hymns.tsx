@@ -31,11 +31,11 @@ export default function Hymns() {
     if (!hymns) return [];
     let filtered = hymns;
     if (activeCategory !== "all") {
-      filtered = filtered.filter(h => h.category === activeCategory);
+      filtered = filtered.filter((h: any) => h.category === activeCategory);
     }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(h =>
+      filtered = filtered.filter((h: any) =>
         h.title.toLowerCase().includes(term) ||
         (h.subtitle?.toLowerCase().includes(term)) ||
         (h.author?.toLowerCase().includes(term))
@@ -105,7 +105,7 @@ export default function Hymns() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredHymns.map((hymn) => {
+              {filteredHymns.map((hymn: any) => {
                 const cfg = categoryConfig[hymn.category] || categoryConfig.all;
                 return (
                   <Link key={hymn.id} href={`/hino/${hymn.id}`}>

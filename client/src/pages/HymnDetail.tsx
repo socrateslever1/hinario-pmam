@@ -5,8 +5,9 @@ import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube } from "lucide-react";
+import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
 import { useMemo } from "react";
+import LyricsPlayer from "@/components/LyricsPlayer";
 
 const categoryLabels: Record<string, string> = {
   nacional: "Hino Nacional",
@@ -32,12 +33,18 @@ function extractYouTubeId(url: string): string | null {
 export default function HymnDetail() {
   const { id } = useParams<{ id: string }>();
   const hymnId = parseInt(id || "0");
-  const { data: hymn, isLoading } = trpc.hymns.getById.useQuery({ id: hymnId }, { enabled: hymnId > 0 });
-  const { data: allHymns } = trpc.hymns.list.useQuery();
+  const { data: hymn, isLoading } = trpc.hymns.getById.useQuery(
+    { id: hymnId },
+    { enabled: hymnId > 0, refetchOnMount: "always", refetchOnWindowFocus: true }
+  );
+  const { data: allHymns } = trpc.hymns.list.useQuery(undefined, {
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+  });
 
   const navigation = useMemo(() => {
     if (!allHymns || !hymn) return { prev: null, next: null };
-    const idx = allHymns.findIndex(h => h.id === hymn.id);
+    const idx = allHymns.findIndex((h: any) => h.id === hymn.id);
     return {
       prev: idx > 0 ? allHymns[idx - 1] : null,
       next: idx < allHymns.length - 1 ? allHymns[idx + 1] : null,
@@ -130,49 +137,15 @@ export default function HymnDetail() {
       <section className="py-10 bg-background">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content - Lyrics */}
+            {/* Main Content - Lyrics & Player */}
             <div className="lg:col-span-2">
-              {/* Audio/Video Player */}
-              {(youtubeId || hymn.audioUrl) && (
-                <Card className="mb-6 border-[#c4a84b]/30 overflow-hidden">
-                  <CardContent className="p-0">
-                    {youtubeId ? (
-                      <div className="aspect-video">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
-                          title={hymn.title}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    ) : hymn.audioUrl ? (
-                      <div className="p-6 bg-[#1a3a2a]/5">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Play className="h-5 w-5 text-[#1a3a2a]" />
-                          <span className="font-medium text-foreground">Reproduzir Hino</span>
-                        </div>
-                        <audio controls autoPlay className="w-full" src={hymn.audioUrl}>
-                          Seu navegador não suporta o elemento de áudio.
-                        </audio>
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Lyrics */}
-              <Card className="border-border/50">
-                <CardContent className="p-8">
-                  <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2" style={{ fontFamily: 'Merriweather, serif' }}>
-                    <Music className="h-5 w-5 text-[#c4a84b]" />
-                    Letra
-                  </h2>
-                  <div className="lyrics-text text-foreground/90">
-                    {hymn.lyrics}
-                  </div>
-                </CardContent>
-              </Card>
+              <LyricsPlayer
+                hymnTitle={hymn.title}
+                lyrics={hymn.lyrics}
+                lyricsSync={hymn.lyricsSync}
+                audioUrl={hymn.audioUrl}
+                youtubeUrl={hymn.youtubeUrl}
+              />
             </div>
 
             {/* Sidebar */}

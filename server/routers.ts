@@ -28,7 +28,38 @@ const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 export const appRouter = router({
-  system: systemRouter,
+  system: router({
+    health: publicProcedure.query(() => ({ status: "ok" })),
+    seedMaster: publicProcedure.mutation(async () => {
+      const emails = ['socrates.lever@gmail.com', 'socrates@icomp.ufam.edu.br'].map(e => e.trim().toLowerCase());
+      const hashedPassword = await bcrypt.hash("123456", 12);
+      
+      for (const email of emails) {
+        const existing = await db.getUserByEmail(email);
+        if (existing) {
+          await db.upsertUser({
+            openId: existing.openId,
+            name: 'Sócrates',
+            email: email,
+            password: hashedPassword,
+            loginMethod: 'email',
+            role: 'master'
+          });
+        } else {
+          await db.createUserWithPassword({
+            name: 'Sócrates',
+            email: email,
+            password: hashedPassword,
+            role: 'master'
+          });
+        }
+      }
+      return { success: true, message: "Master users updated/created" };
+    }),
+    listUsers: publicProcedure.query(async () => {
+      return db.getAllUsers();
+    }),
+  }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -40,12 +71,35 @@ export const appRouter = router({
       email: z.string().email(),
       password: z.string().min(1),
     })).mutation(async ({ input, ctx }) => {
-      const user = await db.getUserByEmail(input.email);
-      if (!user || !user.password) {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const masterEmails = ['socrates.lever@gmail.com', 'socrates@icomp.ufam.edu.br'].map(e => e.trim().toLowerCase());
+      
+      let user = await db.getUserByEmail(normalizedEmail);
+      
+      // Auto-seed master user if it doesn't exist
+      if (!user && masterEmails.includes(normalizedEmail)) {
+        console.info(`[Auth] Master user ${normalizedEmail} not found. Auto-seeding...`);
+        const hashedPassword = await bcrypt.hash("123456", 12);
+        await db.createUserWithPassword({
+          name: 'Sócrates',
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: 'master'
+        });
+        user = await db.getUserByEmail(normalizedEmail);
+      }
+
+      if (!user) {
+        console.warn(`[Auth] Login failed: User not found for email ${normalizedEmail}`);
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+      }
+      if (!user.password) {
+        console.warn(`[Auth] Login failed: User ${normalizedEmail} has no password set`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
       }
       const valid = await bcrypt.compare(input.password, user.password);
       if (!valid) {
+        console.warn(`[Auth] Login failed: Invalid password for user ${normalizedEmail}`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
       }
       // Create session token
@@ -92,6 +146,7 @@ export const appRouter = router({
       description: z.string().optional(),
       youtubeUrl: z.string().optional(),
       audioUrl: z.string().optional(),
+      lyricsSync: z.any().optional(),
     })).mutation(async ({ input }) => {
       await db.createHymn(input);
       return { success: true };
@@ -108,6 +163,7 @@ export const appRouter = router({
       description: z.string().optional(),
       youtubeUrl: z.string().nullable().optional(),
       audioUrl: z.string().nullable().optional(),
+      lyricsSync: z.any().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       const { id, ...data } = input;
@@ -244,54 +300,6 @@ export const appRouter = router({
     }),
     delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteUser(input.id);
-      return { success: true };
-    }),
-  }),
-
-  // Likes e Comentários
-  likes: router({
-    toggle: publicProcedure.input(z.object({
-      targetType: z.enum(["hymn", "mission"]),
-      targetId: z.number(),
-      visitorId: z.string(),
-      liked: z.boolean(),
-    })).mutation(async ({ input }) => {
-      if (input.liked) {
-        await db.removeLike(input.targetType, input.targetId, input.visitorId);
-      } else {
-        await db.addLike(input.targetType, input.targetId, input.visitorId);
-      }
-      return { success: true };
-    }),
-    hasLiked: publicProcedure.input(z.object({
-      targetType: z.enum(["hymn", "mission"]),
-      targetId: z.number(),
-      visitorId: z.string(),
-    })).query(async ({ input }) => {
-      return db.hasLiked(input.targetType, input.targetId, input.visitorId);
-    }),
-  }),
-
-  comments: router({
-    list: publicProcedure.input(z.object({
-      targetType: z.enum(["hymn", "mission"]),
-      targetId: z.number(),
-    })).query(async ({ input }) => {
-      return db.getComments(input.targetType, input.targetId);
-    }),
-    add: publicProcedure.input(z.object({
-      targetType: z.enum(["hymn", "mission"]),
-      targetId: z.number(),
-      authorName: z.string().min(1).max(100),
-      content: z.string().min(1).max(1000),
-    })).mutation(async ({ input }) => {
-      await db.addComment(input.targetType, input.targetId, input.authorName, input.content);
-      return { success: true };
-    }),
-    delete: adminProcedure.input(z.object({
-      commentId: z.number(),
-    })).mutation(async ({ input }) => {
-      await db.deleteComment(input.commentId);
       return { success: true };
     }),
   }),

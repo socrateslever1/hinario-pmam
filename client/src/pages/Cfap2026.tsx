@@ -80,7 +80,7 @@ export default function Cfap2026() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {missions.map((mission) => {
+              {missions.map((mission: any) => {
                 const pCfg = priorityConfig[mission.priority] || priorityConfig.normal;
                 const PriorityIcon = pCfg.icon;
                 return (

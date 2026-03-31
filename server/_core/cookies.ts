@@ -39,10 +39,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // Browsers reject SameSite=None cookies unless Secure is also true.
+    // In local HTTP development we need Lax so email login can persist the session.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }
