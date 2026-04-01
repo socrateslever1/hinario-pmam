@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
   Play,
@@ -62,6 +63,46 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function formatEditableTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "";
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const centiseconds = Math.round((seconds - Math.floor(seconds)) * 100);
+
+  if (centiseconds === 100) {
+    return formatEditableTime(Math.round((seconds + 0.01) * 100) / 100);
+  }
+
+  return `${mins}:${secs.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
+}
+
+function parseEditableTime(value: string): number | null {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+
+  if (/^\d+(?:\.\d+)?$/.test(normalized)) {
+    const seconds = Number(normalized);
+    return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+  }
+
+  const parts = normalized.split(":");
+  if (parts.length === 2) {
+    const minutes = Number(parts[0]);
+    const seconds = Number(parts[1]);
+
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || minutes < 0 || seconds < 0) {
+      return null;
+    }
+
+    return Number((minutes * 60 + seconds).toFixed(2));
+  }
+
+  return null;
+}
+
 function findNextMarkableIndex(lines: string[], startIndex: number): number {
   for (let index = Math.max(0, startIndex); index < lines.length; index += 1) {
     if (!isLyricsSectionLabel(lines[index])) {
@@ -88,8 +129,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const [duration, setDuration] = useState(0);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [syncData, setSyncData] = useState<{ time: number; text: string }[]>([]);
+  const [timeDrafts, setTimeDrafts] = useState<Record<number, string>>({});
   const playerRef = useRef<MediaPlayerElement | null>(null);
-  const listContainerRef = useRef<HTMLDivElement>(null);
 
   const lines = useMemo(
     () => hymn.lyrics.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
@@ -118,9 +159,15 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     [syncData],
   );
 
+  const buildDraftMap = (entries: { time: number; text: string }[]) =>
+    Object.fromEntries(
+      entries.map((entry, index) => [index, entry.time >= 0 ? formatEditableTime(entry.time) : ""]),
+    );
+
   useEffect(() => {
     const normalizedSyncData = buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync);
     setSyncData(normalizedSyncData);
+    setTimeDrafts(buildDraftMap(normalizedSyncData));
     setCurrentLineIndex(getNextUnsyncedLineIndex(normalizedSyncData));
   }, [hymn.lyrics, hymn.lyricsSync]);
 
@@ -176,8 +223,65 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     }
   };
 
+  const updateLineTime = (index: number, nextTime: number) => {
+    if (index < 0 || index >= lines.length || isLyricsSectionLabel(lines[index])) {
+      return;
+    }
+
+    const safeTime = Math.max(0, Number(nextTime.toFixed(2)));
+    const nextSyncData = [...syncData];
+    while (nextSyncData.length < lines.length) {
+      nextSyncData.push({ time: -1, text: lines[nextSyncData.length] });
+    }
+
+    nextSyncData[index] = {
+      time: safeTime,
+      text: lines[index],
+    };
+
+    setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
+  };
+
+  const clearLineTime = (index: number) => {
+    if (index < 0 || index >= lines.length || isLyricsSectionLabel(lines[index])) {
+      return;
+    }
+
+    const nextSyncData = [...syncData];
+    while (nextSyncData.length < lines.length) {
+      nextSyncData.push({ time: -1, text: lines[nextSyncData.length] });
+    }
+
+    nextSyncData[index] = { time: -1, text: lines[index] };
+    setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
+    setCurrentLineIndex(index);
+  };
+
+  const applyDraftTime = (index: number) => {
+    const parsed = parseEditableTime(timeDrafts[index] ?? "");
+    if (parsed === null) {
+      toast.error("Informe um tempo válido. Ex.: 1:23.45");
+      return;
+    }
+
+    updateLineTime(index, parsed);
+    focusLine(index);
+  };
+
   const markCurrentLine = () => {
     if (normalizedCurrentLineIndex >= lines.length) return;
+    const alreadyMarked = (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
+
+    updateLineTime(normalizedCurrentLineIndex, currentTime);
+
+    if (!alreadyMarked) {
+      const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
+      setCurrentLineIndex(nextMarkable);
+    }
+
+    return;
 
     const nextSyncData = [...syncData];
     while (nextSyncData.length < lines.length) {
@@ -236,14 +340,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   }, [playing, currentLineIndex, currentTime, syncData, normalizedCurrentLineIndex, lines]);
 
   // Auto-scroll da lista para manter a linha ativa visível
-  useEffect(() => {
-    if (!listContainerRef.current) return;
-    const activeEl = listContainerRef.current.querySelector(`[data-line-index="${normalizedCurrentLineIndex}"]`);
-    if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [normalizedCurrentLineIndex]);
-
   const handleUndo = () => {
     const markedIndexes = syncData
       .map((entry, index) => ({ entry, index }))
@@ -259,6 +355,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     const nextSyncData = [...syncData];
     nextSyncData[targetIndex] = { time: -1, text: lines[targetIndex] };
     setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
     setCurrentLineIndex(targetIndex);
   };
 
@@ -267,7 +364,9 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       return;
     }
 
-    setSyncData(lines.map((text) => ({ time: -1, text })));
+    const resetData = lines.map((text) => ({ time: -1, text }));
+    setSyncData(resetData);
+    setTimeDrafts(buildDraftMap(resetData));
     setCurrentLineIndex(findNextMarkableIndex(lines, 0));
     setCurrentTime(0);
     setPlaying(false);
@@ -285,6 +384,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   };
 
   const url = hymn.audioUrl || hymn.youtubeUrl;
+  const selectedLineHasTime =
+    normalizedCurrentLineIndex < lines.length && (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
 
   if (!url) {
     return (
@@ -299,10 +400,10 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   }
 
   return (
-    <div className="flex h-full min-h-[600px] flex-col gap-6 p-1">
+    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden p-1">
       {/* Player e Controles Principais */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-4">
+      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
           <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10">
             <div className={hymn.youtubeUrl ? "aspect-video bg-black" : hymn.audioUrl ? "h-20 bg-gradient-to-r from-[#1a3a2a] to-[#10281d] flex items-center px-6" : "hidden"}>
               <Player
@@ -421,7 +522,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                          onClick={markCurrentLine}
                        >
                          <Zap className="mr-3 h-6 w-6 text-[#c4a84b] fill-[#c4a84b]" />
-                         MARCAR AGORA
+                         {selectedLineHasTime ? "ATUALIZAR TEMPO" : "MARCAR AGORA"}
                        </Button>
                        
                        <div className="flex gap-2">
@@ -461,7 +562,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         </div>
 
         {/* Lista Lateral com Scroll Independente */}
-        <div className="flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
+        <div className="flex min-h-0 flex-col">
           <Card className="flex flex-1 flex-col overflow-hidden border-0 bg-white shadow-xl ring-1 ring-black/5">
             <div className="flex items-center justify-between border-b bg-slate-50/50 px-4 py-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Lista Completa</span>
@@ -470,7 +571,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               </span>
             </div>
             
-            <CardContent className="flex-1 overflow-y-auto p-0" ref={listContainerRef}>
+            <CardContent className="flex-1 overflow-y-auto p-0">
               <div className="divide-y divide-slate-50">
                 {lines.map((line, index) => {
                   const isHeading = isLyricsSectionLabel(line);
@@ -487,30 +588,100 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                   }
 
                   return (
-                    <button
+                    <div
                       key={index}
                       data-line-index={index}
-                      className={`flex w-full flex-col gap-1 px-4 py-3 text-left transition-all ${
-                        isCurrent 
-                          ? "bg-[#1a3a2a] text-white shadow-inner" 
-                          : hasTime 
-                            ? "bg-white text-slate-600 hover:bg-slate-50" 
+                      className={`px-4 py-3 transition-all ${
+                        isCurrent
+                          ? "bg-[#1a3a2a] text-white shadow-inner"
+                          : hasTime
+                            ? "bg-white text-slate-600 hover:bg-slate-50"
                             : "bg-white text-slate-300 hover:bg-slate-50"
                       }`}
-                      onClick={() => focusLine(index)}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[10px] font-bold ${isCurrent ? "text-white/60" : "text-slate-300"}`}>
-                          #{index + 1}
-                        </span>
-                        {hasTime && (
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${isCurrent ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-                            {formatTime(syncEntry.time)}
+                      <button
+                        type="button"
+                        className="flex w-full flex-col gap-1 text-left"
+                        onClick={() => focusLine(index)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[10px] font-bold ${isCurrent ? "text-white/60" : "text-slate-300"}`}>
+                            #{index + 1}
                           </span>
+                          {hasTime && (
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${isCurrent ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                              {formatTime(syncEntry.time)}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm ${isCurrent ? "font-bold" : "font-medium"}`}>{line}</p>
+                      </button>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Input
+                          value={timeDrafts[index] ?? ""}
+                          onChange={(event) =>
+                            setTimeDrafts((current) => ({
+                              ...current,
+                              [index]: event.target.value,
+                            }))
+                          }
+                          onFocus={() => focusLine(index)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              applyDraftTime(index);
+                            }
+                          }}
+                          placeholder="0:00.00"
+                          className={`h-8 w-24 text-xs font-bold ${
+                            isCurrent
+                              ? "border-white/20 bg-white/10 text-white placeholder:text-white/40"
+                              : "border-slate-200 bg-slate-50 text-slate-700"
+                          }`}
+                        />
+                        <Button
+                          type="button"
+                          variant={isCurrent ? "secondary" : "outline"}
+                          size="sm"
+                          className="h-8 px-3 text-[10px] font-black uppercase"
+                          onClick={() => applyDraftTime(index)}
+                        >
+                          <Check className="mr-1 h-3 w-3" />
+                          Aplicar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={`h-8 px-3 text-[10px] font-black uppercase ${
+                            isCurrent
+                              ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
+                              : ""
+                          }`}
+                          onClick={() => {
+                            updateLineTime(index, currentTime);
+                            focusLine(index);
+                          }}
+                        >
+                          <Clock className="mr-1 h-3 w-3" />
+                          Usar Agora
+                        </Button>
+                        {hasTime && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 px-2 text-[10px] font-black uppercase ${
+                              isCurrent ? "text-white hover:bg-white/10 hover:text-white" : "text-red-500"
+                            }`}
+                            onClick={() => clearLineTime(index)}
+                          >
+                            Limpar
+                          </Button>
                         )}
                       </div>
-                      <p className={`text-sm ${isCurrent ? "font-bold" : "font-medium"}`}>{line}</p>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

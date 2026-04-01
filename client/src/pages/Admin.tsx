@@ -572,7 +572,7 @@ export default function Admin() {
                                 <Clock className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="h-[min(94vh,960px)] max-w-[96vw] w-[min(96vw,1280px)] gap-0 overflow-hidden p-0">
+                            <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
                               <DialogHeader className="border-b px-6 py-5 pr-14">
                                 <DialogTitle>Sincronizar Letra</DialogTitle>
                                 <p className="text-sm text-muted-foreground">{hymn.title}</p>
