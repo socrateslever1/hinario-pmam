@@ -73,8 +73,22 @@ function mapMission(m: any) {
     authorId: m.author_id,
     likesCount: m.likes_count,
     viewsCount: m.views_count,
+    commentsCount: Number(m.comments_count || 0),
+    visitorReacted: Boolean(m.visitor_reacted),
     createdAt: m.created_at,
     updatedAt: m.updated_at
+  };
+}
+
+function mapComment(c: any) {
+  if (!c) return c;
+  return {
+    id: c.id,
+    targetType: c.target_type,
+    targetId: c.target_id,
+    authorName: c.author_name,
+    content: c.content,
+    createdAt: c.created_at,
   };
 }
 
@@ -240,18 +254,73 @@ export async function deleteHymn(id: number) {
 }
 
 // ===== CFAP MISSIONS =====
-export async function getAllMissions() {
-  const rows = await query('SELECT * FROM pmam_cfap_missions ORDER BY created_at DESC');
+function buildMissionSelectSql(includeOnlyActive: boolean, includeVisitorReaction: boolean) {
+  const visitorReactionSelect = includeVisitorReaction
+    ? `, EXISTS(
+        SELECT 1
+        FROM pmam_likes likes
+        WHERE likes.target_type = 'mission'
+          AND likes.target_id = mission.id
+          AND likes.visitor_id = ?
+      ) AS visitor_reacted`
+    : ", 0 AS visitor_reacted";
+
+  const activeFilter = includeOnlyActive ? "WHERE mission.is_active = 1" : "";
+
+  return `
+    SELECT
+      mission.*,
+      (
+        SELECT COUNT(*)
+        FROM pmam_comments comments
+        WHERE comments.target_type = 'mission'
+          AND comments.target_id = mission.id
+      ) AS comments_count
+      ${visitorReactionSelect}
+    FROM pmam_cfap_missions mission
+    ${activeFilter}
+    ORDER BY mission.created_at DESC
+  `;
+}
+
+export async function getAllMissions(visitorId?: string | null) {
+  const rows = await query(
+    buildMissionSelectSql(false, Boolean(visitorId)),
+    visitorId ? [visitorId] : []
+  );
   return rows.map(mapMission);
 }
 
-export async function getActiveMissions() {
-  const rows = await query('SELECT * FROM pmam_cfap_missions WHERE is_active = 1 ORDER BY created_at DESC');
+export async function getActiveMissions(visitorId?: string | null) {
+  const rows = await query(
+    buildMissionSelectSql(true, Boolean(visitorId)),
+    visitorId ? [visitorId] : []
+  );
   return rows.map(mapMission);
 }
 
-export async function getMissionById(id: number) {
-  const rows = await query('SELECT * FROM pmam_cfap_missions WHERE id = ? LIMIT 1', [id]);
+export async function getMissionById(id: number, visitorId?: string | null) {
+  const sql = `
+    SELECT
+      mission.*,
+      (
+        SELECT COUNT(*)
+        FROM pmam_comments comments
+        WHERE comments.target_type = 'mission'
+          AND comments.target_id = mission.id
+      ) AS comments_count
+      ${visitorId ? `, EXISTS(
+        SELECT 1
+        FROM pmam_likes likes
+        WHERE likes.target_type = 'mission'
+          AND likes.target_id = mission.id
+          AND likes.visitor_id = ?
+      ) AS visitor_reacted` : ", 0 AS visitor_reacted"}
+    FROM pmam_cfap_missions mission
+    WHERE mission.id = ?
+    LIMIT 1
+  `;
+  const rows = await query(sql, visitorId ? [visitorId, id] : [id]);
   return mapMission(rows[0]);
 }
 
@@ -307,6 +376,65 @@ export async function updateMission(id: number, mission: any) {
 
 export async function deleteMission(id: number) {
   await query('DELETE FROM pmam_cfap_missions WHERE id = ?', [id]);
+}
+
+export async function getMissionComments(missionId: number) {
+  const rows = await query(
+    `SELECT * FROM pmam_comments
+     WHERE target_type = 'mission' AND target_id = ?
+     ORDER BY created_at DESC, id DESC`,
+    [missionId]
+  );
+
+  return rows.map(mapComment);
+}
+
+export async function createMissionComment(missionId: number, authorName: string, content: string) {
+  await query(
+    `INSERT INTO pmam_comments (target_type, target_id, author_name, content)
+     VALUES ('mission', ?, ?, ?)`,
+    [missionId, authorName.trim(), content.trim()]
+  );
+}
+
+export async function toggleMissionReaction(missionId: number, visitorId: string) {
+  const existing = await query(
+    `SELECT id FROM pmam_likes
+     WHERE target_type = 'mission' AND target_id = ? AND visitor_id = ?
+     LIMIT 1`,
+    [missionId, visitorId]
+  );
+
+  let reacted = false;
+
+  if (existing[0]?.id) {
+    await query(`DELETE FROM pmam_likes WHERE id = ?`, [existing[0].id]);
+  } else {
+    await query(
+      `INSERT INTO pmam_likes (target_type, target_id, visitor_id)
+       VALUES ('mission', ?, ?)`,
+      [missionId, visitorId]
+    );
+    reacted = true;
+  }
+
+  const countRows = await query(
+    `SELECT COUNT(*) AS total
+     FROM pmam_likes
+     WHERE target_type = 'mission' AND target_id = ?`,
+    [missionId]
+  );
+
+  const likesCount = Number(countRows[0]?.total || 0);
+
+  await query(
+    `UPDATE pmam_cfap_missions
+     SET likes_count = ?, updated_at = updated_at
+     WHERE id = ?`,
+    [likesCount, missionId]
+  );
+
+  return { reacted, likesCount };
 }
 
 // ===== SITE SETTINGS =====

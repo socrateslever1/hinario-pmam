@@ -283,6 +283,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
     return;
 
+
     const nextSyncData = [...syncData];
     while (nextSyncData.length < lines.length) {
       nextSyncData.push({ time: -1, text: lines[nextSyncData.length] });

@@ -47,8 +47,19 @@ export interface CfapMission {
   authorId: number | null;
   likesCount: number;
   viewsCount: number;
+  commentsCount?: number;
+  visitorReacted?: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface PublicComment {
+  id: number;
+  targetType: 'hymn' | 'mission';
+  targetId: number;
+  authorName: string;
+  content: string;
+  createdAt: Date | string;
 }
 
 export * from "./_core/errors";

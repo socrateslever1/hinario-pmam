@@ -177,16 +177,52 @@ export const appRouter = router({
   }),
 
   missions: router({
-    list: publicProcedure.query(async () => {
-      return db.getActiveMissions();
+    list: publicProcedure.input(
+      z.object({
+        visitorId: z.string().trim().min(8).max(128).optional(),
+      }).optional()
+    ).query(async ({ input }) => {
+      return db.getActiveMissions(input?.visitorId);
     }),
     listAll: adminProcedure.query(async () => {
       return db.getAllMissions();
     }),
-    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
-      const mission = await db.getMissionById(input.id);
+    getById: publicProcedure.input(z.object({
+      id: z.number(),
+      visitorId: z.string().trim().min(8).max(128).optional(),
+    })).query(async ({ input }) => {
+      const mission = await db.getMissionById(input.id, input.visitorId);
       if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
       return mission;
+    }),
+    comments: publicProcedure.input(z.object({
+      missionId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getMissionComments(input.missionId);
+    }),
+    addComment: publicProcedure.input(z.object({
+      missionId: z.number(),
+      authorName: z.string().trim().min(2).max(80),
+      content: z.string().trim().min(2).max(1000),
+    })).mutation(async ({ input }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission || !mission.isActive) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado nÃ£o encontrado" });
+      }
+
+      await db.createMissionComment(input.missionId, input.authorName, input.content);
+      return { success: true };
+    }),
+    toggleReaction: publicProcedure.input(z.object({
+      missionId: z.number(),
+      visitorId: z.string().trim().min(8).max(128),
+    })).mutation(async ({ input }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission || !mission.isActive) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado nÃ£o encontrado" });
+      }
+
+      return db.toggleMissionReaction(input.missionId, input.visitorId);
     }),
     create: adminProcedure.input(z.object({
       title: z.string(),
