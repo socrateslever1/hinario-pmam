@@ -554,7 +554,7 @@ export default function Admin() {
                             </DrawerTrigger>
                             <DrawerContent className="h-[94vh] max-h-[94vh]">
                               <DrawerHeader className="border-b pb-4 text-left">
-                                <DrawerTitle>Sincronizar Letra</DrawerTitle>
+                                <DrawerTitle className="text-lg font-bold">Sincronizar Letra</DrawerTitle>
                                 <p className="text-sm text-muted-foreground">{hymn.title}</p>
                               </DrawerHeader>
                               <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">

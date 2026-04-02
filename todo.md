@@ -33,3 +33,8 @@
 - [x] Contador de acessos/visualizações nas missões - backend pronto
 - [x] Moderação de comentários pelo Xerife (apagar) - backend pronto
 - [x] Bug: DialogTitle faltando no diálogo da página CFAP 2026
+- [ ] Corrigir player de música (investigar problemas)
+- [ ] Corrigir editor de Sincronizar Letra (investigar problemas)
+- [ ] Melhorar responsividade do player e editor
+- [ ] Otimizar ferramenta de sincronia dos hinos
+- [ ] Testar sincronia com hinos conhecidos
