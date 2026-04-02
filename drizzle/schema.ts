@@ -42,6 +42,7 @@ export const cfapMissions = mysqlTable("cfap_missions", {
   id: int("id").autoincrement().primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
+  attachmentsJson: text("attachmentsJson"),
   priority: mysqlEnum("priority", ["normal", "urgente", "critica"]).default("normal").notNull(),
   status: mysqlEnum("status", ["ativa", "cumprida", "inativa"]).default("ativa").notNull(),
   dueDate: date("dueDate"),

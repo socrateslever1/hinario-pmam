@@ -49,8 +49,18 @@ export interface CfapMission {
   viewsCount: number;
   commentsCount?: number;
   visitorReacted?: boolean;
+  attachments?: MissionAttachment[];
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface MissionAttachment {
+  id: string;
+  name: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  kind: 'image' | 'pdf' | 'file';
 }
 
 export interface PublicComment {
