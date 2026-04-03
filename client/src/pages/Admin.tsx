@@ -1,12 +1,11 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import type { MissionAttachment } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,7 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock, ImageIcon, Loader2, Paperclip, X
+  Clock
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
@@ -40,55 +39,6 @@ const priorityOptions = [
   { value: "urgente", label: "Urgente" },
   { value: "critica", label: "Crítica" },
 ];
-
-const MAX_MISSION_ATTACHMENTS = 12;
-const MAX_MISSION_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
-
-function formatFileSize(sizeBytes: number) {
-  if (sizeBytes >= 1024 * 1024) {
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  if (sizeBytes >= 1024) {
-    return `${Math.round(sizeBytes / 1024)} KB`;
-  }
-
-  return `${sizeBytes} B`;
-}
-
-function getDefaultMissionFormState(mission?: any) {
-  return {
-    title: mission?.title ?? "",
-    content: mission?.content ?? "",
-    priority: mission?.priority ?? "normal",
-    attachments: Array.isArray(mission?.attachments) ? mission.attachments : ([] as MissionAttachment[]),
-  };
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result !== "string") {
-        reject(new Error(`NÃ£o foi possÃ­vel ler ${file.name}`));
-        return;
-      }
-
-      const base64 = reader.result.split(",")[1];
-
-      if (!base64) {
-        reject(new Error(`NÃ£o foi possÃ­vel converter ${file.name}`));
-        return;
-      }
-
-      resolve(base64);
-    };
-
-    reader.onerror = () => reject(new Error(`Falha ao ler ${file.name}`));
-    reader.readAsDataURL(file);
-  });
-}
 
 function getDefaultHymnFormState(hymn?: any) {
   return {
@@ -188,86 +138,11 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
 }
 
 function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState(() => getDefaultMissionFormState(mission));
-  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
-  const uploadAttachmentMut = trpc.missions.uploadAttachment.useMutation({
-    onError: (e) => toast.error(e.message),
+  const [form, setForm] = useState({
+    title: mission?.title ?? "",
+    content: mission?.content ?? "",
+    priority: mission?.priority ?? "normal",
   });
-
-  useEffect(() => {
-    setForm(getDefaultMissionFormState(mission));
-    setUploadingFiles([]);
-  }, [mission]);
-
-  const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = "";
-
-    if (files.length === 0) return;
-
-    const remainingSlots = MAX_MISSION_ATTACHMENTS - form.attachments.length;
-
-    if (remainingSlots <= 0) {
-      toast.error(`Limite de ${MAX_MISSION_ATTACHMENTS} anexos por comunicado.`);
-      return;
-    }
-
-    const selectedFiles = files.slice(0, remainingSlots);
-
-    if (files.length > remainingSlots) {
-      toast.error(`Apenas ${remainingSlots} arquivo(s) cabem neste comunicado.`);
-    }
-
-    const validFiles = selectedFiles.filter(file => {
-      if (file.size > MAX_MISSION_ATTACHMENT_SIZE_BYTES) {
-        toast.error(`${file.name} excede o limite de 10 MB.`);
-        return false;
-      }
-
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    setUploadingFiles(validFiles.map(file => file.name));
-
-    try {
-      const uploadedAttachments: MissionAttachment[] = [];
-
-      for (const file of validFiles) {
-        const fileBase64 = await fileToBase64(file);
-        const response = await uploadAttachmentMut.mutateAsync({
-          fileName: file.name,
-          fileBase64,
-          contentType: file.type || "application/octet-stream",
-        });
-
-        uploadedAttachments.push(response.attachment);
-      }
-
-      setForm(current => ({
-        ...current,
-        attachments: [...current.attachments, ...uploadedAttachments],
-      }));
-
-      toast.success(
-        uploadedAttachments.length === 1
-          ? "Anexo enviado."
-          : `${uploadedAttachments.length} anexos enviados.`
-      );
-    } catch (error) {
-      console.error("[Mission Attachment Upload]", error);
-    } finally {
-      setUploadingFiles([]);
-    }
-  };
-
-  const removeAttachment = (attachmentId: string) => {
-    setForm(current => ({
-      ...current,
-      attachments: current.attachments.filter(attachment => attachment.id !== attachmentId),
-    }));
-  };
 
   const utils = trpc.useUtils();
   const createMut = trpc.missions.create.useMutation({
@@ -286,10 +161,10 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
     else { createMut.mutate({ ...form, priority: form.priority as any }); }
   };
 
-  const saving = createMut.isPending || updateMut.isPending || uploadAttachmentMut.isPending;
+  const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
       <div><Label>Prioridade</Label>
         <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
@@ -402,12 +277,7 @@ function UsersTab() {
             <Button className="bg-[#c4a84b] text-[#1a1a1a] gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
-              <DialogDescription>
-                Preencha os campos abaixo para adicionar um novo administrador ou usuário ao sistema.
-              </DialogDescription>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Criar Novo Usuário</DialogTitle></DialogHeader>
             <form onSubmit={(e) => { e.preventDefault(); createUser.mutate(newUser); }} className="space-y-4">
               <div><Label>Nome *</Label><Input value={newUser.name} onChange={e => setNewUser(f => ({ ...f, name: e.target.value }))} required /></div>
               <div><Label>Email *</Label><Input type="email" value={newUser.email} onChange={e => setNewUser(f => ({ ...f, email: e.target.value }))} required /></div>
@@ -648,12 +518,7 @@ export default function Admin() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle>
-                      <DialogDescription>
-                        {editingHymn ? "Altere as informações do hino selecionado." : "Cadastre um novo hino ou canção militar no banco de dados."}
-                      </DialogDescription>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle></DialogHeader>
                     <HymnForm key={editingHymn?.id ?? "new"} hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
@@ -689,10 +554,8 @@ export default function Admin() {
                             </DrawerTrigger>
                             <DrawerContent className="h-[94vh] max-h-[94vh]">
                               <DrawerHeader className="border-b pb-4 text-left">
-                                <DrawerTitle className="text-lg font-bold">Sincronizar Letra</DrawerTitle>
-                                <DialogDescription className="text-sm text-muted-foreground">
-                                  {hymn.title}
-                                </DialogDescription>
+                                <DrawerTitle>Sincronizar Letra</DrawerTitle>
+                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
                               </DrawerHeader>
                               <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
                                 <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
@@ -712,9 +575,7 @@ export default function Admin() {
                             <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
                               <DialogHeader className="border-b px-6 py-5 pr-14">
                                 <DialogTitle>Sincronizar Letra</DialogTitle>
-                                <DialogDescription className="text-sm text-muted-foreground">
-                                  {hymn.title}
-                                </DialogDescription>
+                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
                               </DialogHeader>
                               <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
                                 <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
@@ -748,12 +609,7 @@ export default function Admin() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle>
-                      <DialogDescription>
-                        {editingMission ? "Atualize os detalhes do comunicado ou missão." : "Publique uma nova missão ou comunicado para as unidades."}
-                      </DialogDescription>
-                    </DialogHeader>
+                    <DialogHeader><DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle></DialogHeader>
                     <MissionForm mission={editingMission} onSuccess={() => setMissionDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
