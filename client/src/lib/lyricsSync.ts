@@ -12,8 +12,7 @@ type KnownLyricsSyncTemplate = {
 
 function splitLyrics(lyrics: string): string[] {
   return lyrics
-    .split(/?
-/)
+    .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
 }
@@ -21,9 +20,9 @@ function splitLyrics(lyrics: string): string[] {
 function normalizeText(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[Ì€-Í¯]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
-    .replace(/s+/g, " ")
+    .replace(/\s+/g, " ")
     .toLowerCase();
 }
 
@@ -31,61 +30,61 @@ const KNOWN_LYRICS_SYNC_TEMPLATES: KnownLyricsSyncTemplate[] = [
   {
     hymnTitle: "Hino Nacional Brasileiro",
     lines: [
-      { time: 21, text: "Ouviram do Ipiranga as margens pl?cidas" },
+      { time: 21, text: "Ouviram do Ipiranga as margens plácidas" },
       { time: 25, text: "De um povo heroico o brado retumbante" },
-      { time: 29, text: "E o Sol da liberdade, em raios f?lgidos" },
-      { time: 33, text: "Brilhou no c?u da p?tria nesse instante" },
+      { time: 29, text: "E o Sol da liberdade, em raios fúlgidos" },
+      { time: 33, text: "Brilhou no céu da pátria nesse instante" },
       { time: 37, text: "Se o penhor dessa igualdade" },
-      { time: 41, text: "Conseguimos conquistar com bra?o forte" },
-      { time: 45, text: "Em teu seio, ? liberdade" },
-      { time: 49, text: "Desafia o nosso peito a pr?pria morte!" },
-      { time: 53, text: "? P?tria amada" },
+      { time: 41, text: "Conseguimos conquistar com braço forte" },
+      { time: 45, text: "Em teu seio, ó liberdade" },
+      { time: 49, text: "Desafia o nosso peito a própria morte!" },
+      { time: 53, text: "Ó Pátria amada" },
       { time: 56, text: "Idolatrada" },
       { time: 59, text: "Salve! Salve!" },
-      { time: 63, text: "Brasil, um sonho intenso, um raio v?vido" },
-      { time: 67, text: "De amor e de esperan?a ? terra desce" },
-      { time: 71, text: "Se em teu formoso c?u, risonho e l?mpido" },
+      { time: 63, text: "Brasil, um sonho intenso, um raio vívido" },
+      { time: 67, text: "De amor e de esperança à terra desce" },
+      { time: 71, text: "Se em teu formoso céu, risonho e límpido" },
       { time: 75, text: "A imagem do Cruzeiro resplandece" },
-      { time: 79, text: "Gigante pela pr?pria natureza" },
-      { time: 83, text: "?s belo, ?s forte, imp?vido colosso" },
+      { time: 79, text: "Gigante pela própria natureza" },
+      { time: 83, text: "És belo, és forte, impávido colosso" },
       { time: 87, text: "E o teu futuro espelha essa grandeza" },
       { time: 91, text: "Terra adorada" },
       { time: 94, text: "Entre outras mil" },
-      { time: 97, text: "?s tu, Brasil" },
-      { time: 100, text: "? P?tria amada!" },
-      { time: 103, text: "Dos filhos deste solo ?s m?e gentil" },
-      { time: 107, text: "P?tria amada Brasil!" },
-      { time: 123, text: "Deitado eternamente em ber?o espl?ndido" },
-      { time: 127, text: "Ao som do mar e ? luz do c?u profundo" },
-      { time: 131, text: "Fulguras, ? Brasil, flor?o da Am?rica" },
+      { time: 97, text: "És tu, Brasil" },
+      { time: 100, text: "Ó Pátria amada!" },
+      { time: 103, text: "Dos filhos deste solo és mãe gentil" },
+      { time: 107, text: "Pátria amada Brasil!" },
+      { time: 123, text: "Deitado eternamente em berço esplêndido" },
+      { time: 127, text: "Ao som do mar e à luz do céu profundo" },
+      { time: 131, text: "Fulguras, ó Brasil, florão da América" },
       { time: 135, text: "Iluminado ao Sol do Novo Mundo!" },
       { time: 139, text: "Do que a terra mais garrida" },
-      { time: 143, text: "Teus risonhos, lindos campos t?m mais flores" },
-      { time: 147, text: "Nossos bosques t?m mais vida" },
+      { time: 143, text: "Teus risonhos, lindos campos têm mais flores" },
+      { time: 147, text: "Nossos bosques têm mais vida" },
       { time: 151, text: "Nossa vida, no teu seio, mais amores" },
-      { time: 155, text: "? P?tria amada" },
+      { time: 155, text: "Ó Pátria amada" },
       { time: 158, text: "Idolatrada" },
       { time: 161, text: "Salve! Salve!" },
-      { time: 165, text: "Brasil, de amor eterno seja s?mbolo" },
-      { time: 169, text: "O l?baro que ostentas estrelado" },
-      { time: 173, text: "E diga o verde-louro dessa fl?mula" },
-      { time: 177, text: "Paz no futuro e gl?ria no passado" },
-      { time: 181, text: "Mas, se ergues da justi?a a clava forte" },
-      { time: 185, text: "Ver?s que um filho teu n?o foge ? luta" },
-      { time: 189, text: "Nem teme, quem te adora, a pr?pria morte" },
+      { time: 165, text: "Brasil, de amor eterno seja símbolo" },
+      { time: 169, text: "O lábaro que ostentas estrelado" },
+      { time: 173, text: "E diga o verde-louro dessa flâmula" },
+      { time: 177, text: "Paz no futuro e glória no passado" },
+      { time: 181, text: "Mas, se ergues da justiça a clava forte" },
+      { time: 185, text: "Verás que um filho teu não foge à luta" },
+      { time: 189, text: "Nem teme, quem te adora, a própria morte" },
       { time: 193, text: "Terra adorada" },
       { time: 196, text: "Entre outras mil" },
-      { time: 199, text: "?s tu, Brasil" },
-      { time: 202, text: "? P?tria amada!" },
-      { time: 205, text: "Dos filhos deste solo ?s m?e gentil" },
-      { time: 209, text: "P?tria amada Brasil!" },
+      { time: 199, text: "És tu, Brasil" },
+      { time: 202, text: "Ó Pátria amada!" },
+      { time: 205, text: "Dos filhos deste solo és mãe gentil" },
+      { time: 209, text: "Pátria amada Brasil!" },
     ],
   },
 ];
 
 export function isLyricsSectionLabel(text: string): boolean {
   const normalized = normalizeText(text);
-  return /^(?:d+(?:?|a|o)? parte|parte d+|refrao|coro|estrofe|i{1,3}|iv|v|vi{0,3}|ix|x)$/.test(
+  return /^(?:\d+(?:ª|a|o)? parte|parte \d+|refrao|coro|estrofe|i{1,3}|iv|v|vi{0,3}|ix|x)$/.test(
     normalized,
   );
 }
@@ -186,7 +185,7 @@ export function buildKnownLyricsSyncLines(hymnTitle: string, lyrics: string): Ly
 }
 
 function getEstimatedWeight(text: string): number {
-  const compactText = text.replace(/s+/g, " ").trim();
+  const compactText = text.replace(/\s+/g, " ").trim();
   if (!compactText) return 8;
 
   return Math.max(18, Math.min(80, compactText.length + 10));

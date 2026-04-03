@@ -101,7 +101,7 @@ export async function upsertUser(user: any): Promise<void> {
   const normalizedEmail = typeof user.email === "string"
     ? user.email.trim().toLowerCase()
     : null;
-  const resolvedRole = user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : undefined);
+  const resolvedRole = user.role ?? (user.openId === ENV.ownerOpenId ? "master" : undefined);
 
   const columns = ["open_id", "last_signed_in"];
   const placeholders = ["?", "?"];

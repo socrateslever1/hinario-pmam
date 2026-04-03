@@ -91,8 +91,19 @@ export const appRouter = router({
 
       if (!user) {
         console.warn(`[Auth] Login failed: User not found for email ${normalizedEmail}`);
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inv?lidos" });
       }
+
+      if (masterEmails.includes(normalizedEmail) && user.role !== 'master') {
+        console.info(`[Auth] Promoting ${normalizedEmail} to master role during login.`);
+        await db.upsertUser({
+          openId: user.openId,
+          email: normalizedEmail,
+          role: 'master',
+        });
+        user = await db.getUserByEmail(normalizedEmail);
+      }
+
       if (!user.password) {
         console.warn(`[Auth] Login failed: User ${normalizedEmail} has no password set`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
