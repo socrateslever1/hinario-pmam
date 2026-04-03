@@ -12,11 +12,8 @@ import {
   Music,
   Trash2,
   CheckCircle2,
-  SkipBack,
-  SkipForward,
   Minus,
   Plus,
-  Youtube,
   Check,
   Zap,
   ChevronLeft,
@@ -27,6 +24,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
+  buildAutomaticLyricsSyncLines,
   buildLyricsSyncLines,
   getNextUnsyncedLineIndex,
   hasLyricsSyncData,
@@ -181,10 +179,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     onError: (error) => toast.error(error.message),
   });
 
-  const syncMediaState = (media?: MediaPlayerElement | null) => {
+  const readMediaState = (media = playerRef.current) => {
     if (!media) return;
-
-    playerRef.current = media;
 
     if (Number.isFinite(media.currentTime)) {
       setCurrentTime(media.currentTime);
@@ -193,6 +189,13 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     if (Number.isFinite(media.duration) && media.duration > 0) {
       setDuration(media.duration);
     }
+  };
+
+  const syncMediaState = (media?: MediaPlayerElement | null) => {
+    if (!media) return;
+
+    playerRef.current = media;
+    readMediaState(media);
   };
 
   const seekTo = (time: number) => {
@@ -209,6 +212,31 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   const nudgeTime = (delta: number) => {
     seekTo(currentTime + delta);
+  };
+
+  const applyAutomaticSync = () => {
+    if (!(duration > 0)) {
+      toast.error("D? play e aguarde a dura??o da m?dia carregar antes do auto-sync.");
+      return;
+    }
+
+    const nextSyncData = buildAutomaticLyricsSyncLines(hymn.title, hymn.lyrics, duration);
+
+    if (!hasLyricsSyncData(nextSyncData)) {
+      toast.error("N?o foi poss?vel gerar uma sincroniza??o autom?tica para este hino.");
+      return;
+    }
+
+    setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
+    setCurrentLineIndex(getNextUnsyncedLineIndex(nextSyncData));
+
+    const firstTimedLine = nextSyncData.find((entry) => entry.time >= 0 && !isLyricsSectionLabel(entry.text));
+    if (firstTimedLine) {
+      seekTo(firstTimedLine.time);
+    }
+
+    toast.success("Sincroniza??o autom?tica aplicada. Revise e salve se estiver tudo certo.");
   };
 
   const focusLine = (index: number) => {
@@ -280,25 +308,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
       setCurrentLineIndex(nextMarkable);
     }
-
-    return;
-
-
-    const nextSyncData = [...syncData];
-    while (nextSyncData.length < lines.length) {
-      nextSyncData.push({ time: -1, text: lines[nextSyncData.length] });
-    }
-
-    nextSyncData[normalizedCurrentLineIndex] = {
-      time: currentTime,
-      text: lines[normalizedCurrentLineIndex],
-    };
-
-    setSyncData(nextSyncData);
-    
-    // Avançar para a próxima linha que pode ser marcada
-    const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
-    setCurrentLineIndex(nextMarkable);
   };
 
   useEffect(() => {
@@ -340,7 +349,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [playing, currentLineIndex, currentTime, syncData, normalizedCurrentLineIndex, lines]);
 
-  // Auto-scroll da lista para manter a linha ativa visível
   const handleUndo = () => {
     const markedIndexes = syncData
       .map((entry, index) => ({ entry, index }))
@@ -384,7 +392,21 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     });
   };
 
-  const url = hymn.audioUrl || hymn.youtubeUrl;
+  const url = hymn.youtubeUrl || hymn.audioUrl;
+
+  useEffect(() => {
+    if (!url) {
+      return;
+    }
+
+    readMediaState();
+
+    const interval = window.setInterval(() => {
+      readMediaState();
+    }, playing ? 100 : 300);
+
+    return () => window.clearInterval(interval);
+  }, [playing, url]);
   const selectedLineHasTime =
     normalizedCurrentLineIndex < lines.length && (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
 
@@ -402,7 +424,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden p-1">
-      {/* Player e Controles Principais */}
       <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
           <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10">
@@ -458,6 +479,9 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={applyAutomaticSync} disabled={!(duration > 0)} className="border-[#c4a84b]/30 bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90">
+                    <Clock className="mr-2 h-4 w-4" /> Sincroniza??o autom?tica
+                  </Button>
                   <div className="flex items-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/60 hover:text-white" onClick={() => nudgeTime(-1)}>
                        <ChevronLeft className="h-4 w-4" />
@@ -497,7 +521,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             </CardContent>
           </Card>
 
-          {/* Foco Central de Marcação */}
           <Card className="relative overflow-hidden border-0 bg-white shadow-2xl ring-1 ring-black/5">
              <div className="absolute top-0 h-1.5 w-full bg-[#c4a84b]" />
              <CardContent className="p-6 md:p-8">
@@ -562,7 +585,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           </Card>
         </div>
 
-        {/* Lista Lateral com Scroll Independente */}
         <div className="flex min-h-0 flex-col">
           <Card className="flex flex-1 flex-col overflow-hidden border-0 bg-white shadow-xl ring-1 ring-black/5">
             <div className="flex items-center justify-between border-b bg-slate-50/50 px-4 py-3">

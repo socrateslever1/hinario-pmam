@@ -1,29 +1,38 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 import { Card, CardContent } from "@/components/ui/card";
 import { Music, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import {
+  buildAutomaticLyricsSyncLines,
   buildLyricsSyncLines,
-  estimateLyricsSyncLines,
   hasLyricsSyncData,
   isLyricsSectionLabel,
   type LyricsSyncInput,
 } from "@/lib/lyricsSync";
 
-type LyricsPlayerProps = {
+const Player = ReactPlayer as any;
+
+type MediaPlayerElement = HTMLMediaElement & {
+  currentTime: number;
+  duration: number;
+};
+
+interface LyricsPlayerProps {
   hymnTitle: string;
   lyrics: string;
   lyricsSync?: LyricsSyncInput;
   audioUrl?: string | null;
   youtubeUrl?: string | null;
-};
+}
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "0:00";
   }
+
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
@@ -43,7 +52,7 @@ export default function LyricsPlayer({
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(true);
 
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<MediaPlayerElement | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const mediaUrl = youtubeUrl || audioUrl || null;
 
@@ -53,8 +62,9 @@ export default function LyricsPlayer({
     if (hasManualSync) {
       return manualLines;
     }
-    return estimateLyricsSyncLines(lyrics, duration);
-  }, [duration, hasManualSync, lyrics, manualLines]);
+
+    return buildAutomaticLyricsSyncLines(hymnTitle, lyrics, duration);
+  }, [duration, hasManualSync, hymnTitle, lyrics, manualLines]);
   const hasSync = useMemo(() => hasLyricsSyncData(lines), [lines]);
 
   useEffect(() => {
@@ -73,13 +83,16 @@ export default function LyricsPlayer({
     }
 
     let nextIndex = -1;
+
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
-      if (line.time >= 0 && !isLyricsSectionLabel(line.text) && currentTime + 0.15 >= line.time) {
+
+      if (line.time >= 0 && !isLyricsSectionLabel(line.text) && currentTime + 0.08 >= line.time) {
         nextIndex = index;
         continue;
       }
-      if (line.time >= 0 && currentTime + 0.15 < line.time) {
+
+      if (line.time >= 0 && currentTime + 0.08 < line.time) {
         break;
       }
     }
@@ -112,130 +125,149 @@ export default function LyricsPlayer({
     }
 
     const targetScroll = elementTop - container.clientHeight * 0.22;
+
     container.scrollTo({
       top: Math.max(0, targetScroll),
       behavior: "smooth",
     });
   }, [activeLineIndex, autoScroll]);
 
-  const handleProgress = useCallback((state: any) => {
-    if (typeof state?.playedSeconds === 'number') {
-      setCurrentTime(state.playedSeconds);
-    }
-  }, []);
+  const readMediaState = (media = playerRef.current) => {
+    if (!media) return;
 
-  const handleDuration = useCallback((duration: any) => {
-    if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) {
-      setDuration(duration);
+    if (Number.isFinite(media.currentTime)) {
+      setCurrentTime(media.currentTime);
     }
-  }, []);
 
-  const seekTo = useCallback((time: number) => {
+    if (Number.isFinite(media.duration) && media.duration > 0) {
+      setDuration(media.duration);
+    }
+  };
+
+  const syncMediaState = (media?: MediaPlayerElement | null) => {
+    if (!media) return;
+    playerRef.current = media;
+    readMediaState(media);
+  };
+
+  useEffect(() => {
+    if (!mediaUrl) {
+      return;
+    }
+
+    readMediaState();
+
+    const interval = window.setInterval(() => {
+      readMediaState();
+    }, playing ? 100 : 300);
+
+    return () => window.clearInterval(interval);
+  }, [mediaUrl, playing]);
+
+  const seekTo = (time: number) => {
     if (!playerRef.current) return;
-    const safeTime = Math.max(0, Math.min(duration, time));
-    playerRef.current.seekTo(safeTime, "seconds");
+
+    const safeTime = Math.max(0, Math.min(duration || time, time));
+    playerRef.current.currentTime = safeTime;
     setCurrentTime(safeTime);
-  }, [duration]);
+  };
 
-  const handleSeek = useCallback((values: number[]) => {
+  const handleSeek = (values: number[]) => {
     seekTo(values[0] ?? 0);
-  }, [seekTo]);
+  };
 
-  const handleLineClick = useCallback((time: number) => {
+  const handleLineClick = (time: number) => {
     if (time < 0 || !mediaUrl) return;
+
     seekTo(time);
     setPlaying(true);
-  }, [mediaUrl, seekTo]);
+  };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 px-4 md:px-0">
+    <div className="mx-auto max-w-4xl space-y-5">
       <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
         <CardContent className="p-0">
-          {youtubeUrl && (
-            <div className="aspect-video w-full bg-black">
-              {/* @ts-expect-error - ReactPlayer types are not fully compatible */}
-              <ReactPlayer
+          {youtubeUrl ? (
+            <div className="aspect-video bg-black">
+              <Player
                 ref={playerRef as any}
-                url={youtubeUrl as any}
+                src={youtubeUrl}
                 playing={playing}
                 volume={volume}
                 muted={volume === 0}
                 playsInline
                 width="100%"
                 height="100%"
-                onReady={() => {}}
-                onProgress={handleProgress}
-                onDuration={handleDuration}
+                onReady={() => syncMediaState(playerRef.current)}
+                onTimeUpdate={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
+                onDurationChange={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onEnded={() => setPlaying(false)}
-                progressInterval={100}
-                config={{ youtube: { playerVars: { rel: 0, modestbranding: 1 } } as any }}
+                config={{ youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }}
               />
             </div>
-          )}
-          {audioUrl && !youtubeUrl && (
-            <div className="hidden">
-              {/* @ts-expect-error */}
-              <ReactPlayer
+          ) : audioUrl ? (
+            <div className="h-0 overflow-hidden">
+              <Player
                 ref={playerRef as any}
-                url={audioUrl as any}
+                src={audioUrl}
                 playing={playing}
                 volume={volume}
                 muted={volume === 0}
                 playsInline
-                onProgress={handleProgress}
-                onDuration={handleDuration}
+                onReady={() => syncMediaState(playerRef.current)}
+                onTimeUpdate={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
+                onDurationChange={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onEnded={() => setPlaying(false)}
-                progressInterval={100 as any}
               />
             </div>
-          )}
+          ) : null}
 
-          <div className="bg-gradient-to-br from-[#f8f5ea] via-white to-[#f7f9f6] p-4 md:p-6">
+          <div className="bg-gradient-to-br from-[#f8f5ea] via-white to-[#f7f9f6] p-6 md:p-7">
             <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 flex-1 items-center gap-4">
                   <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#1a3a2a] shadow-lg md:h-14 md:w-14"
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#1a3a2a] shadow-lg"
                     style={playing ? { animation: "player-spin 12s linear infinite" } : undefined}
                   >
-                    <Music className="h-5 w-5 text-[#c4a84b] md:h-6 md:w-6" />
+                    <Music className="h-6 w-6 text-[#c4a84b]" />
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="truncate text-lg font-extrabold tracking-tight text-[#1d2b23] md:text-xl">
+                    <h3 className="truncate text-xl font-extrabold tracking-tight text-[#1d2b23] md:text-2xl">
                       {hymnTitle}
                     </h3>
-                    <p className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground md:text-[11px]">
+                    <p className="mt-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">
                       <span
                         className={`h-2 w-2 rounded-full ${playing ? "bg-green-500 animate-pulse" : "bg-slate-400"}`}
                       />
-                      {youtubeUrl ? "Streaming do YouTube" : audioUrl ? "√Åudio do sistema" : "Sem m√≠dia dispon√≠vel"}
+                      {youtubeUrl ? "Streaming do YouTube" : audioUrl ? "¡udio do sistema" : "Sem mÌdia disponÌvel"}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-3">
+                <div className="flex items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => seekTo(0)}
-                    className="h-10 w-10 rounded-full text-muted-foreground transition-all hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] active:scale-95 md:h-11 md:w-11"
+                    className="h-11 w-11 rounded-full text-muted-foreground transition-all hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] active:scale-95"
                     disabled={!mediaUrl}
                   >
-                    <RotateCcw className="h-4 w-4 md:h-5 md:w-5" />
+                    <RotateCcw className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="default"
                     size="icon"
                     onClick={() => mediaUrl && setPlaying(!playing)}
                     disabled={!mediaUrl}
-                    className="h-14 w-14 rounded-full border-4 border-[#c4a84b]/10 bg-[#1a3a2a] text-white shadow-[0_10px_30px_rgba(26,58,42,0.22)] transition-all hover:bg-[#1a3a2a]/95 active:scale-95 md:h-16 md:w-16"
+                    className="h-16 w-16 rounded-full border-4 border-[#c4a84b]/10 bg-[#1a3a2a] text-white shadow-[0_10px_30px_rgba(26,58,42,0.22)] transition-all hover:bg-[#1a3a2a]/95 active:scale-95"
                   >
-                    {playing ? <Pause className="h-6 w-6 md:h-8 md:w-8" /> : <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" />}
+                    {playing ? <Pause className="h-8 w-8" /> : <Play className="ml-1 h-8 w-8" />}
                   </Button>
                 </div>
               </div>
@@ -249,7 +281,7 @@ export default function LyricsPlayer({
                   disabled={!mediaUrl}
                   className="cursor-pointer py-1"
                 />
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 md:text-[11px]">
+                <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
@@ -263,32 +295,24 @@ export default function LyricsPlayer({
                     max={100}
                     onValueChange={(value) => setVolume((value[0] ?? 80) / 100)}
                     disabled={!mediaUrl}
-                    className="w-24 md:w-32"
+                    className="w-28 md:w-32"
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/75 md:text-[10px]">
-                    {hasManualSync ? "Sincroniza√ß√£o manual" : hasSync ? "Sincroniza√ß√£o autom√°tica" : "Leitura livre"}
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/75">
+                    {hasManualSync ? "SincronizaÁ„o manual" : hasSync ? "SincronizaÁ„o autom·tica" : "Leitura livre"}
                   </span>
 
                   <div className="flex items-center gap-3 rounded-full border border-border/40 bg-muted/20 px-3 py-2">
-                    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground md:text-[10px]">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                       Auto-scroll
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setAutoScroll(!autoScroll)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        autoScroll ? "bg-[#1a3a2a]" : "bg-input"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                          autoScroll ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
+                    <Switch
+                      checked={autoScroll}
+                      onCheckedChange={setAutoScroll}
+                      aria-label="Ativar ou desativar auto-scroll da letra"
+                    />
                   </div>
                 </div>
               </div>
@@ -297,36 +321,76 @@ export default function LyricsPlayer({
         </CardContent>
       </Card>
 
-      {hasSync && (
-        <Card className="overflow-hidden border border-[#1a3a2a]/10">
-          <CardContent className="p-4 md:p-6">
-            <div
-              ref={lyricsContainerRef}
-              className="space-y-3 overflow-y-auto pr-2 md:space-y-4"
-              style={{ maxHeight: "400px" }}
+      <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg">
+        <CardContent className="p-0">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#c4a84b]/10 bg-[#1a3a2a] px-5 py-4">
+            <h2
+              className="flex items-center gap-3 text-lg font-bold text-white"
+              style={{ fontFamily: "Merriweather, serif" }}
             >
-              {lines.map((line, index) => (
-                <div
-                  key={index}
-                  data-line-index={index}
-                  onClick={() => handleLineClick(line.time)}
-                  className={`transition-all ${
-                    isLyricsSectionLabel(line.text)
-                      ? "text-center text-xs font-bold uppercase text-muted-foreground/60 md:text-sm"
-                      : `cursor-pointer rounded-lg px-3 py-2 text-sm md:px-4 md:py-3 md:text-base ${
-                          activeLineIndex === index
-                            ? "bg-[#1a3a2a] text-white shadow-lg"
-                            : "text-foreground hover:bg-muted/50"
-                        }`
-                  }`}
-                >
-                  {line.text}
+              <Music className="h-5 w-5 text-[#c4a84b]" />
+              Letra do Hino
+            </h2>
+
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+                hasManualSync
+                  ? "bg-[#c4a84b] text-[#1a3a2a]"
+                  : hasSync
+                    ? "bg-white/10 text-white"
+                    : "bg-white/5 text-white/55"
+              }`}
+            >
+              {hasManualSync ? "Marcado" : hasSync ? "Auto-sync" : "Sem sync"}
+            </span>
+          </div>
+
+          <div
+            ref={lyricsContainerRef}
+            className="h-[420px] overflow-y-auto bg-[linear-gradient(180deg,#faf9f5_0%,#ffffff_20%,#ffffff_80%,#faf9f5_100%)] px-5 py-5 md:h-[520px] md:px-8"
+          >
+            <div className="space-y-1.5">
+              {lines.map((line, index) => {
+                const heading = isLyricsSectionLabel(line.text);
+                const isActive = activeLineIndex === index;
+
+                return (
+                  <p
+                    key={`${index}-${line.time}`}
+                    data-line-index={index}
+                    onClick={() => handleLineClick(line.time)}
+                    className={[
+                      "mx-auto max-w-2xl rounded-2xl px-4 py-2.5 transition-colors",
+                      heading
+                        ? "mt-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1a3a2a]/70 md:text-base"
+                        : "text-left text-base leading-7 text-foreground/80 md:text-lg md:leading-8",
+                      isActive && !heading ? "bg-[#1a3a2a]/8 font-semibold text-[#173625] shadow-sm" : "",
+                      !isActive && !heading && hasSync ? "hover:bg-black/5" : "",
+                      line.time >= 0 && mediaUrl ? "cursor-pointer" : "cursor-default",
+                    ].join(" ")}
+                  >
+                    {line.text}
+                  </p>
+                );
+              })}
+
+              {lines.length === 0 && (
+                <div className="py-20 text-center text-muted-foreground">
+                  <Music className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                  <p>Letra n„o disponÌvel para este hino.</p>
                 </div>
-              ))}
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <style>{`
+        @keyframes player-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -2,11 +2,25 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
+import type { User } from "@shared/types";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
   redirectPath?: string;
 };
+
+function readCachedUser(): User | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = localStorage.getItem("auth-user-info");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as User | null;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
@@ -41,31 +55,34 @@ export function useAuth(options?: UseAuthOptions) {
     }
   }, [logoutMutation, utils]);
 
+  const cachedUser = useMemo(() => readCachedUser(), [meQuery.data]);
+  const resolvedUser = meQuery.data ?? ((meQuery.isLoading || meQuery.isFetching) ? cachedUser : null);
+
   const state = useMemo(() => {
     return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || meQuery.isFetching || logoutMutation.isPending,
+      user: resolvedUser,
+      loading: ((!resolvedUser && (meQuery.isLoading || meQuery.isFetching)) || logoutMutation.isPending),
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      isAuthenticated: Boolean(resolvedUser),
     };
   }, [
-    meQuery.data,
     meQuery.error,
     meQuery.isFetching,
     meQuery.isLoading,
     logoutMutation.error,
     logoutMutation.isPending,
+    resolvedUser,
   ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     try {
-      localStorage.setItem("auth-user-info", JSON.stringify(meQuery.data ?? null));
+      localStorage.setItem("auth-user-info", JSON.stringify(resolvedUser ?? null));
     } catch {
       // Ignore storage failures so auth state never crashes the UI.
     }
-  }, [meQuery.data]);
+  }, [resolvedUser]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
@@ -74,7 +91,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
-    window.location.href = redirectPath
+    window.location.href = redirectPath;
   }, [
     redirectOnUnauthenticated,
     redirectPath,

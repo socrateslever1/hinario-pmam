@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -277,7 +277,10 @@ function UsersTab() {
             <Button className="bg-[#c4a84b] text-[#1a1a1a] gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Criar Novo Usuário</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Usuário</DialogTitle>
+              <DialogDescription>Preencha os dados abaixo para cadastrar um novo administrador ou usuário no sistema.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={(e) => { e.preventDefault(); createUser.mutate(newUser); }} className="space-y-4">
               <div><Label>Nome *</Label><Input value={newUser.name} onChange={e => setNewUser(f => ({ ...f, name: e.target.value }))} required /></div>
               <div><Label>Email *</Label><Input type="email" value={newUser.email} onChange={e => setNewUser(f => ({ ...f, email: e.target.value }))} required /></div>
@@ -518,7 +521,10 @@ export default function Admin() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
-                    <DialogHeader><DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                      <DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle>
+                      <DialogDescription>Insira as informações básicas, letra e links de mídia do hino.</DialogDescription>
+                    </DialogHeader>
                     <HymnForm key={editingHymn?.id ?? "new"} hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
@@ -555,7 +561,7 @@ export default function Admin() {
                             <DrawerContent className="h-[94vh] max-h-[94vh]">
                               <DrawerHeader className="border-b pb-4 text-left">
                                 <DrawerTitle>Sincronizar Letra</DrawerTitle>
-                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
+                                <DrawerDescription>Sincronize a letra do hino "{hymn.title}" com o áudio ou vídeo selecionado.</DrawerDescription>
                               </DrawerHeader>
                               <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
                                 <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
@@ -575,7 +581,7 @@ export default function Admin() {
                             <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
                               <DialogHeader className="border-b px-6 py-5 pr-14">
                                 <DialogTitle>Sincronizar Letra</DialogTitle>
-                                <p className="text-sm text-muted-foreground">{hymn.title}</p>
+                                <DialogDescription>Sincronize a letra do hino "{hymn.title}" com o áudio ou vídeo selecionado.</DialogDescription>
                               </DialogHeader>
                               <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
                                 <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
@@ -609,7 +615,10 @@ export default function Admin() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
-                    <DialogHeader><DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                      <DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle>
+                      <DialogDescription>Publique orientações, avisos ou missões para os alunos do CFAP.</DialogDescription>
+                    </DialogHeader>
                     <MissionForm mission={editingMission} onSuccess={() => setMissionDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
