@@ -1,6 +1,17 @@
 import { query } from "./mysql";
 import { ENV } from './_core/env';
 
+type MissionAttachmentRecord = {
+  id?: unknown;
+  name?: unknown;
+  url?: unknown;
+  contentType?: unknown;
+  sizeBytes?: unknown;
+  kind?: unknown;
+};
+
+let missionAttachmentsColumnReady: Promise<void> | null = null;
+
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
   if (!u) return u;
@@ -25,6 +36,90 @@ function normalizeCategory(category: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function normalizeAttachmentKind(kind: unknown, contentType?: unknown) {
+  if (kind === "image" || kind === "pdf" || kind === "file") {
+    return kind;
+  }
+
+  if (typeof contentType === "string" && contentType.startsWith("image/")) {
+    return "image";
+  }
+
+  if (contentType === "application/pdf") {
+    return "pdf";
+  }
+
+  return "file";
+}
+
+function parseMissionAttachments(raw: unknown) {
+  let parsed = raw;
+
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      parsed = [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .map((attachment: MissionAttachmentRecord) => {
+      if (!attachment || typeof attachment !== "object") return null;
+      if (typeof attachment.id !== "string") return null;
+      if (typeof attachment.name !== "string") return null;
+      if (typeof attachment.url !== "string") return null;
+
+      const contentType =
+        typeof attachment.contentType === "string" && attachment.contentType.trim()
+          ? attachment.contentType
+          : "application/octet-stream";
+
+      return {
+        id: attachment.id,
+        name: attachment.name,
+        url: attachment.url,
+        contentType,
+        sizeBytes:
+          typeof attachment.sizeBytes === "number" && Number.isFinite(attachment.sizeBytes)
+            ? Math.max(0, Math.round(attachment.sizeBytes))
+            : 0,
+        kind: normalizeAttachmentKind(attachment.kind, contentType),
+      };
+    })
+    .filter(Boolean);
+}
+
+function serializeMissionAttachments(raw: unknown) {
+  const attachments = parseMissionAttachments(raw);
+  return attachments.length > 0 ? JSON.stringify(attachments) : null;
+}
+
+async function ensureMissionAttachmentsColumn() {
+  if (!missionAttachmentsColumnReady) {
+    missionAttachmentsColumnReady = (async () => {
+      const rows = await query<{ Field: string }>(
+        "SHOW COLUMNS FROM pmam_cfap_missions LIKE 'attachments_json'"
+      );
+
+      if (rows.length === 0) {
+        await query(
+          "ALTER TABLE pmam_cfap_missions ADD COLUMN attachments_json LONGTEXT NULL AFTER content"
+        );
+      }
+    })().catch(error => {
+      missionAttachmentsColumnReady = null;
+      throw error;
+    });
+  }
+
+  await missionAttachmentsColumnReady;
 }
 
 function mapHymn(h: any) {
@@ -66,6 +161,7 @@ function mapMission(m: any) {
     id: m.id,
     title: m.title,
     content: m.content,
+    attachments: parseMissionAttachments(m.attachments_json),
     priority: m.priority,
     status: m.status,
     dueDate: m.due_date,
@@ -284,6 +380,7 @@ function buildMissionSelectSql(includeOnlyActive: boolean, includeVisitorReactio
 }
 
 export async function getAllMissions(visitorId?: string | null) {
+  await ensureMissionAttachmentsColumn();
   const rows = await query(
     buildMissionSelectSql(false, Boolean(visitorId)),
     visitorId ? [visitorId] : []
@@ -292,6 +389,7 @@ export async function getAllMissions(visitorId?: string | null) {
 }
 
 export async function getActiveMissions(visitorId?: string | null) {
+  await ensureMissionAttachmentsColumn();
   const rows = await query(
     buildMissionSelectSql(true, Boolean(visitorId)),
     visitorId ? [visitorId] : []
@@ -300,6 +398,7 @@ export async function getActiveMissions(visitorId?: string | null) {
 }
 
 export async function getMissionById(id: number, visitorId?: string | null) {
+  await ensureMissionAttachmentsColumn();
   const sql = `
     SELECT
       mission.*,
@@ -325,15 +424,18 @@ export async function getMissionById(id: number, visitorId?: string | null) {
 }
 
 export async function createMission(mission: any) {
+  await ensureMissionAttachmentsColumn();
+  const attachmentsJson = serializeMissionAttachments(mission.attachments);
   const sql = `
     INSERT INTO pmam_cfap_missions 
-    (title, content, priority, status, due_date, is_active, author_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (title, content, attachments_json, priority, status, due_date, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
     mission.title,
     mission.content,
+    attachmentsJson,
     mission.priority || 'normal',
     mission.status || 'ativa',
     mission.dueDate || null,
@@ -345,12 +447,14 @@ export async function createMission(mission: any) {
 }
 
 export async function updateMission(id: number, mission: any) {
+  await ensureMissionAttachmentsColumn();
   const updates: string[] = [];
   const params: any[] = [];
 
   const fields: Record<string, string> = {
     title: 'title',
     content: 'content',
+    attachments: 'attachments_json',
     priority: 'priority',
     status: 'status',
     dueDate: 'due_date',
@@ -361,6 +465,7 @@ export async function updateMission(id: number, mission: any) {
     if (mission[key] !== undefined) {
       updates.push(`${dbKey} = ?`);
       let val = mission[key];
+      if (key === 'attachments') val = serializeMissionAttachments(val);
       if (key === 'isActive') val = val ? 1 : 0;
       params.push(val);
     }

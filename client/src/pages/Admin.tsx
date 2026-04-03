@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import type { MissionAttachment } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock
+  Clock, ImageIcon, Loader2, Paperclip, X
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
@@ -39,6 +40,55 @@ const priorityOptions = [
   { value: "urgente", label: "Urgente" },
   { value: "critica", label: "Crítica" },
 ];
+
+const MAX_MISSION_ATTACHMENTS = 12;
+const MAX_MISSION_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
+
+function formatFileSize(sizeBytes: number) {
+  if (sizeBytes >= 1024 * 1024) {
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  if (sizeBytes >= 1024) {
+    return `${Math.round(sizeBytes / 1024)} KB`;
+  }
+
+  return `${sizeBytes} B`;
+}
+
+function getDefaultMissionFormState(mission?: any) {
+  return {
+    title: mission?.title ?? "",
+    content: mission?.content ?? "",
+    priority: mission?.priority ?? "normal",
+    attachments: Array.isArray(mission?.attachments) ? mission.attachments : ([] as MissionAttachment[]),
+  };
+}
+
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error(`NÃ£o foi possÃ­vel ler ${file.name}`));
+        return;
+      }
+
+      const base64 = reader.result.split(",")[1];
+
+      if (!base64) {
+        reject(new Error(`NÃ£o foi possÃ­vel converter ${file.name}`));
+        return;
+      }
+
+      resolve(base64);
+    };
+
+    reader.onerror = () => reject(new Error(`Falha ao ler ${file.name}`));
+    reader.readAsDataURL(file);
+  });
+}
 
 function getDefaultHymnFormState(hymn?: any) {
   return {
@@ -138,11 +188,86 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
 }
 
 function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState({
-    title: mission?.title ?? "",
-    content: mission?.content ?? "",
-    priority: mission?.priority ?? "normal",
+  const [form, setForm] = useState(() => getDefaultMissionFormState(mission));
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]);
+  const uploadAttachmentMut = trpc.missions.uploadAttachment.useMutation({
+    onError: (e) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    setForm(getDefaultMissionFormState(mission));
+    setUploadingFiles([]);
+  }, [mission]);
+
+  const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_MISSION_ATTACHMENTS - form.attachments.length;
+
+    if (remainingSlots <= 0) {
+      toast.error(`Limite de ${MAX_MISSION_ATTACHMENTS} anexos por comunicado.`);
+      return;
+    }
+
+    const selectedFiles = files.slice(0, remainingSlots);
+
+    if (files.length > remainingSlots) {
+      toast.error(`Apenas ${remainingSlots} arquivo(s) cabem neste comunicado.`);
+    }
+
+    const validFiles = selectedFiles.filter(file => {
+      if (file.size > MAX_MISSION_ATTACHMENT_SIZE_BYTES) {
+        toast.error(`${file.name} excede o limite de 10 MB.`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploadingFiles(validFiles.map(file => file.name));
+
+    try {
+      const uploadedAttachments: MissionAttachment[] = [];
+
+      for (const file of validFiles) {
+        const fileBase64 = await fileToBase64(file);
+        const response = await uploadAttachmentMut.mutateAsync({
+          fileName: file.name,
+          fileBase64,
+          contentType: file.type || "application/octet-stream",
+        });
+
+        uploadedAttachments.push(response.attachment);
+      }
+
+      setForm(current => ({
+        ...current,
+        attachments: [...current.attachments, ...uploadedAttachments],
+      }));
+
+      toast.success(
+        uploadedAttachments.length === 1
+          ? "Anexo enviado."
+          : `${uploadedAttachments.length} anexos enviados.`
+      );
+    } catch (error) {
+      console.error("[Mission Attachment Upload]", error);
+    } finally {
+      setUploadingFiles([]);
+    }
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    setForm(current => ({
+      ...current,
+      attachments: current.attachments.filter(attachment => attachment.id !== attachmentId),
+    }));
+  };
 
   const utils = trpc.useUtils();
   const createMut = trpc.missions.create.useMutation({
@@ -161,10 +286,10 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
     else { createMut.mutate({ ...form, priority: form.priority as any }); }
   };
 
-  const saving = createMut.isPending || updateMut.isPending;
+  const saving = createMut.isPending || updateMut.isPending || uploadAttachmentMut.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
       <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
       <div><Label>Prioridade</Label>
         <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>

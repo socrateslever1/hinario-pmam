@@ -11,6 +11,34 @@ import { notifyOwner } from "./_core/notification";
 import { sdk } from "./_core/sdk";
 import bcrypt from "bcryptjs";
 
+const missionAttachmentSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(255),
+  url: z.string().url(),
+  contentType: z.string().trim().min(1).max(200),
+  sizeBytes: z.number().int().min(0).max(10 * 1024 * 1024),
+  kind: z.enum(["image", "pdf", "file"]),
+});
+
+function sanitizeUploadedFileName(fileName: string) {
+  const sanitized = fileName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return sanitized || `arquivo-${nanoid(6)}`;
+}
+
+function getMissionAttachmentKind(contentType: string, fileName: string) {
+  if (contentType.startsWith("image/")) return "image" as const;
+  if (contentType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf")) {
+    return "pdf" as const;
+  }
+  return "file" as const;
+}
+
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
@@ -151,6 +179,44 @@ export const appRouter = router({
       await db.createHymn(input);
       return { success: true };
     }),
+    uploadAttachment: adminProcedure.input(z.object({
+      fileName: z.string().trim().min(1).max(180),
+      fileBase64: z.string().min(1),
+      contentType: z.string().trim().min(1).max(200),
+    })).mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileBase64, "base64");
+
+      if (!buffer.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo invÃ¡lido para upload" });
+      }
+
+      if (buffer.length > 10 * 1024 * 1024) {
+        throw new TRPCError({
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Cada anexo deve ter no mÃ¡ximo 10 MB",
+        });
+      }
+
+      const safeFileName = sanitizeUploadedFileName(input.fileName);
+      const attachment = {
+        id: nanoid(12),
+        name: input.fileName,
+        contentType: input.contentType,
+        sizeBytes: buffer.length,
+        kind: getMissionAttachmentKind(input.contentType, input.fileName),
+      };
+
+      const fileKey = `missions/attachments/${Date.now()}-${nanoid(8)}-${safeFileName}`;
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+
+      return {
+        success: true,
+        attachment: {
+          ...attachment,
+          url,
+        },
+      };
+    }),
     update: adminProcedure.input(z.object({
       id: z.number(),
       number: z.number().optional(),
@@ -228,6 +294,7 @@ export const appRouter = router({
       title: z.string(),
       content: z.string(),
       priority: z.enum(["normal", "urgente", "critica"]).default("normal"),
+      attachments: z.array(missionAttachmentSchema).max(12).optional(),
     })).mutation(async ({ input, ctx }) => {
       await db.createMission({ ...input, authorId: ctx.user.id });
       await notifyOwner({
@@ -241,6 +308,7 @@ export const appRouter = router({
       title: z.string().optional(),
       content: z.string().optional(),
       priority: z.enum(["normal", "urgente", "critica"]).optional(),
+      attachments: z.array(missionAttachmentSchema).max(12).optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       const { id, ...data } = input;
