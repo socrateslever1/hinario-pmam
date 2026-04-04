@@ -191,7 +191,7 @@ export default function LyricsPlayer({
             <div className="aspect-video bg-black">
               <Player
                 ref={playerRef as any}
-                src={youtubeUrl}
+                url={youtubeUrl}
                 playing={playing}
                 volume={volume}
                 muted={volume === 0}
@@ -211,7 +211,7 @@ export default function LyricsPlayer({
             <div className="h-0 overflow-hidden">
               <Player
                 ref={playerRef as any}
-                src={audioUrl}
+                url={audioUrl}
                 playing={playing}
                 volume={volume}
                 muted={volume === 0}
@@ -245,7 +245,7 @@ export default function LyricsPlayer({
                       <span
                         className={`h-2 w-2 rounded-full ${playing ? "bg-green-500 animate-pulse" : "bg-slate-400"}`}
                       />
-                      {youtubeUrl ? "Streaming do YouTube" : audioUrl ? "¡udio do sistema" : "Sem mÌdia disponÌvel"}
+                      {youtubeUrl ? "Streaming do YouTube" : audioUrl ? "√Åudio do sistema" : "Sem m√≠dia dispon√≠vel"}
                     </p>
                   </div>
                 </div>
@@ -301,7 +301,7 @@ export default function LyricsPlayer({
 
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/75">
-                    {hasManualSync ? "SincronizaÁ„o manual" : hasSync ? "SincronizaÁ„o autom·tica" : "Leitura livre"}
+                    {hasManualSync ? "Sincroniza√ß√£o manual" : hasSync ? "Sincroniza√ß√£o autom√°tica" : "Leitura livre"}
                   </span>
 
                   <div className="flex items-center gap-3 rounded-full border border-border/40 bg-muted/20 px-3 py-2">
@@ -377,7 +377,7 @@ export default function LyricsPlayer({
               {lines.length === 0 && (
                 <div className="py-20 text-center text-muted-foreground">
                   <Music className="mx-auto mb-4 h-12 w-12 opacity-20" />
-                  <p>Letra n„o disponÌvel para este hino.</p>
+                  <p>Letra n√£o dispon√≠vel para este hino.</p>
                 </div>
               )}
             </div>
