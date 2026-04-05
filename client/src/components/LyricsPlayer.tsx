@@ -128,7 +128,10 @@ export default function LyricsPlayer({
   const seekTo = (time: number) => {
     if (!playerRef.current) return;
     const safeTime = Math.max(0, Math.min(duration || time, time));
-    playerRef.current.seekTo(safeTime, "seconds");
+    // ReactPlayer seekTo expects a fraction (0-1) or a seconds value with 'seconds' type
+    // For YouTube, we need to use the fraction of duration
+    const fraction = duration > 0 ? safeTime / duration : 0;
+    playerRef.current.seekTo(fraction);
     setCurrentTime(safeTime);
   };
 
