@@ -166,7 +166,11 @@ export default function LyricsPlayer({
                 width: "100%",
                 height: "100%",
                 onProgress: handleProgress,
-                onDuration: handleDuration,
+                onReady: () => {
+                  if (playerRef.current?.getDuration) {
+                    setDuration(playerRef.current.getDuration());
+                  }
+                },
                 onPlay: () => setPlaying(true),
                 onPause: () => setPlaying(false),
                 onEnded: () => setPlaying(false),
@@ -182,7 +186,11 @@ export default function LyricsPlayer({
                 muted: volume === 0,
                 playsInline: true,
                 onProgress: handleProgress,
-                onDuration: handleDuration,
+                onReady: () => {
+                  if (playerRef.current?.getDuration) {
+                    setDuration(playerRef.current.getDuration());
+                  }
+                },
                 onPlay: () => setPlaying(true),
                 onPause: () => setPlaying(false),
                 onEnded: () => setPlaying(false),
