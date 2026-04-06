@@ -146,6 +146,9 @@ export const appRouter = router({
     getByCategory: publicProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
       return db.getHymnsByCategory(input.category);
     }),
+    getByCollection: publicProcedure.input(z.object({ collection: z.string() })).query(async ({ input }) => {
+      return db.getHymnsByCollection(input.collection);
+    }),
     create: adminProcedure.input(z.object({
       number: z.number(),
       title: z.string(),
@@ -153,6 +156,7 @@ export const appRouter = router({
       author: z.string().optional(),
       composer: z.string().optional(),
       category: z.enum(["nacional", "militar", "pmam", "arma", "oracao"]),
+      collection: z.string().nullable().optional(),
       lyrics: z.string(),
       description: z.string().optional(),
       youtubeUrl: z.string().optional(),
@@ -170,6 +174,7 @@ export const appRouter = router({
       author: z.string().optional(),
       composer: z.string().optional(),
       category: z.enum(["nacional", "militar", "pmam", "arma", "oracao"]).optional(),
+      collection: z.string().nullable().optional(),
       lyrics: z.string().optional(),
       description: z.string().optional(),
       youtubeUrl: z.string().nullable().optional(),

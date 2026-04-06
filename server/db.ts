@@ -47,6 +47,7 @@ function mapHymn(h: any) {
     author: h.author,
     composer: h.composer,
     category: normalizeCategory(h.category),
+    collection: h.collection,
     lyrics: h.lyrics,
     description: h.description,
     youtubeUrl: h.youtube_url,
@@ -164,7 +165,9 @@ export async function getAllHymns() {
 }
 
 export async function getActiveHymns() {
-  const rows = await query('SELECT * FROM pmam_hymns WHERE is_active = 1 ORDER BY number ASC');
+  const rows = await query(
+    "SELECT * FROM pmam_hymns WHERE is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC"
+  );
   return rows.map(mapHymn);
 }
 
@@ -180,8 +183,16 @@ export async function getHymnByNumber(number: number) {
 
 export async function getHymnsByCategory(category: string) {
   const rows = await query(
-    'SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 ORDER BY number ASC',
+    "SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC",
     [category]
+  );
+  return rows.map(mapHymn);
+}
+
+export async function getHymnsByCollection(collection: string) {
+  const rows = await query(
+    'SELECT * FROM pmam_hymns WHERE collection = ? AND is_active = 1 ORDER BY number ASC',
+    [collection]
   );
   return rows.map(mapHymn);
 }
@@ -190,8 +201,8 @@ export async function createHymn(hymn: any) {
   const lyricsSync = hymn.lyricsSync ? JSON.stringify(hymn.lyricsSync) : null;
   const sql = `
     INSERT INTO pmam_hymns 
-    (number, title, subtitle, author, composer, category, lyrics, description, youtube_url, audio_url, lyrics_sync, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, audio_url, lyrics_sync, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -201,6 +212,7 @@ export async function createHymn(hymn: any) {
     hymn.author || null,
     hymn.composer || null,
     hymn.category,
+    hymn.collection || null,
     hymn.lyrics,
     hymn.description || null,
     hymn.youtubeUrl || null,
@@ -223,6 +235,7 @@ export async function updateHymn(id: number, hymn: any) {
     author: 'author',
     composer: 'composer',
     category: 'category',
+    collection: 'collection',
     lyrics: 'lyrics',
     description: 'description',
     youtubeUrl: 'youtube_url',
@@ -483,22 +496,24 @@ export async function updateUserRole(id: number, role: 'user' | 'admin' | 'maste
   await query('UPDATE pmam_users SET role = ? WHERE id = ?', [role, id]);
 }
 
+export async function updateUserPassword(id: number, password: string) {
+  await query('UPDATE pmam_users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [password, id]);
+}
+
 export async function deleteUser(id: number) {
   await query('DELETE FROM pmam_users WHERE id = ?', [id]);
 }
 
-export async function updateUserPassword(id: number, password: string) {
-  await query('UPDATE pmam_users SET password = ? WHERE id = ?', [password, id]);
-}
-
 // ===== STATS =====
 export async function getStats() {
-  const [hymnRes] = await query('SELECT COUNT(*) as count FROM pmam_hymns');
+  const [hymnRes] = await query("SELECT COUNT(*) as count FROM pmam_hymns WHERE collection IS NULL OR collection <> 'tfm'");
+  const [cmRes] = await query("SELECT COUNT(*) as count FROM pmam_hymns WHERE collection = 'tfm'");
   const [missionRes] = await query('SELECT COUNT(*) as count FROM pmam_cfap_missions');
   const [userRes] = await query('SELECT COUNT(*) as count FROM pmam_users');
 
   return {
     totalHymns: hymnRes?.count || 0,
+    totalCharlieMike: cmRes?.count || 0,
     totalMissions: missionRes?.count || 0,
     totalUsers: userRes?.count || 0,
   };

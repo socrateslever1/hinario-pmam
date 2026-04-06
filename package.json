@@ -12,7 +12,8 @@
     "check": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:import-tfm": "node import-tfm.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

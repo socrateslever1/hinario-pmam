@@ -24,6 +24,7 @@ export interface Hymn {
   author: string | null;
   composer: string | null;
   category: 'nacional' | 'militar' | 'pmam' | 'arma' | 'oracao';
+  collection?: string | null;
   lyrics: string;
   description: string | null;
   youtubeUrl: string | null;

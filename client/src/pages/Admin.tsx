@@ -20,7 +20,7 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock
+  Clock, Search
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
@@ -48,6 +48,7 @@ function getDefaultHymnFormState(hymn?: any) {
     author: hymn?.author ?? "",
     composer: hymn?.composer ?? "",
     category: hymn?.category ?? "pmam",
+    collection: hymn?.collection ?? null,
     lyrics: hymn?.lyrics ?? "",
     description: hymn?.description ?? "",
     youtubeUrl: hymn?.youtubeUrl ?? "",
@@ -97,8 +98,8 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       author: form.author || undefined,
       composer: form.composer || undefined,
       description: form.description || undefined,
-      youtubeUrl: form.youtubeUrl || undefined,
-      audioUrl: form.audioUrl || undefined,
+      youtubeUrl: form.youtubeUrl.trim() || undefined,
+      audioUrl: form.audioUrl.trim() || undefined,
       category: form.category as any,
     };
     if (hymn) { updateMut.mutate({ id: hymn.id, ...data }); }
@@ -108,8 +109,8 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
   const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-10rem))] overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div><Label>Número</Label><Input type="number" value={form.number} onChange={e => setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))} /></div>
         <div><Label>Categoria</Label>
           <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
@@ -117,10 +118,19 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
             <SelectContent>{categoryOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
+        <div><Label>Coleção</Label>
+          <Select value={form.collection || "hymnal"} onValueChange={v => setForm(f => ({ ...f, collection: v === "hymnal" ? null : v }))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hymnal">Hinário Principal</SelectItem>
+              <SelectItem value="tfm">Charlie Mike (TFM)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
       <div><Label>Subtítulo</Label><Input value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} /></div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div><Label>Autor / Letrista</Label><Input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} /></div>
         <div><Label>Compositor</Label><Input value={form.composer} onChange={e => setForm(f => ({ ...f, composer: e.target.value }))} /></div>
       </div>
@@ -164,7 +174,7 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
   const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
       <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
       <div><Label>Prioridade</Label>
         <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
@@ -270,13 +280,13 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-bold text-foreground">Gerenciar Usuários</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-[#c4a84b] text-[#1a1a1a] gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:max-w-lg sm:p-6">
             <DialogHeader>
               <DialogTitle>Criar Novo Usuário</DialogTitle>
               <DialogDescription>Preencha os dados abaixo para cadastrar um novo administrador ou usuário no sistema.</DialogDescription>
@@ -305,7 +315,7 @@ function UsersTab() {
       <div className="space-y-2">
         {usersList?.map((u: any) => (
           <Card key={u.id} className="border-border/50">
-            <CardContent className="p-4 flex items-center gap-4">
+            <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 {(u.name || "?").charAt(0).toUpperCase()}
               </div>
@@ -317,7 +327,7 @@ function UsersTab() {
                 {u.role === "master" ? "Xerife Master" : u.role === "admin" ? "Administrador" : "Usuário"}
               </Badge>
               {u.role !== "master" && (
-                <div className="flex gap-1">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
                   <Select value={u.role} onValueChange={v => updateRole.mutate({ id: u.id, role: v as any })}>
                     <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -349,6 +359,7 @@ export default function Admin() {
   const [editingHymn, setEditingHymn] = useState<any>(null);
   const [syncingHymn, setSyncingHymn] = useState<any>(null);
   const [editingMission, setEditingMission] = useState<any>(null);
+  const [hymnSearchTerm, setHymnSearchTerm] = useState("");
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
   const isMaster = isAuthenticated && user?.role === "master";
@@ -445,7 +456,7 @@ export default function Admin() {
 
       <section className="military-gradient py-8">
         <div className="container">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Star className="h-8 w-8 text-[#c4a84b]" />
               <div>
@@ -455,7 +466,7 @@ export default function Admin() {
                 <p className="text-white/60 text-sm">Bem-vindo, {user?.name || "Xerife"} {isMaster && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Master</Badge>}</p>
               </div>
             </div>
-            <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 gap-2" onClick={handleLogout}>
+            <Button variant="ghost" className="w-full text-white/70 hover:text-white hover:bg-white/10 gap-2 sm:w-auto" onClick={handleLogout}>
               <LogOut className="h-4 w-4" /> Sair
             </Button>
           </div>
@@ -466,8 +477,8 @@ export default function Admin() {
       <section className="py-8 bg-background">
         <div className="container">
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <Card className="border-border/50">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+            <Card className="border-border/50 text-[#1a3cb4]">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center">
                   <Music className="h-6 w-6 text-[#1a3a2a]" />
@@ -475,6 +486,17 @@ export default function Admin() {
                 <div>
                   <p className="text-2xl font-bold text-foreground">{stats?.totalHymns ?? 0}</p>
                   <p className="text-sm text-muted-foreground">Hinos</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-[#c4a84b]" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats?.totalCharlieMike ?? 0}</p>
+                  <p className="text-sm text-muted-foreground">Charlie Mike</p>
                 </div>
               </CardContent>
             </Card>
@@ -503,8 +525,9 @@ export default function Admin() {
           </div>
 
           <Tabs defaultValue="hymns">
-            <TabsList className="mb-6 flex-wrap">
+            <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0">
               <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
+              <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
               <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
@@ -512,15 +535,15 @@ export default function Admin() {
 
             {/* HYMNS TAB */}
             <TabsContent value="hymns">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Hinos</h2>
                 <Dialog open={hymnDialogOpen} onOpenChange={(o) => { setHymnDialogOpen(o); if (!o) setEditingHymn(null); }}>
                   <DialogTrigger asChild>
-                    <Button className="bg-[#1a3a2a] text-white gap-2" onClick={() => setEditingHymn(null)}>
+                    <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingHymn(null)}>
                       <Plus className="h-4 w-4" /> Novo Hino
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader>
                       <DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle>
                       <DialogDescription>Insira as informações básicas, letra e links de mídia do hino.</DialogDescription>
@@ -529,18 +552,41 @@ export default function Admin() {
                   </DialogContent>
                 </Dialog>
               </div>
+
+              {/* Search Filter for Admin */}
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
+                <Input
+                  placeholder="Buscar hino por título, número ou autor..."
+                  className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
+                  value={hymnSearchTerm}
+                  onChange={(e) => setHymnSearchTerm(e.target.value)}
+                />
+              </div>
+
               <div className="space-y-2">
-                {hymns?.map((hymn: any) => (
+                {hymns
+                  ?.filter((hymn: any) => hymn.collection !== "tfm")
+                  ?.filter((hymn: any) => {
+                    const term = hymnSearchTerm.toLowerCase();
+                    return (
+                      hymn.title.toLowerCase().includes(term) ||
+                      hymn.author?.toLowerCase().includes(term) ||
+                      String(hymn.number).includes(term) ||
+                      hymn.category.toLowerCase().includes(term)
+                    );
+                  })
+                  ?.map((hymn: any) => (
                   <Card key={hymn.id} className="border-border/50">
-                    <CardContent className="p-4 flex items-center gap-4">
+                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className="w-10 h-10 rounded-lg bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                         {String(hymn.number).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm truncate">{hymn.title}</p>
-                        <p className="text-xs text-muted-foreground">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
+                        <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
+                        <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
                         {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
                         {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
                         {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
@@ -604,17 +650,134 @@ export default function Admin() {
               </div>
             </TabsContent>
 
+            {/* CHARLIE MIKE TAB */}
+            <TabsContent value="charlie_mike">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-bold text-foreground">Gerenciar Canções Charlie Mike (TFM)</h2>
+                <Dialog open={hymnDialogOpen} onOpenChange={(o) => { setHymnDialogOpen(o); if (!o) setEditingHymn(null); }}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingHymn({ collection: "tfm" })}>
+                      <Plus className="h-4 w-4" /> Nova Canção
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
+                    <DialogHeader>
+                      <DialogTitle>{editingHymn ? (editingHymn.id ? "Editar Canção" : "Nova Canção Charlie Mike") : "Nova Canção"}</DialogTitle>
+                      <DialogDescription>Insira as informações básicas, letra e links de mídia da canção militar.</DialogDescription>
+                    </DialogHeader>
+                    <HymnForm key={editingHymn?.id ?? "new_cm"} hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Search Filter for Admin */}
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
+                <Input
+                  placeholder="Buscar canção por título, número ou letrista..."
+                  className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
+                  value={hymnSearchTerm}
+                  onChange={(e) => setHymnSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                {hymns
+                  ?.filter((hymn: any) => hymn.collection === "tfm")
+                  ?.filter((hymn: any) => {
+                    const term = hymnSearchTerm.toLowerCase();
+                    return (
+                      hymn.title.toLowerCase().includes(term) ||
+                      hymn.author?.toLowerCase().includes(term) ||
+                      String(hymn.number).includes(term) ||
+                      hymn.category.toLowerCase().includes(term)
+                    );
+                  })
+                  ?.map((hymn: any) => (
+                    <Card key={hymn.id} className="border-border/50">
+                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="w-10 h-10 rounded-lg bg-[#2d5a27] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {String(hymn.number).padStart(2, "0")}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
+                          <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
+                        </div>
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                          {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
+                          {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
+                          {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
+                            <Target className="h-4 w-4 text-[#c4a84b]" />
+                          )}
+                          <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+
+                          {isMobile ? (
+                            <Drawer
+                              open={syncDialogOpen && syncingHymn?.id === hymn.id}
+                              onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
+                            >
+                              <DrawerTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
+                                  <Clock className="h-4 w-4" />
+                                </Button>
+                              </DrawerTrigger>
+                              <DrawerContent className="h-[94vh] max-h-[94vh]">
+                                <DrawerHeader className="border-b pb-4 text-left">
+                                  <DrawerTitle>Sincronizar Letra</DrawerTitle>
+                                  <DrawerDescription>Sincronize a letra da canção "{hymn.title}" com o áudio ou vídeo selecionado.</DrawerDescription>
+                                </DrawerHeader>
+                                <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
+                                  <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
+                                </div>
+                              </DrawerContent>
+                            </Drawer>
+                          ) : (
+                            <Dialog
+                              open={syncDialogOpen && syncingHymn?.id === hymn.id}
+                              onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
+                                  <Clock className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
+                                <DialogHeader className="border-b px-6 py-5 pr-14">
+                                  <DialogTitle>Sincronizar Letra</DialogTitle>
+                                  <DialogDescription>Sincronize a letra da canção "{hymn.title}" com o áudio ou vídeo selecionado.</DialogDescription>
+                                </DialogHeader>
+                                <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
+                                  <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+
+                          <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive"
+                            onClick={() => { if (confirm("Remover esta canção?")) deleteHymn.mutate({ id: hymn.id }); }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </TabsContent>
+
             {/* MISSIONS TAB */}
             <TabsContent value="missions">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Missões CFAP</h2>
                 <Dialog open={missionDialogOpen} onOpenChange={(o) => { setMissionDialogOpen(o); if (!o) setEditingMission(null); }}>
                   <DialogTrigger asChild>
-                    <Button className="bg-[#c4a84b] text-[#1a1a1a] gap-2" onClick={() => setEditingMission(null)}>
+                    <Button className="w-full bg-[#c4a84b] text-[#1a1a1a] gap-2 sm:w-auto" onClick={() => setEditingMission(null)}>
                       <Plus className="h-4 w-4" /> Nova Missão
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader>
                       <DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle>
                       <DialogDescription>Publique orientações, avisos ou missões para os alunos do CFAP.</DialogDescription>
@@ -634,7 +797,7 @@ export default function Admin() {
                 <div className="space-y-2">
                   {missions.map((mission: any) => (
                     <Card key={mission.id} className="border-border/50">
-                      <CardContent className="p-4 flex items-center gap-4">
+                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-foreground text-sm truncate">{mission.title}</p>
@@ -642,7 +805,7 @@ export default function Admin() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 truncate">{mission.content.substring(0, 100)}...</p>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
                           <Switch checked={mission.isActive} onCheckedChange={(checked) => toggleMission.mutate({ id: mission.id, isActive: checked })} />
                           <Button variant="ghost" size="icon" onClick={() => { setEditingMission(mission); setMissionDialogOpen(true); }}>
                             <Pencil className="h-4 w-4" />

@@ -11,12 +11,14 @@ import Cfap2026 from "./pages/Cfap2026";
 import About from "./pages/About";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import CharlieMike from "./pages/CharlieMike";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/hinos" component={Hymns} />
+      <Route path="/charlie-mike" component={CharlieMike} />
       <Route path="/hino/:id" component={HymnDetail} />
       <Route path="/cfap-2026" component={Cfap2026} />
       <Route path="/sobre" component={About} />

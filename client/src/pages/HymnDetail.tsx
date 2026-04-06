@@ -41,15 +41,24 @@ export default function HymnDetail() {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
+  const { data: tfmHymns } = trpc.hymns.getByCollection.useQuery(
+    { collection: "tfm" },
+    { enabled: hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
+  );
+
+  const isTfm = hymn?.collection === "tfm";
+  const catalogHref = isTfm ? "/charlie-mike" : "/hinos";
+  const catalogLabel = isTfm ? "Voltar ao Charlie Mike" : "Voltar ao Catalogo";
+  const navigationBase = isTfm ? tfmHymns : allHymns;
 
   const navigation = useMemo(() => {
-    if (!allHymns || !hymn) return { prev: null, next: null };
-    const idx = allHymns.findIndex((h: any) => h.id === hymn.id);
+    if (!navigationBase || !hymn) return { prev: null, next: null };
+    const idx = navigationBase.findIndex((h: any) => h.id === hymn.id);
     return {
-      prev: idx > 0 ? allHymns[idx - 1] : null,
-      next: idx < allHymns.length - 1 ? allHymns[idx + 1] : null,
+      prev: idx > 0 ? navigationBase[idx - 1] : null,
+      next: idx < navigationBase.length - 1 ? navigationBase[idx + 1] : null,
     };
-  }, [allHymns, hymn]);
+  }, [navigationBase, hymn]);
 
   if (isLoading) {
     return (
@@ -94,9 +103,9 @@ export default function HymnDetail() {
       {/* Header */}
       <section className="military-gradient py-10">
         <div className="container">
-          <Link href="/hinos">
+          <Link href={catalogHref}>
             <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 gap-2 mb-4">
-              <ArrowLeft className="h-4 w-4" /> Voltar ao Catálogo
+              <ArrowLeft className="h-4 w-4" /> {catalogLabel}
             </Button>
           </Link>
           <div className="flex items-start gap-5">

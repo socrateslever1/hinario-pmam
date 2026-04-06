@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play,
   Pause,
@@ -20,9 +21,12 @@ import {
   ChevronRight,
   ArrowUp,
   ArrowDown,
+  ListMusic,
+  WandSparkles,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/useMobile";
 import {
   buildAutomaticLyricsSyncLines,
   buildLyricsSyncLines,
@@ -42,6 +46,7 @@ type MediaPlayerElement = HTMLMediaElement & {
 interface LyricsMarkerProps {
   hymn: {
     id: number;
+    number?: number;
     title: string;
     lyrics: string;
     audioUrl?: string;
@@ -121,13 +126,25 @@ function findPreviousMarkableIndex(lines: string[], startIndex: number): number 
   return 0;
 }
 
+function getLastMarkedIndexAtOrBefore(indexes: number[], currentIndex: number) {
+  for (let index = indexes.length - 1; index >= 0; index -= 1) {
+    if (indexes[index] <= currentIndex) {
+      return indexes[index];
+    }
+  }
+
+  return indexes[indexes.length - 1];
+}
+
 export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
+  const isMobile = useIsMobile();
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [syncData, setSyncData] = useState<{ time: number; text: string }[]>([]);
   const [timeDrafts, setTimeDrafts] = useState<Record<number, string>>({});
+  const [mobileTab, setMobileTab] = useState<"marker" | "lines">("marker");
   const playerRef = useRef<MediaPlayerElement | null>(null);
 
   const lines = useMemo(
@@ -167,13 +184,19 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     setSyncData(normalizedSyncData);
     setTimeDrafts(buildDraftMap(normalizedSyncData));
     setCurrentLineIndex(getNextUnsyncedLineIndex(normalizedSyncData));
+    setMobileTab("marker");
   }, [hymn.lyrics, hymn.lyricsSync]);
 
   const utils = trpc.useUtils();
   const updateMut = trpc.hymns.update.useMutation({
-    onSuccess: () => {
-      toast.success("Sincronização salva!");
-      utils.hymns.invalidate();
+    onSuccess: async () => {
+      toast.success("Sincronizacao salva com sucesso.");
+      await Promise.all([
+        utils.hymns.list.invalidate(),
+        utils.hymns.listAll.invalidate(),
+        utils.hymns.getById.invalidate({ id: hymn.id }),
+        ...(typeof hymn.number === "number" ? [utils.hymns.getByNumber.invalidate({ number: hymn.number })] : []),
+      ]);
       onSuccess?.();
     },
     onError: (error) => toast.error(error.message),
@@ -214,37 +237,16 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     seekTo(currentTime + delta);
   };
 
-  const applyAutomaticSync = () => {
-    if (!(duration > 0)) {
-      toast.error("D? play e aguarde a dura??o da m?dia carregar antes do auto-sync.");
-      return;
-    }
-
-    const nextSyncData = buildAutomaticLyricsSyncLines(hymn.title, hymn.lyrics, duration);
-
-    if (!hasLyricsSyncData(nextSyncData)) {
-      toast.error("N?o foi poss?vel gerar uma sincroniza??o autom?tica para este hino.");
-      return;
-    }
-
-    setSyncData(nextSyncData);
-    setTimeDrafts(buildDraftMap(nextSyncData));
-    setCurrentLineIndex(getNextUnsyncedLineIndex(nextSyncData));
-
-    const firstTimedLine = nextSyncData.find((entry) => entry.time >= 0 && !isLyricsSectionLabel(entry.text));
-    if (firstTimedLine) {
-      seekTo(firstTimedLine.time);
-    }
-
-    toast.success("Sincroniza??o autom?tica aplicada. Revise e salve se estiver tudo certo.");
-  };
-
-  const focusLine = (index: number) => {
+  const focusLine = (index: number, nextTab?: "marker" | "lines") => {
     if (index < 0 || index >= lines.length) {
       return;
     }
 
     setCurrentLineIndex(index);
+    if (nextTab) {
+      setMobileTab(nextTab);
+    }
+
     const existingTime = syncData[index]?.time;
     if (typeof existingTime === "number" && existingTime >= 0) {
       seekTo(existingTime);
@@ -290,12 +292,12 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const applyDraftTime = (index: number) => {
     const parsed = parseEditableTime(timeDrafts[index] ?? "");
     if (parsed === null) {
-      toast.error("Informe um tempo válido. Ex.: 1:23.45");
+      toast.error("Informe um tempo valido. Ex.: 1:23.45");
       return;
     }
 
     updateLineTime(index, parsed);
-    focusLine(index);
+    focusLine(index, isMobile ? "marker" : undefined);
   };
 
   const markCurrentLine = () => {
@@ -308,6 +310,74 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
       setCurrentLineIndex(nextMarkable);
     }
+  };
+
+  const applyAutomaticSync = () => {
+    if (!(duration > 0)) {
+      toast.error("D� play e aguarde a duracao da midia carregar antes do auto-sync.");
+      return;
+    }
+
+    const nextSyncData = buildAutomaticLyricsSyncLines(hymn.title, hymn.lyrics, duration);
+
+    if (!hasLyricsSyncData(nextSyncData)) {
+      toast.error("Nao foi possivel gerar uma sincronizacao automatica para este hino.");
+      return;
+    }
+
+    setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
+    setCurrentLineIndex(getNextUnsyncedLineIndex(nextSyncData));
+    setMobileTab("marker");
+
+    const firstTimedLine = nextSyncData.find((entry) => entry.time >= 0 && !isLyricsSectionLabel(entry.text));
+    if (firstTimedLine) {
+      seekTo(firstTimedLine.time);
+    }
+
+    toast.success("Sincronizacao automatica aplicada. Revise e salve se estiver tudo certo.");
+  };
+
+  const handleUndo = () => {
+    const markedIndexes = syncData
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => entry.time >= 0 && !isLyricsSectionLabel(entry.text))
+      .map(({ index }) => index);
+
+    const targetIndex = getLastMarkedIndexAtOrBefore(markedIndexes, normalizedCurrentLineIndex);
+    if (targetIndex === undefined) return;
+
+    const nextSyncData = [...syncData];
+    nextSyncData[targetIndex] = { time: -1, text: lines[targetIndex] };
+    setSyncData(nextSyncData);
+    setTimeDrafts(buildDraftMap(nextSyncData));
+    setCurrentLineIndex(targetIndex);
+    setMobileTab("marker");
+  };
+
+  const resetSync = () => {
+    if (!confirm("Deseja resetar toda a sincronizacao?")) {
+      return;
+    }
+
+    const resetData = lines.map((text) => ({ time: -1, text }));
+    setSyncData(resetData);
+    setTimeDrafts(buildDraftMap(resetData));
+    setCurrentLineIndex(findNextMarkableIndex(lines, 0));
+    setCurrentTime(0);
+    setPlaying(false);
+    setMobileTab("marker");
+
+    if (playerRef.current) {
+      playerRef.current.currentTime = 0;
+    }
+  };
+
+  const handleSave = () => {
+    updateMut.mutate({
+      id: hymn.id,
+      lyricsSync: syncData,
+    });
   };
 
   useEffect(() => {
@@ -347,50 +417,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [playing, currentLineIndex, currentTime, syncData, normalizedCurrentLineIndex, lines]);
-
-  const handleUndo = () => {
-    const markedIndexes = syncData
-      .map((entry, index) => ({ entry, index }))
-      .filter(({ entry }) => entry.time >= 0 && !isLyricsSectionLabel(entry.text))
-      .map(({ index }) => index);
-
-    const targetIndex =
-      markedIndexes.findLast((index) => index <= normalizedCurrentLineIndex) ??
-      markedIndexes[markedIndexes.length - 1];
-
-    if (targetIndex === undefined) return;
-
-    const nextSyncData = [...syncData];
-    nextSyncData[targetIndex] = { time: -1, text: lines[targetIndex] };
-    setSyncData(nextSyncData);
-    setTimeDrafts(buildDraftMap(nextSyncData));
-    setCurrentLineIndex(targetIndex);
-  };
-
-  const resetSync = () => {
-    if (!confirm("Deseja resetar toda a sincronização?")) {
-      return;
-    }
-
-    const resetData = lines.map((text) => ({ time: -1, text }));
-    setSyncData(resetData);
-    setTimeDrafts(buildDraftMap(resetData));
-    setCurrentLineIndex(findNextMarkableIndex(lines, 0));
-    setCurrentTime(0);
-    setPlaying(false);
-
-    if (playerRef.current) {
-      playerRef.current.currentTime = 0;
-    }
-  };
-
-  const handleSave = () => {
-    updateMut.mutate({
-      id: hymn.id,
-      lyricsSync: syncData,
-    });
-  };
+  }, [currentTime, currentLineIndex, lines, normalizedCurrentLineIndex, syncData]);
 
   const url = hymn.youtubeUrl || hymn.audioUrl;
 
@@ -407,310 +434,389 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
     return () => window.clearInterval(interval);
   }, [playing, url]);
+
   const selectedLineHasTime =
     normalizedCurrentLineIndex < lines.length && (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
 
   if (!url) {
     return (
-      <div className="rounded-xl border-2 border-dashed border-destructive/20 bg-destructive/5 p-12 text-center">
+      <div className="rounded-xl border-2 border-dashed border-destructive/20 bg-destructive/5 p-8 text-center sm:p-12">
         <Music className="mx-auto mb-4 h-12 w-12 text-destructive/40" />
-        <p className="text-lg font-bold text-destructive">Este hino não possui áudio ou vídeo para sincronizar.</p>
+        <p className="text-base font-bold text-destructive sm:text-lg">Este hino nao possui audio ou video para sincronizar.</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Adicione uma URL do YouTube ou faça upload de um áudio primeiro.
+          Adicione uma URL do YouTube ou fa�a upload de um audio primeiro.
         </p>
+      </div>
+    );
+  }
+
+  const renderPlayerCard = (compact: boolean) => (
+    <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10">
+      <div
+        className={
+          hymn.youtubeUrl
+            ? "aspect-video bg-black"
+            : hymn.audioUrl
+              ? "flex h-20 items-center bg-gradient-to-r from-[#1a3a2a] to-[#10281d] px-4 sm:px-6"
+              : "hidden"
+        }
+      >
+        <Player
+          ref={playerRef as any}
+          src={url}
+          playing={playing}
+          playsInline
+          width="100%"
+          height="100%"
+          onReady={() => syncMediaState(playerRef.current)}
+          onTimeUpdate={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
+          onDurationChange={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          config={
+            hymn.youtubeUrl
+              ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
+              : undefined
+          }
+        />
+        {!hymn.youtubeUrl && (
+          <div className="flex flex-1 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c4a84b]/20">
+                <Music className="h-5 w-5 text-[#c4a84b]" />
+              </div>
+              <span className="truncate text-sm font-bold text-white/80">Audio do Sistema</span>
+            </div>
+            <div className="text-xl font-black text-[#c4a84b] sm:text-2xl">{formatTime(currentTime)}</div>
+          </div>
+        )}
+      </div>
+
+      <CardContent className={compact ? "bg-[#10281d] p-3 text-white sm:p-4" : "bg-[#10281d] p-4 text-white"}>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-12 w-12 rounded-full bg-white/10 text-white shadow-xl transition-all hover:bg-white/20 active:scale-95 sm:h-14 sm:w-14"
+                onClick={() => setPlaying(!playing)}
+              >
+                {playing ? <Pause className="h-6 w-6 sm:h-8 sm:w-8" /> : <Play className="ml-0.5 h-6 w-6 sm:ml-1 sm:h-8 sm:w-8" />}
+              </Button>
+              <div className="min-w-0">
+                <div className="text-2xl font-black tracking-tighter text-white sm:text-3xl">{formatTime(currentTime)}</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70">
+                  Progresso {Math.round((currentTime / duration) * 100 || 0)}%
+                </div>
+              </div>
+            </div>
+            <div className="rounded-full bg-white/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+              {syncedCount}/{markableCount} versos
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={applyAutomaticSync}
+              disabled={!(duration > 0)}
+              className="justify-center border-[#c4a84b]/30 bg-[#c4a84b] font-bold text-[#10281d] hover:bg-[#c4a84b]/90"
+            >
+              <WandSparkles className="mr-2 h-4 w-4" />
+              Sincronizacao automatica
+            </Button>
+
+            <div className="flex items-center justify-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="px-2 text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)}>
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="px-2 text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)}>
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleUndo} disabled={syncedCount === 0} className="flex-1 border-white/10 bg-white/5 text-white hover:bg-white/10 sm:flex-none">
+                <RotateCcw className="mr-2 h-4 w-4" /> Desfazer
+              </Button>
+              <Button variant="destructive" size="sm" onClick={resetSync} className="flex-1 bg-red-500/80 hover:bg-red-500 sm:flex-none">
+                <Trash2 className="mr-2 h-4 w-4" /> Resetar
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Slider value={[currentTime]} max={duration || 100} step={0.01} onValueChange={handleSeek} className="cursor-pointer" />
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
+              <span>Inicio</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderCurrentLineCard = (compact: boolean, showInlineSave: boolean) => (
+    <Card className="relative overflow-hidden border-0 bg-white shadow-2xl ring-1 ring-black/5">
+      <div className="absolute top-0 h-1.5 w-full bg-[#c4a84b]" />
+      <CardContent className={compact ? "p-4 pt-5 sm:p-6" : "p-6 md:p-8"}>
+        {normalizedCurrentLineIndex < lines.length ? (
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verso em foco</p>
+              <div className="flex items-start gap-3">
+                <h2 className={compact ? "text-xl font-black leading-tight tracking-tight text-[#1a3a2a] sm:text-2xl" : "text-3xl font-black tracking-tight text-[#1a3a2a] md:text-4xl"}>
+                  {lines[normalizedCurrentLineIndex]}
+                </h2>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-400">
+                  {normalizedCurrentLineIndex + 1}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <Button
+                className={compact ? "h-14 bg-[#1a3a2a] text-base font-black shadow-xl hover:bg-[#10281d] active:scale-[0.99]" : "h-16 bg-[#1a3a2a] text-xl font-black shadow-xl hover:bg-[#10281d] active:scale-95 transition-all"}
+                onClick={markCurrentLine}
+              >
+                <Zap className="mr-3 h-5 w-5 text-[#c4a84b] fill-[#c4a84b] sm:h-6 sm:w-6" />
+                {selectedLineHasTime ? "Atualizar tempo" : "Marcar agora"}
+              </Button>
+
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button variant="outline" className="h-12 sm:h-16 sm:w-16" onClick={() => focusLine(normalizedCurrentLineIndex - 1, compact ? "marker" : undefined)}>
+                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+                <Button variant="outline" className="h-12 sm:h-16 sm:w-16" onClick={() => focusLine(normalizedCurrentLineIndex + 1, compact ? "marker" : undefined)}>
+                  <ArrowDown className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+              </div>
+            </div>
+
+            {showInlineSave && (
+              <div className="flex items-center justify-between gap-4 border-t pt-4">
+                <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Espaco</kbd> Marcar</span>
+                  <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Setas</kbd> Navegar</span>
+                </div>
+                <Button variant="secondary" onClick={handleSave} disabled={updateMut.isPending || !hasLyricsSyncData(syncData)} className="font-bold">
+                  {updateMut.isPending ? "Salvando..." : "Salvar sincronizacao"}
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-6 text-center sm:py-10">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600 shadow-inner sm:h-20 sm:w-20">
+              <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12" />
+            </div>
+            <h2 className="text-xl font-black text-[#1a3a2a] sm:text-2xl">Sincronizacao finalizada</h2>
+            <p className="mb-6 text-sm text-slate-400">Revise as marcacoes e salve quando estiver tudo certo.</p>
+            <Button size="lg" onClick={handleSave} disabled={updateMut.isPending} className="bg-[#1a3a2a] font-bold">
+              {updateMut.isPending ? "Salvando..." : "Finalizar e salvar"}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderLinesPanel = (compact: boolean) => (
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-0 bg-white shadow-xl ring-1 ring-black/5">
+      <div className="flex items-center justify-between gap-3 border-b bg-slate-50/70 px-4 py-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Lista completa</span>
+        <span className="rounded-full bg-[#1a3a2a]/10 px-2 py-0.5 text-[10px] font-black text-[#1a3a2a]">
+          {syncedCount}/{markableCount} versos
+        </span>
+      </div>
+
+      <CardContent className="flex-1 overflow-y-auto p-0">
+        <div className="divide-y divide-slate-50">
+          {lines.map((line, index) => {
+            const isHeading = isLyricsSectionLabel(line);
+            const isCurrent = index === normalizedCurrentLineIndex;
+            const syncEntry = syncData[index];
+            const hasTime = Boolean(syncEntry && syncEntry.time >= 0);
+
+            if (isHeading) {
+              return (
+                <div key={index} className="bg-slate-100/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+                  {line}
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={index}
+                data-line-index={index}
+                className={`px-4 py-3 transition-all ${
+                  isCurrent
+                    ? "bg-[#1a3a2a] text-white shadow-inner"
+                    : hasTime
+                      ? "bg-white text-slate-600 hover:bg-slate-50"
+                      : "bg-white text-slate-400 hover:bg-slate-50"
+                }`}
+              >
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-1 text-left"
+                  onClick={() => focusLine(index, compact ? "marker" : undefined)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-[10px] font-bold ${isCurrent ? "text-white/60" : "text-slate-300"}`}>
+                      #{index + 1}
+                    </span>
+                    {hasTime && (
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${isCurrent ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                        {formatTime(syncEntry.time)}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`leading-relaxed ${isCurrent ? "font-bold text-white" : "font-medium"} ${compact ? "text-sm" : "text-sm"}`}>
+                    {line}
+                  </p>
+                </button>
+
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <Input
+                    value={timeDrafts[index] ?? ""}
+                    onChange={(event) =>
+                      setTimeDrafts((current) => ({
+                        ...current,
+                        [index]: event.target.value,
+                      }))
+                    }
+                    onFocus={() => focusLine(index, compact ? "lines" : undefined)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        applyDraftTime(index);
+                      }
+                    }}
+                    placeholder="0:00.00"
+                    className={`h-9 w-full text-xs font-bold sm:w-28 ${
+                      isCurrent
+                        ? "border-white/20 bg-white/10 text-white placeholder:text-white/40"
+                        : "border-slate-200 bg-slate-50 text-slate-700"
+                    }`}
+                  />
+                  <Button
+                    type="button"
+                    variant={isCurrent ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-9 justify-center px-3 text-[10px] font-black uppercase sm:w-auto"
+                    onClick={() => applyDraftTime(index)}
+                  >
+                    <Check className="mr-1 h-3 w-3" />
+                    Aplicar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 justify-center px-3 text-[10px] font-black uppercase sm:w-auto ${
+                      isCurrent ? "border-white/20 bg-white/10 text-white hover:bg-white/20" : ""
+                    }`}
+                    onClick={() => {
+                      updateLineTime(index, currentTime);
+                      focusLine(index, compact ? "marker" : undefined);
+                    }}
+                  >
+                    <Clock className="mr-1 h-3 w-3" />
+                    Usar agora
+                  </Button>
+                  {hasTime && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className={`h-9 justify-center px-2 text-[10px] font-black uppercase sm:w-auto ${
+                        isCurrent ? "text-white hover:bg-white/10 hover:text-white" : "text-red-500"
+                      }`}
+                      onClick={() => clearLineTime(index)}
+                    >
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+        <div className="shrink-0">{renderPlayerCard(true)}</div>
+
+        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="min-h-0 flex-1 overflow-hidden">
+          <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1">
+            <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
+              <Zap className="h-4 w-4" /> Marcar
+            </TabsTrigger>
+            <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
+              <ListMusic className="h-4 w-4" /> Linhas
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="marker" className="min-h-0 overflow-y-auto pb-1">
+            {renderCurrentLineCard(true, false)}
+          </TabsContent>
+          <TabsContent value="lines" className="min-h-0 overflow-hidden pb-1">
+            {renderLinesPanel(true)}
+          </TabsContent>
+        </Tabs>
+
+        <Card className="shrink-0 border-0 bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              <span>{syncedCount}/{markableCount} versos marcados</span>
+              {!hasLyricsSyncData(syncData) && <span className="text-amber-600">Aguardando marcacoes</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-11 font-bold" onClick={() => setMobileTab("lines")}>
+                Revisar linhas
+              </Button>
+              <Button
+                className="h-11 bg-[#1a3a2a] font-bold text-white hover:bg-[#10281d]"
+                onClick={handleSave}
+                disabled={updateMut.isPending || !hasLyricsSyncData(syncData)}
+              >
+                {updateMut.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden p-1">
-      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
-          <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10">
-            <div className={hymn.youtubeUrl ? "aspect-video bg-black" : hymn.audioUrl ? "h-20 bg-gradient-to-r from-[#1a3a2a] to-[#10281d] flex items-center px-6" : "hidden"}>
-              <Player
-                ref={playerRef as any}
-                src={url}
-                playing={playing}
-                playsInline
-                width="100%"
-                height="100%"
-                onReady={() => syncMediaState(playerRef.current)}
-                onTimeUpdate={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
-                onDurationChange={(event: any) => syncMediaState(event.currentTarget as MediaPlayerElement)}
-                onPlay={() => setPlaying(true)}
-                onPause={() => setPlaying(false)}
-                config={
-                  hymn.youtubeUrl
-                    ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
-                    : undefined
-                }
-              />
-              {!hymn.youtubeUrl && (
-                <div className="flex flex-1 items-center justify-between">
-                   <div className="flex items-center gap-3">
-                     <div className="h-10 w-10 animate-pulse rounded-full bg-[#c4a84b]/20 flex items-center justify-center">
-                        <Music className="h-5 w-5 text-[#c4a84b]" />
-                     </div>
-                     <span className="text-sm font-bold text-white/80">Áudio do Sistema</span>
-                   </div>
-                   <div className="text-2xl font-black text-[#c4a84b]">{formatTime(currentTime)}</div>
-                </div>
-              )}
-            </div>
-
-            <CardContent className="bg-[#10281d] p-4 text-white">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-14 w-14 rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-90 transition-all shadow-xl"
-                    onClick={() => setPlaying(!playing)}
-                  >
-                    {playing ? <Pause className="h-8 w-8" /> : <Play className="ml-1 h-8 w-8" />}
-                  </Button>
-                  <div>
-                    <div className="text-3xl font-black tracking-tighter text-white">{formatTime(currentTime)}</div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70">
-                      Progresso {Math.round((currentTime/duration)*100 || 0)}%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={applyAutomaticSync} disabled={!(duration > 0)} className="border-[#c4a84b]/30 bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90">
-                    <Clock className="mr-2 h-4 w-4" /> Sincroniza??o autom?tica
-                  </Button>
-                  <div className="flex items-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/60 hover:text-white" onClick={() => nudgeTime(-1)}>
-                       <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="px-2 text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/60 hover:text-white" onClick={() => nudgeTime(1)}>
-                       <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="flex items-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/60 hover:text-white" onClick={() => nudgeTime(-0.1)}>
-                       <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="px-2 text-[10px] font-black uppercase tracking-widest text-white/40">0.1s</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/60 hover:text-white" onClick={() => nudgeTime(0.1)}>
-                       <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-
-                  <Button variant="outline" size="sm" onClick={handleUndo} disabled={syncedCount === 0} className="border-white/10 bg-white/5 text-white hover:bg-white/10">
-                    <RotateCcw className="mr-2 h-4 w-4" /> Desfazer
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={resetSync} className="bg-red-500/80 hover:bg-red-500">
-                    <Trash2 className="mr-2 h-4 w-4" /> Resetar
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-1">
-                <Slider value={[currentTime]} max={duration || 100} step={0.01} onValueChange={handleSeek} className="cursor-pointer" />
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
-                   <span>INÍCIO</span>
-                   <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="relative overflow-hidden border-0 bg-white shadow-2xl ring-1 ring-black/5">
-             <div className="absolute top-0 h-1.5 w-full bg-[#c4a84b]" />
-             <CardContent className="p-6 md:p-8">
-               {normalizedCurrentLineIndex < lines.length ? (
-                 <div className="space-y-6">
-                    <div className="flex items-start justify-between">
-                       <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verso em Foco</p>
-                          <div className="flex items-center gap-3">
-                            <h2 className="text-3xl font-black tracking-tight text-[#1a3a2a] md:text-4xl">
-                              {lines[normalizedCurrentLineIndex]}
-                            </h2>
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-400">
-                               {normalizedCurrentLineIndex + 1}
-                            </span>
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4 md:flex-row">
-                       <Button 
-                         className="h-16 flex-1 bg-[#1a3a2a] text-xl font-black shadow-xl hover:bg-[#10281d] hover:shadow-2xl active:scale-95 transition-all"
-                         onClick={markCurrentLine}
-                       >
-                         <Zap className="mr-3 h-6 w-6 text-[#c4a84b] fill-[#c4a84b]" />
-                         {selectedLineHasTime ? "ATUALIZAR TEMPO" : "MARCAR AGORA"}
-                       </Button>
-                       
-                       <div className="flex gap-2">
-                          <Button variant="outline" className="h-16 w-16" onClick={() => focusLine(normalizedCurrentLineIndex - 1)}>
-                             <ArrowUp className="h-6 w-6" />
-                          </Button>
-                          <Button variant="outline" className="h-16 w-16" onClick={() => focusLine(normalizedCurrentLineIndex + 1)}>
-                             <ArrowDown className="h-6 w-6" />
-                          </Button>
-                       </div>
-                    </div>
-
-                    <div className="flex items-center justify-between border-t pt-4">
-                      <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        <span className="flex items-center gap-1.5"><kbd className="bg-slate-100 px-1.5 py-0.5 rounded border shadow-sm">Espaço</kbd> Marcar</span>
-                        <span className="flex items-center gap-1.5"><kbd className="bg-slate-100 px-1.5 py-0.5 rounded border shadow-sm">Setas</kbd> Navegar</span>
-                      </div>
-                      <Button variant="secondary" onClick={handleSave} disabled={updateMut.isPending || !hasLyricsSyncData(syncData)} className="font-bold">
-                        {updateMut.isPending ? "Salvando..." : "Salvar Sincronização"}
-                      </Button>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="py-10 text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600 shadow-inner mb-4">
-                       <CheckCircle2 className="h-12 w-12" />
-                    </div>
-                    <h2 className="text-2xl font-black text-[#1a3a2a]">Sincronização Finalizada!</h2>
-                    <p className="mb-6 text-slate-400">Revise as marcações na lista ao lado.</p>
-                    <Button size="lg" onClick={handleSave} disabled={updateMut.isPending} className="bg-[#1a3a2a] font-bold">
-                       {updateMut.isPending ? "Salvando..." : "Finalizar e Salvar"}
-                    </Button>
-                 </div>
-               )}
-             </CardContent>
-          </Card>
+          {renderPlayerCard(false)}
+          {renderCurrentLineCard(false, true)}
         </div>
-
-        <div className="flex min-h-0 flex-col">
-          <Card className="flex flex-1 flex-col overflow-hidden border-0 bg-white shadow-xl ring-1 ring-black/5">
-            <div className="flex items-center justify-between border-b bg-slate-50/50 px-4 py-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Lista Completa</span>
-              <span className="rounded-full bg-[#1a3a2a]/10 px-2 py-0.5 text-[10px] font-black text-[#1a3a2a]">
-                {syncedCount}/{markableCount} versos
-              </span>
-            </div>
-            
-            <CardContent className="flex-1 overflow-y-auto p-0">
-              <div className="divide-y divide-slate-50">
-                {lines.map((line, index) => {
-                  const isHeading = isLyricsSectionLabel(line);
-                  const isCurrent = index === normalizedCurrentLineIndex;
-                  const syncEntry = syncData[index];
-                  const hasTime = Boolean(syncEntry && syncEntry.time >= 0);
-
-                  if (isHeading) {
-                    return (
-                      <div key={index} className="bg-slate-100/50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
-                        {line}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={index}
-                      data-line-index={index}
-                      className={`px-4 py-3 transition-all ${
-                        isCurrent
-                          ? "bg-[#1a3a2a] text-white shadow-inner"
-                          : hasTime
-                            ? "bg-white text-slate-600 hover:bg-slate-50"
-                            : "bg-white text-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full flex-col gap-1 text-left"
-                        onClick={() => focusLine(index)}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[10px] font-bold ${isCurrent ? "text-white/60" : "text-slate-300"}`}>
-                            #{index + 1}
-                          </span>
-                          {hasTime && (
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${isCurrent ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-                              {formatTime(syncEntry.time)}
-                            </span>
-                          )}
-                        </div>
-                        <p className={`text-sm ${isCurrent ? "font-bold" : "font-medium"}`}>{line}</p>
-                      </button>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <Input
-                          value={timeDrafts[index] ?? ""}
-                          onChange={(event) =>
-                            setTimeDrafts((current) => ({
-                              ...current,
-                              [index]: event.target.value,
-                            }))
-                          }
-                          onFocus={() => focusLine(index)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              applyDraftTime(index);
-                            }
-                          }}
-                          placeholder="0:00.00"
-                          className={`h-8 w-24 text-xs font-bold ${
-                            isCurrent
-                              ? "border-white/20 bg-white/10 text-white placeholder:text-white/40"
-                              : "border-slate-200 bg-slate-50 text-slate-700"
-                          }`}
-                        />
-                        <Button
-                          type="button"
-                          variant={isCurrent ? "secondary" : "outline"}
-                          size="sm"
-                          className="h-8 px-3 text-[10px] font-black uppercase"
-                          onClick={() => applyDraftTime(index)}
-                        >
-                          <Check className="mr-1 h-3 w-3" />
-                          Aplicar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className={`h-8 px-3 text-[10px] font-black uppercase ${
-                            isCurrent
-                              ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            updateLineTime(index, currentTime);
-                            focusLine(index);
-                          }}
-                        >
-                          <Clock className="mr-1 h-3 w-3" />
-                          Usar Agora
-                        </Button>
-                        {hasTime && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className={`h-8 px-2 text-[10px] font-black uppercase ${
-                              isCurrent ? "text-white hover:bg-white/10 hover:text-white" : "text-red-500"
-                            }`}
-                            onClick={() => clearLineTime(index)}
-                          >
-                            Limpar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <div className="flex min-h-0 flex-col">{renderLinesPanel(false)}</div>
       </div>
     </div>
   );
