@@ -37,6 +37,7 @@ import {
 } from "@/lib/lyricsSync";
 
 const Player = ReactPlayer as any;
+const DRAFT_STORAGE_PREFIX = "lyrics-sync-draft";
 
 type MediaPlayerElement = HTMLMediaElement & {
   currentTime: number;
@@ -145,7 +146,11 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const [syncData, setSyncData] = useState<{ time: number; text: string }[]>([]);
   const [timeDrafts, setTimeDrafts] = useState<Record<number, string>>({});
   const [mobileTab, setMobileTab] = useState<"marker" | "lines">("marker");
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const playerRef = useRef<MediaPlayerElement | null>(null);
+  const draftHydratedRef = useRef(false);
+  const serverSnapshotRef = useRef("");
 
   const lines = useMemo(
     () => hymn.lyrics.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
@@ -174,22 +179,160 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     [syncData],
   );
 
+  const draftStorageKey = useMemo(() => `${DRAFT_STORAGE_PREFIX}:${hymn.id}`, [hymn.id]);
+
   const buildDraftMap = (entries: { time: number; text: string }[]) =>
     Object.fromEntries(
       entries.map((entry, index) => [index, entry.time >= 0 ? formatEditableTime(entry.time) : ""]),
     );
 
-  useEffect(() => {
+  const buildSnapshot = (entries: { time: number; text: string }[], drafts: Record<number, string>, lineIndex: number, tab: "marker" | "lines") =>
+    JSON.stringify({
+      syncData: entries.map((entry) => ({ time: entry.time, text: entry.text })),
+      timeDrafts: Object.fromEntries(Object.entries(drafts).sort(([left], [right]) => Number(left) - Number(right))),
+      currentLineIndex: lineIndex,
+      mobileTab: tab,
+    });
+
+  const createServerState = () => {
     const normalizedSyncData = buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync);
-    setSyncData(normalizedSyncData);
-    setTimeDrafts(buildDraftMap(normalizedSyncData));
-    setCurrentLineIndex(getNextUnsyncedLineIndex(normalizedSyncData));
-    setMobileTab("marker");
-  }, [hymn.lyrics, hymn.lyricsSync]);
+    return {
+      syncData: normalizedSyncData,
+      timeDrafts: buildDraftMap(normalizedSyncData),
+      currentLineIndex: getNextUnsyncedLineIndex(normalizedSyncData),
+      mobileTab: "marker" as const,
+    };
+  };
+
+  const clearStoredDraft = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(draftStorageKey);
+    }
+    setHasLocalDraft(false);
+    setDraftSavedAt(null);
+  };
+
+  const discardLocalDraft = () => {
+    const serverState = createServerState();
+    clearStoredDraft();
+    setSyncData(serverState.syncData);
+    setTimeDrafts(serverState.timeDrafts);
+    setCurrentLineIndex(serverState.currentLineIndex);
+    setMobileTab(serverState.mobileTab);
+    toast.success("Rascunho descartado. Voltamos para a versao salva do hino.");
+  };
+
+  const draftStatusLabel = draftSavedAt
+    ? new Date(draftSavedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  useEffect(() => {
+    const serverState = createServerState();
+    serverSnapshotRef.current = buildSnapshot(
+      serverState.syncData,
+      serverState.timeDrafts,
+      serverState.currentLineIndex,
+      serverState.mobileTab,
+    );
+
+    let nextState: {
+      syncData: { time: number; text: string }[];
+      timeDrafts: Record<number, string>;
+      currentLineIndex: number;
+      mobileTab: "marker" | "lines";
+    } = serverState;
+    let restoredDraft = false;
+
+    if (typeof window !== "undefined") {
+      const rawDraft = window.localStorage.getItem(draftStorageKey);
+      if (rawDraft) {
+        try {
+          const parsedDraft = JSON.parse(rawDraft);
+          if (parsedDraft?.hymnId === hymn.id && parsedDraft?.lyrics === hymn.lyrics) {
+            const restoredSyncData = buildLyricsSyncLines(hymn.lyrics, parsedDraft.syncData);
+            const restoredTimeDrafts =
+              parsedDraft.timeDrafts && typeof parsedDraft.timeDrafts === "object"
+                ? Object.fromEntries(
+                    Object.entries(parsedDraft.timeDrafts).map(([key, value]) => [Number(key), typeof value === "string" ? value : ""]),
+                  )
+                : buildDraftMap(restoredSyncData);
+            const restoredLineIndex =
+              typeof parsedDraft.currentLineIndex === "number"
+                ? parsedDraft.currentLineIndex
+                : getNextUnsyncedLineIndex(restoredSyncData);
+            const restoredTab = parsedDraft.mobileTab === "lines" ? "lines" : "marker";
+            const restoredSnapshot = buildSnapshot(restoredSyncData, restoredTimeDrafts, restoredLineIndex, restoredTab);
+
+            if (restoredSnapshot !== serverSnapshotRef.current) {
+              nextState = {
+                syncData: restoredSyncData,
+                timeDrafts: restoredTimeDrafts,
+                currentLineIndex: restoredLineIndex,
+                mobileTab: restoredTab,
+              };
+              restoredDraft = true;
+              setHasLocalDraft(true);
+              setDraftSavedAt(typeof parsedDraft.savedAt === "string" ? parsedDraft.savedAt : null);
+            } else {
+              clearStoredDraft();
+            }
+          } else {
+            clearStoredDraft();
+          }
+        } catch {
+          clearStoredDraft();
+        }
+      } else {
+        setHasLocalDraft(false);
+        setDraftSavedAt(null);
+      }
+    }
+
+    setSyncData(nextState.syncData);
+    setTimeDrafts(nextState.timeDrafts);
+    setCurrentLineIndex(nextState.currentLineIndex);
+    setMobileTab(nextState.mobileTab);
+    draftHydratedRef.current = true;
+
+    if (restoredDraft) {
+      toast.success("Rascunho local restaurado. Voce voltou exatamente de onde parou.");
+    }
+  }, [draftStorageKey, hymn.id, hymn.lyrics, hymn.lyricsSync]);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const nextSnapshot = buildSnapshot(syncData, timeDrafts, currentLineIndex, mobileTab);
+    if (nextSnapshot === serverSnapshotRef.current) {
+      clearStoredDraft();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const payload = {
+        hymnId: hymn.id,
+        lyrics: hymn.lyrics,
+        syncData,
+        timeDrafts,
+        currentLineIndex,
+        mobileTab,
+        savedAt: new Date().toISOString(),
+      };
+
+      window.localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+      setHasLocalDraft(true);
+      setDraftSavedAt(payload.savedAt);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [currentLineIndex, draftStorageKey, hymn.id, hymn.lyrics, mobileTab, syncData, timeDrafts]);
 
   const utils = trpc.useUtils();
   const updateMut = trpc.hymns.update.useMutation({
     onSuccess: async () => {
+      clearStoredDraft();
       toast.success("Sincronizacao salva com sucesso.");
       await Promise.all([
         utils.hymns.list.invalidate(),
@@ -564,6 +707,15 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               <span>Inicio</span>
               <span>{formatTime(duration)}</span>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 ring-1 ring-white/10">
+            <span>{hasLocalDraft ? `Rascunho local salvo ${draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}` : "Sem rascunho local pendente"}</span>
+            {hasLocalDraft && (
+              <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[10px] font-black uppercase text-white hover:bg-white/10" onClick={discardLocalDraft}>
+                Descartar rascunho
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
