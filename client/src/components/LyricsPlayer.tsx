@@ -94,7 +94,7 @@ export default function LyricsPlayer({
                 {React.createElement(ReactPlayer as any, {
                   key: mediaUrl,
                   ref: playerRef,
-                  src: mediaUrl,
+                  url: mediaUrl,
                   playing,
                   volume,
                   muted: volume === 0,
