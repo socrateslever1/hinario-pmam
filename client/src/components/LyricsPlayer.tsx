@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 import { Card, CardContent } from "@/components/ui/card";
 import { Music, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
@@ -28,6 +28,11 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function extractYouTubeId(url: string): string | null {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
+  return match ? match[1] : null;
+}
+
 export default function LyricsPlayer({
   hymnTitle,
   lyrics,
@@ -41,13 +46,14 @@ export default function LyricsPlayer({
   const [volume, setVolume] = useState(0.8);
 
   const playerRef = useRef<MediaPlayerElement | null>(null);
-  const mediaUrl = youtubeUrl || audioUrl || null;
+  const youtubeId = youtubeUrl ? extractYouTubeId(youtubeUrl) : null;
+  const mediaUrl = audioUrl || null;
 
   useEffect(() => {
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-  }, [mediaUrl, hymnTitle]);
+  }, [mediaUrl, hymnTitle, youtubeId]);
 
   const syncMediaState = (media?: MediaPlayerElement | null) => {
     if (!media) return;
@@ -88,9 +94,24 @@ export default function LyricsPlayer({
     <div className="mx-auto w-full max-w-4xl space-y-4 md:space-y-5">
       <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
         <CardContent className="p-0">
-          {mediaUrl ? (
+          {youtubeId ? (
             <div className="overflow-hidden border-b border-[#1a3a2a]/10 bg-black">
-              <div className={youtubeUrl ? "mx-auto aspect-video w-full bg-black" : "h-0 overflow-hidden"}>
+              <div className="mx-auto aspect-video w-full bg-black">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1&playsinline=1&controls=1`}
+                  title={hymnTitle}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  style={{ border: "none" }}
+                />
+              </div>
+            </div>
+          ) : mediaUrl ? (
+            <div className="overflow-hidden border-b border-[#1a3a2a]/10 bg-black">
+              <div className="h-0 overflow-hidden">
                 {React.createElement(ReactPlayer as any, {
                   key: mediaUrl,
                   ref: playerRef,
@@ -99,17 +120,14 @@ export default function LyricsPlayer({
                   volume,
                   muted: volume === 0,
                   playsInline: true,
-                  width: "100%",
-                  height: "100%",
+                  width: "0",
+                  height: "0",
                   onReady: () => syncMediaState(playerRef.current),
                   onTimeUpdate: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
                   onDurationChange: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
                   onPlay: () => setPlaying(true),
                   onPause: () => setPlaying(false),
                   onEnded: () => setPlaying(false),
-                  config: youtubeUrl
-                    ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
-                    : undefined,
                 })}
               </div>
             </div>
@@ -132,7 +150,7 @@ export default function LyricsPlayer({
                     </h3>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/75">
-                        {youtubeUrl ? "Streaming do YouTube" : audioUrl ? "Audio do sistema" : "Sem midia"}
+                        {youtubeId ? "Streaming do YouTube" : mediaUrl ? "Audio do sistema" : "Sem midia"}
                       </span>
                     </div>
                   </div>
@@ -151,8 +169,8 @@ export default function LyricsPlayer({
                   <Button
                     variant="default"
                     size="icon"
-                    onClick={() => mediaUrl && setPlaying(!playing)}
-                    disabled={!mediaUrl}
+                    onClick={() => (mediaUrl || youtubeId) && setPlaying(!playing)}
+                    disabled={!mediaUrl && !youtubeId}
                     className="h-14 w-14 rounded-full border-4 border-[#c4a84b]/10 bg-[#1a3a2a] text-white shadow-[0_10px_30px_rgba(26,58,42,0.22)] transition-all hover:bg-[#1a3a2a]/95 active:scale-95 sm:h-16 sm:w-16"
                   >
                     {playing ? <Pause className="h-7 w-7" /> : <Play className="ml-1 h-7 w-7" />}
