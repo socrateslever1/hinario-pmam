@@ -15,7 +15,7 @@ import {
   CheckCircle2,
   Minus,
   Plus,
-  Check,
+
   Zap,
   ChevronLeft,
   ChevronRight,
@@ -432,15 +432,18 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     setCurrentLineIndex(index);
   };
 
-  const applyDraftTime = (index: number) => {
+  const commitDraftTime = (index: number, options?: { focusMarker?: boolean; silent?: boolean }) => {
     const parsed = parseEditableTime(timeDrafts[index] ?? "");
     if (parsed === null) {
-      toast.error("Informe um tempo valido. Ex.: 1:23.45");
-      return;
+      if (!options?.silent) {
+        toast.error("Informe um tempo valido. Ex.: 1:23.45");
+      }
+      return false;
     }
 
     updateLineTime(index, parsed);
-    focusLine(index, isMobile ? "marker" : undefined);
+    focusLine(index, (options?.focusMarker ?? isMobile) ? "marker" : undefined);
+    return true;
   };
 
   const markCurrentLine = () => {
@@ -457,7 +460,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   const applyAutomaticSync = () => {
     if (!(duration > 0)) {
-      toast.error("D� play e aguarde a duracao da midia carregar antes do auto-sync.");
+      toast.error("De play e aguarde a duracao da midia carregar antes do auto-sync.");
       return;
     }
 
@@ -478,7 +481,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       seekTo(firstTimedLine.time);
     }
 
-    toast.success("Sincronizacao automatica aplicada. Revise e salve se estiver tudo certo.");
+    toast.success("Sincronizacao automatica gerada. Revise os tempos e finalize no rodape quando estiver tudo certo.");
   };
 
   const handleUndo = () => {
@@ -587,7 +590,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         <Music className="mx-auto mb-4 h-12 w-12 text-destructive/40" />
         <p className="text-base font-bold text-destructive sm:text-lg">Este hino nao possui audio ou video para sincronizar.</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Adicione uma URL do YouTube ou fa�a upload de um audio primeiro.
+          Adicione uma URL do YouTube ou faca upload de um audio primeiro.
         </p>
       </div>
     );
@@ -722,14 +725,20 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     </Card>
   );
 
-  const renderCurrentLineCard = (compact: boolean, showInlineSave: boolean) => (
+  const renderCurrentLineCard = (compact: boolean) => (
     <Card className="relative overflow-hidden border-0 bg-white shadow-2xl ring-1 ring-black/5">
       <div className="absolute top-0 h-1.5 w-full bg-[#c4a84b]" />
       <CardContent className={compact ? "p-4 pt-5 sm:p-6" : "p-6 md:p-8"}>
         {normalizedCurrentLineIndex < lines.length ? (
           <div className="space-y-5">
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verso em foco</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verso em foco</p>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  {selectedLineHasTime ? `Marcado em ${formatEditableTime(syncData[normalizedCurrentLineIndex]?.time ?? 0)}` : "Aguardando marcacao"}
+                </span>
+              </div>
+
               <div className="flex items-start gap-3">
                 <h2 className={compact ? "text-xl font-black leading-tight tracking-tight text-[#1a3a2a] sm:text-2xl" : "text-3xl font-black tracking-tight text-[#1a3a2a] md:text-4xl"}>
                   {lines[normalizedCurrentLineIndex]}
@@ -740,36 +749,30 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 sm:grid-cols-[auto_auto_1fr] sm:items-center">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button variant="outline" className="h-11 sm:h-12 sm:w-12" onClick={() => focusLine(normalizedCurrentLineIndex - 1, compact ? "marker" : undefined)}>
+                  <ArrowUp className="h-5 w-5" />
+                </Button>
+                <Button variant="outline" className="h-11 sm:h-12 sm:w-12" onClick={() => focusLine(normalizedCurrentLineIndex + 1, compact ? "marker" : undefined)}>
+                  <ArrowDown className="h-5 w-5" />
+                </Button>
+              </div>
+
               <Button
-                className={compact ? "h-14 bg-[#1a3a2a] text-base font-black shadow-xl hover:bg-[#10281d] active:scale-[0.99]" : "h-16 bg-[#1a3a2a] text-xl font-black shadow-xl hover:bg-[#10281d] active:scale-95 transition-all"}
+                variant="outline"
+                className="h-11 border-[#1a3a2a]/15 bg-[#1a3a2a]/5 font-bold text-[#1a3a2a] hover:bg-[#1a3a2a]/10"
                 onClick={markCurrentLine}
               >
-                <Zap className="mr-3 h-5 w-5 text-[#c4a84b] fill-[#c4a84b] sm:h-6 sm:w-6" />
-                {selectedLineHasTime ? "Atualizar tempo" : "Marcar agora"}
+                <Clock className="mr-2 h-4 w-4" />
+                Marcar agora
               </Button>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex">
-                <Button variant="outline" className="h-12 sm:h-16 sm:w-16" onClick={() => focusLine(normalizedCurrentLineIndex - 1, compact ? "marker" : undefined)}>
-                  <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" />
-                </Button>
-                <Button variant="outline" className="h-12 sm:h-16 sm:w-16" onClick={() => focusLine(normalizedCurrentLineIndex + 1, compact ? "marker" : undefined)}>
-                  <ArrowDown className="h-5 w-5 sm:h-6 sm:w-6" />
-                </Button>
+              <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Espaco</kbd> Marcar</span>
+                <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Setas</kbd> Navegar</span>
               </div>
             </div>
-
-            {showInlineSave && (
-              <div className="flex items-center justify-between gap-4 border-t pt-4">
-                <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Espaco</kbd> Marcar</span>
-                  <span className="flex items-center gap-1.5"><kbd className="rounded border bg-slate-100 px-1.5 py-0.5 shadow-sm">Setas</kbd> Navegar</span>
-                </div>
-                <Button variant="secondary" onClick={handleSave} disabled={updateMut.isPending || !hasLyricsSyncData(syncData)} className="font-bold">
-                  {updateMut.isPending ? "Salvando..." : "Salvar sincronizacao"}
-                </Button>
-              </div>
-            )}
           </div>
         ) : (
           <div className="py-6 text-center sm:py-10">
@@ -777,12 +780,51 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12" />
             </div>
             <h2 className="text-xl font-black text-[#1a3a2a] sm:text-2xl">Sincronizacao finalizada</h2>
-            <p className="mb-6 text-sm text-slate-400">Revise as marcacoes e salve quando estiver tudo certo.</p>
-            <Button size="lg" onClick={handleSave} disabled={updateMut.isPending} className="bg-[#1a3a2a] font-bold">
-              {updateMut.isPending ? "Salvando..." : "Finalizar e salvar"}
-            </Button>
+            <p className="text-sm text-slate-400">Revise as marcacoes abaixo e use o salvar no final do editor.</p>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderSaveBar = (compact: boolean) => (
+    <Card className="shrink-0 border-0 bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur">
+      <CardContent className={compact ? "space-y-3 p-4" : "flex flex-wrap items-center justify-between gap-4 p-4 md:p-5"}>
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+            <span>{syncedCount}/{markableCount} versos marcados</span>
+            {!hasLyricsSyncData(syncData) && <span className="text-amber-600">Aguardando marcacoes</span>}
+            {hasLocalDraft && <span className="text-[#1a3a2a]">Rascunho salvo {draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}</span>}
+          </div>
+          <p className="text-sm text-slate-500">
+            O rascunho local ja fica salvo automaticamente. Use este botao so quando quiser publicar a sincronizacao oficial do hino.
+          </p>
+        </div>
+
+        <div className={compact ? "grid grid-cols-1 gap-2" : "flex flex-wrap items-center gap-2"}>
+          {compact && (
+            <Button variant="outline" className="h-11 font-bold" onClick={markCurrentLine}>
+              <Clock className="mr-2 h-4 w-4" /> Marcar agora
+            </Button>
+          )}
+          {compact && (
+            <Button variant="outline" className="h-11 font-bold" onClick={() => setMobileTab("lines")}>
+              Revisar linhas
+            </Button>
+          )}
+          {hasLocalDraft && (
+            <Button type="button" variant="outline" className="h-11 font-bold" onClick={discardLocalDraft}>
+              Descartar rascunho
+            </Button>
+          )}
+          <Button
+            className="h-11 bg-[#1a3a2a] px-5 font-bold text-white hover:bg-[#10281d]"
+            onClick={handleSave}
+            disabled={updateMut.isPending || !hasLyricsSyncData(syncData)}
+          >
+            {updateMut.isPending ? "Salvando..." : "Salvar sincronizacao"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -854,10 +896,15 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                       }))
                     }
                     onFocus={() => focusLine(index, compact ? "lines" : undefined)}
+                    onBlur={() => {
+                      if ((timeDrafts[index] ?? "").trim()) {
+                        commitDraftTime(index, { silent: true });
+                      }
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        applyDraftTime(index);
+                        commitDraftTime(index);
                       }
                     }}
                     placeholder="0:00.00"
@@ -867,16 +914,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                         : "border-slate-200 bg-slate-50 text-slate-700"
                     }`}
                   />
-                  <Button
-                    type="button"
-                    variant={isCurrent ? "secondary" : "outline"}
-                    size="sm"
-                    className="h-9 justify-center px-3 text-[10px] font-black uppercase sm:w-auto"
-                    onClick={() => applyDraftTime(index)}
-                  >
-                    <Check className="mr-1 h-3 w-3" />
-                    Aplicar
-                  </Button>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -890,7 +928,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                     }}
                   >
                     <Clock className="mr-1 h-3 w-3" />
-                    Usar agora
+                    Marcar agora
                   </Button>
                   {hasTime && (
                     <Button
@@ -922,7 +960,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="min-h-0 flex-1 overflow-hidden">
           <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1">
             <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-              <Zap className="h-4 w-4" /> Marcar
+              <Zap className="h-4 w-4" /> Foco
             </TabsTrigger>
             <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
               <ListMusic className="h-4 w-4" /> Linhas
@@ -930,33 +968,14 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           </TabsList>
 
           <TabsContent value="marker" className="min-h-0 overflow-y-auto pb-1">
-            {renderCurrentLineCard(true, false)}
+            {renderCurrentLineCard(true)}
           </TabsContent>
           <TabsContent value="lines" className="min-h-0 overflow-hidden pb-1">
             {renderLinesPanel(true)}
           </TabsContent>
         </Tabs>
 
-        <Card className="shrink-0 border-0 bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur">
-          <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              <span>{syncedCount}/{markableCount} versos marcados</span>
-              {!hasLyricsSyncData(syncData) && <span className="text-amber-600">Aguardando marcacoes</span>}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-11 font-bold" onClick={() => setMobileTab("lines")}>
-                Revisar linhas
-              </Button>
-              <Button
-                className="h-11 bg-[#1a3a2a] font-bold text-white hover:bg-[#10281d]"
-                onClick={handleSave}
-                disabled={updateMut.isPending || !hasLyricsSyncData(syncData)}
-              >
-                {updateMut.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {renderSaveBar(true)}
       </div>
     );
   }
@@ -966,10 +985,12 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
           {renderPlayerCard(false)}
-          {renderCurrentLineCard(false, true)}
+          {renderCurrentLineCard(false)}
         </div>
         <div className="flex min-h-0 flex-col">{renderLinesPanel(false)}</div>
       </div>
+      {renderSaveBar(false)}
     </div>
   );
 }
+
