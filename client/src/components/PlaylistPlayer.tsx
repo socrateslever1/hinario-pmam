@@ -219,7 +219,7 @@ export default function PlaylistPlayer({
   // Layout Mobile: Player compacto + Playlist em drawer
   if (isMobile) {
     return (
-      <div className="space-y-3 md:space-y-4">
+      <div className="flex flex-col gap-3 md:gap-4 md:grid md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
         {/* Player Compacto */}
         <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg">
           <CardContent className="p-0">
@@ -318,10 +318,10 @@ export default function PlaylistPlayer({
                     </Button>
                   </div>
 
-                  {/* Botão Playlist */}
+                  {/* Botão Playlist - Apenas em Mobile */}
                   <Sheet open={playlistOpen} onOpenChange={setPlaylistOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full">
+                      <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full md:hidden">
                         <ListMusic className="h-4 w-4" />
                       </Button>
                     </SheetTrigger>
