@@ -14,12 +14,12 @@ import {
   SkipForward,
   Volume2,
   Youtube,
-  X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
 import { useIsMobile } from "@/hooks/useMobile";
+import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
 
 interface PlaylistItem {
   id: number;
@@ -57,7 +57,7 @@ function formatTime(seconds: number): string {
 }
 
 function getMediaUrl(item: PlaylistItem) {
-  return item.youtubeUrl || item.audioUrl || null;
+  return resolvePlayableMediaUrl({ youtubeUrl: item.youtubeUrl, audioUrl: item.audioUrl });
 }
 
 export default function PlaylistPlayer({
@@ -91,7 +91,7 @@ export default function PlaylistPlayer({
 
   const currentItem = queue[currentIndex] ?? null;
   const currentMediaUrl = currentItem ? getMediaUrl(currentItem) : null;
-  const isYoutube = Boolean(currentItem?.youtubeUrl);
+  const isYoutube = isYouTubeUrl(currentMediaUrl);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -219,7 +219,7 @@ export default function PlaylistPlayer({
   // Layout Mobile: Player compacto + Playlist em drawer
   if (isMobile) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 md:space-y-4">
         {/* Player Compacto */}
         <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg">
           <CardContent className="p-0">
@@ -231,7 +231,7 @@ export default function PlaylistPlayer({
                     {React.createElement(ReactPlayer as any, {
                       key: currentMediaUrl,
                       ref: playerRef,
-                      url: currentMediaUrl,
+                      src: currentMediaUrl,
                       playing,
                       volume,
                       muted: volume === 0,
@@ -254,11 +254,11 @@ export default function PlaylistPlayer({
 
               {/* Player de Áudio (se não for YouTube) */}
               {currentMediaUrl && !isYoutube && (
-                <div className="overflow-hidden border-b border-white/10">
+                <div className="overflow-hidden border-b border-white/10 px-3 pt-3">
                   {React.createElement(ReactPlayer as any, {
                     key: currentMediaUrl,
                     ref: playerRef,
-                    url: currentMediaUrl,
+                    src: currentMediaUrl,
                     playing,
                     volume,
                     muted: volume === 0,
@@ -276,7 +276,7 @@ export default function PlaylistPlayer({
               )}
 
               {/* Informações Compactas */}
-              <div className="space-y-3 p-3">
+              <div className="space-y-3 p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
@@ -416,7 +416,7 @@ export default function PlaylistPlayer({
                   {React.createElement(ReactPlayer as any, {
                     key: currentMediaUrl,
                     ref: playerRef,
-                    url: currentMediaUrl,
+                    src: currentMediaUrl,
                     playing,
                     volume,
                     muted: volume === 0,
@@ -437,7 +437,7 @@ export default function PlaylistPlayer({
               </div>
             ) : null}
 
-            <div className="space-y-5 p-4 sm:p-5 md:p-6">
+            <div className="space-y-3 p-4 sm:p-4 md:p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">Playlist ativa</p>
@@ -452,7 +452,7 @@ export default function PlaylistPlayer({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/6 p-4 backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-3 backdrop-blur-sm">
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
                     {isYoutube ? <Youtube className="h-6 w-6" style={{ color: accentColor }} /> : <Music className="h-6 w-6" style={{ color: accentColor }} />}
@@ -461,7 +461,7 @@ export default function PlaylistPlayer({
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
                       {isYoutube ? "YouTube" : "Audio"}
                     </p>
-                    <h4 className="mt-1 line-clamp-2 text-lg font-bold leading-tight text-white sm:text-xl">
+                    <h4 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-white sm:text-lg xl:text-xl">
                       {currentItem?.title}
                     </h4>
                     <p className="mt-1 line-clamp-2 text-sm text-white/60">
@@ -471,7 +471,7 @@ export default function PlaylistPlayer({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="cursor-pointer py-1" />
                 <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-white/55">
                   <span>{formatTime(currentTime)}</span>
@@ -479,7 +479,7 @@ export default function PlaylistPlayer({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={handlePrev}>
                   <SkipBack className="h-5 w-5" />
                 </Button>
@@ -488,14 +488,14 @@ export default function PlaylistPlayer({
                   className="h-14 w-14 rounded-full bg-white text-[#10281d] hover:bg-white/90"
                   onClick={() => setPlaying((current) => !current)}
                 >
-                  {playing ? <Pause className="h-7 w-7" /> : <Play className="ml-0.5 h-7 w-7" />}
+                  {playing ? <Pause className="h-6 w-6 sm:h-7 sm:w-7" /> : <Play className="ml-0.5 h-6 w-6 sm:h-7 sm:w-7" />}
                 </Button>
                 <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={handleNext}>
                   <SkipForward className="h-5 w-5" />
                 </Button>
                 <Button
                   variant={autoAdvance ? "default" : "secondary"}
-                  className="rounded-full px-4 text-xs font-bold uppercase tracking-[0.18em]"
+                  className="rounded-full px-3.5 text-[11px] font-bold uppercase tracking-[0.16em]"
                   onClick={() => setAutoAdvance((value) => !value)}
                 >
                   Proxima auto
@@ -574,7 +574,7 @@ export default function PlaylistPlayer({
               titleLabel={`Letra da faixa atual`}
               descriptionLabel="A letra da musica em execucao ja aparece aqui embaixo. Quando houver sincronizacao salva, ela acompanha em tempo real; caso contrario, entra uma estimativa automatica."
               className="shadow-none"
-              maxHeightClassName="max-h-[22rem] md:max-h-[28rem]"
+              maxHeightClassName="max-h-[18rem] md:max-h-[22rem] xl:max-h-[24rem]"
             />
           </div>
         )}

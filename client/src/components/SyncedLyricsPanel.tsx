@@ -39,7 +39,7 @@ export default function SyncedLyricsPanel({
   titleLabel = "Letra sincronizada",
   descriptionLabel = "A letra acompanha a faixa atual. Toque em um verso para ir direto ao trecho.",
   className = "",
-  maxHeightClassName = "max-h-[26rem] md:max-h-[32rem]",
+  maxHeightClassName = "max-h-[18rem] md:max-h-[24rem] xl:max-h-[28rem]",
 }: SyncedLyricsPanelProps) {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
@@ -123,11 +123,11 @@ export default function SyncedLyricsPanel({
   return (
     <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg ${className}`.trim()}>
       <CardContent className="p-0">
-        <div className="border-b border-[#1a3a2a]/8 bg-[#f8faf8] px-4 py-4 sm:px-5 md:px-6">
+        <div className="border-b border-[#1a3a2a]/8 bg-[#f8faf8] px-4 py-3 sm:px-5 md:px-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#1a3a2a]/72">{titleLabel}</h4>
-              <p className="mt-1 text-sm text-muted-foreground">{descriptionLabel}</p>
+              <h4 className="text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/72 md:text-sm">{titleLabel}</h4>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">{descriptionLabel}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -142,7 +142,7 @@ export default function SyncedLyricsPanel({
           </div>
         </div>
 
-        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-3 overflow-y-auto px-3 py-4 sm:px-4 md:px-6 md:py-5`}>
+        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-2.5 overflow-y-auto px-3 py-3 sm:px-4 md:px-6 md:py-4`}>
           {lines.length > 0 ? (
             lines.map((line, index) => {
               const isSection = isLyricsSectionLabel(line.text);
@@ -167,7 +167,7 @@ export default function SyncedLyricsPanel({
                       {formatTime(line.time)}
                     </div>
                   )}
-                  <p className={isSection ? "leading-none" : "text-[15px] leading-[1.6] md:text-base md:leading-[1.7]"}>{line.text}</p>
+                  <p className={isSection ? "leading-none" : "text-[14px] leading-[1.55] md:text-[15px] md:leading-[1.65] xl:text-base xl:leading-[1.7]"}>{line.text}</p>
                 </div>
               );
             })
