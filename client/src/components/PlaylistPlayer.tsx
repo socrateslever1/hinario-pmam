@@ -15,7 +15,7 @@ import {
   Volume2,
   Youtube,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -326,6 +326,7 @@ export default function PlaylistPlayer({
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="right" className="w-full p-0 sm:w-96">
+                      <SheetTitle className="sr-only">Fila de reprodução</SheetTitle>
                       <div className="flex h-full flex-col bg-[#f6faf6]">
                         <div className="border-b border-[#1a3a2a]/10 px-4 py-3 flex items-center justify-between">
                           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55">
