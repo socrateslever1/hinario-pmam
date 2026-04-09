@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/sonner";
+﻿import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
@@ -12,6 +12,8 @@ import About from "./pages/About";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import CharlieMike from "./pages/CharlieMike";
+import EducationCenter from "./pages/EducationCenter";
+import EducationModule from "./pages/EducationModule";
 
 function Router() {
   return (
@@ -20,6 +22,8 @@ function Router() {
       <Route path="/hinos" component={Hymns} />
       <Route path="/charlie-mike" component={CharlieMike} />
       <Route path="/hino/:id" component={HymnDetail} />
+      <Route path="/estudos" component={EducationCenter} />
+      <Route path="/estudos/:slug" component={EducationModule} />
       <Route path="/cfap-2026" component={Cfap2026} />
       <Route path="/sobre" component={About} />
       <Route path="/xerife" component={Admin} />

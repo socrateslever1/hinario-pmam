@@ -1,16 +1,17 @@
-import { Link, useLocation } from "wouter";
+﻿import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, Shield, Music, Target, Info, Star, LogIn, ListMusic } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { BookOpenCheck, Info, ListMusic, LogIn, Menu, Music, Shield, Star, Target } from "lucide-react";
 import { useState } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
 
 const navLinks = [
-  { href: "/", label: "Início", icon: Shield },
+  { href: "/", label: "Inicio", icon: Shield },
   { href: "/hinos", label: "Hinos", icon: Music },
   { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
+  { href: "/estudos", label: "Estudos", icon: BookOpenCheck },
   { href: "/cfap-2026", label: "CFAP 2026", icon: Target },
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
@@ -27,12 +28,12 @@ export default function Navbar() {
       <div className="checkerboard-pattern w-full" />
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-3 no-underline">
-          <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 object-contain" />
+          <img src={LOGO_URL} alt="Brasao PMAM" className="h-10 w-10 object-contain" />
           <div className="flex flex-col">
             <span className="text-sm font-bold leading-tight text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
-              HINÁRIO PMAM
+              HINARIO PMAM
             </span>
-            <span className="text-[10px] leading-tight text-muted-foreground">Polícia Militar do Amazonas</span>
+            <span className="text-[10px] leading-tight text-muted-foreground">Policia Militar do Amazonas</span>
           </div>
         </Link>
 
@@ -60,7 +61,7 @@ export default function Navbar() {
                 className={`gap-2 ${location.startsWith("/xerife") ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
               >
                 <Star className="h-4 w-4" />
-                Área do Xerife
+                Area do Xerife
               </Button>
             </Link>
           ) : (
@@ -84,23 +85,20 @@ export default function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-72 bg-white">
-            <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+            <SheetTitle className="sr-only">Menu de navegacao</SheetTitle>
             <div className="mt-8 flex flex-col gap-2">
               <div className="mb-6 flex items-center gap-3 px-2">
-                <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 object-contain" />
+                <img src={LOGO_URL} alt="Brasao PMAM" className="h-10 w-10 object-contain" />
                 <div>
-                  <p className="font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>HINÁRIO PMAM</p>
-                  <p className="text-xs text-muted-foreground">Polícia Militar do Amazonas</p>
+                  <p className="font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>HINARIO PMAM</p>
+                  <p className="text-xs text-muted-foreground">Policia Militar do Amazonas</p>
                 </div>
               </div>
               {navLinks.map((link) => {
                 const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
                 return (
                   <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      className={`w-full justify-start gap-3 ${isActive ? "bg-[#1a3a2a] text-white" : ""}`}
-                    >
+                    <Button variant={isActive ? "default" : "ghost"} className={`w-full justify-start gap-3 ${isActive ? "bg-[#1a3a2a] text-white" : ""}`}>
                       <link.icon className="h-4 w-4" />
                       {link.label}
                     </Button>
