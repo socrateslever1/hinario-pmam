@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu, Shield, Music, Target, Info, Star, LogIn, ListMusic } from "lucide-react";
 import { useState } from "react";
 
@@ -84,6 +84,7 @@ export default function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-72 bg-white">
+            <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
             <div className="mt-8 flex flex-col gap-2">
               <div className="mb-6 flex items-center gap-3 px-2">
                 <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 object-contain" />
