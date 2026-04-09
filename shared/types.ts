@@ -63,4 +63,28 @@ export interface PublicComment {
   createdAt: Date | string;
 }
 
+export interface StudyStudent {
+  id: number;
+  studentNumber: string;
+  displayName: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  lastActiveAt: Date | string;
+}
+
+export interface StudyModuleProgressRecord {
+  moduleSlug: string;
+  completedSectionIds: string[];
+  answers: Record<string, string | string[] | null>;
+  lastScore: number | null;
+  bestScore: number | null;
+  lastSubmittedAt: string | null;
+  updatedAt: Date | string | null;
+}
+
+export interface StudyDashboard {
+  student: StudyStudent;
+  modules: StudyModuleProgressRecord[];
+}
+
 export * from "./_core/errors";

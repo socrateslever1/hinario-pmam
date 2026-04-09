@@ -1,5 +1,6 @@
 import { query } from "./mysql";
 import { ENV } from './_core/env';
+import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent } from "../shared/types";
 
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
@@ -91,6 +92,87 @@ function mapComment(c: any) {
     content: c.content,
     createdAt: c.created_at,
   };
+}
+
+function normalizeStudyStudentNumber(value: string) {
+  return value.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function safeParseJson<T>(value: unknown, fallback: T): T {
+  if (typeof value !== "string") return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function mapStudyStudent(row: any): StudyStudent | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    studentNumber: row.student_number,
+    displayName: row.display_name,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    lastActiveAt: row.last_active_at,
+  };
+}
+
+function mapStudyModuleProgress(row: any): StudyModuleProgressRecord | null {
+  if (!row) return null;
+  return {
+    moduleSlug: row.module_slug,
+    completedSectionIds: safeParseJson<string[]>(row.completed_section_ids, []),
+    answers: safeParseJson<Record<string, string | string[] | null>>(row.answers_json, {}),
+    lastScore: row.last_score === null || row.last_score === undefined ? null : Number(row.last_score),
+    bestScore: row.best_score === null || row.best_score === undefined ? null : Number(row.best_score),
+    lastSubmittedAt: row.last_submitted_at ? new Date(row.last_submitted_at).toISOString() : null,
+    updatedAt: row.updated_at ?? null,
+  };
+}
+
+let studySchemaPromise: Promise<void> | null = null;
+
+export async function ensureStudyTables() {
+  if (!studySchemaPromise) {
+    studySchemaPromise = (async () => {
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_study_students (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_number VARCHAR(64) NOT NULL,
+          display_name VARCHAR(120) NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          last_active_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_study_students_number (student_number)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_study_module_progress (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_number VARCHAR(64) NOT NULL,
+          module_slug VARCHAR(96) NOT NULL,
+          completed_section_ids LONGTEXT NOT NULL,
+          answers_json LONGTEXT NOT NULL,
+          last_score INT NULL,
+          best_score INT NULL,
+          last_submitted_at DATETIME NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_study_module_progress_student_module (student_number, module_slug),
+          KEY idx_pmam_study_module_progress_student (student_number),
+          KEY idx_pmam_study_module_progress_module (module_slug)
+        )
+      `);
+    })().catch((error) => {
+      studySchemaPromise = null;
+      throw error;
+    });
+  }
+
+  await studySchemaPromise;
 }
 
 export async function upsertUser(user: any): Promise<void> {
@@ -502,6 +584,137 @@ export async function updateUserPassword(id: number, password: string) {
 
 export async function deleteUser(id: number) {
   await query('DELETE FROM pmam_users WHERE id = ?', [id]);
+}
+
+// ===== STUDY =====
+export async function ensureStudyStudent(studentNumber: string, displayName?: string | null) {
+  await ensureStudyTables();
+  const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
+  if (!normalizedStudentNumber) {
+    throw new Error("Student number is required");
+  }
+
+  await query(
+    `
+      INSERT INTO pmam_study_students (student_number, display_name, last_active_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON DUPLICATE KEY UPDATE
+        display_name = COALESCE(VALUES(display_name), display_name),
+        last_active_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    `,
+    [normalizedStudentNumber, displayName?.trim() || null]
+  );
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [normalizedStudentNumber]
+  );
+
+  return mapStudyStudent(rows[0]);
+}
+
+export async function getStudyDashboard(studentNumber: string): Promise<StudyDashboard> {
+  const student = await ensureStudyStudent(studentNumber);
+  if (!student) {
+    throw new Error("Study student not found");
+  }
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? ORDER BY module_slug ASC`,
+    [student.studentNumber]
+  );
+
+  return {
+    student,
+    modules: rows.map(mapStudyModuleProgress).filter(Boolean) as StudyModuleProgressRecord[],
+  };
+}
+
+export async function getStudyModuleProgress(studentNumber: string, moduleSlug: string): Promise<StudyModuleProgressRecord> {
+  const student = await ensureStudyStudent(studentNumber);
+  if (!student) {
+    throw new Error("Study student not found");
+  }
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? AND module_slug = ? LIMIT 1`,
+    [student.studentNumber, moduleSlug]
+  );
+
+  return (
+    mapStudyModuleProgress(rows[0]) ?? {
+      moduleSlug,
+      completedSectionIds: [],
+      answers: {},
+      lastScore: null,
+      bestScore: null,
+      lastSubmittedAt: null,
+      updatedAt: null,
+    }
+  );
+}
+
+export async function saveStudyModuleProgress(
+  studentNumber: string,
+  moduleSlug: string,
+  progress: Omit<StudyModuleProgressRecord, "moduleSlug" | "updatedAt">
+): Promise<StudyModuleProgressRecord> {
+  const student = await ensureStudyStudent(studentNumber);
+  if (!student) {
+    throw new Error("Study student not found");
+  }
+
+  const completedSectionIds = Array.from(new Set(progress.completedSectionIds)).filter(Boolean);
+  const answers = progress.answers ?? {};
+
+  await query(
+    `
+      INSERT INTO pmam_study_module_progress (
+        student_number,
+        module_slug,
+        completed_section_ids,
+        answers_json,
+        last_score,
+        best_score,
+        last_submitted_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        completed_section_ids = VALUES(completed_section_ids),
+        answers_json = VALUES(answers_json),
+        last_score = VALUES(last_score),
+        best_score = VALUES(best_score),
+        last_submitted_at = VALUES(last_submitted_at),
+        updated_at = CURRENT_TIMESTAMP
+    `,
+    [
+      student.studentNumber,
+      moduleSlug,
+      JSON.stringify(completedSectionIds),
+      JSON.stringify(answers),
+      progress.lastScore,
+      progress.bestScore,
+      progress.lastSubmittedAt ? new Date(progress.lastSubmittedAt) : null,
+    ]
+  );
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? AND module_slug = ? LIMIT 1`,
+    [student.studentNumber, moduleSlug]
+  );
+
+  return (
+    mapStudyModuleProgress(rows[0]) ?? {
+      moduleSlug,
+      completedSectionIds,
+      answers,
+      lastScore: progress.lastScore,
+      bestScore: progress.bestScore,
+      lastSubmittedAt: progress.lastSubmittedAt,
+      updatedAt: null,
+    }
+  );
 }
 
 // ===== STATS =====

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -7,15 +7,15 @@ import { getStudyModule } from "@/content/studyModules";
 import type { StoredAnswer } from "@/lib/studyProgress";
 import {
   calculateQuizScore,
+  createEmptyModuleProgress,
   getAnsweredCount,
-  getModuleProgress,
   getStudyCompletion,
   isQuestionCorrect,
-  saveModuleProgress,
 } from "@/lib/studyProgress";
 import { getStudyProfile } from "@/lib/studyProfile";
 import { buildQuestionBank, extractStudyUnits } from "@/lib/studyEngine";
 import { buildStudySnippets, cleanExtractedStudyText } from "@/lib/studyText";
+import { trpc } from "@/lib/trpc";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,8 +70,25 @@ function scoreLabel(score: number | null) {
   return "Precisa revisar";
 }
 
+function toLocalProgress(progress: {
+  completedSectionIds?: string[];
+  answers?: Record<string, StoredAnswer>;
+  lastScore?: number | null;
+  bestScore?: number | null;
+  lastSubmittedAt?: string | null;
+} | null | undefined) {
+  return {
+    completedSectionIds: progress?.completedSectionIds ?? [],
+    answers: progress?.answers ?? {},
+    lastScore: progress?.lastScore ?? null,
+    bestScore: progress?.bestScore ?? null,
+    lastSubmittedAt: progress?.lastSubmittedAt ?? null,
+  };
+}
+
 export default function EducationModule({ params }: EducationModuleProps) {
   const module = getStudyModule(params.slug);
+  const emptyProgress = useMemo(() => createEmptyModuleProgress(), []);
   const [activeTab, setActiveTab] = useState("estudo");
   const [studentNumber, setStudentNumber] = useState("");
   const [fullText, setFullText] = useState("");
@@ -80,7 +97,25 @@ export default function EducationModule({ params }: EducationModuleProps) {
   const [consultQuery, setConsultQuery] = useState("");
   const [studyPage, setStudyPage] = useState(1);
   const [quizPage, setQuizPage] = useState(1);
-  const [progress, setProgress] = useState(module ? getModuleProgress("", module.slug) : null);
+  const [progress, setProgress] = useState(emptyProgress);
+  const lastSavedProgressRef = useRef(JSON.stringify(emptyProgress));
+
+  const progressQuery = trpc.study.getModuleProgress.useQuery(
+    {
+      studentNumber,
+      moduleSlug: module?.slug ?? "",
+    },
+    {
+      enabled: Boolean(studentNumber && module),
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const saveProgressMutation = trpc.study.saveModuleProgress.useMutation({
+    onError: () => {
+      toast.error("Nao foi possivel sincronizar o progresso deste modulo.");
+    },
+  });
 
   useEffect(() => {
     const profile = getStudyProfile();
@@ -88,9 +123,18 @@ export default function EducationModule({ params }: EducationModuleProps) {
   }, []);
 
   useEffect(() => {
-    if (!module || !studentNumber) return;
-    setProgress(getModuleProgress(studentNumber, module.slug));
-  }, [module?.slug, studentNumber]);
+    if (!module || !studentNumber) {
+      setProgress(emptyProgress);
+      lastSavedProgressRef.current = JSON.stringify(emptyProgress);
+      return;
+    }
+
+    if (!progressQuery.data) return;
+
+    const nextProgress = toLocalProgress(progressQuery.data);
+    setProgress(nextProgress);
+    lastSavedProgressRef.current = JSON.stringify(nextProgress);
+  }, [emptyProgress, module?.slug, progressQuery.data, studentNumber]);
 
   useEffect(() => {
     setStudyPage(1);
@@ -143,6 +187,24 @@ export default function EducationModule({ params }: EducationModuleProps) {
   const safeQuizPage = Math.min(quizPage, quizPageCount);
   const pagedQuestions = questionBank.slice((safeQuizPage - 1) * QUIZ_ITEMS_PER_PAGE, safeQuizPage * QUIZ_ITEMS_PER_PAGE);
 
+  useEffect(() => {
+    if (!studentNumber || !module || !progressQuery.isFetched) return;
+
+    const snapshot = JSON.stringify(progress);
+    if (snapshot === lastSavedProgressRef.current) return;
+
+    const timeout = window.setTimeout(() => {
+      lastSavedProgressRef.current = snapshot;
+      saveProgressMutation.mutate({
+        studentNumber,
+        moduleSlug: module.slug,
+        progress,
+      });
+    }, 450);
+
+    return () => window.clearTimeout(timeout);
+  }, [module, progress, progressQuery.isFetched, saveProgressMutation, studentNumber]);
+
   if (!module) {
     return <NotFound />;
   }
@@ -187,7 +249,6 @@ export default function EducationModule({ params }: EducationModuleProps) {
 
   const persistProgress = (nextProgress: typeof progress) => {
     setProgress(nextProgress);
-    saveModuleProgress(studentNumber, module.slug, nextProgress);
   };
 
   const toggleSection = (sectionId: string) => {

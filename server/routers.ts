@@ -126,6 +126,40 @@ export const appRouter = router({
     }),
   }),
 
+  study: router({
+    ensureStudent: publicProcedure.input(z.object({
+      studentNumber: z.string().trim().min(2).max(64),
+      displayName: z.string().trim().min(2).max(120).nullable().optional(),
+    })).mutation(async ({ input }) => {
+      const student = await db.ensureStudyStudent(input.studentNumber, input.displayName ?? null);
+      return student;
+    }),
+    dashboard: publicProcedure.input(z.object({
+      studentNumber: z.string().trim().min(2).max(64),
+    })).query(async ({ input }) => {
+      return db.getStudyDashboard(input.studentNumber);
+    }),
+    getModuleProgress: publicProcedure.input(z.object({
+      studentNumber: z.string().trim().min(2).max(64),
+      moduleSlug: z.string().trim().min(1).max(96),
+    })).query(async ({ input }) => {
+      return db.getStudyModuleProgress(input.studentNumber, input.moduleSlug);
+    }),
+    saveModuleProgress: publicProcedure.input(z.object({
+      studentNumber: z.string().trim().min(2).max(64),
+      moduleSlug: z.string().trim().min(1).max(96),
+      progress: z.object({
+        completedSectionIds: z.array(z.string()),
+        answers: z.record(z.string(), z.union([z.string(), z.array(z.string()), z.null()])),
+        lastScore: z.number().int().min(0).max(100).nullable(),
+        bestScore: z.number().int().min(0).max(100).nullable(),
+        lastSubmittedAt: z.string().nullable(),
+      }),
+    })).mutation(async ({ input }) => {
+      return db.saveStudyModuleProgress(input.studentNumber, input.moduleSlug, input.progress);
+    }),
+  }),
+
   hymns: router({
     list: publicProcedure.query(async () => {
       return db.getActiveHymns();

@@ -1,7 +1,4 @@
-﻿import type { StudyModule, StudyQuestion } from "@/content/studyModules";
-import { normalizeStudentNumber } from "@/lib/studyProfile";
-
-const STORAGE_KEY = "pmam-study-progress-v2";
+import type { StudyModule, StudyQuestion } from "@/content/studyModules";
 
 export type StoredAnswer = string | string[] | null;
 
@@ -16,7 +13,7 @@ export type ModuleProgress = {
 export type StudentStudyStore = Record<string, ModuleProgress>;
 export type StudyProgressStore = Record<string, StudentStudyStore>;
 
-const emptyModuleProgress = (): ModuleProgress => ({
+export const createEmptyModuleProgress = (): ModuleProgress => ({
   completedSectionIds: [],
   answers: {},
   lastScore: null,
@@ -24,48 +21,8 @@ const emptyModuleProgress = (): ModuleProgress => ({
   lastSubmittedAt: null,
 });
 
-export function readStudyStore(): StudyProgressStore {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as StudyProgressStore;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-export function writeStudyStore(store: StudyProgressStore) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-}
-
-export function getModuleProgress(studentNumber: string, moduleSlug: string): ModuleProgress {
-  const normalizedStudentNumber = normalizeStudentNumber(studentNumber);
-  if (!normalizedStudentNumber) return emptyModuleProgress();
-
-  const store = readStudyStore();
-  return store[normalizedStudentNumber]?.[moduleSlug] ?? emptyModuleProgress();
-}
-
-export function saveModuleProgress(studentNumber: string, moduleSlug: string, progress: ModuleProgress) {
-  const normalizedStudentNumber = normalizeStudentNumber(studentNumber);
-  if (!normalizedStudentNumber) return;
-
-  const store = readStudyStore();
-  const studentStore = store[normalizedStudentNumber] ?? {};
-  studentStore[moduleSlug] = {
-    ...progress,
-    completedSectionIds: Array.from(new Set(progress.completedSectionIds)),
-  };
-  store[normalizedStudentNumber] = studentStore;
-  writeStudyStore(store);
-}
-
 export function normalizeAnswer(value: string) {
-  return value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 export function isQuestionCorrect(question: StudyQuestion, answer: StoredAnswer) {

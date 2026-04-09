@@ -3,8 +3,9 @@ import { Link } from "wouter";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { studyModules } from "@/content/studyModules";
-import { getModuleProgress, getStudyCompletion } from "@/lib/studyProgress";
+import { getStudyCompletion } from "@/lib/studyProgress";
 import { getStudyProfile, normalizeStudentNumber, saveStudyProfile } from "@/lib/studyProfile";
+import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +22,6 @@ function difficultyLabel(level: string) {
 
 export default function EducationCenter() {
   const [query, setQuery] = useState("");
-  const [version, setVersion] = useState(0);
   const [studentNumberInput, setStudentNumberInput] = useState("");
   const [studentNumber, setStudentNumber] = useState("");
 
@@ -33,11 +33,19 @@ export default function EducationCenter() {
     }
   }, []);
 
-  useEffect(() => {
-    const refresh = () => setVersion((current) => current + 1);
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
-  }, []);
+  const ensureStudent = trpc.study.ensureStudent.useMutation();
+  const dashboardQuery = trpc.study.dashboard.useQuery(
+    { studentNumber },
+    {
+      enabled: Boolean(studentNumber),
+      refetchOnWindowFocus: true,
+    }
+  );
+
+  const moduleProgressMap = useMemo(
+    () => new Map((dashboardQuery.data?.modules ?? []).map((progress) => [progress.moduleSlug, progress])),
+    [dashboardQuery.data?.modules]
+  );
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredModules = studyModules.filter((module) => {
@@ -55,7 +63,15 @@ export default function EducationCenter() {
 
     return studyModules.reduce(
       (acc, module) => {
-        const progress = getModuleProgress(studentNumber, module.slug);
+        const progress = moduleProgressMap.get(module.slug) ?? {
+          moduleSlug: module.slug,
+          completedSectionIds: [],
+          answers: {},
+          lastScore: null,
+          bestScore: null,
+          lastSubmittedAt: null,
+          updatedAt: null,
+        };
         const completion = getStudyCompletion(module, progress);
         acc.sections += completion.studied;
         acc.sectionTotal += completion.sectionCount;
@@ -65,23 +81,27 @@ export default function EducationCenter() {
       },
       { sections: 0, sectionTotal: 0, quizCount: 0, scoreSum: 0 }
     );
-  }, [studentNumber, version]);
+  }, [moduleProgressMap, studentNumber]);
 
   const globalPercent = metrics.sectionTotal > 0 ? Math.round((metrics.sections / metrics.sectionTotal) * 100) : 0;
   const averageScore = metrics.quizCount > 0 ? Math.round(metrics.scoreSum / metrics.quizCount) : 0;
 
-  const handleSaveStudentNumber = () => {
+  const handleSaveStudentNumber = async () => {
     const normalized = normalizeStudentNumber(studentNumberInput);
     if (normalized.length < 2) {
       toast.error("Informe seu numero antes de entrar nos modulos.");
       return;
     }
 
-    saveStudyProfile(normalized);
-    setStudentNumber(normalized);
-    setStudentNumberInput(normalized);
-    setVersion((current) => current + 1);
-    toast.success(`Progresso pessoal vinculado ao numero ${normalized}.`);
+    try {
+      const student = await ensureStudent.mutateAsync({ studentNumber: normalized });
+      saveStudyProfile(student?.studentNumber ?? normalized);
+      setStudentNumber(student?.studentNumber ?? normalized);
+      setStudentNumberInput(student?.studentNumber ?? normalized);
+      toast.success(`Progresso pessoal vinculado ao numero ${student?.studentNumber ?? normalized}.`);
+    } catch {
+      toast.error("Nao foi possivel vincular o numero do aluno ao banco.");
+    }
   };
 
   return (
@@ -162,7 +182,7 @@ export default function EducationCenter() {
                     onChange={(event) => setStudentNumberInput(event.target.value)}
                     placeholder="Ex.: 23145 ou numero de guerra"
                   />
-                  <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]" onClick={handleSaveStudentNumber}>
+                  <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]" onClick={handleSaveStudentNumber} disabled={ensureStudent.isPending}>
                     Salvar meu numero
                   </Button>
                 </div>
@@ -196,12 +216,30 @@ export default function EducationCenter() {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-5 md:grid-cols-2">
               {filteredModules.map((module) => {
-                const progress = studentNumber ? getModuleProgress(studentNumber, module.slug) : getModuleProgress("", module.slug);
+                const progress = studentNumber
+                  ? moduleProgressMap.get(module.slug) ?? {
+                      moduleSlug: module.slug,
+                      completedSectionIds: [],
+                      answers: {},
+                      lastScore: null,
+                      bestScore: null,
+                      lastSubmittedAt: null,
+                      updatedAt: null,
+                    }
+                  : {
+                      moduleSlug: module.slug,
+                      completedSectionIds: [],
+                      answers: {},
+                      lastScore: null,
+                      bestScore: null,
+                      lastSubmittedAt: null,
+                      updatedAt: null,
+                    };
                 const completion = getStudyCompletion(module, progress);
                 const disabled = !studentNumber;
 
                 return (
-                  <Card key={`${module.slug}-${version}-${studentNumber || "sem-numero"}`} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
+                  <Card key={`${module.slug}-${studentNumber || "sem-numero"}`} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
                     <CardHeader className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-[#1a3a2a] text-white">{module.shortTitle}</Badge>
