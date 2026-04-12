@@ -1,7 +1,8 @@
-﻿import { buildReadableStudyText } from "@/lib/studyEngine";
+import type { StudyModule } from "@/content/studyModules";
+import { buildReadableStudyText } from "@/lib/studyEngine";
 
-export function cleanExtractedStudyText(raw: string) {
-  return buildReadableStudyText(raw);
+export function cleanExtractedStudyText(raw: string, module?: StudyModule | null) {
+  return buildReadableStudyText(raw, module);
 }
 
 export function buildStudySnippets(text: string, query: string) {

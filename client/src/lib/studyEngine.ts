@@ -108,11 +108,74 @@ const SIMPLE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bressalvado\b/gi, "respeitando"],
 ];
 
+const NOISE_LINE_PATTERNS = [
+  /^presidencia da republica$/i,
+  /^casa civil$/i,
+  /^subchefia para assuntos juridicos$/i,
+  /^vide decreto/i,
+  /^disp(o|õ)e\s+/i,
+  /^ato relacionado$/i,
+  /^nota remissiva$/i,
+  /^correto:/i,
+  /^este texto nao substitui/i,
+];
+
+function normalizeForSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function trimToFirstMatch(raw: string, markers: string[]) {
+  const normalized = normalizeForSearch(raw).toUpperCase();
+  let bestIndex = -1;
+
+  for (const marker of markers) {
+    const markerIndex = normalized.indexOf(normalizeForSearch(marker).toUpperCase());
+    if (markerIndex !== -1 && (bestIndex === -1 || markerIndex < bestIndex)) {
+      bestIndex = markerIndex;
+    }
+  }
+
+  return bestIndex > 0 ? raw.slice(bestIndex) : raw;
+}
+
+function preprocessStudySource(module: StudyModule, raw: string) {
+  if (module.studyMode === "manual") {
+    const manualMatch = raw.match(/(^|\n)\s*(INTRODU|FINALIDADE)\S*\s*(\n|$)/i);
+    if (manualMatch && manualMatch.index !== undefined) {
+      return raw.slice(manualMatch.index);
+    }
+    return trimToFirstMatch(raw, ["INTRODUÇÃO", "INTRODUCAO", "FINALIDADE"]);
+  }
+
+  const bodyMarkerPatterns = [/(^|\n)\s*T[ÍI]TULO\s+I\b/i, /(^|\n)\s*CAP[ÍI]TULO\s+I\b/i, /(^|\n)\s*DA FINALIDADE\b/i, /(^|\n)\s*GENERALIDADES\b/i];
+  const bodyIndex = bodyMarkerPatterns
+    .map((pattern) => raw.search(pattern))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0];
+
+  const articleMatches = Array.from(raw.matchAll(/(^|\n)\s*Art\s*\.?\s*1[º°]?\s*/gi));
+  const articleMatch = articleMatches.find((match) => {
+    const matchIndex = match.index ?? -1;
+    return bodyIndex === undefined || bodyIndex < 0 ? true : matchIndex >= bodyIndex;
+  }) ?? articleMatches[0];
+
+  if (articleMatch?.index !== undefined) {
+    return raw.slice(articleMatch.index);
+  }
+  return trimToFirstMatch(raw, ["Art. 1", "Art . 1", "ART. 1", "ART . 1"]);
+}
+
 function stripPageNoise(raw: string) {
   return raw
     .replace(/\r\n/g, "\n")
     .replace(/^\s*--\s*\d+\s+of\s+\d+\s*--\s*$/gim, "")
     .replace(/^\s*\d+\s*$/gm, "")
+    .replace(/^assunto\s+p[aá]gina\s*$/gim, "")
+    .replace(/^p[aá]gina\s+.+$/gim, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -126,13 +189,16 @@ function isLikelyHeading(line: string) {
   const text = line.trim();
   if (!text || text.length < 4 || text.length > 90) return false;
   if (/^art\.?/i.test(text)) return false;
+  if (/\s\d{1,3}$/.test(text)) return false;
   if (/\d{3,}/.test(text)) return false;
   if (/[.;!?]$/.test(text)) return false;
   if (/^\d/.test(text)) return false;
   if (/^\w+\s+\d/.test(text)) return false;
   if (/^(GOVERNO|Manaus|Manual do Aluno|foto|MENSAGEM|NOME DO COMANDANTE|P O L Í C I A)/i.test(text)) return false;
+  if (/^RESOLVE:?$/i.test(text)) return false;
   if (/^TEMPO\s*\(h\)/i.test(text)) return false;
   if (/^(06:|07:|08:|09:|10:|11:|13:|14:|15:|16:|17:)/.test(text)) return false;
+  if (text.length > 60 && !/^[A-ZÀ-Ÿ0-9\s"“”'().\-]+$/.test(text)) return false;
 
   const letters = Array.from(text).filter((char) => /[A-Za-zÀ-ÿ]/.test(char));
   if (letters.length < 3) return false;
@@ -145,7 +211,11 @@ function reflowParagraph(paragraph: string) {
   const lines = paragraph
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((line) => {
+      const normalized = normalizeForSearch(line);
+      return !NOISE_LINE_PATTERNS.some((pattern) => pattern.test(normalized));
+    });
 
   if (!lines.length) return "";
 
@@ -165,7 +235,10 @@ function buildReadableText(raw: string) {
 
 function takeFirstSentence(text: string) {
   const clean = normalizeWhitespace(text);
-  const parts = clean.split(/(?<=[.;!?])\s+/).filter(Boolean);
+  const parts = clean
+    .split(/(?<=[.;!?])\s+/)
+    .filter(Boolean)
+    .filter((part) => part.length > 6 && !/^art\.?$/i.test(part.trim()));
   return parts[0] ?? clean;
 }
 
@@ -181,6 +254,19 @@ function summarizeText(text: string, maxLength = 180) {
   const sentence = simplifySentence(takeFirstSentence(text));
   if (sentence.length <= maxLength) return sentence;
   return `${sentence.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function buildDirectExplanation(text: string) {
+  const normalized = normalizeWhitespace(simplifySentence(text));
+  const sentences = normalized.split(/(?<=[.;!?])\s+/).filter(Boolean);
+  const selected = sentences.slice(0, 2).join(" ");
+
+  if (!selected) {
+    return "Conteudo essencial do documento em leitura simplificada.";
+  }
+
+  if (selected.length <= 240) return selected;
+  return `${selected.slice(0, 239).trimEnd()}…`;
 }
 
 function cleanKeywordToken(token: string) {
@@ -210,11 +296,8 @@ function titleFromSummary(reference: string, summary: string) {
   return `${reference} · ${shortened}`;
 }
 
-function createSimpleExplanation(reference: string, text: string, keywords: string[]) {
-  const sentence = summarizeText(text, 210);
-  const base = sentence ? sentence.charAt(0).toLowerCase() + sentence.slice(1) : "resume uma orientação importante do documento";
-  const keywordText = keywords.length ? ` Pontos-chave: ${keywords.join(", ")}.` : "";
-  return `Em linguagem simples, ${reference.toLowerCase()} ${base}${keywordText}`;
+function createSimpleExplanation(text: string) {
+  return buildDirectExplanation(text);
 }
 
 function sanitizeReference(reference: string) {
@@ -226,7 +309,7 @@ function sanitizeReference(reference: string) {
 
 function extractArticleUnits(text: string) {
   const source = stripPageNoise(text);
-  const articleRegex = /Art\.?\s*(\d+[A-Za-zº°.]*)\s*[-–.]?\s*([\s\S]*?)(?=(?:Art\.?\s*\d+[A-Za-zº°.]*)|$)/gi;
+  const articleRegex = /(?:^|\n)\s*Art\s*\.?\s*(\d+[A-Za-zº°.]*)\s*[-–.]?\s*([\s\S]*?)(?=(?:\n\s*Art\s*\.?\s*\d+[A-Za-zº°.]*)|$)/gi;
   const units: StudyUnit[] = [];
   let match: RegExpExecArray | null;
 
@@ -248,7 +331,7 @@ function extractArticleUnits(text: string) {
       reference,
       title: titleFromSummary(reference, summary),
       summary,
-      simpleExplanation: createSimpleExplanation(reference, originalText, keywords),
+      simpleExplanation: createSimpleExplanation(originalText),
       originalText,
       keywords,
     });
@@ -289,7 +372,7 @@ function extractTopicUnits(text: string) {
       reference,
       title: titleFromSummary(reference, summary),
       summary,
-      simpleExplanation: createSimpleExplanation(reference, originalText, keywords),
+      simpleExplanation: createSimpleExplanation(originalText),
       originalText,
       keywords,
     });
@@ -390,7 +473,8 @@ function buildTextQuestion(unit: StudyUnit, variant: number): StudyQuestion {
 }
 
 export function extractStudyUnits(module: StudyModule, text: string) {
-  const units = module.studyMode === "manual" ? extractTopicUnits(text) : extractArticleUnits(text);
+  const preparedText = preprocessStudySource(module, text);
+  const units = module.studyMode === "manual" ? extractTopicUnits(preparedText) : extractArticleUnits(preparedText);
   return units.filter((unit, index, allUnits) => index === allUnits.findIndex((candidate) => candidate.reference === unit.reference));
 }
 
@@ -422,6 +506,6 @@ export function buildQuestionBank(module: StudyModule, units: StudyUnit[]) {
   return bank.slice(0, target);
 }
 
-export function buildReadableStudyText(raw: string) {
-  return buildReadableText(raw);
+export function buildReadableStudyText(raw: string, module?: StudyModule | null) {
+  return buildReadableText(module ? preprocessStudySource(module, raw) : raw);
 }

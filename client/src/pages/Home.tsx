@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Music, Target, BookOpen, Shield, ChevronRight, Star } from "lucide-react";
+import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -75,20 +75,137 @@ export default function Home() {
         <div className="checkerboard-pattern w-full" />
       </section>
 
-      {/* Mission Section */}
+      {/* Institutional Guidelines Section */}
       <section className="py-16 bg-background">
         <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
-              Missão do Hinário
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-muted rounded-full px-4 py-1.5 mb-6">
+              <Star className="h-4 w-4 text-[#c4a84b]" />
+              <span className="text-sm font-semibold uppercase tracking-widest text-[#1a3a2a]">Identidade PMAM</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
+              Diretrizes Institucionais
             </h2>
-            <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-4 rounded-full" />
-            <p className="mt-6 text-muted-foreground leading-relaxed text-lg">
-              O Hinário da Polícia Militar do Amazonas tem como missão preservar, divulgar e perpetuar
-              os hinos, canções e orações que fazem parte da formação e identidade dos Alunos Soldados
-              e Alunos Oficiais. Cada composição carrega valores de honra, disciplina, patriotismo e
-              comprometimento com a defesa da sociedade.
+            <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-6 rounded-full" />
+            <p className="mt-6 text-muted-foreground text-lg max-w-2xl mx-auto">
+              Princípios morais, éticos e o código de conduta que guiam as ações da Polícia Militar do Amazonas na sociedade.
             </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-10">
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
+                    <Target className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Missão</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  "Preservar a Ordem Pública e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelência."
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
+                    <Eye className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Visão</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Ser referência nacional como Instituição de preservação da Ordem Pública e do Meio Ambiente.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
+                    <Award className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Princípios</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Hierarquia, Disciplina e Eficácia.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
+                    <HeartHandshake className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Valores</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justiça, Aprimoramento, Verdade, Espírito de preservação do meio ambiente.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="relative mx-auto flex flex-col items-center max-w-4xl">
+          <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 w-full shadow-sm bg-white">
+            <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+            <CardContent className="p-8 md:p-12 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white mb-6 shadow-md">
+                <Shield className="h-8 w-8 text-[#c4a84b]" />
+              </div>
+              
+              <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-[0.1em] text-foreground mb-1" style={{ fontFamily: "Merriweather, serif" }}>
+                Compromisso de Honra
+              </h2>
+              <p className="text-[#c4a84b] text-xs uppercase tracking-widest font-bold mb-10">Polícia Militar do Amazonas</p>
+              
+              <div className="grid md:grid-cols-2 gap-8 md:gap-16 w-full max-w-4xl text-left mt-6">
+                {/* Coluna 1 */}
+                <div className="flex flex-col text-[15px] sm:text-[16px] font-medium italic text-muted-foreground space-y-6">
+                  <div>
+                    <p className="text-lg sm:text-xl font-bold not-italic text-[#1a3a2a] mb-1">"Ao ingressar!</p>
+                    <p>na Polícia Militar do Amazonas!</p>
+                  </div>
+                  
+                  <div>
+                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">Prometo!</p>
+                    <p>regular a minha conduta!</p>
+                    <p>pelos preceitos da moral!</p>
+                  </div>
+                  
+                  <div>
+                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">Cumprir!</p>
+                    <p>rigorosamente as ordens!</p>
+                    <p>das autoridades!</p>
+                    <p>a que estiver subordinado!</p>
+                  </div>
+                </div>
+
+                {/* Coluna 2 */}
+                <div className="flex flex-col text-[15px] sm:text-[16px] font-medium italic text-muted-foreground space-y-6">
+                  <div>
+                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">E dedicar-me!</p>
+                    <p>inteiramente ao serviço policial militar!</p>
+                    <p>à manutenção da ordem pública!</p>
+                    <p>e à segurança da comunidade!</p>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <p className="font-bold not-italic text-[#1a3a2a] text-lg mb-1">Mesmo!</p>
+                    <p className="text-xl sm:text-2xl font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            </Card>
           </div>
         </div>
       </section>

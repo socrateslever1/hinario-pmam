@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -188,6 +188,35 @@ export default function EducationCenter() {
 
       <section className="py-10 md:py-12">
         <div className="container space-y-8">
+          <Card className="border-[#c4a84b]/40 bg-[#1a3a2a] text-white">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#c4a84b]">Missao</p>
+                <p className="text-sm leading-6 text-white/85">
+                  Preservar a Ordem Publica e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelencia.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#c4a84b]">Visao</p>
+                <p className="text-sm leading-6 text-white/85">
+                  Ser referencia nacional como Instituicao de preservacao da Ordem Publica e do Meio Ambiente.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#c4a84b]">Principios</p>
+                <p className="text-sm leading-6 text-white/85">
+                  Hierarquia, Disciplina e Eficacia.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#c4a84b]">Valores</p>
+                <p className="text-sm leading-6 text-white/85">
+                  Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justica, Aprimoramento, Verdade e Espirito de preservacao do meio ambiente.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5">
             <CardContent className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div className="space-y-3">

@@ -162,7 +162,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
       .then((text) => {
         if (!cancelled) {
           setRawText(text);
-          setFullText(cleanExtractedStudyText(text));
+          setFullText(cleanExtractedStudyText(text, module));
         }
       })
       .catch(() => {
@@ -203,6 +203,10 @@ export default function EducationModule({ params }: EducationModuleProps) {
   const quizPageCount = Math.max(1, Math.ceil(questionBank.length / QUIZ_ITEMS_PER_PAGE));
   const safeQuizPage = Math.min(quizPage, quizPageCount);
   const pagedQuestions = questionBank.slice((safeQuizPage - 1) * QUIZ_ITEMS_PER_PAGE, safeQuizPage * QUIZ_ITEMS_PER_PAGE);
+  const snippets = useMemo(
+    () => (activeTab === "consulta" ? buildStudySnippets(fullText, deferredConsultQuery) : []),
+    [activeTab, deferredConsultQuery, fullText]
+  );
 
   useEffect(() => {
     if (!studentNumber || !studyAccessToken || !module || !progressQuery.isFetched) return;
@@ -274,10 +278,6 @@ export default function EducationModule({ params }: EducationModuleProps) {
         if (Array.isArray(answer)) return answer.length > 0;
         return Boolean(answer && String(answer).trim().length > 0);
       }).length;
-  const snippets = useMemo(
-    () => (activeTab === "consulta" ? buildStudySnippets(fullText, deferredConsultQuery) : []),
-    [activeTab, deferredConsultQuery, fullText]
-  );
   const currentScore = progress.lastScore;
   const bestScore = progress.bestScore;
   const studyLabel = module.studyMode === "regulation" ? "artigos" : "topicos";
