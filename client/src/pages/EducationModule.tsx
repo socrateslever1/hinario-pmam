@@ -46,12 +46,12 @@ type EducationModuleProps = {
 };
 
 const PDF_PATHS: Record<string, string> = {
-  "manual-cfap": "/study/pdfs/manual-do-aluno.pdf",
-  "estatuto-pmam": "/study/pdfs/estatuto-policiais-militares.pdf",
-  "rupmam-uniformes": "/study/pdfs/rupmam.pdf",
-  "rcont-continencias": "/study/pdfs/rcont.pdf",
-  "rdpmam-disciplina": "/study/pdfs/rdpmam.pdf",
-  "risg-servicos-gerais": "/study/pdfs/risg.pdf",
+  "manual-cfap": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/manual-do-aluno_placeholder.pdf",
+  "estatuto-pmam": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/estatuto-policiais-militares_f512966e.pdf",
+  "rupmam-uniformes": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/rupmam_257e3301.pdf",
+  "rcont-continencias": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/rcont_24d45246.pdf",
+  "rdpmam-disciplina": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/rdpmam_a7f10966.pdf",
+  "risg-servicos-gerais": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/risg_03c43c18.pdf",
 };
 
 const STUDY_ITEMS_PER_PAGE = 10;
