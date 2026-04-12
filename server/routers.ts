@@ -11,10 +11,14 @@ import { notifyOwner } from "./_core/notification";
 import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import bcrypt from "bcryptjs";
+import { getStudyStudentNumberErrorMessage, isValidStudyStudentNumber } from "../shared/study";
 
 const INVALID_LOGIN_MESSAGE = "Email ou senha invalidos";
-const STUDY_SESSION_MISMATCH_MESSAGE =
-  "Este numero de aluno ja esta vinculado a outro dispositivo. Use o dispositivo original ou redefina o perfil de estudo.";
+const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage();
+
+const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
+  message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
+});
 
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -144,9 +148,9 @@ export const appRouter = router({
 
   study: router({
     ensureStudent: publicProcedure.input(z.object({
-      studentNumber: z.string().trim().min(2).max(64),
+      studentNumber: studyStudentNumberSchema,
       displayName: z.string().trim().min(2).max(120).nullable().optional(),
-      accessToken: z.string().trim().min(16).max(128).nullable().optional(),
+      accessToken: z.string().trim().max(128).nullable().optional(),
     })).mutation(async ({ input }) => {
       try {
         return await db.ensureStudyStudentSession(
@@ -155,42 +159,42 @@ export const appRouter = router({
           input.accessToken ?? null
         );
       } catch (error) {
-        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
-          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
         }
         throw error;
       }
     }),
     dashboard: publicProcedure.input(z.object({
-      studentNumber: z.string().trim().min(2).max(64),
-      accessToken: z.string().trim().min(16).max(128),
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().trim().max(128).nullable().optional(),
     })).query(async ({ input }) => {
       try {
         return await db.getStudyDashboard(input.studentNumber, input.accessToken);
       } catch (error) {
-        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
-          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
         }
         throw error;
       }
     }),
     getModuleProgress: publicProcedure.input(z.object({
-      studentNumber: z.string().trim().min(2).max(64),
-      accessToken: z.string().trim().min(16).max(128),
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().trim().max(128).nullable().optional(),
       moduleSlug: z.string().trim().min(1).max(96),
     })).query(async ({ input }) => {
       try {
         return await db.getStudyModuleProgress(input.studentNumber, input.accessToken, input.moduleSlug);
       } catch (error) {
-        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
-          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
         }
         throw error;
       }
     }),
     saveModuleProgress: publicProcedure.input(z.object({
-      studentNumber: z.string().trim().min(2).max(64),
-      accessToken: z.string().trim().min(16).max(128),
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().trim().max(128).nullable().optional(),
       moduleSlug: z.string().trim().min(1).max(96),
       progress: z.object({
         completedSectionIds: z.array(z.string()),
@@ -208,8 +212,8 @@ export const appRouter = router({
           input.progress
         );
       } catch (error) {
-        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
-          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
         }
         throw error;
       }

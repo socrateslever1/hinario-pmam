@@ -2,6 +2,7 @@ import { query } from "./mysql";
 import { ENV } from './_core/env';
 import { nanoid } from "nanoid";
 import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent, StudyStudentSession } from "../shared/types";
+import { isValidStudyStudentNumber, normalizeStudyStudentNumber } from "../shared/study";
 
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
@@ -93,10 +94,6 @@ function mapComment(c: any) {
     content: c.content,
     createdAt: c.created_at,
   };
-}
-
-function normalizeStudyStudentNumber(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, "");
 }
 
 export const STUDY_ACCESS_TOKEN_MISMATCH = "STUDY_ACCESS_TOKEN_MISMATCH";
@@ -640,20 +637,16 @@ async function updateStudyStudentActivity(studentId: number, displayName?: strin
   );
 }
 
-async function requireStudyStudentAccess(studentNumber: string, accessToken: string) {
+async function requireStudyStudentAccess(studentNumber: string, _accessToken?: string | null) {
   await ensureStudyTables();
   const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
-  if (!normalizedStudentNumber) {
-    throw new Error("Student number is required");
-  }
-
-  if (!accessToken?.trim()) {
-    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  if (!isValidStudyStudentNumber(normalizedStudentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
   }
 
   const row = await getStudyStudentRow(normalizedStudentNumber);
-  if (!row || row.access_token !== accessToken.trim()) {
-    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  if (!row) {
+    throw new Error("Study student not found");
   }
 
   await updateStudyStudentActivity(row.id);
@@ -667,11 +660,9 @@ export async function ensureStudyStudentSession(
 ): Promise<StudyStudentSession> {
   await ensureStudyTables();
   const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
-  if (!normalizedStudentNumber) {
-    throw new Error("Student number is required");
+  if (!isValidStudyStudentNumber(normalizedStudentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
   }
-
-  const providedToken = accessToken?.trim() || "";
   const existingRow = await getStudyStudentRow(normalizedStudentNumber);
 
   if (!existingRow) {
@@ -696,10 +687,6 @@ export async function ensureStudyStudentSession(
   }
 
   const storedToken = typeof existingRow.access_token === "string" ? existingRow.access_token.trim() : "";
-  if (storedToken && providedToken !== storedToken) {
-    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
-  }
-
   const nextAccessToken = storedToken || createStudyAccessToken();
   await query(
     `
@@ -724,7 +711,7 @@ export async function ensureStudyStudentSession(
   };
 }
 
-export async function getStudyDashboard(studentNumber: string, accessToken: string): Promise<StudyDashboard> {
+export async function getStudyDashboard(studentNumber: string, accessToken?: string | null): Promise<StudyDashboard> {
   const student = await requireStudyStudentAccess(studentNumber, accessToken);
   if (!student) {
     throw new Error("Study student not found");
@@ -743,7 +730,7 @@ export async function getStudyDashboard(studentNumber: string, accessToken: stri
 
 export async function getStudyModuleProgress(
   studentNumber: string,
-  accessToken: string,
+  accessToken: string | null | undefined,
   moduleSlug: string
 ): Promise<StudyModuleProgressRecord> {
   const student = await requireStudyStudentAccess(studentNumber, accessToken);
@@ -771,7 +758,7 @@ export async function getStudyModuleProgress(
 
 export async function saveStudyModuleProgress(
   studentNumber: string,
-  accessToken: string,
+  accessToken: string | null | undefined,
   moduleSlug: string,
   progress: Omit<StudyModuleProgressRecord, "moduleSlug" | "updatedAt">
 ): Promise<StudyModuleProgressRecord> {

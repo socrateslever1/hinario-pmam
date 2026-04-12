@@ -596,8 +596,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     );
   }
 
-  const renderPlayerCard = (compact: boolean) => (
-    <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10">
+  const renderMediaArea = (compact: boolean) => (
+    <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-2xl ring-1 ring-white/10 rounded-b-none border-b border-white/5">
       <div
         className={
           hymn.youtubeUrl
@@ -637,7 +637,11 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           </div>
         )}
       </div>
+    </Card>
+  );
 
+  const renderControlBar = (compact: boolean) => (
+    <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] ring-1 ring-white/10 rounded-t-none">
       <CardContent className={compact ? "bg-[#10281d] p-3 text-white sm:p-4" : "bg-[#10281d] p-4 text-white"}>
         <div className="flex flex-col gap-4">
           <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
@@ -940,26 +944,34 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   if (isMobile) {
     return (
       <div className="flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
-        <div className="sticky top-0 z-50 shrink-0 bg-[#0a0a0a] px-1 py-2 shadow-xl">
-          {renderPlayerCard(true)}
+        <div className="shrink-0 animate-in fade-in slide-in-from-top-4">
+          {renderMediaArea(true)}
         </div>
 
-        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full px-1">
-          <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1">
-            <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-              <Zap className="mr-2 h-4 w-4" /> Foco
-            </TabsTrigger>
-            <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-              <ListMusic className="mr-2 h-4 w-4" /> Linhas
-            </TabsTrigger>
-          </TabsList>
+        <div className="sticky top-0 z-50 shrink-0 bg-[#0a0a0a] px-1 py-2 shadow-xl">
+          {renderControlBar(true)}
+        </div>
 
-          <TabsContent value="marker" className="w-full pb-1">
-            {renderCurrentLineCard(true)}
-          </TabsContent>
-          <TabsContent value="lines" className="w-full pb-1">
-            {renderLinesPanel(true)}
-          </TabsContent>
+        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full mt-2">
+          <div className="px-1 mb-2">
+            <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1 shadow-sm">
+              <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
+                <Zap className="mr-2 h-4 w-4" /> Foco
+              </TabsTrigger>
+              <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
+                <ListMusic className="mr-2 h-4 w-4" /> Linhas
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="px-1">
+            <TabsContent value="marker" className="mt-0 w-full pb-1">
+              {renderCurrentLineCard(true)}
+            </TabsContent>
+            <TabsContent value="lines" className="mt-0 w-full pb-1">
+              {renderLinesPanel(true)}
+            </TabsContent>
+          </div>
         </Tabs>
 
         <div className="mt-4 shrink-0">
@@ -973,8 +985,11 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-2 sm:p-4">
       <div className="grid min-h-0 flex-1 gap-4 lg:gap-6 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="relative min-h-0 overflow-y-auto pr-1">
-          <div className="sticky top-0 z-50 bg-[#0a0a0a] pb-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] pt-2 mb-2">
-            {renderPlayerCard(false)}
+          <div className="shrink-0 mb-0">
+            {renderMediaArea(false)}
+          </div>
+          <div className="sticky top-0 z-50 bg-[#0a0a0a] pb-4 pt-0 mb-2">
+            {renderControlBar(false)}
           </div>
           <div className="pb-4">
             {renderCurrentLineCard(false)}

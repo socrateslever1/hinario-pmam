@@ -1,4 +1,6 @@
-﻿const STUDY_PROFILE_KEY = "pmam-study-profile-v1";
+import { normalizeStudyStudentNumber } from "@shared/study";
+
+const STUDY_PROFILE_KEY = "pmam-study-profile-v1";
 
 export type StudyProfile = {
   studentNumber: string;
@@ -6,7 +8,7 @@ export type StudyProfile = {
 };
 
 export function normalizeStudentNumber(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, "");
+  return normalizeStudyStudentNumber(value);
 }
 
 export function getStudyProfile(): StudyProfile | null {

@@ -6,6 +6,7 @@ import { studyModules } from "@/content/studyModules";
 import { getStudyCompletion } from "@/lib/studyProgress";
 import { clearStudyProfile, getStudyProfile, normalizeStudentNumber, saveStudyProfile } from "@/lib/studyProfile";
 import { trpc } from "@/lib/trpc";
+import { getStudyStudentNumberErrorMessage, STUDY_STUDENT_NUMBER_MAX, STUDY_STUDENT_NUMBER_MIN } from "@shared/study";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,8 +99,8 @@ export default function EducationCenter() {
 
   const handleSaveStudentNumber = async () => {
     const normalized = normalizeStudentNumber(studentNumberInput);
-    if (normalized.length < 2) {
-      toast.error("Informe seu numero antes de entrar nos modulos.");
+    if (!/^\d{4}$/.test(normalized) || Number(normalized) < STUDY_STUDENT_NUMBER_MIN || Number(normalized) > STUDY_STUDENT_NUMBER_MAX) {
+      toast.error(getStudyStudentNumberErrorMessage());
       return;
     }
 
@@ -117,10 +118,6 @@ export default function EducationCenter() {
       toast.success(`Progresso pessoal vinculado ao numero ${nextStudentNumber}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
-      if (message.includes("outro dispositivo")) {
-        toast.error(message);
-        return;
-      }
       if (message.toLowerCase().includes("accesstoken") || message.toLowerCase().includes("too_small")) {
         toast.error("Seu perfil antigo precisa ser vinculado novamente. Digite o numero e salve outra vez.");
         return;
@@ -199,7 +196,7 @@ export default function EducationCenter() {
                   <p className="font-semibold">Identificacao do aluno</p>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Antes de entrar nos modulos, informe o seu numero para que o progresso e as respostas fiquem salvos no seu perfil pessoal.
+                  Antes de entrar nos modulos, informe o seu numero entre {STUDY_STUDENT_NUMBER_MIN} e {STUDY_STUDENT_NUMBER_MAX} para que o progresso e as respostas fiquem salvos no seu perfil pessoal.
                 </p>
                 {needsRelink && (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -210,7 +207,7 @@ export default function EducationCenter() {
                   <Input
                     value={studentNumberInput}
                     onChange={(event) => setStudentNumberInput(event.target.value)}
-                    placeholder="Ex.: 23145 ou numero de guerra"
+                    placeholder={`Ex.: ${STUDY_STUDENT_NUMBER_MIN}`}
                   />
                   <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]" onClick={handleSaveStudentNumber} disabled={ensureStudent.isPending}>
                     Salvar meu numero

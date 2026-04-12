@@ -240,9 +240,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
               <CardContent className="space-y-4 text-sm text-muted-foreground">
                 {progressQuery.error ? (
                   <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                    {progressErrorMessage.includes("outro dispositivo")
-                      ? progressErrorMessage
-                      : "Nao foi possivel carregar seu perfil de estudo neste dispositivo. Reconfirme seu numero no Centro de Estudos."}
+                    {progressErrorMessage || "Nao foi possivel carregar seu perfil de estudo neste dispositivo. Reconfirme seu numero no Centro de Estudos."}
                   </div>
                 ) : (
                   <p>
