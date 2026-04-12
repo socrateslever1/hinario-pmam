@@ -9,7 +9,12 @@ import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
 import { notifyOwner } from "./_core/notification";
 import { sdk } from "./_core/sdk";
+import { ENV } from "./_core/env";
 import bcrypt from "bcryptjs";
+
+const INVALID_LOGIN_MESSAGE = "Email ou senha invalidos";
+const STUDY_SESSION_MISMATCH_MESSAGE =
+  "Este numero de aluno ja esta vinculado a outro dispositivo. Use o dispositivo original ou redefina o perfil de estudo.";
 
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -30,9 +35,21 @@ const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
 export const appRouter = router({
   system: router({
     health: publicProcedure.query(() => ({ status: "ok" })),
-    seedMaster: publicProcedure.mutation(async () => {
+    seedMaster: masterProcedure.input(
+      z.object({
+        password: z.string().min(8),
+        name: z.string().trim().min(2).max(120).default("Socrates"),
+      })
+    ).mutation(async ({ input }) => {
+      if (!ENV.allowDangerousSystemMutations) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Seed de master desabilitado. Ative ALLOW_DANGEROUS_SYSTEM_MUTATIONS para usar esta rota.",
+        });
+      }
+
       const emails = ['socrates.lever@gmail.com', 'socrates@icomp.ufam.edu.br'].map(e => e.trim().toLowerCase());
-      const hashedPassword = await bcrypt.hash("123456", 12);
+      const hashedPassword = await bcrypt.hash(input.password, 12);
       
       for (const email of emails) {
         const existing = await db.getUserByEmail(email);
@@ -56,7 +73,7 @@ export const appRouter = router({
       }
       return { success: true, message: "Master users updated/created" };
     }),
-    listUsers: publicProcedure.query(async () => {
+    listUsers: masterProcedure.query(async () => {
       return db.getAllUsers();
     }),
   }),
@@ -72,14 +89,13 @@ export const appRouter = router({
       password: z.string().min(1),
     })).mutation(async ({ input, ctx }) => {
       const normalizedEmail = input.email.trim().toLowerCase();
-      const masterEmails = ['socrates.lever@gmail.com', 'socrates@icomp.ufam.edu.br'].map(e => e.trim().toLowerCase());
-      
+      const masterEmails: string[] = [];
       let user = await db.getUserByEmail(normalizedEmail);
       
       // Auto-seed master user if it doesn't exist
-      if (!user && masterEmails.includes(normalizedEmail)) {
+      if (false) {
         console.info(`[Auth] Master user ${normalizedEmail} not found. Auto-seeding...`);
-        const hashedPassword = await bcrypt.hash("123456", 12);
+        const hashedPassword = await bcrypt.hash(input.password, 12);
         await db.createUserWithPassword({
           name: 'Sócrates',
           email: normalizedEmail,
@@ -91,10 +107,10 @@ export const appRouter = router({
 
       if (!user) {
         console.warn(`[Auth] Login failed: User not found for email ${normalizedEmail}`);
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inv?lidos" });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
 
-      if (masterEmails.includes(normalizedEmail) && user.role !== 'master') {
+      if (false) {
         console.info(`[Auth] Promoting ${normalizedEmail} to master role during login.`);
         await db.upsertUser({
           openId: user.openId,
@@ -106,12 +122,12 @@ export const appRouter = router({
 
       if (!user.password) {
         console.warn(`[Auth] Login failed: User ${normalizedEmail} has no password set`);
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
       const valid = await bcrypt.compare(input.password, user.password);
       if (!valid) {
         console.warn(`[Auth] Login failed: Invalid password for user ${normalizedEmail}`);
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Email ou senha inválidos" });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
       // Create session token
       const sessionToken = await sdk.createSessionToken(user.openId, {
@@ -130,23 +146,51 @@ export const appRouter = router({
     ensureStudent: publicProcedure.input(z.object({
       studentNumber: z.string().trim().min(2).max(64),
       displayName: z.string().trim().min(2).max(120).nullable().optional(),
+      accessToken: z.string().trim().min(16).max(128).nullable().optional(),
     })).mutation(async ({ input }) => {
-      const student = await db.ensureStudyStudent(input.studentNumber, input.displayName ?? null);
-      return student;
+      try {
+        return await db.ensureStudyStudentSession(
+          input.studentNumber,
+          input.displayName ?? null,
+          input.accessToken ?? null
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
+          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        }
+        throw error;
+      }
     }),
     dashboard: publicProcedure.input(z.object({
       studentNumber: z.string().trim().min(2).max(64),
+      accessToken: z.string().trim().min(16).max(128),
     })).query(async ({ input }) => {
-      return db.getStudyDashboard(input.studentNumber);
+      try {
+        return await db.getStudyDashboard(input.studentNumber, input.accessToken);
+      } catch (error) {
+        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
+          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        }
+        throw error;
+      }
     }),
     getModuleProgress: publicProcedure.input(z.object({
       studentNumber: z.string().trim().min(2).max(64),
+      accessToken: z.string().trim().min(16).max(128),
       moduleSlug: z.string().trim().min(1).max(96),
     })).query(async ({ input }) => {
-      return db.getStudyModuleProgress(input.studentNumber, input.moduleSlug);
+      try {
+        return await db.getStudyModuleProgress(input.studentNumber, input.accessToken, input.moduleSlug);
+      } catch (error) {
+        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
+          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        }
+        throw error;
+      }
     }),
     saveModuleProgress: publicProcedure.input(z.object({
       studentNumber: z.string().trim().min(2).max(64),
+      accessToken: z.string().trim().min(16).max(128),
       moduleSlug: z.string().trim().min(1).max(96),
       progress: z.object({
         completedSectionIds: z.array(z.string()),
@@ -156,7 +200,19 @@ export const appRouter = router({
         lastSubmittedAt: z.string().nullable(),
       }),
     })).mutation(async ({ input }) => {
-      return db.saveStudyModuleProgress(input.studentNumber, input.moduleSlug, input.progress);
+      try {
+        return await db.saveStudyModuleProgress(
+          input.studentNumber,
+          input.accessToken,
+          input.moduleSlug,
+          input.progress
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === db.STUDY_ACCESS_TOKEN_MISMATCH) {
+          throw new TRPCError({ code: "FORBIDDEN", message: STUDY_SESSION_MISMATCH_MESSAGE });
+        }
+        throw error;
+      }
     }),
   }),
 

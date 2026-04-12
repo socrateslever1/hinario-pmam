@@ -594,47 +594,9 @@ export default function Admin() {
                         )}
                         <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
                         
-                        {isMobile ? (
-                          <Drawer
-                            open={syncDialogOpen && syncingHymn?.id === hymn.id}
-                            onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
-                          >
-                            <DrawerTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
-                                <Clock className="h-4 w-4" />
-                              </Button>
-                            </DrawerTrigger>
-                            <DrawerContent className="h-[94vh] max-h-[94vh]">
-                              <DrawerHeader className="border-b pb-4 text-left">
-                                <DrawerTitle>Sincronizar Letra</DrawerTitle>
-                                <DrawerDescription>Sincronize a letra do hino "{hymn.title}" com o áudio ou vídeo selecionado.</DrawerDescription>
-                              </DrawerHeader>
-                              <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
-                                <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
-                              </div>
-                            </DrawerContent>
-                          </Drawer>
-                        ) : (
-                          <Dialog
-                            open={syncDialogOpen && syncingHymn?.id === hymn.id}
-                            onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
-                          >
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
-                                <Clock className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
-                              <DialogHeader className="border-b px-6 py-5 pr-14">
-                                <DialogTitle>Sincronizar Letra</DialogTitle>
-                                <DialogDescription>Sincronize a letra do hino "{hymn.title}" com o áudio ou vídeo selecionado.</DialogDescription>
-                              </DialogHeader>
-                              <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
-                                <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        )}
+                        <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
+                          <Clock className="h-4 w-4" />
+                        </Button>
 
                         <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
                           <Pencil className="h-4 w-4" />
@@ -711,47 +673,9 @@ export default function Admin() {
                           )}
                           <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
 
-                          {isMobile ? (
-                            <Drawer
-                              open={syncDialogOpen && syncingHymn?.id === hymn.id}
-                              onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
-                            >
-                              <DrawerTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
-                                  <Clock className="h-4 w-4" />
-                                </Button>
-                              </DrawerTrigger>
-                              <DrawerContent className="h-[94vh] max-h-[94vh]">
-                                <DrawerHeader className="border-b pb-4 text-left">
-                                  <DrawerTitle>Sincronizar Letra</DrawerTitle>
-                                  <DrawerDescription>Sincronize a letra da canção "{hymn.title}" com o áudio ou vídeo selecionado.</DrawerDescription>
-                                </DrawerHeader>
-                                <div className="min-h-0 flex-1 overflow-hidden px-3 pb-4">
-                                  <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
-                                </div>
-                              </DrawerContent>
-                            </Drawer>
-                          ) : (
-                            <Dialog
-                              open={syncDialogOpen && syncingHymn?.id === hymn.id}
-                              onOpenChange={(o) => { setSyncDialogOpen(o); if (!o) setSyncingHymn(null); }}
-                            >
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => { setSyncingHymn(hymn); setSyncDialogOpen(true); }}>
-                                  <Clock className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="flex h-[min(94vh,960px)] w-[min(96vw,1280px)] max-w-[96vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]">
-                                <DialogHeader className="border-b px-6 py-5 pr-14">
-                                  <DialogTitle>Sincronizar Letra</DialogTitle>
-                                  <DialogDescription>Sincronize a letra da canção "{hymn.title}" com o áudio ou vídeo selecionado.</DialogDescription>
-                                </DialogHeader>
-                                <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
-                                  <LyricsMarker hymn={hymn} onSuccess={() => setSyncDialogOpen(false)} />
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          )}
+                          <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
+                            <Clock className="h-4 w-4" />
+                          </Button>
 
                           <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
                             <Pencil className="h-4 w-4" />

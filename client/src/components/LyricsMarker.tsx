@@ -601,7 +601,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       <div
         className={
           hymn.youtubeUrl
-            ? "aspect-video bg-black"
+            ? "aspect-video w-full max-h-[25vh] sm:max-h-[35vh] md:max-h-[45vh] mx-auto bg-black"
             : hymn.audioUrl
               ? "flex h-20 items-center bg-gradient-to-r from-[#1a3a2a] to-[#10281d] px-4 sm:px-6"
               : "hidden"
@@ -640,67 +640,50 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
       <CardContent className={compact ? "bg-[#10281d] p-3 text-white sm:p-4" : "bg-[#10281d] p-4 text-white"}>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-12 w-12 rounded-full bg-white/10 text-white shadow-xl transition-all hover:bg-white/20 active:scale-95 sm:h-14 sm:w-14"
-                onClick={() => setPlaying(!playing)}
-              >
-                {playing ? <Pause className="h-6 w-6 sm:h-8 sm:w-8" /> : <Play className="ml-0.5 h-6 w-6 sm:ml-1 sm:h-8 sm:w-8" />}
-              </Button>
-              <div className="min-w-0">
-                <div className="text-2xl font-black tracking-tighter text-white sm:text-3xl">{formatTime(currentTime)}</div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70">
-                  Progresso {Math.round((currentTime / duration) * 100 || 0)}%
-                </div>
-              </div>
-            </div>
-            <div className="rounded-full bg-white/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-              {syncedCount}/{markableCount} versos
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+          <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={applyAutomaticSync}
-              disabled={!(duration > 0)}
-              className="justify-center border-[#c4a84b]/30 bg-[#c4a84b] font-bold text-[#10281d] hover:bg-[#c4a84b]/90"
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 shrink-0 rounded-full bg-white/10 text-white shadow-xl hover:bg-white/20 active:scale-95"
+              onClick={() => setPlaying(!playing)}
             >
-              <WandSparkles className="mr-2 h-4 w-4" />
-              Sincronizacao automatica
+              {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
             </Button>
-
-            <div className="flex items-center justify-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(-1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="px-2 text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            
+            <div className="flex shrink-0 items-baseline gap-2 px-1">
+              <span className="text-xl font-black tabular-nums tracking-tighter text-white">{formatTime(currentTime)}</span>
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70 sm:inline">
+                Progresso {Math.round((currentTime / duration) * 100 || 0)}%
+              </span>
             </div>
 
-            <div className="flex items-center justify-center rounded-full bg-black/40 p-1 ring-1 ring-white/10">
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="px-2 text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
+            <div className="flex-1" />
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleUndo} disabled={syncedCount === 0} className="flex-1 border-white/10 bg-white/5 text-white hover:bg-white/10 sm:flex-none">
-                <RotateCcw className="mr-2 h-4 w-4" /> Desfazer
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="outline" size="icon" onClick={applyAutomaticSync} disabled={!(duration > 0)} className="h-9 w-9 border-[#c4a84b]/30 bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90" title="Sincronização Automática">
+                <WandSparkles className="h-4 w-4" />
               </Button>
-              <Button variant="destructive" size="sm" onClick={resetSync} className="flex-1 bg-red-500/80 hover:bg-red-500 sm:flex-none">
-                <Trash2 className="mr-2 h-4 w-4" /> Resetar
-              </Button>
+
+              <div className="flex h-9 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
+                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-1)} title="-1s"><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="min-w-[28px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
+                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(1)} title="+1s"><ChevronRight className="h-4 w-4" /></Button>
+              </div>
+
+              <div className="flex h-9 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
+                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)} title="-0.1s"><Minus className="h-3 w-3" /></Button>
+                <span className="min-w-[32px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
+                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)} title="+0.1s"><Plus className="h-3 w-3" /></Button>
+              </div>
+
+              <div className="flex h-9 items-center gap-1 rounded-lg bg-black/40 p-1 ring-1 ring-white/10">
+                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-7 w-7 text-white hover:bg-white/10" title="Desfazer">
+                  <RotateCcw className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={resetSync} className="h-7 w-7 text-red-500 hover:bg-red-500/20 hover:text-red-400" title="Resetar">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -712,14 +695,16 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 ring-1 ring-white/10">
-            <span>{hasLocalDraft ? `Rascunho local salvo ${draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}` : "Sem rascunho local pendente"}</span>
-            {hasLocalDraft && (
-              <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[10px] font-black uppercase text-white hover:bg-white/10" onClick={discardLocalDraft}>
-                Descartar rascunho
-              </Button>
-            )}
-          </div>
+          {!compact && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 ring-1 ring-white/10">
+              <span>{hasLocalDraft ? `Rascunho local salvo ${draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}` : "Sem rascunho local pendente"}</span>
+              {hasLocalDraft && (
+                <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[10px] font-black uppercase text-white hover:bg-white/10" onClick={discardLocalDraft}>
+                  Descartar rascunho
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -830,7 +815,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   );
 
   const renderLinesPanel = (compact: boolean) => (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-0 bg-white shadow-xl ring-1 ring-black/5">
+    <Card className={`flex flex-col border-0 bg-white shadow-xl ring-1 ring-black/5 ${compact ? "" : "h-full min-h-0 overflow-hidden"}`}>
       <div className="flex items-center justify-between gap-3 border-b bg-slate-50/70 px-4 py-3">
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Lista completa</span>
         <span className="rounded-full bg-[#1a3a2a]/10 px-2 py-0.5 text-[10px] font-black text-[#1a3a2a]">
@@ -838,7 +823,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         </span>
       </div>
 
-      <CardContent className="flex-1 overflow-y-auto p-0">
+      <CardContent className={`p-0 ${compact ? "" : "flex-1 overflow-y-auto"}`}>
         <div className="divide-y divide-slate-50">
           {lines.map((line, index) => {
             const isHeading = isLyricsSectionLabel(line);
@@ -954,38 +939,46 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   if (isMobile) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
-        <div className="shrink-0">{renderPlayerCard(true)}</div>
+      <div className="flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+        <div className="sticky top-0 z-50 shrink-0 bg-[#0a0a0a] px-1 py-2 shadow-xl">
+          {renderPlayerCard(true)}
+        </div>
 
-        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="min-h-0 flex-1 overflow-hidden">
+        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full px-1">
           <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1">
             <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-              <Zap className="h-4 w-4" /> Foco
+              <Zap className="mr-2 h-4 w-4" /> Foco
             </TabsTrigger>
             <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-              <ListMusic className="h-4 w-4" /> Linhas
+              <ListMusic className="mr-2 h-4 w-4" /> Linhas
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="marker" className="min-h-0 overflow-y-auto pb-1">
+          <TabsContent value="marker" className="w-full pb-1">
             {renderCurrentLineCard(true)}
           </TabsContent>
-          <TabsContent value="lines" className="min-h-0 overflow-hidden pb-1">
+          <TabsContent value="lines" className="w-full pb-1">
             {renderLinesPanel(true)}
           </TabsContent>
         </Tabs>
 
-        {renderSaveBar(true)}
+        <div className="mt-4 shrink-0">
+          {renderSaveBar(true)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6 overflow-hidden p-1">
-      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
-          {renderPlayerCard(false)}
-          {renderCurrentLineCard(false)}
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-2 sm:p-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:gap-6 md:grid-cols-[minmax(0,1fr)_280px] lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="relative min-h-0 overflow-y-auto pr-1">
+          <div className="sticky top-0 z-50 bg-[#0a0a0a] pb-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] pt-2 mb-2">
+            {renderPlayerCard(false)}
+          </div>
+          <div className="pb-4">
+            {renderCurrentLineCard(false)}
+          </div>
         </div>
         <div className="flex min-h-0 flex-col">{renderLinesPanel(false)}</div>
       </div>

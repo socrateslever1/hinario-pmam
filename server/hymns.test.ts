@@ -1,6 +1,149 @@
-import { describe, expect, it } from "vitest";
-import { appRouter } from "./routers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
+
+const state = vi.hoisted(() => {
+  const users = [
+    {
+      id: 99,
+      openId: "master-socrates",
+      email: "socrates.lever@gmail.com",
+      name: "Socrates",
+      password: "hash:123456",
+      loginMethod: "email",
+      role: "master" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
+    {
+      id: 1,
+      openId: "admin-user",
+      email: "admin@pmam.gov.br",
+      name: "Admin PMAM",
+      password: null,
+      loginMethod: "google",
+      role: "admin" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
+  ];
+
+  const hymns = [
+    {
+      id: 1,
+      number: 1,
+      title: "Hino Nacional Brasileiro",
+      subtitle: null,
+      author: "Joaquim Osorio Duque Estrada",
+      composer: "Francisco Manuel da Silva",
+      category: "nacional",
+      collection: null,
+      lyrics: "Ouviram do Ipiranga...",
+      description: "Hino nacional",
+      youtubeUrl: "https://www.youtube.com/watch?v=abc123",
+      audioUrl: null,
+      lyricsSync: null,
+      isActive: true,
+      likesCount: 0,
+      viewsCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 2,
+      number: 2,
+      title: "Cancao da PMAM",
+      subtitle: null,
+      author: "Autor",
+      composer: "Compositor",
+      category: "pmam",
+      collection: null,
+      lyrics: "Letra da cancao",
+      description: "Cancao institucional",
+      youtubeUrl: null,
+      audioUrl: null,
+      lyricsSync: null,
+      isActive: true,
+      likesCount: 0,
+      viewsCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const missions = [
+    {
+      id: 1,
+      title: "Missao ativa",
+      content: "Conteudo",
+      priority: "normal" as const,
+      status: "ativa" as const,
+      dueDate: null,
+      isActive: true,
+      authorId: 1,
+      likesCount: 0,
+      viewsCount: 0,
+      commentsCount: 0,
+      visitorReacted: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  const settings = new Map<string, string | null>([
+    ["footer_phone", "(92) 99999-0000"],
+    ["footer_email", "contato@pmam.gov.br"],
+    ["footer_address", "Manaus - AM"],
+    ["footer_text", "PMAM"],
+    ["footer_instagram", "@pmam"],
+    ["footer_facebook", "pmam"],
+  ]);
+
+  return { users, hymns, missions, settings };
+});
+
+const dbMock = vi.hoisted(() => ({
+  getActiveHymns: vi.fn(),
+  getAllHymns: vi.fn(),
+  getHymnById: vi.fn(),
+  getHymnsByCategory: vi.fn(),
+  getActiveMissions: vi.fn(),
+  getAllMissions: vi.fn(),
+  getStats: vi.fn(),
+  getSetting: vi.fn(),
+  upsertSetting: vi.fn(),
+  getAllUsers: vi.fn(),
+  getUserByEmail: vi.fn(),
+  upsertUser: vi.fn(),
+}));
+
+vi.mock("./db", () => dbMock);
+
+vi.mock("bcryptjs", () => ({
+  default: {
+    hash: vi.fn(async (value: string) => `hash:${value}`),
+    compare: vi.fn(async (plain: string, hashed: string | null) => hashed === `hash:${plain}`),
+  },
+}));
+
+const createSessionTokenMock = vi.hoisted(() => vi.fn(async () => "session-token"));
+
+vi.mock("./_core/sdk", () => ({
+  sdk: {
+    createSessionToken: createSessionTokenMock,
+  },
+}));
+
+vi.mock("./storage", () => ({
+  storagePut: vi.fn(async () => ({ url: "https://storage.example/audio.mp3" })),
+}));
+
+vi.mock("./_core/notification", () => ({
+  notifyOwner: vi.fn(async () => undefined),
+}));
+
+const { appRouter } = await import("./routers");
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -34,16 +177,7 @@ function createAdminContext(): TrpcContext {
 
 function createMasterContext(): TrpcContext {
   const user: AuthenticatedUser = {
-    id: 99,
-    openId: "master-socrates",
-    email: "socrates.lever@gmail.com",
-    name: "Sócrates",
-    password: "$2a$12$fakehash",
-    loginMethod: "email",
-    role: "master",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
+    ...state.users[0],
   };
   return {
     user,
@@ -72,7 +206,36 @@ function createUserContext(): TrpcContext {
   };
 }
 
-// ===== HYMNS =====
+beforeEach(() => {
+  createSessionTokenMock.mockClear();
+  dbMock.upsertSetting.mockClear();
+  dbMock.upsertUser.mockClear();
+
+  dbMock.getActiveHymns.mockResolvedValue(state.hymns.filter((item) => item.isActive));
+  dbMock.getAllHymns.mockResolvedValue(state.hymns);
+  dbMock.getHymnById.mockImplementation(async (id: number) => state.hymns.find((item) => item.id === id) ?? null);
+  dbMock.getHymnsByCategory.mockImplementation(async (category: string) =>
+    state.hymns.filter((item) => item.category === category)
+  );
+  dbMock.getActiveMissions.mockResolvedValue(state.missions.filter((item) => item.isActive));
+  dbMock.getAllMissions.mockResolvedValue(state.missions);
+  dbMock.getStats.mockResolvedValue({
+    totalHymns: state.hymns.length,
+    totalCharlieMike: 0,
+    totalMissions: state.missions.length,
+    totalUsers: state.users.length,
+  });
+  dbMock.getSetting.mockImplementation(async (key: string) => state.settings.get(key) ?? null);
+  dbMock.upsertSetting.mockImplementation(async (key: string, value: string) => {
+    state.settings.set(key, value);
+  });
+  dbMock.getAllUsers.mockResolvedValue(state.users);
+  dbMock.getUserByEmail.mockImplementation(async (email: string) =>
+    state.users.find((user) => user.email === email.trim().toLowerCase()) ?? null
+  );
+  dbMock.upsertUser.mockResolvedValue(undefined);
+});
+
 describe("hymns.list", () => {
   it("returns a list of active hymns for public users", async () => {
     const ctx = createPublicContext();
@@ -152,7 +315,6 @@ describe("hymns admin operations", () => {
   });
 });
 
-// ===== MISSIONS =====
 describe("missions.list", () => {
   it("returns a list of active missions for public users", async () => {
     const ctx = createPublicContext();
@@ -177,7 +339,6 @@ describe("missions admin operations", () => {
   });
 });
 
-// ===== ADMIN STATS =====
 describe("admin.stats", () => {
   it("regular user cannot access stats", async () => {
     const ctx = createUserContext();
@@ -196,7 +357,6 @@ describe("admin.stats", () => {
   });
 });
 
-// ===== SETTINGS =====
 describe("settings", () => {
   it("public user can read settings", async () => {
     const ctx = createPublicContext();
@@ -212,6 +372,7 @@ describe("settings", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.settings.update({ key: "footer_phone", value: "(92) 3333-4444" });
     expect(result.success).toBe(true);
+    expect(dbMock.upsertSetting).toHaveBeenCalledWith("footer_phone", "(92) 3333-4444");
   });
 
   it("admin can batch update settings", async () => {
@@ -224,6 +385,7 @@ describe("settings", () => {
       ],
     });
     expect(result.success).toBe(true);
+    expect(dbMock.upsertSetting).toHaveBeenCalledTimes(2);
   });
 
   it("regular user cannot update settings", async () => {
@@ -233,7 +395,6 @@ describe("settings", () => {
   });
 });
 
-// ===== USERS (Master only) =====
 describe("users management", () => {
   it("regular user cannot list users", async () => {
     const ctx = createUserContext();
@@ -255,7 +416,6 @@ describe("users management", () => {
   });
 });
 
-// ===== LOGIN EMAIL =====
 describe("auth.loginEmail", () => {
   it("rejects login with non-existent email", async () => {
     const ctx = createPublicContext();
@@ -274,11 +434,24 @@ describe("auth.loginEmail", () => {
   });
 
   it("accepts login with correct credentials", async () => {
-    const ctx = createPublicContext();
+    const cookies: Array<{ name: string; value: string }> = [];
+    const ctx = {
+      ...createPublicContext(),
+      res: {
+        clearCookie: () => {},
+        cookie: (name: string, value: string) => {
+          cookies.push({ name, value });
+        },
+      },
+    } as unknown as TrpcContext;
+
     const caller = appRouter.createCaller(ctx);
     const result = await caller.auth.loginEmail({ email: "socrates.lever@gmail.com", password: "123456" });
     expect(result.success).toBe(true);
     expect(result.user.email).toBe("socrates.lever@gmail.com");
     expect(result.user.role).toBe("master");
+    expect(createSessionTokenMock).toHaveBeenCalledTimes(1);
+    expect(dbMock.upsertUser).toHaveBeenCalled();
+    expect(cookies).toHaveLength(1);
   });
 });

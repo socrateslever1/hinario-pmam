@@ -87,4 +87,9 @@ export interface StudyDashboard {
   modules: StudyModuleProgressRecord[];
 }
 
+export interface StudyStudentSession {
+  student: StudyStudent;
+  accessToken: string;
+}
+
 export * from "./_core/errors";

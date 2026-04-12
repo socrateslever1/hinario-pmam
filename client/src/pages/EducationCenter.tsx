@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { studyModules } from "@/content/studyModules";
 import { getStudyCompletion } from "@/lib/studyProgress";
-import { getStudyProfile, normalizeStudentNumber, saveStudyProfile } from "@/lib/studyProfile";
+import { clearStudyProfile, getStudyProfile, normalizeStudentNumber, saveStudyProfile } from "@/lib/studyProfile";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,20 +24,30 @@ export default function EducationCenter() {
   const [query, setQuery] = useState("");
   const [studentNumberInput, setStudentNumberInput] = useState("");
   const [studentNumber, setStudentNumber] = useState("");
+  const [studyAccessToken, setStudyAccessToken] = useState("");
+  const [needsRelink, setNeedsRelink] = useState(false);
 
   useEffect(() => {
     const profile = getStudyProfile();
-    if (profile?.studentNumber) {
+    if (!profile?.studentNumber) return;
+
+    setStudentNumberInput(profile.studentNumber);
+
+    if (profile.accessToken) {
       setStudentNumber(profile.studentNumber);
-      setStudentNumberInput(profile.studentNumber);
+      setStudyAccessToken(profile.accessToken);
+      return;
     }
+
+    clearStudyProfile();
+    setNeedsRelink(true);
   }, []);
 
   const ensureStudent = trpc.study.ensureStudent.useMutation();
   const dashboardQuery = trpc.study.dashboard.useQuery(
-    { studentNumber },
+    { studentNumber, accessToken: studyAccessToken },
     {
-      enabled: Boolean(studentNumber),
+      enabled: Boolean(studentNumber && studyAccessToken),
       refetchOnWindowFocus: true,
     }
   );
@@ -94,13 +104,28 @@ export default function EducationCenter() {
     }
 
     try {
-      const student = await ensureStudent.mutateAsync({ studentNumber: normalized });
-      saveStudyProfile(student?.studentNumber ?? normalized);
-      setStudentNumber(student?.studentNumber ?? normalized);
-      setStudentNumberInput(student?.studentNumber ?? normalized);
-      toast.success(`Progresso pessoal vinculado ao numero ${student?.studentNumber ?? normalized}.`);
-    } catch {
-      toast.error("Nao foi possivel vincular o numero do aluno ao banco.");
+      const session = await ensureStudent.mutateAsync({
+        studentNumber: normalized,
+        accessToken: normalized === studentNumber && studyAccessToken ? studyAccessToken : null,
+      });
+      const nextStudentNumber = session.student.studentNumber ?? normalized;
+      saveStudyProfile(nextStudentNumber, session.accessToken);
+      setStudentNumber(nextStudentNumber);
+      setStudentNumberInput(nextStudentNumber);
+      setStudyAccessToken(session.accessToken);
+      setNeedsRelink(false);
+      toast.success(`Progresso pessoal vinculado ao numero ${nextStudentNumber}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("outro dispositivo")) {
+        toast.error(message);
+        return;
+      }
+      if (message.toLowerCase().includes("accesstoken") || message.toLowerCase().includes("too_small")) {
+        toast.error("Seu perfil antigo precisa ser vinculado novamente. Digite o numero e salve outra vez.");
+        return;
+      }
+      toast.error(message || "Nao foi possivel vincular o numero do aluno ao banco.");
     }
   };
 
@@ -176,6 +201,11 @@ export default function EducationCenter() {
                 <p className="text-sm text-muted-foreground">
                   Antes de entrar nos modulos, informe o seu numero para que o progresso e as respostas fiquem salvos no seu perfil pessoal.
                 </p>
+                {needsRelink && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Encontramos um perfil antigo salvo neste navegador, mas ele ainda nao tinha token de acesso. Basta confirmar o numero novamente para reativar o seu progresso neste dispositivo.
+                  </div>
+                )}
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <Input
                     value={studentNumberInput}

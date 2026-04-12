@@ -2,6 +2,7 @@
 
 export type StudyProfile = {
   studentNumber: string;
+  accessToken: string;
 };
 
 export function normalizeStudentNumber(value: string) {
@@ -16,16 +17,22 @@ export function getStudyProfile(): StudyProfile | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StudyProfile;
     if (!parsed?.studentNumber) return null;
-    return { studentNumber: normalizeStudentNumber(parsed.studentNumber) };
+    return {
+      studentNumber: normalizeStudentNumber(parsed.studentNumber),
+      accessToken: typeof parsed.accessToken === "string" ? parsed.accessToken.trim() : "",
+    };
   } catch {
     return null;
   }
 }
 
-export function saveStudyProfile(studentNumber: string) {
+export function saveStudyProfile(studentNumber: string, accessToken: string) {
   if (typeof window === "undefined") return null;
   const normalized = normalizeStudentNumber(studentNumber);
-  const profile = normalized ? { studentNumber: normalized } : null;
+  const normalizedAccessToken = accessToken.trim();
+  const profile = normalized && normalizedAccessToken
+    ? { studentNumber: normalized, accessToken: normalizedAccessToken }
+    : null;
 
   if (profile) {
     window.localStorage.setItem(STUDY_PROFILE_KEY, JSON.stringify(profile));

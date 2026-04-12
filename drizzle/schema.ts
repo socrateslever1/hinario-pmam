@@ -1,6 +1,171 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, date } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  date,
+  datetime,
+  int,
+  json,
+  longtext,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-export const users = mysqlTable("users", {
+/**
+ * Banco real em uso pelo sistema.
+ * Estas tabelas `pmam_*` são as fontes ativas lidas/escritas pelo backend.
+ */
+
+export const pmamUsers = mysqlTable("pmam_users", {
+  id: int("id").autoincrement().primaryKey(),
+  openId: varchar("open_id", { length: 255 }).unique(),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }).unique(),
+  password: varchar("password", { length: 255 }),
+  loginMethod: varchar("login_method", { length: 50 }),
+  role: varchar("role", { length: 50 }).default("user"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  lastSignedIn: timestamp("last_signed_in"),
+});
+
+export type PmamUser = typeof pmamUsers.$inferSelect;
+export type InsertPmamUser = typeof pmamUsers.$inferInsert;
+
+export const pmamHymns = mysqlTable("pmam_hymns", {
+  id: int("id").autoincrement().primaryKey(),
+  number: int("number").unique(),
+  title: varchar("title", { length: 255 }),
+  subtitle: varchar("subtitle", { length: 255 }),
+  author: varchar("author", { length: 255 }),
+  composer: varchar("composer", { length: 255 }),
+  category: varchar("category", { length: 100 }),
+  collection: varchar("collection", { length: 64 }),
+  lyrics: text("lyrics"),
+  description: text("description"),
+  youtubeUrl: varchar("youtube_url", { length: 255 }),
+  audioUrl: varchar("audio_url", { length: 255 }),
+  lyricsSync: json("lyrics_sync"),
+  isActive: boolean("is_active").default(true),
+  likesCount: int("likes_count").default(0),
+  viewsCount: int("views_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamHymn = typeof pmamHymns.$inferSelect;
+export type InsertPmamHymn = typeof pmamHymns.$inferInsert;
+
+export const pmamCfapMissions = mysqlTable("pmam_cfap_missions", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }),
+  content: text("content"),
+  attachmentsJson: longtext("attachments_json"),
+  priority: varchar("priority", { length: 50 }),
+  status: varchar("status", { length: 50 }),
+  dueDate: timestamp("due_date"),
+  isActive: boolean("is_active").default(true),
+  authorId: int("author_id"),
+  likesCount: int("likes_count").default(0),
+  viewsCount: int("views_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamCfapMission = typeof pmamCfapMissions.$inferSelect;
+export type InsertPmamCfapMission = typeof pmamCfapMissions.$inferInsert;
+
+export const pmamComments = mysqlTable("pmam_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  targetType: varchar("target_type", { length: 50 }),
+  targetId: int("target_id"),
+  authorName: varchar("author_name", { length: 255 }),
+  content: text("content"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PmamComment = typeof pmamComments.$inferSelect;
+export type InsertPmamComment = typeof pmamComments.$inferInsert;
+
+export const pmamLikes = mysqlTable("pmam_likes", {
+  id: int("id").autoincrement().primaryKey(),
+  targetType: varchar("target_type", { length: 50 }),
+  targetId: int("target_id"),
+  visitorId: varchar("visitor_id", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PmamLike = typeof pmamLikes.$inferSelect;
+export type InsertPmamLike = typeof pmamLikes.$inferInsert;
+
+export const pmamSiteSettings = mysqlTable("pmam_site_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("setting_key", { length: 255 }).unique(),
+  settingValue: text("setting_value"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamSiteSetting = typeof pmamSiteSettings.$inferSelect;
+export type InsertPmamSiteSetting = typeof pmamSiteSettings.$inferInsert;
+
+export const pmamStudyStudents = mysqlTable("pmam_study_students", {
+  id: int("id").autoincrement().primaryKey(),
+  studentNumber: varchar("student_number", { length: 64 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 120 }),
+  accessToken: varchar("access_token", { length: 128 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
+});
+
+export type PmamStudyStudent = typeof pmamStudyStudents.$inferSelect;
+export type InsertPmamStudyStudent = typeof pmamStudyStudents.$inferInsert;
+
+export const pmamStudyModuleProgress = mysqlTable(
+  "pmam_study_module_progress",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    studentNumber: varchar("student_number", { length: 64 }).notNull(),
+    moduleSlug: varchar("module_slug", { length: 96 }).notNull(),
+    completedSectionIds: longtext("completed_section_ids").notNull(),
+    answersJson: longtext("answers_json").notNull(),
+    lastScore: int("last_score"),
+    bestScore: int("best_score"),
+    lastSubmittedAt: datetime("last_submitted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (table) => ({
+    studentModuleUnique: uniqueIndex("uq_pmam_study_module_progress_student_module").on(
+      table.studentNumber,
+      table.moduleSlug,
+    ),
+  }),
+);
+
+export type PmamStudyModuleProgress = typeof pmamStudyModuleProgress.$inferSelect;
+export type InsertPmamStudyModuleProgress = typeof pmamStudyModuleProgress.$inferInsert;
+
+export const runtimeTables = {
+  pmamUsers,
+  pmamHymns,
+  pmamCfapMissions,
+  pmamComments,
+  pmamLikes,
+  pmamSiteSettings,
+  pmamStudyStudents,
+  pmamStudyModuleProgress,
+};
+
+/**
+ * Tabelas legadas preservadas no banco.
+ * O sistema atual não deve depender delas para runtime normal.
+ */
+
+export const legacyUsers = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
@@ -13,10 +178,10 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
+export type LegacyUser = typeof legacyUsers.$inferSelect;
+export type InsertLegacyUser = typeof legacyUsers.$inferInsert;
 
-export const hymns = mysqlTable("hymns", {
+export const legacyHymns = mysqlTable("hymns", {
   id: int("id").autoincrement().primaryKey(),
   number: int("number").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
@@ -35,10 +200,10 @@ export const hymns = mysqlTable("hymns", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Hymn = typeof hymns.$inferSelect;
-export type InsertHymn = typeof hymns.$inferInsert;
+export type LegacyHymn = typeof legacyHymns.$inferSelect;
+export type InsertLegacyHymn = typeof legacyHymns.$inferInsert;
 
-export const cfapMissions = mysqlTable("cfap_missions", {
+export const legacyCfapMissions = mysqlTable("cfap_missions", {
   id: int("id").autoincrement().primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
@@ -53,11 +218,10 @@ export const cfapMissions = mysqlTable("cfap_missions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type CfapMission = typeof cfapMissions.$inferSelect;
-export type InsertCfapMission = typeof cfapMissions.$inferInsert;
+export type LegacyCfapMission = typeof legacyCfapMissions.$inferSelect;
+export type InsertLegacyCfapMission = typeof legacyCfapMissions.$inferInsert;
 
-// Comentários (hinos e missões) - sem login, apenas nome
-export const comments = mysqlTable("comments", {
+export const legacyComments = mysqlTable("comments", {
   id: int("id").autoincrement().primaryKey(),
   targetType: mysqlEnum("targetType", ["hymn", "mission"]).notNull(),
   targetId: int("targetId").notNull(),
@@ -66,11 +230,10 @@ export const comments = mysqlTable("comments", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type Comment = typeof comments.$inferSelect;
-export type InsertComment = typeof comments.$inferInsert;
+export type LegacyComment = typeof legacyComments.$inferSelect;
+export type InsertLegacyComment = typeof legacyComments.$inferInsert;
 
-// Likes (fingerprint via localStorage para evitar duplicatas)
-export const likes = mysqlTable("likes", {
+export const legacyLikes = mysqlTable("likes", {
   id: int("id").autoincrement().primaryKey(),
   targetType: mysqlEnum("targetType", ["hymn", "mission"]).notNull(),
   targetId: int("targetId").notNull(),
@@ -78,14 +241,24 @@ export const likes = mysqlTable("likes", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type Like = typeof likes.$inferSelect;
-export type InsertLike = typeof likes.$inferInsert;
+export type LegacyLike = typeof legacyLikes.$inferSelect;
+export type InsertLegacyLike = typeof legacyLikes.$inferInsert;
 
-export const siteSettings = mysqlTable("site_settings", {
+export const legacySiteSettings = mysqlTable("site_settings", {
   id: int("id").autoincrement().primaryKey(),
   settingKey: varchar("settingKey", { length: 100 }).notNull().unique(),
   settingValue: text("settingValue"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type SiteSetting = typeof siteSettings.$inferSelect;
+export type LegacySiteSetting = typeof legacySiteSettings.$inferSelect;
+export type InsertLegacySiteSetting = typeof legacySiteSettings.$inferInsert;
+
+export const legacyTables = {
+  legacyUsers,
+  legacyHymns,
+  legacyCfapMissions,
+  legacyComments,
+  legacyLikes,
+  legacySiteSettings,
+};

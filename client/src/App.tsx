@@ -1,4 +1,4 @@
-﻿import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import CharlieMike from "./pages/CharlieMike";
 import EducationCenter from "./pages/EducationCenter";
 import EducationModule from "./pages/EducationModule";
+import SyncStudio from "./pages/SyncStudio";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/cfap-2026" component={Cfap2026} />
       <Route path="/sobre" component={About} />
       <Route path="/xerife" component={Admin} />
+      <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

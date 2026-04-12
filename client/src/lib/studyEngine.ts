@@ -310,7 +310,7 @@ function pickDistributedUnits(units: StudyUnit[], count: number) {
   return selected;
 }
 
-function buildSingleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: number): StudyQuestion {
+function buildSingleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: number, variant: number): StudyQuestion {
   const others = pool.filter((candidate) => candidate.id !== unit.id);
   const start = others.length > 0 ? index % others.length : 0;
   const distractors = [...others.slice(start, start + 3), ...others.slice(0, Math.max(0, start + 3 - others.length))].slice(0, 3);
@@ -324,7 +324,7 @@ function buildSingleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: nu
   ].sort((left, right) => left.id.localeCompare(right.id));
 
   return {
-    id: `generated-single-${unit.id}`,
+    id: `generated-single-${unit.id}-${variant}`,
     type: "single",
     prompt: `Qual resumo combina melhor com ${unit.reference}?`,
     reference: unit.reference,
@@ -334,13 +334,13 @@ function buildSingleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: nu
   };
 }
 
-function buildBooleanQuestion(unit: StudyUnit, pool: StudyUnit[], index: number): StudyQuestion {
+function buildBooleanQuestion(unit: StudyUnit, pool: StudyUnit[], index: number, variant: number): StudyQuestion {
   const other = pool[(index + 1) % pool.length] ?? unit;
   const useCorrectStatement = index % 2 === 0;
   const subject = useCorrectStatement ? unit.summary : other.summary;
 
   return {
-    id: `generated-boolean-${unit.id}`,
+    id: `generated-boolean-${unit.id}-${variant}`,
     type: "boolean",
     prompt: `${subject} corresponde a ${unit.reference}?`,
     reference: unit.reference,
@@ -353,7 +353,7 @@ function buildBooleanQuestion(unit: StudyUnit, pool: StudyUnit[], index: number)
   };
 }
 
-function buildMultipleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: number): StudyQuestion {
+function buildMultipleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: number, variant: number): StudyQuestion {
   const correctKeywords = unit.keywords.slice(0, 2);
   const distractorKeywords = pool
     .filter((candidate) => candidate.id !== unit.id)
@@ -366,7 +366,7 @@ function buildMultipleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: 
     .map((keyword) => ({ id: keyword, label: keyword }));
 
   return {
-    id: `generated-multiple-${unit.id}`,
+    id: `generated-multiple-${unit.id}-${variant}`,
     type: "multiple",
     prompt: `Selecione os termos mais ligados a ${unit.reference}.`,
     reference: unit.reference,
@@ -376,11 +376,11 @@ function buildMultipleChoiceQuestion(unit: StudyUnit, pool: StudyUnit[], index: 
   };
 }
 
-function buildTextQuestion(unit: StudyUnit): StudyQuestion {
+function buildTextQuestion(unit: StudyUnit, variant: number): StudyQuestion {
   const acceptedAnswers = unit.keywords.length ? unit.keywords : extractKeywords(unit.summary, 3);
 
   return {
-    id: `generated-text-${unit.id}`,
+    id: `generated-text-${unit.id}-${variant}`,
     type: "text",
     prompt: `Em palavra curta, qual tema principal você associa a ${unit.reference}?`,
     reference: unit.reference,
@@ -402,15 +402,22 @@ export function buildQuestionBank(module: StudyModule, units: StudyUnit[]) {
     return bank.slice(0, target);
   }
 
-  const generatedNeeded = target - bank.length;
-  const sampledUnits = pickDistributedUnits(units, Math.max(Math.ceil(generatedNeeded / 4), 12));
+  const sampledUnits = pickDistributedUnits(units, Math.max(Math.ceil((target - bank.length) / 4), 12));
+  let variant = 0;
 
-  sampledUnits.forEach((unit, index) => {
-    if (bank.length < target) bank.push(buildSingleChoiceQuestion(unit, sampledUnits, index));
-    if (bank.length < target) bank.push(buildBooleanQuestion(unit, sampledUnits, index));
-    if (bank.length < target) bank.push(buildMultipleChoiceQuestion(unit, sampledUnits, index));
-    if (bank.length < target) bank.push(buildTextQuestion(unit));
-  });
+  while (bank.length < target) {
+    sampledUnits.forEach((unit, index) => {
+      if (bank.length < target) bank.push(buildSingleChoiceQuestion(unit, sampledUnits, index + variant, variant));
+      if (bank.length < target) bank.push(buildBooleanQuestion(unit, sampledUnits, index + variant, variant));
+      if (bank.length < target) bank.push(buildMultipleChoiceQuestion(unit, sampledUnits, index + variant, variant));
+      if (bank.length < target) bank.push(buildTextQuestion(unit, variant));
+    });
+    variant += 1;
+
+    if (variant > target) {
+      break;
+    }
+  }
 
   return bank.slice(0, target);
 }

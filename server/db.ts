@@ -1,6 +1,7 @@
 import { query } from "./mysql";
 import { ENV } from './_core/env';
-import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent } from "../shared/types";
+import { nanoid } from "nanoid";
+import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent, StudyStudentSession } from "../shared/types";
 
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
@@ -98,6 +99,8 @@ function normalizeStudyStudentNumber(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+export const STUDY_ACCESS_TOKEN_MISMATCH = "STUDY_ACCESS_TOKEN_MISMATCH";
+
 function safeParseJson<T>(value: unknown, fallback: T): T {
   if (typeof value !== "string") return fallback;
   try {
@@ -134,6 +137,21 @@ function mapStudyModuleProgress(row: any): StudyModuleProgressRecord | null {
 
 let studySchemaPromise: Promise<void> | null = null;
 
+async function ensureStudyColumn(
+  tableName: string,
+  columnName: string,
+  columnDefinitionSql: string
+) {
+  const rows = await query<{ Field: string }>(`SHOW COLUMNS FROM ${tableName} LIKE ?`, [columnName]);
+  if (rows.length === 0) {
+    await query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinitionSql}`);
+  }
+}
+
+function createStudyAccessToken() {
+  return nanoid(48);
+}
+
 export async function ensureStudyTables() {
   if (!studySchemaPromise) {
     studySchemaPromise = (async () => {
@@ -142,6 +160,7 @@ export async function ensureStudyTables() {
           id INT AUTO_INCREMENT PRIMARY KEY,
           student_number VARCHAR(64) NOT NULL,
           display_name VARCHAR(120) NULL,
+          access_token VARCHAR(128) NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           last_active_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,6 +185,19 @@ export async function ensureStudyTables() {
           KEY idx_pmam_study_module_progress_module (module_slug)
         )
       `);
+
+      await ensureStudyColumn("pmam_study_students", "access_token", "access_token VARCHAR(128) NULL AFTER display_name");
+
+      const missingTokens = await query<{ id: number }>(
+        `SELECT id FROM pmam_study_students WHERE access_token IS NULL OR access_token = ''`
+      );
+
+      for (const row of missingTokens) {
+        await query(
+          `UPDATE pmam_study_students SET access_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [createStudyAccessToken(), row.id]
+        );
+      }
     })().catch((error) => {
       studySchemaPromise = null;
       throw error;
@@ -587,35 +619,113 @@ export async function deleteUser(id: number) {
 }
 
 // ===== STUDY =====
-export async function ensureStudyStudent(studentNumber: string, displayName?: string | null) {
+async function getStudyStudentRow(studentNumber: string) {
+  const rows = await query<any>(
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [studentNumber]
+  );
+  return rows[0] ?? null;
+}
+
+async function updateStudyStudentActivity(studentId: number, displayName?: string | null) {
+  await query(
+    `
+      UPDATE pmam_study_students
+      SET display_name = COALESCE(?, display_name),
+          last_active_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `,
+    [displayName?.trim() || null, studentId]
+  );
+}
+
+async function requireStudyStudentAccess(studentNumber: string, accessToken: string) {
   await ensureStudyTables();
   const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
   if (!normalizedStudentNumber) {
     throw new Error("Student number is required");
   }
 
-  await query(
-    `
-      INSERT INTO pmam_study_students (student_number, display_name, last_active_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON DUPLICATE KEY UPDATE
-        display_name = COALESCE(VALUES(display_name), display_name),
-        last_active_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-    `,
-    [normalizedStudentNumber, displayName?.trim() || null]
-  );
+  if (!accessToken?.trim()) {
+    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  }
 
-  const rows = await query(
-    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
-    [normalizedStudentNumber]
-  );
+  const row = await getStudyStudentRow(normalizedStudentNumber);
+  if (!row || row.access_token !== accessToken.trim()) {
+    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  }
 
-  return mapStudyStudent(rows[0]);
+  await updateStudyStudentActivity(row.id);
+  return mapStudyStudent(row);
 }
 
-export async function getStudyDashboard(studentNumber: string): Promise<StudyDashboard> {
-  const student = await ensureStudyStudent(studentNumber);
+export async function ensureStudyStudentSession(
+  studentNumber: string,
+  displayName?: string | null,
+  accessToken?: string | null
+): Promise<StudyStudentSession> {
+  await ensureStudyTables();
+  const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
+  if (!normalizedStudentNumber) {
+    throw new Error("Student number is required");
+  }
+
+  const providedToken = accessToken?.trim() || "";
+  const existingRow = await getStudyStudentRow(normalizedStudentNumber);
+
+  if (!existingRow) {
+    const nextAccessToken = createStudyAccessToken();
+    await query(
+      `
+        INSERT INTO pmam_study_students (student_number, display_name, access_token, last_active_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      `,
+      [normalizedStudentNumber, displayName?.trim() || null, nextAccessToken]
+    );
+
+    const createdRow = await getStudyStudentRow(normalizedStudentNumber);
+    if (!createdRow) {
+      throw new Error("Study student could not be created");
+    }
+
+    return {
+      student: mapStudyStudent(createdRow)!,
+      accessToken: createdRow.access_token,
+    };
+  }
+
+  const storedToken = typeof existingRow.access_token === "string" ? existingRow.access_token.trim() : "";
+  if (storedToken && providedToken !== storedToken) {
+    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  }
+
+  const nextAccessToken = storedToken || createStudyAccessToken();
+  await query(
+    `
+      UPDATE pmam_study_students
+      SET display_name = COALESCE(?, display_name),
+          access_token = ?,
+          last_active_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `,
+    [displayName?.trim() || null, nextAccessToken, existingRow.id]
+  );
+
+  const refreshedRow = await getStudyStudentRow(normalizedStudentNumber);
+  if (!refreshedRow) {
+    throw new Error("Study student could not be loaded");
+  }
+
+  return {
+    student: mapStudyStudent(refreshedRow)!,
+    accessToken: refreshedRow.access_token,
+  };
+}
+
+export async function getStudyDashboard(studentNumber: string, accessToken: string): Promise<StudyDashboard> {
+  const student = await requireStudyStudentAccess(studentNumber, accessToken);
   if (!student) {
     throw new Error("Study student not found");
   }
@@ -631,8 +741,12 @@ export async function getStudyDashboard(studentNumber: string): Promise<StudyDas
   };
 }
 
-export async function getStudyModuleProgress(studentNumber: string, moduleSlug: string): Promise<StudyModuleProgressRecord> {
-  const student = await ensureStudyStudent(studentNumber);
+export async function getStudyModuleProgress(
+  studentNumber: string,
+  accessToken: string,
+  moduleSlug: string
+): Promise<StudyModuleProgressRecord> {
+  const student = await requireStudyStudentAccess(studentNumber, accessToken);
   if (!student) {
     throw new Error("Study student not found");
   }
@@ -657,10 +771,11 @@ export async function getStudyModuleProgress(studentNumber: string, moduleSlug: 
 
 export async function saveStudyModuleProgress(
   studentNumber: string,
+  accessToken: string,
   moduleSlug: string,
   progress: Omit<StudyModuleProgressRecord, "moduleSlug" | "updatedAt">
 ): Promise<StudyModuleProgressRecord> {
-  const student = await ensureStudyStudent(studentNumber);
+  const student = await requireStudyStudentAccess(studentNumber, accessToken);
   if (!student) {
     throw new Error("Study student not found");
   }
