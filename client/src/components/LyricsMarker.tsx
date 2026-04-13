@@ -875,7 +875,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                 <button
                   type="button"
                   className="flex w-full flex-col gap-1 text-left"
-                  onClick={() => focusLine(index, compact ? "marker" : undefined)}
+                  onClick={() => focusLine(index)}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className={`text-[10px] font-bold ${isCurrent ? "text-white/60" : "text-slate-300"}`}>
@@ -990,7 +990,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             </TabsContent>
           </div>
 
-          <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shrink-0">
+          <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shrink-0">
             {renderSaveBar(true)}
           </div>
         </Tabs>
