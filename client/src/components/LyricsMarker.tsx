@@ -461,7 +461,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     const liveCurrentTime = playerRef.current?.currentTime ?? currentTime;
     updateLineTime(normalizedCurrentLineIndex, liveCurrentTime);
 
-    if (!alreadyMarked) {
+    // Nao mudar de linha quando esta em modo "Linhas" para evitar voltar para "Foco"
+    if (!alreadyMarked && mobileTab !== "lines") {
       const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
       setCurrentLineIndex(nextMarkable);
     }
