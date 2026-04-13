@@ -151,6 +151,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const playerRef = useRef<MediaPlayerElement | null>(null);
   const draftHydratedRef = useRef(false);
   const serverSnapshotRef = useRef("");
+  const linesScrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollPositionRef = useRef<number>(0);
 
   const lines = useMemo(
     () => hymn.lyrics.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
@@ -450,12 +452,24 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     if (normalizedCurrentLineIndex >= lines.length) return;
     const alreadyMarked = (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
 
+    // Preservar scroll position em mobile
+    if (linesScrollContainerRef.current) {
+      scrollPositionRef.current = linesScrollContainerRef.current.scrollTop;
+    }
+
     updateLineTime(normalizedCurrentLineIndex, currentTime);
 
     if (!alreadyMarked) {
       const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
       setCurrentLineIndex(nextMarkable);
     }
+
+    // Restaurar scroll position apos atualizacao
+    setTimeout(() => {
+      if (linesScrollContainerRef.current) {
+        linesScrollContainerRef.current.scrollTop = scrollPositionRef.current;
+      }
+    }, 0);
   };
 
   const applyAutomaticSync = () => {
@@ -827,7 +841,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         </span>
       </div>
 
-      <CardContent className={`p-0 ${compact ? "" : "flex-1 overflow-y-auto"}`}>
+      <CardContent ref={linesScrollContainerRef} className={`p-0 ${compact ? "" : "flex-1 overflow-y-auto"}`}>
         <div className="divide-y divide-slate-50">
           {lines.map((line, index) => {
             const isHeading = isLyricsSectionLabel(line);
