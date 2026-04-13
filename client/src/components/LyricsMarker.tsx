@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play,
   Pause,
@@ -21,7 +20,6 @@ import {
   ChevronRight,
   ArrowUp,
   ArrowDown,
-  ListMusic,
   WandSparkles,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -145,13 +143,14 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [syncData, setSyncData] = useState<{ time: number; text: string }[]>([]);
   const [timeDrafts, setTimeDrafts] = useState<Record<number, string>>({});
-  const [mobileTab, setMobileTab] = useState<"marker" | "lines">("marker");
+  const [mobileTab, setMobileTab] = useState<"marker" | "lines">("lines");
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const playerRef = useRef<MediaPlayerElement | null>(null);
   const draftHydratedRef = useRef(false);
   const serverSnapshotRef = useRef("");
   const linesScrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const mobileScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const scrollPositionRef = useRef<number>(0);
 
   const lines = useMemo(
@@ -202,7 +201,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       syncData: normalizedSyncData,
       timeDrafts: buildDraftMap(normalizedSyncData),
       currentLineIndex: getNextUnsyncedLineIndex(normalizedSyncData),
-      mobileTab: "marker" as const,
+      mobileTab: "lines" as const,
     };
   };
 
@@ -382,6 +381,10 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     seekTo(currentTime + delta);
   };
 
+  const getActiveScrollContainer = () => (isMobile ? mobileScrollContainerRef.current : linesScrollContainerRef.current);
+
+  const getLiveCurrentTime = () => playerRef.current?.currentTime ?? currentTime;
+
   const focusLine = (index: number, nextTab?: "marker" | "lines") => {
     if (index < 0 || index >= lines.length) {
       return;
@@ -444,7 +447,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     }
 
     updateLineTime(index, parsed);
-    focusLine(index, (options?.focusMarker ?? isMobile) ? "marker" : undefined);
+    focusLine(index, options?.focusMarker ? "marker" : undefined);
     return true;
   };
 
@@ -453,13 +456,12 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     const alreadyMarked = (syncData[normalizedCurrentLineIndex]?.time ?? -1) >= 0;
 
     // Preservar scroll position em mobile
-    if (linesScrollContainerRef.current) {
-      scrollPositionRef.current = linesScrollContainerRef.current.scrollTop;
+    const scrollContainer = getActiveScrollContainer();
+    if (scrollContainer) {
+      scrollPositionRef.current = scrollContainer.scrollTop;
     }
 
-    // Ler tempo atual diretamente do player em vez de usar state desatualizado
-    const liveCurrentTime = playerRef.current?.currentTime ?? currentTime;
-    updateLineTime(normalizedCurrentLineIndex, liveCurrentTime);
+    updateLineTime(normalizedCurrentLineIndex, getLiveCurrentTime());
 
     // Nao mudar de linha quando esta em modo "Linhas" para evitar voltar para "Foco"
     if (!alreadyMarked && mobileTab !== "lines") {
@@ -469,8 +471,9 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
     // Restaurar scroll position apos atualizacao
     setTimeout(() => {
-      if (linesScrollContainerRef.current) {
-        linesScrollContainerRef.current.scrollTop = scrollPositionRef.current;
+      const nextScrollContainer = getActiveScrollContainer();
+      if (nextScrollContainer) {
+        nextScrollContainer.scrollTop = scrollPositionRef.current;
       }
     }, 0);
   };
@@ -618,7 +621,9 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       <div
         className={
           hymn.youtubeUrl
-            ? "aspect-video w-full max-h-[25vh] sm:max-h-[35vh] md:max-h-[45vh] mx-auto bg-black"
+            ? compact
+              ? "aspect-[16/9] w-full min-h-[190px] overflow-hidden bg-black max-h-[34svh]"
+              : "aspect-[16/9] w-full min-h-[260px] overflow-hidden bg-black max-h-[42vh] lg:max-h-[46vh]"
             : hymn.audioUrl
               ? "flex h-20 items-center bg-gradient-to-r from-[#1a3a2a] to-[#10281d] px-4 sm:px-6"
               : "hidden"
@@ -929,8 +934,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                       isCurrent ? "border-white/20 bg-white/10 text-white hover:bg-white/20" : ""
                     }`}
                     onClick={() => {
-                      updateLineTime(index, currentTime);
-                      focusLine(index, compact ? "marker" : undefined);
+                      updateLineTime(index, getLiveCurrentTime());
+                      focusLine(index);
                     }}
                   >
                     <Clock className="mr-1 h-3 w-3" />
@@ -960,7 +965,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   if (isMobile) {
     return (
-      <div className="flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+      <div ref={mobileScrollContainerRef} className="flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
         <div className="shrink-0 animate-in fade-in slide-in-from-top-4">
           {renderMediaArea(true)}
         </div>
@@ -969,31 +974,10 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           {renderControlBar(true)}
         </div>
 
-        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full mt-2 flex flex-col min-h-0">
-          <div className="px-1 mb-2 shrink-0">
-            <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1 shadow-sm">
-              <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-                <Zap className="mr-2 h-4 w-4" /> Foco
-              </TabsTrigger>
-              <TabsTrigger value="lines" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
-                <ListMusic className="mr-2 h-4 w-4" /> Linhas
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="px-1 flex-1 min-h-0 overflow-y-auto">
-            <TabsContent value="marker" className="mt-0 w-full pb-24">
-              {renderCurrentLineCard(true)}
-            </TabsContent>
-            <TabsContent value="lines" className="mt-0 w-full pb-24">
-              {renderLinesPanel(true)}
-            </TabsContent>
-          </div>
-
-          <div className="sticky bottom-0 z-10 bg-white/95 backdrop-blur px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shrink-0">
-            {renderSaveBar(true)}
-          </div>
-        </Tabs>
+        <div className="mt-2 space-y-3 px-1 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+          {renderLinesPanel(true)}
+          {renderSaveBar(true)}
+        </div>
       </div>
     );
   }
