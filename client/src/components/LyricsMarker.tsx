@@ -969,8 +969,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           {renderControlBar(true)}
         </div>
 
-        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full mt-2">
-          <div className="px-1 mb-2">
+        <Tabs value={mobileTab} onValueChange={(value) => setMobileTab(value as "marker" | "lines")} className="w-full mt-2 flex flex-col min-h-0">
+          <div className="px-1 mb-2 shrink-0">
             <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl bg-[#edf1ed] p-1 shadow-sm">
               <TabsTrigger value="marker" className="min-h-10 text-xs font-bold uppercase tracking-[0.16em]">
                 <Zap className="mr-2 h-4 w-4" /> Foco
@@ -981,19 +981,19 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             </TabsList>
           </div>
 
-          <div className="px-1">
-            <TabsContent value="marker" className="mt-0 w-full pb-1">
+          <div className="px-1 flex-1 min-h-0 overflow-y-auto">
+            <TabsContent value="marker" className="mt-0 w-full pb-24">
               {renderCurrentLineCard(true)}
             </TabsContent>
-            <TabsContent value="lines" className="mt-0 w-full pb-1">
+            <TabsContent value="lines" className="mt-0 w-full pb-24">
               {renderLinesPanel(true)}
             </TabsContent>
           </div>
-        </Tabs>
 
-        <div className="mt-4 shrink-0">
-          {renderSaveBar(true)}
-        </div>
+          <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shrink-0">
+            {renderSaveBar(true)}
+          </div>
+        </Tabs>
       </div>
     );
   }
