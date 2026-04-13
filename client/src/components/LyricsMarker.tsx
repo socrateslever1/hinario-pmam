@@ -457,7 +457,9 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       scrollPositionRef.current = linesScrollContainerRef.current.scrollTop;
     }
 
-    updateLineTime(normalizedCurrentLineIndex, currentTime);
+    // Ler tempo atual diretamente do player em vez de usar state desatualizado
+    const liveCurrentTime = playerRef.current?.currentTime ?? currentTime;
+    updateLineTime(normalizedCurrentLineIndex, liveCurrentTime);
 
     if (!alreadyMarked) {
       const nextMarkable = findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1);
