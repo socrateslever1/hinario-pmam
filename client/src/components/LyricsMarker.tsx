@@ -18,6 +18,10 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
   ArrowUp,
   ArrowDown,
   WandSparkles,
@@ -138,6 +142,8 @@ function getLastMarkedIndexAtOrBefore(indexes: number[], currentIndex: number) {
 export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const isMobile = useIsMobile();
   const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
@@ -385,6 +391,14 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
   const getLiveCurrentTime = () => playerRef.current?.currentTime ?? currentTime;
 
+  const focusPreviousLine = () => {
+    focusLine(findPreviousMarkableIndex(lines, normalizedCurrentLineIndex - 1));
+  };
+
+  const focusNextLine = () => {
+    focusLine(findNextMarkableIndex(lines, normalizedCurrentLineIndex + 1));
+  };
+
   const focusLine = (index: number, nextTab?: "marker" | "lines") => {
     if (index < 0 || index >= lines.length) {
       return;
@@ -622,7 +636,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         className={
           hymn.youtubeUrl
             ? compact
-              ? "aspect-[16/9] w-full min-h-[190px] overflow-hidden bg-black max-h-[34svh]"
+              ? "aspect-[16/9] w-full min-h-[168px] overflow-hidden bg-black max-h-[28svh]"
               : "aspect-[16/9] w-full min-h-[260px] overflow-hidden bg-black max-h-[42vh] lg:max-h-[46vh]"
             : hymn.audioUrl
               ? "flex h-20 items-center bg-gradient-to-r from-[#1a3a2a] to-[#10281d] px-4 sm:px-6"
@@ -633,6 +647,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           ref={playerRef as any}
           src={url}
           playing={playing}
+          volume={volume}
+          muted={muted}
           playsInline
           width="100%"
           height="100%"
@@ -683,7 +699,39 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               </span>
             </div>
 
-            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+            {compact ? (
+              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-white/10" onClick={focusPreviousLine}>
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-white/10" onClick={focusNextLine}>
+                  <SkipForward className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/10" onClick={() => setMuted((current) => !current)} title="Volume">
+                  {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+                <div className="w-20">
+                  <Slider
+                    value={[muted ? 0 : volume]}
+                    max={1}
+                    step={0.01}
+                    onValueChange={(values) => {
+                      const nextVolume = values[0] ?? 0;
+                      setVolume(nextVolume);
+                      setMuted(nextVolume === 0);
+                    }}
+                    className="cursor-pointer"
+                  />
+                </div>
+                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
+                  {syncedCount}/{markableCount}
+                </span>
+                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-9 w-9 text-white/80 hover:bg-white/10 hover:text-white" title="Desfazer">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
               <Button variant="outline" size="icon" onClick={applyAutomaticSync} disabled={!(duration > 0)} className="h-9 w-9 border-[#c4a84b]/30 bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90" title="Sincronização Automática">
                 <WandSparkles className="h-4 w-4" />
               </Button>
@@ -708,7 +756,8 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -718,6 +767,23 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
               <span>{formatTime(duration)}</span>
             </div>
           </div>
+
+          {compact && normalizedCurrentLineIndex < lines.length && (
+            <div className="rounded-xl bg-black/25 px-3 py-2 text-white ring-1 ring-white/10">
+              <div className="flex items-start justify-between gap-3">
+                <p className="line-clamp-2 text-sm font-bold leading-relaxed">{lines[normalizedCurrentLineIndex]}</p>
+                <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#c4a84b]">
+                  #{normalizedCurrentLineIndex + 1}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.16em]">
+                <span className={selectedLineHasTime ? "text-[#c4a84b]" : "text-white/45"}>
+                  {selectedLineHasTime ? `Marcado em ${formatEditableTime(syncData[normalizedCurrentLineIndex]?.time ?? 0)}` : "Aguardando marcacao"}
+                </span>
+                <span className="text-white/45">{syncedCount}/{markableCount}</span>
+              </div>
+            </div>
+          )}
 
           {!compact && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 ring-1 ring-white/10">
@@ -811,16 +877,6 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
         </div>
 
         <div className={compact ? "grid grid-cols-1 gap-2" : "flex flex-wrap items-center gap-2"}>
-          {compact && (
-            <Button variant="outline" className="h-11 font-bold" onClick={markCurrentLine}>
-              <Clock className="mr-2 h-4 w-4" /> Marcar agora
-            </Button>
-          )}
-          {compact && (
-            <Button variant="outline" className="h-11 font-bold" onClick={() => setMobileTab("lines")}>
-              Revisar linhas
-            </Button>
-          )}
           {hasLocalDraft && (
             <Button type="button" variant="outline" className="h-11 font-bold" onClick={discardLocalDraft}>
               Descartar rascunho
