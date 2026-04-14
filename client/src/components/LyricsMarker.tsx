@@ -666,43 +666,41 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     <Card className="overflow-hidden border-0 bg-[#0a1a13] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.8)] ring-1 ring-white/10 rounded-t-none">
       <CardContent className={compact ? "bg-[#10281d] p-3 text-white sm:p-4" : "bg-[#10281d] p-4 text-white"}>
         <div className="flex flex-col gap-4">
-          <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+          <div className="flex w-full flex-wrap items-center gap-2 pb-2">
             <Button
               size="icon"
               variant="ghost"
-              className="h-10 w-10 shrink-0 rounded-full bg-white/10 text-white shadow-xl hover:bg-white/20 active:scale-95"
+              className="h-9 w-9 shrink-0 rounded-full bg-white/10 text-white shadow-xl hover:bg-white/20 active:scale-95"
               onClick={() => setPlaying(!playing)}
             >
-              {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
             </Button>
             
-            <div className="flex shrink-0 items-baseline gap-2 px-1">
-              <span className="text-xl font-black tabular-nums tracking-tighter text-white">{formatTime(currentTime)}</span>
-              <span className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70 sm:inline">
+            <div className="flex shrink-0 items-baseline gap-1.5 px-1">
+              <span className="text-lg font-black tabular-nums tracking-tighter text-white sm:text-xl">{formatTime(currentTime)}</span>
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#c4a84b]/70 xl:inline">
                 Progresso {Math.round((currentTime / duration) * 100 || 0)}%
               </span>
             </div>
 
-            <div className="flex-1" />
-
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
               <Button variant="outline" size="icon" onClick={applyAutomaticSync} disabled={!(duration > 0)} className="h-9 w-9 border-[#c4a84b]/30 bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90" title="Sincronização Automática">
                 <WandSparkles className="h-4 w-4" />
               </Button>
 
-              <div className="flex h-9 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
-                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-1)} title="-1s"><ChevronLeft className="h-4 w-4" /></Button>
+              <div className="flex h-8 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
+                <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-1)} title="-1s"><ChevronLeft className="h-3.5 w-3.5" /></Button>
                 <span className="min-w-[28px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
-                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(1)} title="+1s"><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(1)} title="+1s"><ChevronRight className="h-3.5 w-3.5" /></Button>
               </div>
 
-              <div className="flex h-9 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
-                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)} title="-0.1s"><Minus className="h-3 w-3" /></Button>
+              <div className="flex h-8 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
+                <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)} title="-0.1s"><Minus className="h-3 w-3" /></Button>
                 <span className="min-w-[32px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
-                <Button variant="ghost" size="icon" className="h-full w-8 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)} title="+0.1s"><Plus className="h-3 w-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)} title="+0.1s"><Plus className="h-3 w-3" /></Button>
               </div>
 
-              <div className="flex h-9 items-center gap-1 rounded-lg bg-black/40 p-1 ring-1 ring-white/10">
+              <div className="flex h-8 items-center gap-0.5 rounded-lg bg-black/40 p-0.5 ring-1 ring-white/10">
                 <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-7 w-7 text-white hover:bg-white/10" title="Desfazer">
                   <RotateCcw className="h-3 w-3" />
                 </Button>
