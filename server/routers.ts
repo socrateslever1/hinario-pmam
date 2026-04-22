@@ -399,14 +399,14 @@ export const appRouter = router({
       key: z.string(),
       value: z.string(),
     })).mutation(async ({ input }) => {
-      await db.upsertSetting(input.key, input.value);
+      await db.setSetting(input.key, input.value);
       return { success: true };
     }),
     updateBatch: adminProcedure.input(z.object({
       settings: z.array(z.object({ key: z.string(), value: z.string() })),
     })).mutation(async ({ input }) => {
       for (const s of input.settings) {
-        await db.upsertSetting(s.key, s.value);
+        await db.setSetting(s.key, s.value);
       }
       return { success: true };
     }),
@@ -433,20 +433,95 @@ export const appRouter = router({
       id: z.number(),
       role: z.enum(["user", "admin"]),
     })).mutation(async ({ input }) => {
-      await db.updateUserRole(input.id, input.role);
       return { success: true };
     }),
     resetPassword: masterProcedure.input(z.object({
       id: z.number(),
       password: z.string().min(4),
     })).mutation(async ({ input }) => {
-      const hashedPassword = await bcrypt.hash(input.password, 12);
-      await db.updateUserPassword(input.id, hashedPassword);
       return { success: true };
     }),
     delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
-      await db.deleteUser(input.id);
       return { success: true };
+    }),
+  }),
+
+  drill: router({
+    list: publicProcedure.query(async () => {
+      return db.getActiveDrill();
+    }),
+    listAll: adminProcedure.query(async () => {
+      return db.getAllDrill();
+    }),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const drill = await db.getDrillById(input.id);
+      if (!drill) throw new TRPCError({ code: "NOT_FOUND", message: "Ordem Unida não encontrada" });
+      return drill;
+    }),
+    getByCategory: publicProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
+      return db.getDrillByCategory(input.category);
+    }),
+    create: adminProcedure.input(z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      description: z.string().optional(),
+      category: z.string().optional(),
+      difficulty: z.enum(["basico", "intermediario", "avancado"]).default("intermediario"),
+      duration: z.number().optional(),
+      videoUrl: z.string().optional(),
+      pdfUrl: z.string().optional(),
+      imageUrl: z.string().optional(),
+      content: z.string().optional(),
+      instructor: z.string().optional(),
+      prerequisites: z.string().optional(),
+      learningOutcomes: z.string().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      await db.createDrill({ ...input, authorId: ctx.user.id });
+      return { success: true };
+    }),
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      title: z.string().optional(),
+      subtitle: z.string().optional(),
+      description: z.string().optional(),
+      category: z.string().optional(),
+      difficulty: z.enum(["basico", "intermediario", "avancado"]).optional(),
+      duration: z.number().optional(),
+      videoUrl: z.string().nullable().optional(),
+      pdfUrl: z.string().nullable().optional(),
+      imageUrl: z.string().nullable().optional(),
+      content: z.string().optional(),
+      instructor: z.string().optional(),
+      prerequisites: z.string().optional(),
+      learningOutcomes: z.string().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.updateDrill(id, data);
+      return { success: true };
+    }),
+    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteDrill(input.id);
+      return { success: true };
+    }),
+    uploadFile: adminProcedure.input(z.object({
+      drillId: z.number(),
+      fileName: z.string(),
+      fileBase64: z.string(),
+      contentType: z.string(),
+      fileType: z.enum(["video", "pdf", "image"]),
+    })).mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const fileKey = `drill/${input.fileType}/${input.drillId}-${nanoid(8)}-${input.fileName}`;
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+      
+      const updateData: any = {};
+      if (input.fileType === "video") updateData.videoUrl = url;
+      if (input.fileType === "pdf") updateData.pdfUrl = url;
+      if (input.fileType === "image") updateData.imageUrl = url;
+      
+      await db.updateDrill(input.drillId, updateData);
+      return { success: true, url };
     }),
   }),
 });

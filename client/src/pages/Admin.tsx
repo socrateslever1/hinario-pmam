@@ -40,6 +40,97 @@ const priorityOptions = [
   { value: "critica", label: "Crítica" },
 ];
 
+const difficultyOptions = [
+  { value: "basico", label: "Básico" },
+  { value: "intermediario", label: "Intermediário" },
+  { value: "avancado", label: "Avançado" },
+];
+
+function getDefaultDrillFormState(drill?: any) {
+  return {
+    title: drill?.title ?? "",
+    subtitle: drill?.subtitle ?? "",
+    description: drill?.description ?? "",
+    category: drill?.category ?? "",
+    difficulty: drill?.difficulty ?? "intermediario",
+    duration: drill?.duration ?? 0,
+    videoUrl: drill?.videoUrl ?? "",
+    pdfUrl: drill?.pdfUrl ?? "",
+    imageUrl: drill?.imageUrl ?? "",
+    content: drill?.content ?? "",
+    instructor: drill?.instructor ?? "",
+    prerequisites: drill?.prerequisites ?? "",
+    learningOutcomes: drill?.learningOutcomes ?? "",
+  };
+}
+
+function DrillForm({ drill, onSuccess }: { drill?: any; onSuccess: () => void }) {
+  const [form, setForm] = useState(() => getDefaultDrillFormState(drill));
+
+  const utils = trpc.useUtils();
+  const createMut = trpc.drill.create.useMutation({
+    onSuccess: () => { toast.success("Ordem Unida criada!"); utils.drill.invalidate(); onSuccess(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateMut = trpc.drill.update.useMutation({
+    onSuccess: () => { toast.success("Ordem Unida atualizada!"); utils.drill.invalidate(); onSuccess(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  useEffect(() => {
+    setForm(getDefaultDrillFormState(drill));
+  }, [drill]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title) { toast.error("Título é obrigatório"); return; }
+    const data = {
+      ...form,
+      duration: form.duration ? Number(form.duration) : undefined,
+      subtitle: form.subtitle || undefined,
+      description: form.description || undefined,
+      category: form.category || undefined,
+      videoUrl: form.videoUrl || undefined,
+      pdfUrl: form.pdfUrl || undefined,
+      imageUrl: form.imageUrl || undefined,
+      content: form.content || undefined,
+      instructor: form.instructor || undefined,
+      prerequisites: form.prerequisites || undefined,
+      learningOutcomes: form.learningOutcomes || undefined,
+    };
+    if (drill) { updateMut.mutate({ id: drill.id, ...data }); }
+    else { createMut.mutate(data); }
+  };
+
+  const saving = createMut.isPending || updateMut.isPending;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
+      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
+      <div><Label>Subtítulo</Label><Input value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} /></div>
+      <div><Label>Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Ex: Formação, Disciplina" /></div>
+      <div><Label>Dificuldade</Label>
+        <Select value={form.difficulty} onValueChange={v => setForm(f => ({ ...f, difficulty: v }))}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>{difficultyOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      <div><Label>Duração (minutos)</Label><Input type="number" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))} /></div>
+      <div><Label>Instrutor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
+      <div><Label>URL do Vídeo</Label><Input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://youtube.com/..." /></div>
+      <div><Label>URL do PDF</Label><Input value={form.pdfUrl} onChange={e => setForm(f => ({ ...f, pdfUrl: e.target.value }))} placeholder="https://..." /></div>
+      <div><Label>URL da Imagem</Label><Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://..." /></div>
+      <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
+      <div><Label>Conteúdo/Texto</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} /></div>
+      <div><Label>Pré-requisitos</Label><Textarea value={form.prerequisites} onChange={e => setForm(f => ({ ...f, prerequisites: e.target.value }))} rows={2} /></div>
+      <div><Label>Resultados de Aprendizado</Label><Textarea value={form.learningOutcomes} onChange={e => setForm(f => ({ ...f, learningOutcomes: e.target.value }))} rows={2} /></div>
+      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
+        <Save className="h-4 w-4" />{saving ? "Salvando..." : drill ? "Atualizar Ordem Unida" : "Criar Ordem Unida"}
+      </Button>
+    </form>
+  );
+}
+
 function getDefaultHymnFormState(hymn?: any) {
   return {
     number: hymn?.number ?? 0,
@@ -359,7 +450,10 @@ export default function Admin() {
   const [editingHymn, setEditingHymn] = useState<any>(null);
   const [syncingHymn, setSyncingHymn] = useState<any>(null);
   const [editingMission, setEditingMission] = useState<any>(null);
+  const [editingDrill, setEditingDrill] = useState<any>(null);
+  const [drillDialogOpen, setDrillDialogOpen] = useState(false);
   const [hymnSearchTerm, setHymnSearchTerm] = useState("");
+  const [drillSearchTerm, setDrillSearchTerm] = useState("");
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
   const isMaster = isAuthenticated && user?.role === "master";
@@ -367,6 +461,7 @@ export default function Admin() {
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: isAdminOrMaster === true });
   const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
   const { data: missions } = trpc.missions.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
+  const { data: drills } = trpc.drill.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
 
   const utils = trpc.useUtils();
   const deleteHymn = trpc.hymns.delete.useMutation({
@@ -395,6 +490,11 @@ export default function Admin() {
     },
   });
   const toggleMission = trpc.missions.update.useMutation({ onSuccess: () => { utils.missions.invalidate(); } });
+  const deleteDrill = trpc.drill.delete.useMutation({
+    onSuccess: () => { toast.success("Ordem Unida removida"); utils.drill.invalidate(); utils.admin.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const toggleDrill = trpc.drill.update.useMutation({ onSuccess: () => { utils.drill.invalidate(); } });
 
   const handleLogout = async () => {
     await logout();
@@ -529,6 +629,7 @@ export default function Admin() {
               <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
               <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
               <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
+              <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
             </TabsList>
@@ -736,6 +837,79 @@ export default function Admin() {
                           </Button>
                           <Button variant="ghost" size="icon" className="text-destructive"
                             onClick={() => { if (confirm("Remover esta missão?")) deleteMission.mutate({ id: mission.id }); }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* DRILL TAB */}
+            <TabsContent value="drill">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-bold text-foreground">Gerenciar Ordem Unida</h2>
+                <Dialog open={drillDialogOpen} onOpenChange={(o) => { setDrillDialogOpen(o); if (!o) setEditingDrill(null); }}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingDrill(null)}>
+                      <Plus className="h-4 w-4" /> Nova Ordem Unida
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
+                    <DialogHeader>
+                      <DialogTitle>{editingDrill ? "Editar Ordem Unida" : "Nova Ordem Unida"}</DialogTitle>
+                      <DialogDescription>Insira as informações da ordem unida com vídeos, PDFs, imagens e conteúdo.</DialogDescription>
+                    </DialogHeader>
+                    <DrillForm key={editingDrill?.id ?? "new"} drill={editingDrill} onSuccess={() => setDrillDialogOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
+                <Input
+                  placeholder="Buscar por título, categoria ou instrutor..."
+                  className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
+                  value={drillSearchTerm}
+                  onChange={(e) => setDrillSearchTerm(e.target.value)}
+                />
+              </div>
+              {!drills || drills.length === 0 ? (
+                <Card className="border-border/50">
+                  <CardContent className="p-12 text-center">
+                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhuma ordem unida publicada ainda.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {drills
+                    .filter((drill: any) => {
+                      const term = drillSearchTerm.toLowerCase();
+                      return (
+                        drill.title.toLowerCase().includes(term) ||
+                        drill.category?.toLowerCase().includes(term) ||
+                        drill.instructor?.toLowerCase().includes(term)
+                      );
+                    })
+                    .map((drill: any) => (
+                    <Card key={drill.id} className="border-border/50">
+                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground text-sm truncate">{drill.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{drill.category} {drill.instructor ? `• ${drill.instructor}` : ""}</p>
+                        </div>
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                          {drill.videoUrl && <Youtube className="h-4 w-4 text-red-500" />}
+                          {drill.pdfUrl && <FileText className="h-4 w-4 text-blue-600" />}
+                          {drill.imageUrl && <Music className="h-4 w-4 text-green-600" />}
+                          <Switch checked={drill.isActive} onCheckedChange={(checked) => toggleDrill.mutate({ id: drill.id, isActive: checked })} />
+                          <Button variant="ghost" size="icon" onClick={() => { setEditingDrill(drill); setDrillDialogOpen(true); }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive"
+                            onClick={() => { if (confirm("Remover esta ordem unida?")) deleteDrill.mutate({ id: drill.id }); }}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

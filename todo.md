@@ -33,3 +33,10 @@
 - [x] Contador de acessos/visualizações nas missões - backend pronto
 - [x] Moderação de comentários pelo Xerife (apagar) - backend pronto
 - [x] Bug: DialogTitle faltando no diálogo da página CFAP 2026
+- [x] Criar tabela pmam_drill (Ordem Unida) no banco de dados
+- [x] Implementar CRUD backend (tRPC procedures) para Ordem Unida
+- [x] Criar UI de gerenciamento (Admin tab) para Ordem Unida
+- [x] Criar página pública de visualização para Ordem Unida
+- [x] Adicionar link "Ordem Unida" na navbar
+- [x] Criar testes vitest para Drill CRUD
+- [ ] Testar e validar Ordem Unida em mobile e desktop

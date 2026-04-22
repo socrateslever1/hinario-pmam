@@ -15,6 +15,8 @@ import CharlieMike from "./pages/CharlieMike";
 import EducationCenter from "./pages/EducationCenter";
 import EducationModule from "./pages/EducationModule";
 import SyncStudio from "./pages/SyncStudio";
+import Drill from "./pages/Drill";
+import DrillDetail from "./pages/DrillDetail";
 
 function Router() {
   return (
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/estudos" component={EducationCenter} />
       <Route path="/estudos/:slug" component={EducationModule} />
       <Route path="/cfap-2026" component={Cfap2026} />
+      <Route path="/drill" component={Drill} />
+      <Route path="/drill/:id" component={DrillDetail} />
       <Route path="/sobre" component={About} />
       <Route path="/xerife" component={Admin} />
       <Route path="/admin/sync/:id" component={SyncStudio} />

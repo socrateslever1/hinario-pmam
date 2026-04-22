@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/", label: "Inicio", icon: Shield },
   { href: "/hinos", label: "Hinos", icon: Music },
   { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
+  { href: "/drill", label: "Ordem Unida", icon: Target },
   { href: "/estudos", label: "Estudos", icon: BookOpenCheck },
   { href: "/cfap-2026", label: "CFAP 2026", icon: Target },
   { href: "/sobre", label: "Sobre", icon: Info },

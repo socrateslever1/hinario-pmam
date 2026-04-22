@@ -96,6 +96,42 @@ function mapComment(c: any) {
   };
 }
 
+function mapDrill(d: any) {
+  if (!d) return d;
+  let attachmentsJson = d.attachments_json;
+  if (typeof attachmentsJson === 'string') {
+    try {
+      attachmentsJson = JSON.parse(attachmentsJson);
+    } catch {
+      attachmentsJson = null;
+    }
+  }
+  
+  return {
+    id: d.id,
+    title: d.title,
+    subtitle: d.subtitle,
+    description: d.description,
+    category: d.category,
+    difficulty: d.difficulty,
+    duration: d.duration,
+    videoUrl: d.video_url,
+    pdfUrl: d.pdf_url,
+    imageUrl: d.image_url,
+    content: d.content,
+    instructor: d.instructor,
+    prerequisites: d.prerequisites,
+    learningOutcomes: d.learning_outcomes,
+    attachmentsJson,
+    isActive: d.is_active === 1 || d.is_active === true,
+    likesCount: d.likes_count,
+    viewsCount: d.views_count,
+    authorId: d.author_id,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at
+  };
+}
+
 export const STUDY_ACCESS_TOKEN_MISMATCH = "STUDY_ACCESS_TOKEN_MISMATCH";
 
 function safeParseJson<T>(value: unknown, fallback: T): T {
@@ -332,7 +368,7 @@ export async function createHymn(hymn: any) {
     hymn.isActive ?? 1
   ]);
 
-  return result; // MySQL result contains insertId
+  return result;
 }
 
 export async function updateHymn(id: number, hymn: any) {
@@ -351,7 +387,6 @@ export async function updateHymn(id: number, hymn: any) {
     description: 'description',
     youtubeUrl: 'youtube_url',
     audioUrl: 'audio_url',
-    lyricsSync: 'lyrics_sync',
     isActive: 'is_active'
   };
 
@@ -359,10 +394,14 @@ export async function updateHymn(id: number, hymn: any) {
     if (hymn[key] !== undefined) {
       updates.push(`${dbKey} = ?`);
       let val = hymn[key];
-      if (key === 'lyricsSync') val = val ? JSON.stringify(val) : null;
       if (key === 'isActive') val = val ? 1 : 0;
       params.push(val);
     }
+  }
+
+  if (hymn.lyricsSync !== undefined) {
+    updates.push(`lyrics_sync = ?`);
+    params.push(hymn.lyricsSync ? JSON.stringify(hymn.lyricsSync) : null);
   }
 
   if (updates.length === 0) return;
@@ -377,19 +416,16 @@ export async function deleteHymn(id: number) {
   await query('DELETE FROM pmam_hymns WHERE id = ?', [id]);
 }
 
-// ===== CFAP MISSIONS =====
-function buildMissionSelectSql(includeOnlyActive: boolean, includeVisitorReaction: boolean) {
-  const visitorReactionSelect = includeVisitorReaction
-    ? `, EXISTS(
-        SELECT 1
-        FROM pmam_likes likes
-        WHERE likes.target_type = 'mission'
-          AND likes.target_id = mission.id
-          AND likes.visitor_id = ?
-      ) AS visitor_reacted`
-    : ", 0 AS visitor_reacted";
-
-  const activeFilter = includeOnlyActive ? "WHERE mission.is_active = 1" : "";
+// ===== MISSIONS =====
+function buildMissionSelectSql(activeOnly: boolean, includeVisitorReaction: boolean) {
+  const activeFilter = activeOnly ? "WHERE mission.is_active = 1" : "";
+  const visitorReactionSelect = includeVisitorReaction ? `, EXISTS(
+    SELECT 1
+    FROM pmam_likes likes
+    WHERE likes.target_type = 'mission'
+      AND likes.target_id = mission.id
+      AND likes.visitor_id = ?
+  ) AS visitor_reacted` : ", 0 AS visitor_reacted";
 
   return `
     SELECT
@@ -504,299 +540,222 @@ export async function deleteMission(id: number) {
 
 export async function getMissionComments(missionId: number) {
   const rows = await query(
-    `SELECT * FROM pmam_comments
-     WHERE target_type = 'mission' AND target_id = ?
-     ORDER BY created_at DESC, id DESC`,
-    [missionId]
+    'SELECT * FROM pmam_comments WHERE target_type = ? AND target_id = ? ORDER BY created_at DESC',
+    ['mission', missionId]
   );
-
   return rows.map(mapComment);
 }
 
 export async function createMissionComment(missionId: number, authorName: string, content: string) {
   await query(
-    `INSERT INTO pmam_comments (target_type, target_id, author_name, content)
-     VALUES ('mission', ?, ?, ?)`,
-    [missionId, authorName.trim(), content.trim()]
+    'INSERT INTO pmam_comments (target_type, target_id, author_name, content) VALUES (?, ?, ?, ?)',
+    ['mission', missionId, authorName, content]
   );
+}
+
+export async function deleteMissionComment(commentId: number) {
+  await query('DELETE FROM pmam_comments WHERE id = ?', [commentId]);
 }
 
 export async function toggleMissionReaction(missionId: number, visitorId: string) {
   const existing = await query(
-    `SELECT id FROM pmam_likes
-     WHERE target_type = 'mission' AND target_id = ? AND visitor_id = ?
-     LIMIT 1`,
-    [missionId, visitorId]
+    'SELECT id FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ? LIMIT 1',
+    ['mission', missionId, visitorId]
   );
 
-  let reacted = false;
-
-  if (existing[0]?.id) {
-    await query(`DELETE FROM pmam_likes WHERE id = ?`, [existing[0].id]);
+  if (existing.length > 0) {
+    await query(
+      'DELETE FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ?',
+      ['mission', missionId, visitorId]
+    );
+    return { liked: false };
   } else {
     await query(
-      `INSERT INTO pmam_likes (target_type, target_id, visitor_id)
-       VALUES ('mission', ?, ?)`,
-      [missionId, visitorId]
+      'INSERT INTO pmam_likes (target_type, target_id, visitor_id) VALUES (?, ?, ?)',
+      ['mission', missionId, visitorId]
     );
-    reacted = true;
+    return { liked: true };
   }
+}
 
-  const countRows = await query(
-    `SELECT COUNT(*) AS total
-     FROM pmam_likes
-     WHERE target_type = 'mission' AND target_id = ?`,
-    [missionId]
+// ===== COMMENTS =====
+export async function getHymnComments(hymnId: number) {
+  const rows = await query(
+    'SELECT * FROM pmam_comments WHERE target_type = ? AND target_id = ? ORDER BY created_at DESC',
+    ['hymn', hymnId]
   );
+  return rows.map(mapComment);
+}
 
-  const likesCount = Number(countRows[0]?.total || 0);
-
+export async function createHymnComment(hymnId: number, authorName: string, content: string) {
   await query(
-    `UPDATE pmam_cfap_missions
-     SET likes_count = ?, updated_at = updated_at
-     WHERE id = ?`,
-    [likesCount, missionId]
+    'INSERT INTO pmam_comments (target_type, target_id, author_name, content) VALUES (?, ?, ?, ?)',
+    ['hymn', hymnId, authorName, content]
+  );
+}
+
+export async function deleteHymnComment(commentId: number) {
+  await query('DELETE FROM pmam_comments WHERE id = ?', [commentId]);
+}
+
+// ===== LIKES =====
+export async function toggleHymnReaction(hymnId: number, visitorId: string) {
+  const existing = await query(
+    'SELECT id FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ? LIMIT 1',
+    ['hymn', hymnId, visitorId]
   );
 
-  return { reacted, likesCount };
+  if (existing.length > 0) {
+    await query(
+      'DELETE FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ?',
+      ['hymn', hymnId, visitorId]
+    );
+    return { liked: false };
+  } else {
+    await query(
+      'INSERT INTO pmam_likes (target_type, target_id, visitor_id) VALUES (?, ?, ?)',
+      ['hymn', hymnId, visitorId]
+    );
+    return { liked: true };
+  }
 }
 
-// ===== SITE SETTINGS =====
-export async function getSetting(key: string) {
-  const rows = await query('SELECT setting_value FROM pmam_site_settings WHERE setting_key = ? LIMIT 1', [key]);
-  return rows[0]?.setting_value;
+// ===== USERS =====
+export async function getAllUsers() {
+  const rows = await query('SELECT * FROM pmam_users ORDER BY created_at DESC');
+  return rows.map(mapUser);
 }
 
-export async function upsertSetting(key: string, value: string) {
-  const sql = `
-    INSERT INTO pmam_site_settings (setting_key, setting_value)
-    VALUES (?, ?)
-    ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP
-  `;
-  await query(sql, [key, value]);
-}
-
-// ===== AUTH EMAIL/SENHA =====
 export async function getUserByEmail(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const rows = await query('SELECT * FROM pmam_users WHERE email = ? LIMIT 1', [normalizedEmail]);
   return mapUser(rows[0]);
 }
 
-export async function createUserWithPassword(data: { name: string; email: string; password: string; role: 'user' | 'admin' | 'master' }) {
-  const openId = `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const normalizedEmail = data.email.trim().toLowerCase();
+export async function createUserWithPassword(user: any) {
+  const normalizedEmail = user.email.trim().toLowerCase();
+  const openId = `user-${nanoid(16)}`;
   
   const sql = `
     INSERT INTO pmam_users (open_id, name, email, password, login_method, role)
-    VALUES (?, ?, ?, ?, 'email', ?)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
   
-  await query(sql, [openId, data.name, normalizedEmail, data.password, data.role]);
-  return getUserByEmail(normalizedEmail);
+  await query(sql, [
+    openId,
+    user.name,
+    normalizedEmail,
+    user.password,
+    'email',
+    user.role || 'user'
+  ]);
 }
 
-export async function getAllUsers() {
-  const rows = await query(
-    'SELECT id, open_id, name, email, role, login_method, created_at, updated_at, last_signed_in FROM pmam_users ORDER BY created_at DESC'
+// ===== SETTINGS =====
+export async function getSetting(key: string) {
+  const rows = await query('SELECT setting_value FROM pmam_site_settings WHERE setting_key = ? LIMIT 1', [key]);
+  return rows[0]?.setting_value ?? null;
+}
+
+export async function setSetting(key: string, value: string) {
+  await query(
+    'INSERT INTO pmam_site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)',
+    [key, value]
   );
-  return rows.map(mapUser);
-}
-
-export async function updateUserRole(id: number, role: 'user' | 'admin' | 'master') {
-  await query('UPDATE pmam_users SET role = ? WHERE id = ?', [role, id]);
-}
-
-export async function updateUserPassword(id: number, password: string) {
-  await query('UPDATE pmam_users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [password, id]);
-}
-
-export async function deleteUser(id: number) {
-  await query('DELETE FROM pmam_users WHERE id = ?', [id]);
 }
 
 // ===== STUDY =====
-async function getStudyStudentRow(studentNumber: string) {
-  const rows = await query<any>(
+export async function getOrCreateStudyStudent(studentNumber: string, displayName?: string) {
+  if (!isValidStudyStudentNumber(studentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
+  }
+
+  const normalized = normalizeStudyStudentNumber(studentNumber);
+  const accessToken = createStudyAccessToken();
+
+  const existing = await query(
     `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
-    [studentNumber]
+    [normalized]
   );
-  return rows[0] ?? null;
-}
 
-async function updateStudyStudentActivity(studentId: number, displayName?: string | null) {
+  if (existing.length > 0) {
+    return mapStudyStudent(existing[0]);
+  }
+
   await query(
-    `
-      UPDATE pmam_study_students
-      SET display_name = COALESCE(?, display_name),
-          last_active_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `,
-    [displayName?.trim() || null, studentId]
+    `INSERT INTO pmam_study_students (student_number, display_name, access_token) VALUES (?, ?, ?)`,
+    [normalized, displayName || null, accessToken]
   );
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [normalized]
+  );
+
+  return mapStudyStudent(rows[0]);
 }
 
-async function requireStudyStudentAccess(studentNumber: string, _accessToken?: string | null) {
-  await ensureStudyTables();
-  const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
-  if (!isValidStudyStudentNumber(normalizedStudentNumber)) {
+export async function getStudyStudentByNumber(studentNumber: string) {
+  if (!isValidStudyStudentNumber(studentNumber)) {
     throw new Error("INVALID_STUDY_STUDENT_NUMBER");
   }
 
-  const row = await getStudyStudentRow(normalizedStudentNumber);
-  if (!row) {
-    throw new Error("Study student not found");
-  }
-
-  await updateStudyStudentActivity(row.id);
-  return mapStudyStudent(row);
-}
-
-export async function ensureStudyStudentSession(
-  studentNumber: string,
-  displayName?: string | null,
-  accessToken?: string | null
-): Promise<StudyStudentSession> {
-  await ensureStudyTables();
-  const normalizedStudentNumber = normalizeStudyStudentNumber(studentNumber);
-  if (!isValidStudyStudentNumber(normalizedStudentNumber)) {
-    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
-  }
-  const existingRow = await getStudyStudentRow(normalizedStudentNumber);
-
-  if (!existingRow) {
-    const nextAccessToken = createStudyAccessToken();
-    await query(
-      `
-        INSERT INTO pmam_study_students (student_number, display_name, access_token, last_active_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-      `,
-      [normalizedStudentNumber, displayName?.trim() || null, nextAccessToken]
-    );
-
-    const createdRow = await getStudyStudentRow(normalizedStudentNumber);
-    if (!createdRow) {
-      throw new Error("Study student could not be created");
-    }
-
-    return {
-      student: mapStudyStudent(createdRow)!,
-      accessToken: createdRow.access_token,
-    };
-  }
-
-  const storedToken = typeof existingRow.access_token === "string" ? existingRow.access_token.trim() : "";
-  const nextAccessToken = storedToken || createStudyAccessToken();
-  await query(
-    `
-      UPDATE pmam_study_students
-      SET display_name = COALESCE(?, display_name),
-          access_token = ?,
-          last_active_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `,
-    [displayName?.trim() || null, nextAccessToken, existingRow.id]
-  );
-
-  const refreshedRow = await getStudyStudentRow(normalizedStudentNumber);
-  if (!refreshedRow) {
-    throw new Error("Study student could not be loaded");
-  }
-
-  return {
-    student: mapStudyStudent(refreshedRow)!,
-    accessToken: refreshedRow.access_token,
-  };
-}
-
-export async function getStudyDashboard(studentNumber: string, accessToken?: string | null): Promise<StudyDashboard> {
-  const student = await requireStudyStudentAccess(studentNumber, accessToken);
-  if (!student) {
-    throw new Error("Study student not found");
-  }
-
+  const normalized = normalizeStudyStudentNumber(studentNumber);
   const rows = await query(
-    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? ORDER BY module_slug ASC`,
-    [student.studentNumber]
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [normalized]
   );
 
-  return {
-    student,
-    modules: rows.map(mapStudyModuleProgress).filter(Boolean) as StudyModuleProgressRecord[],
-  };
+  return mapStudyStudent(rows[0]);
 }
 
-export async function getStudyModuleProgress(
-  studentNumber: string,
-  accessToken: string | null | undefined,
-  moduleSlug: string
-): Promise<StudyModuleProgressRecord> {
-  const student = await requireStudyStudentAccess(studentNumber, accessToken);
-  if (!student) {
-    throw new Error("Study student not found");
-  }
-
+export async function getStudyStudentByAccessToken(accessToken: string) {
   const rows = await query(
-    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? AND module_slug = ? LIMIT 1`,
-    [student.studentNumber, moduleSlug]
+    `SELECT * FROM pmam_study_students WHERE access_token = ? LIMIT 1`,
+    [accessToken]
   );
 
-  return (
-    mapStudyModuleProgress(rows[0]) ?? {
-      moduleSlug,
-      completedSectionIds: [],
-      answers: {},
-      lastScore: null,
-      bestScore: null,
-      lastSubmittedAt: null,
-      updatedAt: null,
-    }
-  );
+  return mapStudyStudent(rows[0]);
 }
 
 export async function saveStudyModuleProgress(
   studentNumber: string,
-  accessToken: string | null | undefined,
+  accessToken: string,
   moduleSlug: string,
-  progress: Omit<StudyModuleProgressRecord, "moduleSlug" | "updatedAt">
-): Promise<StudyModuleProgressRecord> {
-  const student = await requireStudyStudentAccess(studentNumber, accessToken);
-  if (!student) {
-    throw new Error("Study student not found");
+  progress: any
+) {
+  if (!isValidStudyStudentNumber(studentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
   }
 
-  const completedSectionIds = Array.from(new Set(progress.completedSectionIds)).filter(Boolean);
-  const answers = progress.answers ?? {};
+  const normalized = normalizeStudyStudentNumber(studentNumber);
+  const student = await getStudyStudentByAccessToken(accessToken);
+
+  if (!student || student.studentNumber !== normalized) {
+    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  }
+
+  const completedSectionIds = JSON.stringify(progress.completedSectionIds || []);
+  const answers = JSON.stringify(progress.answers || {});
 
   await query(
-    `
-      INSERT INTO pmam_study_module_progress (
-        student_number,
-        module_slug,
-        completed_section_ids,
-        answers_json,
-        last_score,
-        best_score,
-        last_submitted_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        completed_section_ids = VALUES(completed_section_ids),
-        answers_json = VALUES(answers_json),
-        last_score = VALUES(last_score),
-        best_score = VALUES(best_score),
-        last_submitted_at = VALUES(last_submitted_at),
-        updated_at = CURRENT_TIMESTAMP
-    `,
+    `INSERT INTO pmam_study_module_progress 
+    (student_number, module_slug, completed_section_ids, answers_json, last_score, best_score, last_submitted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+    completed_section_ids = VALUES(completed_section_ids),
+    answers_json = VALUES(answers_json),
+    last_score = VALUES(last_score),
+    best_score = VALUES(best_score),
+    last_submitted_at = VALUES(last_submitted_at),
+    updated_at = CURRENT_TIMESTAMP`,
     [
-      student.studentNumber,
+      normalized,
       moduleSlug,
-      JSON.stringify(completedSectionIds),
-      JSON.stringify(answers),
-      progress.lastScore,
-      progress.bestScore,
+      completedSectionIds,
+      answers,
+      progress.lastScore ?? null,
+      progress.bestScore ?? null,
       progress.lastSubmittedAt ? new Date(progress.lastSubmittedAt) : null,
     ]
   );
@@ -825,11 +784,111 @@ export async function getStats() {
   const [cmRes] = await query("SELECT COUNT(*) as count FROM pmam_hymns WHERE collection = 'tfm'");
   const [missionRes] = await query('SELECT COUNT(*) as count FROM pmam_cfap_missions');
   const [userRes] = await query('SELECT COUNT(*) as count FROM pmam_users');
+  const [drillRes] = await query('SELECT COUNT(*) as count FROM pmam_drill');
 
   return {
     totalHymns: hymnRes?.count || 0,
     totalCharlieMike: cmRes?.count || 0,
     totalMissions: missionRes?.count || 0,
     totalUsers: userRes?.count || 0,
+    totalDrill: drillRes?.count || 0,
   };
+}
+
+// ===== DRILL (Ordem Unida) =====
+export async function getAllDrill() {
+  const rows = await query('SELECT * FROM pmam_drill ORDER BY created_at DESC');
+  return rows.map(mapDrill);
+}
+
+export async function getActiveDrill() {
+  const rows = await query('SELECT * FROM pmam_drill WHERE is_active = 1 ORDER BY created_at DESC');
+  return rows.map(mapDrill);
+}
+
+export async function getDrillById(id: number) {
+  const rows = await query('SELECT * FROM pmam_drill WHERE id = ? LIMIT 1', [id]);
+  return mapDrill(rows[0]);
+}
+
+export async function getDrillByCategory(category: string) {
+  const rows = await query('SELECT * FROM pmam_drill WHERE category = ? AND is_active = 1 ORDER BY created_at DESC', [category]);
+  return rows.map(mapDrill);
+}
+
+export async function createDrill(drill: any) {
+  const attachmentsJson = drill.attachmentsJson ? JSON.stringify(drill.attachmentsJson) : null;
+  const sql = `
+    INSERT INTO pmam_drill 
+    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  const result = await query(sql, [
+    drill.title,
+    drill.subtitle || null,
+    drill.description || null,
+    drill.category || null,
+    drill.difficulty || 'intermediario',
+    drill.duration || null,
+    drill.videoUrl || null,
+    drill.pdfUrl || null,
+    drill.imageUrl || null,
+    drill.content || null,
+    drill.instructor || null,
+    drill.prerequisites || null,
+    drill.learningOutcomes || null,
+    attachmentsJson,
+    drill.isActive ?? 1,
+    drill.authorId || null
+  ]);
+
+  return result;
+}
+
+export async function updateDrill(id: number, drill: any) {
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  const fields: Record<string, string> = {
+    title: 'title',
+    subtitle: 'subtitle',
+    description: 'description',
+    category: 'category',
+    difficulty: 'difficulty',
+    duration: 'duration',
+    videoUrl: 'video_url',
+    pdfUrl: 'pdf_url',
+    imageUrl: 'image_url',
+    content: 'content',
+    instructor: 'instructor',
+    prerequisites: 'prerequisites',
+    learningOutcomes: 'learning_outcomes',
+    isActive: 'is_active'
+  };
+
+  for (const [key, dbKey] of Object.entries(fields)) {
+    if (drill[key] !== undefined) {
+      updates.push(`${dbKey} = ?`);
+      let val = drill[key];
+      if (key === 'isActive') val = val ? 1 : 0;
+      params.push(val);
+    }
+  }
+
+  if (drill.attachmentsJson !== undefined) {
+    updates.push(`attachments_json = ?`);
+    params.push(drill.attachmentsJson ? JSON.stringify(drill.attachmentsJson) : null);
+  }
+
+  if (updates.length === 0) return;
+
+  const sql = `UPDATE pmam_drill SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  params.push(id);
+
+  await query(sql, params);
+}
+
+export async function deleteDrill(id: number) {
+  await query('DELETE FROM pmam_drill WHERE id = ?', [id]);
 }

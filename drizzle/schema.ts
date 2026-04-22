@@ -77,6 +77,33 @@ export const pmamCfapMissions = mysqlTable("pmam_cfap_missions", {
 export type PmamCfapMission = typeof pmamCfapMissions.$inferSelect;
 export type InsertPmamCfapMission = typeof pmamCfapMissions.$inferInsert;
 
+export const pmamDrill = mysqlTable("pmam_drill", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 255 }),
+  description: longtext("description"),
+  category: varchar("category", { length: 100 }),
+  difficulty: varchar("difficulty", { length: 50 }).default("intermediario"),
+  duration: int("duration"),
+  videoUrl: varchar("video_url", { length: 255 }),
+  pdfUrl: varchar("pdf_url", { length: 255 }),
+  imageUrl: varchar("image_url", { length: 255 }),
+  content: longtext("content"),
+  instructor: varchar("instructor", { length: 255 }),
+  prerequisites: text("prerequisites"),
+  learningOutcomes: longtext("learning_outcomes"),
+  attachmentsJson: longtext("attachments_json"),
+  isActive: boolean("is_active").default(true),
+  likesCount: int("likes_count").default(0),
+  viewsCount: int("views_count").default(0),
+  authorId: int("author_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamDrill = typeof pmamDrill.$inferSelect;
+export type InsertPmamDrill = typeof pmamDrill.$inferInsert;
+
 export const pmamComments = mysqlTable("pmam_comments", {
   id: int("id").autoincrement().primaryKey(),
   targetType: varchar("target_type", { length: 50 }),
@@ -153,6 +180,7 @@ export const runtimeTables = {
   pmamUsers,
   pmamHymns,
   pmamCfapMissions,
+  pmamDrill,
   pmamComments,
   pmamLikes,
   pmamSiteSettings,

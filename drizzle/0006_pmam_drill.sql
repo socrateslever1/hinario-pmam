@@ -1,0 +1,23 @@
+CREATE TABLE `pmam_drill` (
+	`id` int AUTO_INCREMENT PRIMARY KEY NOT NULL,
+	`title` varchar(255) NOT NULL,
+	`subtitle` varchar(255),
+	`description` longtext,
+	`category` varchar(100),
+	`difficulty` varchar(50) DEFAULT 'intermediario',
+	`duration` int,
+	`video_url` varchar(255),
+	`pdf_url` varchar(255),
+	`image_url` varchar(255),
+	`content` longtext,
+	`instructor` varchar(255),
+	`prerequisites` text,
+	`learning_outcomes` longtext,
+	`attachments_json` longtext,
+	`is_active` boolean DEFAULT true,
+	`likes_count` int DEFAULT 0,
+	`views_count` int DEFAULT 0,
+	`author_id` int,
+	`created_at` timestamp DEFAULT (now()),
+	`updated_at` timestamp DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP
+);
