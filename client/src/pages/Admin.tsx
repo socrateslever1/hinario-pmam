@@ -693,7 +693,7 @@ export default function Admin() {
 
             {/* MISSIONS TAB */}
             <TabsContent value="missions">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Missões CFAP</h2>
                 <Dialog open={missionDialogOpen} onOpenChange={(o) => { setMissionDialogOpen(o); if (!o) setEditingMission(null); }}>
                   <DialogTrigger asChild>
