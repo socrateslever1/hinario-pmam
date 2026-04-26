@@ -1,23 +1,24 @@
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
+import { ordemUnidaManualHighlights } from "@/lib/studyLibrary";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useMemo } from "react";
-import { Link } from "wouter";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import {
-  ArrowLeft, Play, FileText, Image as ImageIcon, Users,
-  Clock, Zap, BookOpen, Target, Search, AlertCircle
+  ArrowLeft,
+  FileText,
+  Image as ImageIcon,
+  Play,
+  Search,
+  ShieldCheck,
+  Target,
+  UploadCloud,
+  Video,
 } from "lucide-react";
-
-const difficultyColors: Record<string, string> = {
-  basico: "bg-green-100 text-green-800",
-  intermediario: "bg-yellow-100 text-yellow-800",
-  avancado: "bg-red-100 text-red-800",
-};
 
 const difficultyLabels: Record<string, string> = {
   basico: "Básico",
@@ -25,213 +26,250 @@ const difficultyLabels: Record<string, string> = {
   avancado: "Avançado",
 };
 
+const difficultyClasses: Record<string, string> = {
+  basico: "bg-emerald-100 text-emerald-800",
+  intermediario: "bg-amber-100 text-amber-800",
+  avancado: "bg-red-100 text-red-800",
+};
+
 export default function Drill() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
 
   const { data: drills, isLoading } = trpc.drill.list.useQuery();
-  
+
   const categories = useMemo(() => {
     if (!drills) return [];
-    const cats = new Set(drills.map((d: any) => d.category).filter(Boolean));
-    return Array.from(cats).sort();
+    return Array.from(new Set(drills.map((item: any) => item.category).filter(Boolean))).sort();
   }, [drills]);
 
   const filteredDrills = useMemo(() => {
     if (!drills) return [];
-    return drills.filter((drill: any) => {
-      const matchesSearch = searchTerm === "" || 
-        drill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        drill.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        drill.instructor?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = !selectedCategory || drill.category === selectedCategory;
-      const matchesDifficulty = !selectedDifficulty || drill.difficulty === selectedDifficulty;
-      
-      return matchesSearch && matchesCategory && matchesDifficulty;
+
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return drills.filter((item: any) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        [item.title, item.subtitle, item.description, item.instructor, item.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery);
+
+      const matchesCategory = !selectedCategory || item.category === selectedCategory;
+      const matchesDifficulty = !selectedDifficulty || item.difficulty === selectedDifficulty;
+
+      return matchesQuery && matchesCategory && matchesDifficulty;
     });
-  }, [drills, searchTerm, selectedCategory, selectedDifficulty]);
+  }, [drills, query, selectedCategory, selectedDifficulty]);
+
+  const mediaCount = filteredDrills.filter((item: any) => item.videoUrl || item.imageUrl || item.pdfUrl).length;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative py-12 md:py-20 px-4 bg-gradient-to-br from-[#1a3a2a]/5 via-transparent to-[#c4a84b]/5">
-        <div className="container max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
-              Ordem Unida
-            </h1>
-          </div>
-          <p className="text-muted-foreground max-w-2xl">
-            Aprenda e domine as técnicas de ordem unida com nossos cursos estruturados, vídeos instrutivos e materiais de apoio.
+      <section className="military-gradient py-12">
+        <div className="container text-center">
+          <Target className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <h1 className="text-3xl font-bold text-white md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+            Ordem Unida
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-white/60">
+            Conteúdo organizado para instrução, consulta e demonstração, com espaço para vídeo, imagem e PDF em cada material.
           </p>
         </div>
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
-      {/* Filters & Search */}
-      <section className="py-8 px-4 border-b border-border/50">
-        <div className="container max-w-6xl mx-auto space-y-6">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título, descrição ou instrutor..."
-              className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <section className="bg-background py-8">
+        <div className="container space-y-8">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-border/60 bg-muted/20">
+              <CardContent className="flex items-center gap-4 p-5">
+                <Target className="h-10 w-10 text-[#1a3a2a]" />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Publicados</p>
+                  <p className="text-2xl font-bold">{drills?.length ?? 0}</p>
+                  <p className="text-sm text-muted-foreground">Itens de ordem unida</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60 bg-muted/20">
+              <CardContent className="flex items-center gap-4 p-5">
+                <Video className="h-10 w-10 text-[#1a3a2a]" />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Mídias</p>
+                  <p className="text-2xl font-bold">{mediaCount}</p>
+                  <p className="text-sm text-muted-foreground">Vídeos, imagens e PDFs</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60 bg-muted/20">
+              <CardContent className="flex items-center gap-4 p-5">
+                <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Base Doutrinária</p>
+                  <p className="text-2xl font-bold">CFAP</p>
+                  <p className="text-sm text-muted-foreground">Integrado aos manuais</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Categoria:</span>
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(null)}
-                className={selectedCategory === null ? "bg-[#1a3a2a] text-white" : ""}
-              >
-                Todas
-              </Button>
-              {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={selectedCategory === cat ? "bg-[#1a3a2a] text-white" : ""}
-                >
-                  {cat}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Dificuldade:</span>
-              <Button
-                variant={selectedDifficulty === null ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedDifficulty(null)}
-                className={selectedDifficulty === null ? "bg-[#1a3a2a] text-white" : ""}
-              >
-                Todas
-              </Button>
-              {["basico", "intermediario", "avancado"].map((diff) => (
-                <Button
-                  key={diff}
-                  variant={selectedDifficulty === diff ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedDifficulty(diff)}
-                  className={selectedDifficulty === diff ? "bg-[#1a3a2a] text-white" : ""}
-                >
-                  {difficultyLabels[diff]}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Content */}
-      <section className="flex-1 py-12 px-4">
-        <div className="container max-w-6xl mx-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Zap className="h-12 w-12 text-[#c4a84b] mx-auto mb-4 animate-pulse" />
-                <p className="text-muted-foreground">Carregando ordens unidas...</p>
+          <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5">
+            <CardContent className="flex items-start gap-4 p-6">
+              <ShieldCheck className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
+              <div className="space-y-2">
+                <h3 className="font-bold text-foreground">Referência no Manual do Aluno</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  {ordemUnidaManualHighlights.map((highlight) => (
+                    <li key={highlight} className="flex gap-2">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60">
+            <CardContent className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_330px]">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Buscar por título, instrutor, categoria ou descrição"
+                    className="pl-9"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedCategory === null ? "default" : "outline"}
+                    className={selectedCategory === null ? "bg-[#1a3a2a] text-white hover:bg-[#10281d]" : ""}
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    Todas as categorias
+                  </Button>
+                  {categories.map((category) => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      className={selectedCategory === category ? "bg-[#1a3a2a] text-white hover:bg-[#10281d]" : ""}
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedDifficulty === null ? "outline" : "ghost"}
+                    onClick={() => setSelectedDifficulty(null)}
+                  >
+                    Todas as dificuldades
+                  </Button>
+                  {Object.entries(difficultyLabels).map(([key, label]) => (
+                    <Button
+                      key={key}
+                      variant={selectedDifficulty === key ? "default" : "outline"}
+                      className={selectedDifficulty === key ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b79834]" : ""}
+                      onClick={() => setSelectedDifficulty(key)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border bg-[#1a3a2a]/5 p-4 text-sm text-muted-foreground">
+                <p className="font-semibold text-[#1a3a2a]">O que já está pronto</p>
+                <ul className="mt-3 space-y-2">
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Cada item pode carregar vídeo, PDF e imagem.</li>
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />A página pública pode reunir orientação, demonstração e material complementar no mesmo fluxo.</li>
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />O admin já serve de base para incluir novos materiais de ordem unida.</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {isLoading ? (
+            <Card className="border-border/60">
+              <CardContent className="p-12 text-center text-muted-foreground">
+                Carregando ordem unida...
+              </CardContent>
+            </Card>
           ) : filteredDrills.length === 0 ? (
-            <Card className="border-border/50">
-              <CardContent className="p-12 text-center">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhuma ordem unida encontrada.</p>
+            <Card className="border-border/60">
+              <CardContent className="p-12 text-center text-muted-foreground">
+                Nenhum material de ordem unida encontrado com esse filtro.
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDrills.map((drill: any) => (
-                <Link key={drill.id} href={`/drill/${drill.id}`}>
-                  <Card className="border-border/50 hover:border-[#1a3a2a]/30 transition-all cursor-pointer h-full">
-                    {drill.imageUrl && (
-                      <div className="relative w-full h-40 bg-muted overflow-hidden rounded-t-lg">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredDrills.map((item: any) => (
+                <Link key={item.id} href={`/drill/${item.id}`}>
+                  <Card className="h-full cursor-pointer overflow-hidden border-border/60 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50">
+                    <div className="relative aspect-[16/9] overflow-hidden bg-[#0f1f18]">
+                      {item.imageUrl ? (
                         <img
-                          src={drill.imageUrl}
-                          alt={drill.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform"
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                         />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#10281d] to-[#1f4735]">
+                          <Target className="h-14 w-14 text-[#c4a84b]" />
+                        </div>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        <div className="flex flex-wrap gap-2">
+                          {item.videoUrl && <Badge className="bg-red-600 text-white"><Play className="mr-1 h-3 w-3" />Vídeo</Badge>}
+                          {item.pdfUrl && <Badge className="bg-blue-600 text-white"><FileText className="mr-1 h-3 w-3" />PDF</Badge>}
+                          {item.imageUrl && <Badge className="bg-emerald-600 text-white"><ImageIcon className="mr-1 h-3 w-3" />Imagem</Badge>}
+                        </div>
                       </div>
-                    )}
-                    <CardContent className="p-4 flex flex-col gap-3">
-                      <div>
-                        <h3 className="font-semibold text-foreground line-clamp-2">{drill.title}</h3>
-                        {drill.subtitle && (
-                          <p className="text-xs text-muted-foreground mt-1">{drill.subtitle}</p>
+                    </div>
+
+                    <CardContent className="space-y-4 p-5">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {item.category && <Badge variant="outline">{item.category}</Badge>}
+                          {item.difficulty && (
+                            <Badge className={difficultyClasses[item.difficulty] ?? "bg-slate-100 text-slate-800"}>
+                              {difficultyLabels[item.difficulty] ?? item.difficulty}
+                            </Badge>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-semibold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                          {item.title}
+                        </h3>
+                        {item.subtitle && (
+                          <p className="text-sm text-muted-foreground">{item.subtitle}</p>
                         )}
                       </div>
 
-                      {drill.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{drill.description}</p>
+                      {item.description && (
+                        <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                          {item.description}
+                        </p>
                       )}
 
-                      <div className="flex flex-wrap gap-2">
-                        {drill.category && (
-                          <Badge variant="secondary" className="text-xs">{drill.category}</Badge>
-                        )}
-                        {drill.difficulty && (
-                          <Badge className={`text-xs ${difficultyColors[drill.difficulty] || "bg-gray-100 text-gray-800"}`}>
-                            {difficultyLabels[drill.difficulty]}
-                          </Badge>
-                        )}
+                      <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                        <p><strong className="text-foreground">Instrutor:</strong> {item.instructor || "Não informado"}</p>
+                        <p className="mt-1"><strong className="text-foreground">Duração:</strong> {item.duration ? `${item.duration} min` : "Livre"}</p>
                       </div>
 
-                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        {drill.duration && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            <span>{drill.duration} min</span>
-                          </div>
-                        )}
-                        {drill.instructor && (
-                          <div className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            <span>{drill.instructor}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 mt-2 pt-2 border-t border-border/50">
-                        {drill.videoUrl && (
-                          <div className="flex items-center gap-1 text-xs text-red-600">
-                            <Play className="h-3 w-3" />
-                            <span>Vídeo</span>
-                          </div>
-                        )}
-                        {drill.pdfUrl && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600">
-                            <FileText className="h-3 w-3" />
-                            <span>PDF</span>
-                          </div>
-                        )}
-                        {drill.imageUrl && (
-                          <div className="flex items-center gap-1 text-xs text-green-600">
-                            <ImageIcon className="h-3 w-3" />
-                            <span>Imagem</span>
-                          </div>
-                        )}
-                      </div>
+                      <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
+                        Abrir material
+                      </Button>
                     </CardContent>
                   </Card>
                 </Link>

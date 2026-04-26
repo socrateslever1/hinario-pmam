@@ -524,6 +524,36 @@ export const appRouter = router({
       return { success: true, url };
     }),
   }),
+  study: router({
+    login: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      displayName: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const session = await db.ensureStudyStudentSession(input.studentNumber, input.displayName);
+      return session;
+    }),
+    getDashboard: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().optional(),
+    })).query(async ({ input }) => {
+      const dashboard = await db.getStudyDashboard(input.studentNumber, input.accessToken);
+      return dashboard;
+    }),
+    saveProgress: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().optional(),
+      moduleSlug: z.string(),
+      progress: z.any(),
+    })).mutation(async ({ input }) => {
+      const result = await db.saveStudyModuleProgress(
+        input.studentNumber,
+        input.accessToken,
+        input.moduleSlug,
+        input.progress
+      );
+      return result;
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

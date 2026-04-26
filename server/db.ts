@@ -718,22 +718,134 @@ export async function getStudyStudentByAccessToken(accessToken: string) {
   return mapStudyStudent(rows[0]);
 }
 
-export async function saveStudyModuleProgress(
+export async function ensureStudyStudentSession(
   studentNumber: string,
-  accessToken: string,
-  moduleSlug: string,
-  progress: any
-) {
+  displayName?: string | null,
+  accessToken?: string | null,
+): Promise<StudyStudentSession> {
+  await ensureStudyTables();
+
   if (!isValidStudyStudentNumber(studentNumber)) {
     throw new Error("INVALID_STUDY_STUDENT_NUMBER");
   }
 
   const normalized = normalizeStudyStudentNumber(studentNumber);
-  const student = await getStudyStudentByAccessToken(accessToken);
+  const requestedToken = accessToken?.trim() || null;
+  const nextToken = requestedToken || createStudyAccessToken();
 
-  if (!student || student.studentNumber !== normalized) {
-    throw new Error(STUDY_ACCESS_TOKEN_MISMATCH);
+  const existingRows = await query(
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [normalized],
+  );
+
+  if (existingRows.length === 0) {
+    await query(
+      `INSERT INTO pmam_study_students (student_number, display_name, access_token, last_active_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+      [normalized, displayName || null, nextToken],
+    );
+  } else {
+    const updates: string[] = ["last_active_at = CURRENT_TIMESTAMP", "updated_at = CURRENT_TIMESTAMP"];
+    const params: any[] = [];
+
+    if (displayName !== undefined) {
+      updates.push("display_name = ?");
+      params.push(displayName || null);
+    }
+
+    if (!existingRows[0]?.access_token) {
+      updates.push("access_token = ?");
+      params.push(nextToken);
+    }
+
+    params.push(normalized);
+    await query(`UPDATE pmam_study_students SET ${updates.join(", ")} WHERE student_number = ?`, params);
   }
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_students WHERE student_number = ? LIMIT 1`,
+    [normalized],
+  );
+
+  const student = mapStudyStudent(rows[0]);
+  if (!student) {
+    throw new Error("STUDY_STUDENT_NOT_FOUND");
+  }
+
+  return {
+    student,
+    accessToken: rows[0]?.access_token || nextToken,
+  };
+}
+
+export async function getStudyDashboard(
+  studentNumber: string,
+  _accessToken?: string | null,
+): Promise<StudyDashboard> {
+  await ensureStudyTables();
+
+  if (!isValidStudyStudentNumber(studentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
+  }
+
+  const session = await ensureStudyStudentSession(studentNumber, null, _accessToken ?? null);
+
+  const progressRows = await query(
+    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? ORDER BY module_slug ASC`,
+    [session.student.studentNumber],
+  );
+
+  return {
+    student: session.student,
+    modules: progressRows.map((row) => mapStudyModuleProgress(row)).filter(Boolean) as StudyModuleProgressRecord[],
+  };
+}
+
+export async function getStudyModuleProgress(
+  studentNumber: string,
+  _accessToken: string | null | undefined,
+  moduleSlug: string,
+): Promise<StudyModuleProgressRecord> {
+  await ensureStudyTables();
+
+  if (!isValidStudyStudentNumber(studentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
+  }
+
+  const normalized = normalizeStudyStudentNumber(studentNumber);
+  await ensureStudyStudentSession(normalized, null, _accessToken ?? null);
+
+  const rows = await query(
+    `SELECT * FROM pmam_study_module_progress WHERE student_number = ? AND module_slug = ? LIMIT 1`,
+    [normalized, moduleSlug],
+  );
+
+  return (
+    mapStudyModuleProgress(rows[0]) ?? {
+      moduleSlug,
+      completedSectionIds: [],
+      answers: {},
+      lastScore: null,
+      bestScore: null,
+      lastSubmittedAt: null,
+      updatedAt: null,
+    }
+  );
+}
+
+export async function saveStudyModuleProgress(
+  studentNumber: string,
+  accessToken: string | null | undefined,
+  moduleSlug: string,
+  progress: any
+) {
+  await ensureStudyTables();
+
+  if (!isValidStudyStudentNumber(studentNumber)) {
+    throw new Error("INVALID_STUDY_STUDENT_NUMBER");
+  }
+
+  const normalized = normalizeStudyStudentNumber(studentNumber);
+  const session = await ensureStudyStudentSession(normalized, null, accessToken ?? null);
 
   const completedSectionIds = JSON.stringify(progress.completedSectionIds || []);
   const answers = JSON.stringify(progress.answers || {});
@@ -762,7 +874,7 @@ export async function saveStudyModuleProgress(
 
   const rows = await query(
     `SELECT * FROM pmam_study_module_progress WHERE student_number = ? AND module_slug = ? LIMIT 1`,
-    [student.studentNumber, moduleSlug]
+    [session.student.studentNumber, moduleSlug]
   );
 
   return (

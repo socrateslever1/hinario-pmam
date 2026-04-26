@@ -30,75 +30,87 @@ export const manualCfapModule: StudyModule = {
   sections: [
     section(
       "manual-finalidade",
-      "Finalidade e identidade institucional",
-      "O manual padroniza a conduta do aluno e apresenta a missão, a visão e os princípios fundamentais do CFAP.",
+      "Finalidade, Identidade e Valores Institucionais",
+      "O Manual do Aluno atua como a 'Constituição' dentro dos portões do CFAP. Ele estabelece não apenas regras, mas a base filosófica da formação de um agente de segurança.",
       [
-        "A introdução apresenta o CFAP como uma unidade de ensino voltada a formar e aperfeiçoar profissionais de segurança pública.",
-        "A finalidade principal do manual é padronizar a conduta e orientar o aluno na sua rotina diária no curso.",
-        "O texto destaca missão, visão e princípios (Hierarquia, Disciplina, Ética) como a fundação da postura esperada do aluno.",
+        "A introdução define o CFAP primordialmente como uma unidade de ensino policial, responsável por forjar a mentalidade, o físico e o preparo técnico do aluno.",
+        "A finalidade central do manual é dupla: padronizar a conduta e servir de bússola orientadora para o aluno diante de todas as atividades desenvolvidas na sua rotina diária.",
+        "Os pilares morais institucionais citados textualmente englobam: o culto irrevogável à Hierarquia e à Disciplina, a busca pela Eficácia na execução técnica e a observância rigorosa da Ética.",
+        "A transição civil-militar impõe um choque de realidade: espera-se que o aluno abandone vícios de conduta civis e adote instantaneamente o 'Ethos' (modo de ser) do combatente.",
+        "Toda atividade no CFAP, do refeitório à linha de tiro, é supervisionada para garantir que o discente não se desvie dos preceitos formadores.",
       ],
-      "Manual do Aluno, p. 5-6",
-      "Compreendi perfeitamente o propósito do manual e os pilares éticos da instituição."
+      "Manual do Aluno, p. 5-7",
+      "Entendi plenamente a missão do CFAP e que a transição civil-militar exige uma quebra brusca de comportamento para abraçar a hierarquia e disciplina."
     ),
     section(
       "manual-estrutura",
-      "Estrutura Administrativa e Regulamentos da Base",
-      "A vida escolar depende do domínio da estrutura organizacional do CFAP e dos regulamentos militares aplicáveis.",
+      "Arquitetura Administrativa e Regulamentação",
+      "Para sobreviver e progredir no curso, o aluno precisa saber exatamente quem comanda, a quem recorrer e quais os limites normativos da instituição.",
       [
-        "A estrutura funcional envolve a Cadeia de Comando (Comandante e Subcomandante), a Seção de Justiça e Disciplina e a Diretoria de Ensino e Instrução.",
-        "Na divisão administrativa, destacam-se a P/1 (Pessoal e Justiça), P/3 (Instrução e Operações), P/4 (Logística e Infraestrutura) e PCSV (Policiamento e Segurança).",
-        "A rotina militar baseia-se nos regulamentos pilares: RISG (Serviços Gerais), R-2 (Trânsito e Rotina), RCONT (Continências, Sinais de Respeito e Cerimonial), RDPMAM (Disciplina), NGA (Normas Gerais de Ação) e Manuais de Ordem Unida e TFM.",
+        "O Comando e o Subcomando detêm o controle estratégico de todas as diretrizes formativas, sendo a última palavra na hierarquia local.",
+        "Na engrenagem administrativa, a P/1 cuida do pessoal (justiça, férias, folgas), a P/3 é o 'coração tático' que monta instruções e provas, e a P/4 garante a logística (alimentação, munição e material).",
+        "A vida escolar é governada por uma malha de regulamentos que o aluno não pode alegar desconhecer: o RISG dita o dia a dia e os serviços internos (guarda, plantão).",
+        "O RCONT dita a postura cerimonial, a forma de bater continência, sinais de respeito e a apresentação individual frente aos superiores.",
+        "O RDPMAM é o 'código penal' administrativo: ele pune desvios éticos ou descumprimentos de regras. Em conjunto, essas normas fecham o cerco comportamental do aluno.",
       ],
-      "Manual do Aluno, p. 10-12",
-      "Sei a quem recorrer (P/1, P/3, P/4) e quais regulamentos comandam o meu dia a dia."
+      "Manual do Aluno, p. 10-15",
+      "Memorizei a função das seções (P/1 a P/4) e o propósito exato dos regulamentos acessórios como RISG, RCONT e RDPMAM."
     ),
     section(
       "manual-direitos",
-      "Direitos do Aluno e Assistência Contínua",
-      "O aluno possui prerrogativas garantidas para assegurar um bom rendimento no curso, como revisões de notas e acompanhamento médico.",
+      "Direitos, Prerrogativas e Sistema de Assistência",
+      "O choque de disciplina não retira do aluno as garantias institucionais. O sistema protege quem age corretamente e segue a cadeia de comando.",
       [
-        "É direito do aluno ser tratado com respeito por seus superiores, pares e subordinados.",
-        "O aluno tem o direito de solicitar esclarecimentos, pedir revisão de avaliações escritas e recorrer a instâncias superiores, desde que observe a cadeia de comando (trâmite hierárquico).",
-        "Há previsão expressa de assistência de saúde física, mental e odontológica, além de alimentação e fardamento.",
+        "A instituição assegura que nenhum aluno será tratado de forma aviltante. O respeito mútuo, independente da patente do instrutor, é direito e norma basilar.",
+        "A esfera acadêmica confere o direito líquido e certo à revisão de avaliações, desde que os recursos sejam tempestivos e usem o linguajar técnico exigido nos relatórios e partes.",
+        "Para realizar qualquer requerimento, o aluno é obrigado a observar a Cadeia de Comando: ele não pode falar com o Comandante do CFAP antes de despachar com o Xerife, Comandante de Pelotão e Comandante de Companhia.",
+        "Existe a previsão para suporte biopsicossocial, compreendendo atendimento médico-hospitalar, psicológico contínuo e odontológico nas unidades de saúde da corporação.",
+        "Direitos materiais básicos englobam fornecimento de uniformes para a rotina diária (conforme disponibilidade do almoxarifado) e etapas de alimentação nos dias de serviço e aula.",
       ],
-      "Manual do Aluno, Seção: Direitos do Aluno",
-      "Entendi meus direitos no âmbito escolar, especialmente os referentes a revisões de notas e trâmites hierárquicos."
+      "Manual do Aluno, Seção 3 - Direitos",
+      "Compreendi perfeitamente que possuo direitos (saúde, recursos, respeito), mas que eles só podem ser cobrados seguindo a cadeia de comando estrita."
     ),
     section(
       "manual-deveres",
-      "Deveres Policiais-Militares e Atitude Estudantil",
-      "As obrigações do aluno estendem-se do empenho acadêmico ao rigoroso culto da continência e dos horários militares.",
+      "Deveres Pessoais, Éticos e de Apresentação",
+      "O aluno não é avaliado apenas em provas de múltipla escolha. O comportamento diário, o coturno polido e a pontualidade são atributos de aprovação constantes.",
       [
-        "O aluno deve se empenhar ativamente no processo ensino-aprendizagem, zelando tanto pelo rendimento acadêmico quanto pela aptidão física.",
-        "É dever inalienável cultuar a verdade, a lealdade e a responsabilidade, apresentando-se sempre em perfeitas condições de higiene e fardamento.",
-        "A pontualidade é exigida com exatidão em todas as formaturas, instruções e escalas de serviço, assim como a prestação obrigatória da continência regulamentar.",
+        "O empenho do discente não se restringe à sala de aula. Ele deve zelar ativamente pelo seu condicionamento físico (TFM) contínuo e pela retenção prática do conhecimento (treinos pós-aula).",
+        "A lealdade institucional, a verdade absoluta e o pundonor militar (honra pessoal) impedem o aluno de omitir transgressões, cometer plágio intelectual ou mentir para cobrir faltas de terceiros.",
+        "A apresentação pessoal é medida pelo rigor: cabelos cortados no padrão semanalmente, barba feita diariamente antes da primeira formatura, fardamento isento de amassos, vincos em dia e botas espelhadas.",
+        "A pontualidade é avaliada em segundos. Chegar na hora não é suficiente; a prontidão exige a apresentação com antecedência mínima padrão de 15 minutos (ou conforme escalado pelo xerife).",
+        "A continência, sinal regulamentar de respeito e apreço, não é eletiva: deve ser prestada obrigatoriamente e prontamente a todas as bandeiras, hinos, símbolos nacionais e superiores hierárquicos.",
       ],
-      "Manual do Aluno, Seção: Deveres do Aluno",
-      "Assimilei que minhas obrigações vão desde notas satisfatórias até um fardamento e comportamento irretocáveis."
+      "Manual do Aluno, Seção 4 - Deveres",
+      "Entendi que a apresentação individual primorosa e a obrigação irrestrita da verdade não são opções, mas crivos cruciais para a aprovação."
     ),
     section(
       "manual-proibicoes",
-      "Proibições Graves e Rotina Disciplinar",
-      "Existem limites estritos no uso de equipamentos eletrônicos e no trânsito pelas instalações, cuja violação atrai sanções.",
+      "Condutas Estritamente Vedadas e Transgressões",
+      "Existem limites que configuram transgressão disciplinar sumária (Parte e FATD), passíveis de repreensão, prisão ou até desligamento em casos graves.",
       [
-        "É terminantemente proibido o uso de celulares, fones de ouvido ou aparelhos similares durante as instruções e formaturas, exceto com autorização expressa.",
-        "O aluno não pode ingressar em setores administrativos restritos, salas de instrutores ou reservas de armamento sem a devida permissão.",
-        "Trânsito em trajes civis de passeio (quando não previsto), namoro, brincadeiras de mau gosto ou qualquer atitude incompatível com o decoro militar dentro do CFAP são expressamente vedados.",
+        "Para evitar a dispersão tecnológica, o uso de aparelhos celulares, fones ou smartwatches durante formaturas, instruções teóricas ou práticas é totalmente proibido, a não ser que o instrutor autorize textualmente.",
+        "O CFAP tem áreas classificadas. É transgressão grave entrar sem autorização em seções do Corpo de Alunos, alojamentos de pelotões distintos, reservas de armamento, salas de comando ou de instrução.",
+        "Atitudes pueris como namorar nas dependências da caserna, praticar jogos de azar, promover algazarras, apelidos pejorativos ou brincadeiras de mau gosto ferem mortalmente o decoro exigido.",
+        "É proibido, sob qualquer pretexto, o uso de peças do uniforme em horários não designados ou combinadas de forma despadronizada com roupas civis no deslocamento casa-unidade.",
+        "Manifestações políticas partidárias, seja através de comentários fardados, adesivos em viaturas particulares ou redes sociais identificando a farda, são graves violações do estatuto e do manual.",
       ],
-      "Manual do Aluno, Seção: Proibições",
-      "Gravei as principais restrições, especialmente sobre uso de celulares e circulação em áreas proibidas."
+      "Manual do Aluno, Seção 5 - Proibições",
+      "Gravei que aparelhos eletrônicos, circulação não autorizada, despadronização de fardamento e partidarismo geram transcursos disciplinares severos."
     ),
     section(
       "manual-frequencia",
-      "Regime de Frequência, Faltas e Trancamento",
-      "O controle de assiduidade é o marcador primário para a aprovação; excesso de faltas, mesmo justificadas, pode levar ao desligamento.",
+      "Controle Curricular, Frequência e Desligamento",
+      "O modelo educacional militar repudia a evasão e a negligência. Faltar no CFAP pode levar à expulsão antes da formatura.",
       [
-        "A frequência às aulas e instruções é condição sine qua non (obrigatória) para a aprovação.",
-        "Faltas podem ser classificadas como Justificadas (motivos médicos ou força maior comprovada) e Injustificadas.",
-        "Um número excessivo de faltas (ultrapassando o limite percentual do regulamento de ensino) resulta no trancamento de matrícula ou desligamento, independentemente do rendimento nas provas.",
+        "A presença do discente não é mero requisito acadêmico; é obrigação militar contínua. Sem atingir a carga horária em dias e horas letivas, é impossível prosseguir nas fases do curso.",
+        "A classificação de faltas divide-se rigidamente em 'Justificadas' (Atestados médicos da Junta, lutos previstos em lei, acidentes de trajeto atestados) e 'Injustificadas' (desídia ou atrasos).",
+        "Existe um percentual limite fixado para o teto de faltas, geralmente de 20% a 25% da carga ou dias totais (verificar norma do edital vigente). Esse teto aplica-se mesmo para faltas justificadas por doença.",
+        "Quando o aluno atinge o limite percentual máximo de faltas, independentemente do quão brilhante seja o seu coeficiente de notas teóricas, a sua matrícula sofre desligamento ou trancamento automático.",
+        "O desligamento ou trancamento por motivo de saúde confere o direito a reingresso no certame seguinte após homologação da junta. A reprovação por indisciplina ou fraude gera processo expulsório definitivo.",
       ],
-      "Manual do Aluno, Seção: Frequência e Dispensas",
-      "Compreendi que a assiduidade é critério de exclusão se o limite de faltas for ultrapassado."
+      "Manual do Aluno, Seção 7 - Regime Disciplinar",
+      "Ficou consolidado na minha mente que a frequência é critério de exclusão e que estourar o limite, mesmo com atestado médico válido, me tira do curso atual."
     ),
   ],
   questions: [

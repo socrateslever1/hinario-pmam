@@ -1,134 +1,43 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import { studyModules } from "@/content/studyModules";
-import { getStudyCompletion } from "@/lib/studyProgress";
-import { clearStudyProfile, getStudyProfile, normalizeStudentNumber, saveStudyProfile } from "@/lib/studyProfile";
-import { trpc } from "@/lib/trpc";
-import { getStudyStudentNumberErrorMessage, STUDY_STUDENT_NUMBER_MAX, STUDY_STUDENT_NUMBER_MIN } from "@shared/study";
+import StudyAuthGuard from "@/components/StudyAuthGuard";
+import { studyLibraryItems } from "@/lib/studyLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
-import { BookOpenCheck, ChevronRight, FileSearch, GraduationCap, IdCard, Search, ShieldCheck, Trophy } from "lucide-react";
+import { BookOpenCheck, ExternalLink, FileText, GraduationCap, Library, Search, ShieldCheck, UploadCloud } from "lucide-react";
 
 function difficultyLabel(level: string) {
   if (level === "base") return "Base";
-  if (level === "intermediario") return "Intermediario";
+  if (level === "intermediario") return "Intermediário";
   return "Intensivo";
 }
 
 export default function EducationCenter() {
   const [query, setQuery] = useState("");
-  const [studentNumberInput, setStudentNumberInput] = useState("");
-  const [studentNumber, setStudentNumber] = useState("");
-  const [studyAccessToken, setStudyAccessToken] = useState("");
-  const [needsRelink, setNeedsRelink] = useState(false);
-
-  useEffect(() => {
-    const profile = getStudyProfile();
-    if (!profile?.studentNumber) return;
-
-    setStudentNumberInput(profile.studentNumber);
-
-    if (profile.accessToken) {
-      setStudentNumber(profile.studentNumber);
-      setStudyAccessToken(profile.accessToken);
-      return;
-    }
-
-    clearStudyProfile();
-    setNeedsRelink(true);
-  }, []);
-
-  const ensureStudent = trpc.study.ensureStudent.useMutation();
-  const dashboardQuery = trpc.study.dashboard.useQuery(
-    { studentNumber, accessToken: studyAccessToken },
-    {
-      enabled: Boolean(studentNumber && studyAccessToken),
-      refetchOnWindowFocus: true,
-    }
-  );
-
-  const moduleProgressMap = useMemo(
-    () => new Map((dashboardQuery.data?.modules ?? []).map((progress) => [progress.moduleSlug, progress])),
-    [dashboardQuery.data?.modules]
-  );
 
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredModules = studyModules.filter((module) => {
-    if (!normalizedQuery) return true;
-    return [module.title, module.description, module.theme, module.sourceTitle]
-      .join(" ")
-      .toLowerCase()
-      .includes(normalizedQuery);
-  });
+  const filteredMaterials = useMemo(() => {
+    if (!normalizedQuery) return studyLibraryItems;
 
-  const metrics = useMemo(() => {
-    if (!studentNumber) {
-      return { sections: 0, sectionTotal: 0, quizCount: 0, scoreSum: 0 };
-    }
-
-    return studyModules.reduce(
-      (acc, module) => {
-        const progress = moduleProgressMap.get(module.slug) ?? {
-          moduleSlug: module.slug,
-          completedSectionIds: [],
-          answers: {},
-          lastScore: null,
-          bestScore: null,
-          lastSubmittedAt: null,
-          updatedAt: null,
-        };
-        const completion = getStudyCompletion(module, progress);
-        acc.sections += completion.studied;
-        acc.sectionTotal += completion.sectionCount;
-        acc.quizCount += progress.lastScore !== null ? 1 : 0;
-        acc.scoreSum += progress.lastScore ?? 0;
-        return acc;
-      },
-      { sections: 0, sectionTotal: 0, quizCount: 0, scoreSum: 0 }
+    return studyLibraryItems.filter((item) =>
+      [item.title, item.description, item.sourceTitle, item.sourceFileName, item.theme, item.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
     );
-  }, [moduleProgressMap, studentNumber]);
+  }, [normalizedQuery]);
 
-  const globalPercent = metrics.sectionTotal > 0 ? Math.round((metrics.sections / metrics.sectionTotal) * 100) : 0;
-  const averageScore = metrics.quizCount > 0 ? Math.round(metrics.scoreSum / metrics.quizCount) : 0;
-
-  const handleSaveStudentNumber = async () => {
-    const normalized = normalizeStudentNumber(studentNumberInput);
-    if (!/^\d{4}$/.test(normalized) || Number(normalized) < STUDY_STUDENT_NUMBER_MIN || Number(normalized) > STUDY_STUDENT_NUMBER_MAX) {
-      toast.error(getStudyStudentNumberErrorMessage());
-      return;
-    }
-
-    try {
-      const session = await ensureStudent.mutateAsync({
-        studentNumber: normalized,
-        accessToken: normalized === studentNumber && studyAccessToken ? studyAccessToken : null,
-      });
-      const nextStudentNumber = session.student.studentNumber ?? normalized;
-      saveStudyProfile(nextStudentNumber, session.accessToken);
-      setStudentNumber(nextStudentNumber);
-      setStudentNumberInput(nextStudentNumber);
-      setStudyAccessToken(session.accessToken);
-      setNeedsRelink(false);
-      toast.success(`Progresso pessoal vinculado ao numero ${nextStudentNumber}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (message.toLowerCase().includes("accesstoken") || message.toLowerCase().includes("too_small")) {
-        toast.error("Seu perfil antigo precisa ser vinculado novamente. Digite o numero e salve outra vez.");
-        return;
-      }
-      toast.error(message || "Nao foi possivel vincular o numero do aluno ao banco.");
-    }
-  };
+  const manualsCount = studyLibraryItems.filter((item) => item.category === "manual").length;
+  const regulationsCount = studyLibraryItems.filter((item) => item.category === "regulamento").length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <StudyAuthGuard>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
 
       <section className="military-gradient relative overflow-hidden py-12 md:py-16">
         <div className="absolute inset-0 opacity-10">
@@ -139,213 +48,175 @@ export default function EducationCenter() {
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm text-white/80">
               <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
-              Sessao educacional PMAM
+              Biblioteca jurídica e de consulta
             </div>
             <h1 className="text-4xl font-bold text-white md:text-5xl" style={{ fontFamily: "Merriweather, serif" }}>
-              Centro de Estudos
+              Estudos
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/70 md:text-lg">
-              Material de consulta, estudo completo artigo por artigo, leitura em linguagem simples e avaliacoes amplas baseadas nos regulamentos e manuais que voce enviou.
-              O progresso fica separado por numero do aluno para nao misturar respostas entre pessoas.
+              Esta área agora funciona como biblioteca. Aqui ficam os PDFs oficiais para abrir, visualizar e consultar,
+              sem formato de aula. A estrutura está pronta para receber mais leis, regulamentos e manuais de forma dinâmica.
             </p>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <Card className="border-white/10 bg-white/10 text-white backdrop-blur">
               <CardContent className="flex items-center gap-4 p-5">
-                <ShieldCheck className="h-10 w-10 text-[#c4a84b]" />
+                <Library className="h-10 w-10 text-[#c4a84b]" />
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Modulos</p>
-                  <p className="text-2xl font-bold">{studyModules.length}</p>
-                  <p className="text-sm text-white/60">Documentos estudaveis</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Materiais</p>
+                  <p className="text-2xl font-bold">{studyLibraryItems.length}</p>
+                  <p className="text-sm text-white/60">PDFs prontos para consulta</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="border-white/10 bg-white/10 text-white backdrop-blur">
               <CardContent className="flex items-center gap-4 p-5">
                 <BookOpenCheck className="h-10 w-10 text-[#c4a84b]" />
-                <div className="flex-1">
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Progresso de estudo</p>
-                  <p className="text-2xl font-bold">{studentNumber ? `${globalPercent}%` : "--"}</p>
-                  <Progress value={studentNumber ? globalPercent : 0} className="mt-2 bg-white/10 [&>*]:bg-[#c4a84b]" />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Coleção</p>
+                  <p className="text-2xl font-bold">{regulationsCount}</p>
+                  <p className="text-sm text-white/60">Regulamentos e leis</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="border-white/10 bg-white/10 text-white backdrop-blur">
               <CardContent className="flex items-center gap-4 p-5">
-                <Trophy className="h-10 w-10 text-[#c4a84b]" />
+                <ShieldCheck className="h-10 w-10 text-[#c4a84b]" />
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Media das notas</p>
-                  <p className="text-2xl font-bold">{studentNumber ? `${averageScore}%` : "--"}</p>
-                  <p className="text-sm text-white/60">{studentNumber ? `Aluno ${studentNumber}` : "Informe o numero do aluno"}</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/60">Manuais</p>
+                  <p className="text-2xl font-bold">{manualsCount}</p>
+                  <p className="text-sm text-white/60">Base complementar de formação</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-10 w-full" />
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
       <section className="py-10 md:py-12">
-        <div className="container space-y-8">
-          <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5">
-            <CardContent className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-[#1a3a2a]">
-                  <IdCard className="h-5 w-5" />
-                  <p className="font-semibold">Identificacao do aluno</p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Antes de entrar nos modulos, informe o seu numero entre {STUDY_STUDENT_NUMBER_MIN} e {STUDY_STUDENT_NUMBER_MAX} para que o progresso e as respostas fiquem salvos no seu perfil pessoal.
-                </p>
-                {needsRelink && (
-                  <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    Encontramos um perfil antigo salvo neste navegador, mas ele ainda nao tinha token de acesso. Basta confirmar o numero novamente para reativar o seu progresso neste dispositivo.
-                  </div>
-                )}
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <Input
-                    value={studentNumberInput}
-                    onChange={(event) => setStudentNumberInput(event.target.value)}
-                    placeholder={`Ex.: ${STUDY_STUDENT_NUMBER_MIN}`}
-                  />
-                  <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]" onClick={handleSaveStudentNumber} disabled={ensureStudent.isPending}>
-                    Salvar meu numero
-                  </Button>
-                </div>
-              </div>
-              <div className="rounded-2xl border bg-white px-4 py-3 text-sm text-muted-foreground">
-                <p className="text-xs uppercase tracking-[0.2em] text-[#1a3a2a]">Numero ativo</p>
-                <p className="mt-1 text-lg font-semibold text-foreground">{studentNumber || "Nao informado"}</p>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="container space-y-6">
           <Card className="border-border/60">
-            <CardContent className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_280px] md:items-center">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_320px] md:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por documento, tema ou assunto"
+                  placeholder="Buscar por nome do documento, tema ou arquivo"
                   className="pl-9"
                 />
               </div>
-              <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
-                <div className="rounded-xl border bg-muted/20 px-3 py-2">Estudo completo</div>
-                <div className="rounded-xl border bg-muted/20 px-3 py-2">PDF com imagens</div>
-                <div className="rounded-xl border bg-muted/20 px-3 py-2">100+ questoes</div>
+              <div className="rounded-2xl border bg-[#1a3a2a]/5 px-4 py-3 text-sm text-muted-foreground">
+                <p className="font-semibold text-[#1a3a2a]">Biblioteca dinâmica</p>
+                <p className="mt-1">
+                  A base agora está preparada para receber mais leis, apostilas e regulamentos com PDF, imagem de capa e links complementares.
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-5 md:grid-cols-2">
-              {filteredModules.map((module) => {
-                const progress = studentNumber
-                  ? moduleProgressMap.get(module.slug) ?? {
-                      moduleSlug: module.slug,
-                      completedSectionIds: [],
-                      answers: {},
-                      lastScore: null,
-                      bestScore: null,
-                      lastSubmittedAt: null,
-                      updatedAt: null,
-                    }
-                  : {
-                      moduleSlug: module.slug,
-                      completedSectionIds: [],
-                      answers: {},
-                      lastScore: null,
-                      bestScore: null,
-                      lastSubmittedAt: null,
-                      updatedAt: null,
-                    };
-                const completion = getStudyCompletion(module, progress);
-                const disabled = !studentNumber;
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-10">
+              {/* Seção de Manuais */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <ShieldCheck className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-xl font-bold" style={{ fontFamily: "Merriweather, serif" }}>Manuais de Formação</h2>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  {filteredMaterials.filter(m => m.category === "manual").length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">Nenhum manual encontrado.</p>
+                  ) : (
+                    filteredMaterials.filter(m => m.category === "manual").map((item) => (
+                      <Card key={item.slug} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
+                        <CardHeader className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="bg-[#1a3a2a] text-white">{item.shortTitle}</Badge>
+                            <Badge variant="outline">{item.pages} páginas</Badge>
+                            <Badge variant="outline">{difficultyLabel(item.difficulty)}</Badge>
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                              {item.title}
+                            </CardTitle>
+                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">{item.description}</p>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex flex-col gap-2 sm:flex-row mt-auto pt-4">
+                            <Link href={`/estudos/${item.slug}`} className="flex-1">
+                              <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Estudar Manual
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
 
-                return (
-                  <Card key={`${module.slug}-${studentNumber || "sem-numero"}`} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
-                    <CardHeader className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-[#1a3a2a] text-white">{module.shortTitle}</Badge>
-                        <Badge variant="outline">{module.pages} paginas</Badge>
-                        <Badge variant="outline">{difficultyLabel(module.difficulty)}</Badge>
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
-                          {module.title}
-                        </CardTitle>
-                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{module.description}</p>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-foreground">Progresso geral</span>
-                          <span className="text-muted-foreground">{studentNumber ? `${completion.overallPercent}%` : "Bloqueado"}</span>
-                        </div>
-                        <Progress value={studentNumber ? completion.overallPercent : 0} className="[&>*]:bg-[#1a3a2a]" />
-                      </div>
-
-                      <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
-                        <div className="rounded-xl border bg-muted/20 px-3 py-2">
-                          <p className="text-xs uppercase tracking-[0.18em]">Leitura</p>
-                          <p className="mt-1 font-semibold text-foreground">{studentNumber ? `${completion.studied}/${completion.sectionCount}` : "--"}</p>
-                        </div>
-                        <div className="rounded-xl border bg-muted/20 px-3 py-2">
-                          <p className="text-xs uppercase tracking-[0.18em]">Quiz</p>
-                          <p className="mt-1 font-semibold text-foreground">{studentNumber ? `${progress.lastScore ?? 0}%` : "--"}</p>
-                        </div>
-                        <div className="rounded-xl border bg-muted/20 px-3 py-2">
-                          <p className="text-xs uppercase tracking-[0.18em]">Tempo</p>
-                          <p className="mt-1 font-semibold text-foreground">{module.estimatedMinutes} min</p>
-                        </div>
-                      </div>
-
-                      <ul className="space-y-2 text-sm text-muted-foreground">
-                        {module.quickFacts.slice(0, 2).map((fact) => (
-                          <li key={fact} className="flex gap-2">
-                            <span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />
-                            <span>{fact}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      {disabled ? (
-                        <Button className="w-full" variant="outline" onClick={() => toast.error("Informe seu numero antes de entrar nos modulos.")}>
-                          Informe seu numero para entrar
-                        </Button>
-                      ) : (
-                        <Link href={`/estudos/${module.slug}`}>
-                          <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
-                            Abrir modulo
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </Link>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {/* Seção de Regulamentos */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <BookOpenCheck className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-xl font-bold" style={{ fontFamily: "Merriweather, serif" }}>Leis e Regulamentos</h2>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  {filteredMaterials.filter(m => m.category === "regulamento").length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">Nenhum regulamento encontrado.</p>
+                  ) : (
+                    filteredMaterials.filter(m => m.category === "regulamento").map((item) => (
+                      <Card key={item.slug} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
+                        <CardHeader className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="bg-slate-700 text-white">{item.shortTitle}</Badge>
+                            <Badge variant="outline">{item.pages} páginas</Badge>
+                            <Badge variant="outline">{difficultyLabel(item.difficulty)}</Badge>
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                              {item.title}
+                            </CardTitle>
+                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">{item.description}</p>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex flex-col gap-2 sm:flex-row mt-auto pt-4">
+                            <Link href={`/estudos/${item.slug}`} className="flex-1">
+                              <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Iniciar Estudo
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
 
             <Card className="h-fit border-[#c4a84b]/40 bg-[#c4a84b]/5">
               <CardHeader>
                 <div className="flex items-center gap-2 text-[#1a3a2a]">
-                  <FileSearch className="h-5 w-5" />
-                  <CardTitle style={{ fontFamily: "Merriweather, serif" }}>Como estudar aqui</CardTitle>
+                  <UploadCloud className="h-5 w-5" />
+                  <CardTitle style={{ fontFamily: "Merriweather, serif" }}>Estrutura pronta para upload</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-muted-foreground">
                 <p>
-                  Cada modulo foi montado a partir do texto extraido do PDF original. Agora a consulta completa combina um texto limpo para leitura rapida com o PDF original embutido para manter imagens e diagramação.
+                  A área foi preparada para funcionar como acervo. O próximo lote pode receber leis, normas internas, apostilas e PDFs extras.
                 </p>
                 <ul className="space-y-2">
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Banco reforcado: pelo menos 100 questoes por modulo, misturando unica escolha, multipla escolha, verdadeiro/falso e resposta curta.</li>
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />O progresso fica salvo por numero do aluno, evitando mistura de respostas entre usuarios.</li>
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Os regulamentos abrem em fluxo artigo por artigo, com explicacao simples para acelerar a fixacao.</li>
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />PDF principal para visualização dentro da página.</li>
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Imagem de capa e mídias auxiliares para contexto do material.</li>
+                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Catalogação por tema, origem e tipo documental.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -354,6 +225,7 @@ export default function EducationCenter() {
       </section>
 
       <Footer />
-    </div>
+      </div>
+    </StudyAuthGuard>
   );
 }

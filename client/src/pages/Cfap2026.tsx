@@ -14,6 +14,7 @@ import {
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
+import { isValidStudyStudentNumber, getStudyStudentNumberErrorMessage } from "@shared/study";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,8 +99,8 @@ function MissionCard({
     const cleanName = authorName.trim();
     const cleanComment = commentText.trim();
 
-    if (cleanName.length < 2) {
-      toast.error("Informe seu nome ou guerra para comentar.");
+    if (!isValidStudyStudentNumber(cleanName)) {
+      toast.error(getStudyStudentNumberErrorMessage());
       return;
     }
 
@@ -187,7 +188,9 @@ function MissionCard({
           </Button>
 
           <span className="text-xs text-muted-foreground">
-            Comentários são públicos e não exigem login.
+            <span className="text-xs uppercase tracking-widest text-muted-foreground/80">
+              Apenas alunos com número de acesso podem comentar.
+            </span>
           </span>
         </div>
 
@@ -197,7 +200,7 @@ function MissionCard({
               <Input
                 value={authorName}
                 onChange={(event) => setAuthorName(event.target.value)}
-                placeholder="Seu nome ou guerra"
+                placeholder="Seu Nº de Acesso"
               />
               <Textarea
                 value={commentText}

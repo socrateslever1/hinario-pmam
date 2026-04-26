@@ -1,4 +1,4 @@
-export const STUDY_STUDENT_NUMBER_MIN = 1101;
+export const STUDY_STUDENT_NUMBER_MIN = 1111;
 export const STUDY_STUDENT_NUMBER_MAX = 5251;
 
 export function normalizeStudyStudentNumber(value: string) {
