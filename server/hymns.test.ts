@@ -112,6 +112,7 @@ const dbMock = vi.hoisted(() => ({
   getAllMissions: vi.fn(),
   getStats: vi.fn(),
   getSetting: vi.fn(),
+  setSetting: vi.fn(),
   upsertSetting: vi.fn(),
   getAllUsers: vi.fn(),
   getUserByEmail: vi.fn(),
@@ -368,14 +369,16 @@ describe("settings", () => {
   });
 
   it("admin can update settings", async () => {
+    dbMock.setSetting.mockClear();
     const ctx = createAdminContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.settings.update({ key: "footer_phone", value: "(92) 3333-4444" });
     expect(result.success).toBe(true);
-    expect(dbMock.upsertSetting).toHaveBeenCalledWith("footer_phone", "(92) 3333-4444");
+    expect(dbMock.setSetting).toHaveBeenCalledWith("footer_phone", "(92) 3333-4444");
   });
 
   it("admin can batch update settings", async () => {
+    dbMock.setSetting.mockClear();
     const ctx = createAdminContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.settings.updateBatch({
@@ -385,7 +388,7 @@ describe("settings", () => {
       ],
     });
     expect(result.success).toBe(true);
-    expect(dbMock.upsertSetting).toHaveBeenCalledTimes(2);
+    expect(dbMock.setSetting).toHaveBeenCalledTimes(2);
   });
 
   it("regular user cannot update settings", async () => {
