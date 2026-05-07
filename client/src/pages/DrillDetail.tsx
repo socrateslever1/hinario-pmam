@@ -15,6 +15,7 @@ import {
   ExternalLink,
   FileText,
   Image as ImageIcon,
+  Music,
   PlayCircle,
   ShieldCheck,
   Target,
@@ -90,7 +91,10 @@ export default function DrillDetail() {
   const hasVideo = Boolean(mediaUrl);
   const hasImage = Boolean(drill.imageUrl);
   const hasPdf = Boolean(drill.pdfUrl);
+  const hasYoutube = Boolean(drill.youtubeUrl);
+  const hasCornettaAudio = Boolean(drill.cornettaAudioUrl);
   const youtubeId = extractYouTubeId(drill.videoUrl);
+  const youtubeExecutionId = extractYouTubeId(drill.youtubeUrl);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -211,12 +215,52 @@ export default function DrillDetail() {
                     </div>
                   )}
 
+                  {hasYoutube && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">Execução do Movimento</p>
+                      <div className="overflow-hidden rounded-3xl border bg-black">
+                        <div className="aspect-video w-full">
+                          <ReactPlayer
+                            src={drill.youtubeUrl!}
+                            controls
+                            width="100%"
+                            height="100%"
+                            style={{ backgroundColor: "#000" }}
+                            config={
+                              youtubeExecutionId
+                                ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
+                                : undefined
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasCornettaAudio && (
+                    <div className="rounded-3xl border bg-muted/10 p-4">
+                      <p className="mb-3 text-sm font-medium text-foreground">Toque de Corneta</p>
+                      <audio controls className="w-full">
+                        <source src={drill.cornettaAudioUrl} />
+                        Seu navegador não suporta áudio HTML5.
+                      </audio>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3">
                     {drill.videoUrl && (
                       <a href={drill.videoUrl} target="_blank" rel="noreferrer">
                         <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]">
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Abrir vídeo original
+                        </Button>
+                      </a>
+                    )}
+                    {drill.youtubeUrl && (
+                      <a href={drill.youtubeUrl} target="_blank" rel="noreferrer">
+                        <Button className="bg-red-600 text-white hover:bg-red-700">
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Ver no YouTube
                         </Button>
                       </a>
                     )}

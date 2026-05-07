@@ -39,4 +39,8 @@
 - [x] Criar página pública de visualização para Ordem Unida
 - [x] Adicionar link "Ordem Unida" na navbar
 - [x] Criar testes vitest para Drill CRUD
-- [ ] Testar e validar Ordem Unida em mobile e desktop
+- [x] Adicionar campos youtubeUrl e cornettaAudioUrl ao schema
+- [x] Carregar 17 Ordens Unidas do Manual EB70-MC-10.308 via seed
+- [x] Melhorar UI Admin para editar links YouTube e áudio de corneta
+- [x] Adicionar exibição de YouTube e áudio na página de detalhe
+- [x] Testar e validar Ordem Unida em mobile e desktop

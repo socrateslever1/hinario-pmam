@@ -57,6 +57,8 @@ function getDefaultDrillFormState(drill?: any) {
     videoUrl: drill?.videoUrl ?? "",
     pdfUrl: drill?.pdfUrl ?? "",
     imageUrl: drill?.imageUrl ?? "",
+    youtubeUrl: drill?.youtubeUrl ?? "",
+    cornettaAudioUrl: drill?.cornettaAudioUrl ?? "",
     content: drill?.content ?? "",
     instructor: drill?.instructor ?? "",
     prerequisites: drill?.prerequisites ?? "",
@@ -93,6 +95,8 @@ function DrillForm({ drill, onSuccess }: { drill?: any; onSuccess: () => void })
       videoUrl: form.videoUrl || undefined,
       pdfUrl: form.pdfUrl || undefined,
       imageUrl: form.imageUrl || undefined,
+      youtubeUrl: form.youtubeUrl || undefined,
+      cornettaAudioUrl: form.cornettaAudioUrl || undefined,
       content: form.content || undefined,
       instructor: form.instructor || undefined,
       prerequisites: form.prerequisites || undefined,
@@ -118,6 +122,8 @@ function DrillForm({ drill, onSuccess }: { drill?: any; onSuccess: () => void })
       <div><Label>Duração (minutos)</Label><Input type="number" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))} /></div>
       <div><Label>Instrutor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
       <div><Label>URL do Vídeo</Label><Input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://youtube.com/..." /></div>
+      <div><Label>URL do YouTube (Execução do Movimento)</Label><Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
+      <div><Label>URL de Áudio da Corneta</Label><Input value={form.cornettaAudioUrl} onChange={e => setForm(f => ({ ...f, cornettaAudioUrl: e.target.value }))} placeholder="https://..." /></div>
       <div><Label>URL do PDF</Label><Input value={form.pdfUrl} onChange={e => setForm(f => ({ ...f, pdfUrl: e.target.value }))} placeholder="https://..." /></div>
       <div><Label>URL da Imagem</Label><Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://..." /></div>
       <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>

@@ -88,6 +88,8 @@ export const pmamDrill = mysqlTable("pmam_drill", {
   videoUrl: varchar("video_url", { length: 255 }),
   pdfUrl: varchar("pdf_url", { length: 255 }),
   imageUrl: varchar("image_url", { length: 255 }),
+  youtubeUrl: varchar("youtube_url", { length: 255 }),
+  cornettaAudioUrl: varchar("cornetta_audio_url", { length: 255 }),
   content: longtext("content"),
   instructor: varchar("instructor", { length: 255 }),
   prerequisites: text("prerequisites"),
