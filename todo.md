@@ -47,11 +47,13 @@
 
 ## PWA e Offline-First
 
-- [ ] Criar ícone PWA profissional (512x512 e 192x192)
-- [ ] Configurar manifest.json com metadados PWA
-- [ ] Implementar Service Worker para cache offline
-- [ ] Adicionar sincronização automática ao conectar
-- [ ] Cache de hinos e Ordem Unida
+- [x] Criar ícone PWA profissional (512x512 e 192x192)
+- [x] Configurar manifest.json com metadados PWA
+- [x] Implementar Service Worker para cache offline
+- [x] Adicionar sincronização automática ao conectar
+- [x] Cache de hinos e Ordem Unida
+- [x] Componente OfflineIndicator com status de conexão
+- [x] Hook usePWA para gerenciar instalação e atualizações
 - [ ] Testes de funcionalidade offline
 
 ## Mídia em Missões

@@ -133,11 +133,21 @@ export function usePWA() {
     }
   };
 
+  const precacheAssets = (assets: string[]) => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage({
+        type: 'PRECACHE_ASSETS',
+        assets,
+      });
+    }
+  };
+
   return {
     ...state,
     installApp,
     updateApp,
     clearCache,
     cacheUrls,
+    precacheAssets,
   };
 }

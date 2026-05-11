@@ -8,14 +8,13 @@ const ESSENTIAL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/src/main.tsx',
 ];
 
 // Padrões de URLs para cache
 const CACHE_PATTERNS = {
-  api: /^\/api\/trpc\/(hymn|drill|cfap)/,
-  assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico)$/,
-  pages: /\/(hinos|drill|cfap|sobre|estudos)(\?|$)/,
+  api: /^\/api\/trpc\/(hymn|drill|cfap|mission)/,
+  assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico|json)$/,
+  pages: /\/(hinos|drill|cfap|sobre|estudos|xerife)(\?|$)/,
 };
 
 // Instalação do Service Worker
@@ -25,7 +24,9 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching essential assets');
       return cache.addAll(ESSENTIAL_ASSETS).catch((err) => {
-        console.warn('[SW] Failed to cache some assets:', err);
+        console.warn('[SW] Failed to cache some essential assets:', err);
+        // Continuar mesmo se falhar em alguns assets
+        return Promise.resolve();
       });
     })
   );
@@ -64,8 +65,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignorar requisições de outros domínios (exceto CDN)
-  if (url.origin !== self.location.origin && !url.hostname.includes('cloudfront')) {
+  // Ignorar requisições de outros domínios (exceto CDN confiáveis)
+  const isSameDomain = url.origin === self.location.origin;
+  const isTrustedCDN = url.hostname.includes('cloudfront') || 
+                       url.hostname.includes('d2xsxph8kpxj0f') ||
+                       url.hostname.includes('manus.space');
+  
+  if (!isSameDomain && !isTrustedCDN) {
     return;
   }
 
@@ -106,7 +112,19 @@ async function networkFirstStrategy(request, cacheName) {
     if (cached) {
       return cached;
     }
-    return new Response('Offline - Conteúdo não disponível', {
+    
+    // Fallback para página offline
+    if (request.headers.get('accept')?.includes('text/html')) {
+      return caches.match('/index.html').then((response) => {
+        return response || new Response('Offline - Conteúdo não disponível', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/html' },
+        });
+      });
+    }
+    
+    return new Response('Offline', {
       status: 503,
       statusText: 'Service Unavailable',
     });
@@ -129,6 +147,17 @@ async function cacheFirstStrategy(request, cacheName) {
     return response;
   } catch (error) {
     console.log('[SW] Failed to fetch:', request.url);
+    
+    // Fallback para imagem placeholder se for imagem
+    if (request.headers.get('accept')?.includes('image')) {
+      return new Response(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        {
+          headers: { 'Content-Type': 'image/png' },
+        }
+      );
+    }
+    
     return new Response('Offline - Recurso não disponível', {
       status: 503,
       statusText: 'Service Unavailable',
@@ -140,13 +169,18 @@ async function cacheFirstStrategy(request, cacheName) {
 async function staleWhileRevalidateStrategy(request, cacheName) {
   const cached = await caches.match(request);
 
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
-      const cache = caches.open(cacheName);
-      cache.then((c) => c.put(request, response.clone()));
-    }
-    return response;
-  });
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response.ok) {
+        const cache = caches.open(cacheName);
+        cache.then((c) => c.put(request, response.clone()));
+      }
+      return response;
+    })
+    .catch((error) => {
+      console.log('[SW] Fetch failed in SWR:', request.url);
+      return cached || new Response('Offline', { status: 503 });
+    });
 
   return cached || fetchPromise;
 }
@@ -161,7 +195,6 @@ self.addEventListener('sync', (event) => {
 
 async function syncData() {
   try {
-    // Sincronizar dados em cache com o servidor
     console.log('[SW] Syncing data with server');
     const clients = await self.clients.matchAll();
     clients.forEach((client) => {
@@ -184,8 +217,11 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data.type === 'CLEAR_CACHE') {
-    caches.delete(RUNTIME_CACHE).then(() => {
-      console.log('[SW] Runtime cache cleared');
+    Promise.all([
+      caches.delete(RUNTIME_CACHE),
+      caches.delete(API_CACHE),
+    ]).then(() => {
+      console.log('[SW] Caches cleared');
     });
   }
 
@@ -194,6 +230,17 @@ self.addEventListener('message', (event) => {
     caches.open(RUNTIME_CACHE).then((cache) => {
       cache.addAll(urls).catch((err) => {
         console.warn('[SW] Failed to cache URLs:', err);
+      });
+    });
+  }
+
+  if (event.data.type === 'PRECACHE_ASSETS') {
+    const assets = event.data.assets || [];
+    caches.open(RUNTIME_CACHE).then((cache) => {
+      assets.forEach((url) => {
+        cache.add(url).catch((err) => {
+          console.warn('[SW] Failed to precache:', url, err);
+        });
       });
     });
   }
