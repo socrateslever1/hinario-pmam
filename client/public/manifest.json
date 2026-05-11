@@ -1,0 +1,90 @@
+{
+  "name": "Hinário PMAM - Polícia Militar do Amazonas",
+  "short_name": "Hinário PMAM",
+  "description": "Aplicativo oficial de hinos e canções militares da Polícia Militar do Amazonas",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a3a2a",
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-4HkaKHPxyYgZD7RrEgkPGe.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-BV7riVUmfuhZ6oMpErScJS.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-4TNiNE2PzhsMV7fTQZCQb5.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-BV7riVUmfuhZ6oMpErScJS.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["music", "education"],
+  "screenshots": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-BV7riVUmfuhZ6oMpErScJS.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Hinos",
+      "short_name": "Hinos",
+      "description": "Explorar hinos e canções militares",
+      "url": "/hinos",
+      "icons": [
+        {
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Ordem Unida",
+      "short_name": "Ordem Unida",
+      "description": "Aprender movimentos de ordem unida",
+      "url": "/drill",
+      "icons": [
+        {
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "CFAP 2026",
+      "short_name": "CFAP 2026",
+      "description": "Missões e comunicados CFAP",
+      "url": "/cfap",
+      "icons": [
+        {
+          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

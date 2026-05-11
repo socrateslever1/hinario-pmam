@@ -1004,3 +1004,112 @@ export async function updateDrill(id: number, drill: any) {
 export async function deleteDrill(id: number) {
   await query('DELETE FROM pmam_drill WHERE id = ?', [id]);
 }
+
+
+// ============ MISSION MEDIA HELPERS ============
+
+function mapMissionMedia(m: any) {
+  if (!m) return m;
+  return {
+    id: m.id,
+    missionId: m.mission_id,
+    type: m.type,
+    title: m.title,
+    description: m.description,
+    url: m.url,
+    fileSize: m.file_size,
+    mimeType: m.mime_type,
+    duration: m.duration,
+    thumbnail: m.thumbnail,
+    order: m.order,
+    isActive: Boolean(m.is_active),
+    uploadedBy: m.uploaded_by,
+    createdAt: m.created_at,
+    updatedAt: m.updated_at,
+  };
+}
+
+export async function createMissionMedia(missionId: number, media: any) {
+  const sql = `
+    INSERT INTO pmam_mission_media (
+      mission_id, type, title, description, url, file_size, mime_type, 
+      duration, thumbnail, \`order\`, is_active, uploaded_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  const params = [
+    missionId,
+    media.type,
+    media.title || null,
+    media.description || null,
+    media.url,
+    media.fileSize || null,
+    media.mimeType || null,
+    media.duration || null,
+    media.thumbnail || null,
+    media.order || 0,
+    media.isActive !== false ? 1 : 0,
+    media.uploadedBy || null,
+  ];
+  const result = await query(sql, params) as any;
+  return result?.insertId || null;
+}
+
+export async function getMissionMedia(missionId: number) {
+  const result = await query(
+    'SELECT * FROM pmam_mission_media WHERE mission_id = ? AND is_active = 1 ORDER BY `order` ASC',
+    [missionId]
+  );
+  return (result || []).map(mapMissionMedia);
+}
+
+export async function getMediaById(id: number) {
+  const result = await query(
+    'SELECT * FROM pmam_mission_media WHERE id = ?',
+    [id]
+  );
+  return result?.[0] ? mapMissionMedia(result[0]) : null;
+}
+
+export async function updateMissionMedia(id: number, media: any) {
+  const updates: string[] = [];
+  const params: any[] = [];
+  const fields: Record<string, string> = {
+    title: 'title',
+    description: 'description',
+    url: 'url',
+    fileSize: 'file_size',
+    mimeType: 'mime_type',
+    duration: 'duration',
+    thumbnail: 'thumbnail',
+    order: '`order`',
+    isActive: 'is_active',
+  };
+  
+  for (const [key, dbKey] of Object.entries(fields)) {
+    if (media[key] !== undefined) {
+      updates.push(`${dbKey} = ?`);
+      let val = media[key];
+      if (key === 'isActive') val = val ? 1 : 0;
+      params.push(val);
+    }
+  }
+  
+  if (updates.length === 0) return;
+  
+  const sql = `UPDATE pmam_mission_media SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  params.push(id);
+  await query(sql, params);
+}
+
+export async function deleteMissionMedia(id: number) {
+  await query('DELETE FROM pmam_mission_media WHERE id = ?', [id]);
+}
+
+export async function reorderMissionMedia(missionId: number, mediaIds: number[]) {
+  for (let i = 0; i < mediaIds.length; i++) {
+    await query(
+      'UPDATE pmam_mission_media SET `order` = ? WHERE id = ? AND mission_id = ?',
+      [i, mediaIds[i], missionId]
+    );
+  }
+}

@@ -178,6 +178,27 @@ export const pmamStudyModuleProgress = mysqlTable(
 export type PmamStudyModuleProgress = typeof pmamStudyModuleProgress.$inferSelect;
 export type InsertPmamStudyModuleProgress = typeof pmamStudyModuleProgress.$inferInsert;
 
+export const pmamMissionMedia = mysqlTable("pmam_mission_media", {
+  id: int("id").autoincrement().primaryKey(),
+  missionId: int("mission_id").notNull(),
+  type: mysqlEnum("type", ["image", "video", "audio", "pdf", "document"]).notNull(),
+  title: varchar("title", { length: 255 }),
+  description: text("description"),
+  url: varchar("url", { length: 512 }).notNull(),
+  fileSize: int("file_size"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  duration: int("duration"),
+  thumbnail: varchar("thumbnail", { length: 512 }),
+  order: int("order").default(0),
+  isActive: boolean("is_active").default(true),
+  uploadedBy: int("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamMissionMedia = typeof pmamMissionMedia.$inferSelect;
+export type InsertPmamMissionMedia = typeof pmamMissionMedia.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -188,6 +209,7 @@ export const runtimeTables = {
   pmamSiteSettings,
   pmamStudyStudents,
   pmamStudyModuleProgress,
+  pmamMissionMedia,
 };
 
 /**

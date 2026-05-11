@@ -44,3 +44,24 @@
 - [x] Melhorar UI Admin para editar links YouTube e áudio de corneta
 - [x] Adicionar exibição de YouTube e áudio na página de detalhe
 - [x] Testar e validar Ordem Unida em mobile e desktop
+
+## PWA e Offline-First
+
+- [ ] Criar ícone PWA profissional (512x512 e 192x192)
+- [ ] Configurar manifest.json com metadados PWA
+- [ ] Implementar Service Worker para cache offline
+- [ ] Adicionar sincronização automática ao conectar
+- [ ] Cache de hinos e Ordem Unida
+- [ ] Testes de funcionalidade offline
+
+## Mídia em Missões
+
+- [ ] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
+- [ ] Criar procedures tRPC para upload de mídia
+- [ ] UI para upload de múltiplos arquivos em missões
+- [ ] Visualizador de imagens com preview
+- [ ] Visualizador de vídeos
+- [ ] Visualizador de áudio
+- [ ] Leitor de PDF integrado
+- [ ] Download de arquivos
+- [ ] Testes de upload e visualização
