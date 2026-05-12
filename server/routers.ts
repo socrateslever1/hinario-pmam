@@ -303,7 +303,10 @@ export const appRouter = router({
     })).query(async ({ input }) => {
       const mission = await db.getMissionById(input.id, input.visitorId);
       if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
-      return mission;
+      
+      // Carrega mídias associadas
+      const media = await db.getMissionMedia(input.id);
+      return { ...mission, media };
     }),
     comments: publicProcedure.input(z.object({
       missionId: z.number(),
@@ -339,12 +342,12 @@ export const appRouter = router({
       content: z.string(),
       priority: z.enum(["normal", "urgente", "critica"]).default("normal"),
     })).mutation(async ({ input, ctx }) => {
-      await db.createMission({ ...input, authorId: ctx.user.id });
+      const result = await db.createMission({ ...input, authorId: ctx.user.id });
       await notifyOwner({
         title: `Nova Missão CFAP: ${input.title}`,
         content: `Uma nova missão foi publicada na página CFAP 2026: ${input.title}`,
       });
-      return { success: true };
+      return { success: true, id: result.id };
     }),
     update: adminProcedure.input(z.object({
       id: z.number(),
@@ -359,6 +362,24 @@ export const appRouter = router({
     }),
     delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteMission(input.id);
+      return { success: true };
+    }),
+    getMedia: publicProcedure.input(z.object({ missionId: z.number() })).query(async ({ input }) => {
+      return db.getMissionMedia(input.missionId);
+    }),
+    addMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      type: z.enum(["image", "video", "audio", "pdf", "document"]),
+      url: z.string(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      mimeType: z.string().optional(),
+      fileSize: z.number().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      return db.createMissionMedia(input.missionId, { ...input, uploadedBy: ctx.user.id });
+    }),
+    deleteMedia: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteMissionMedia(input.id);
       return { success: true };
     }),
   }),
@@ -552,6 +573,30 @@ export const appRouter = router({
         input.progress
       );
       return result;
+    }),
+    updateLastAccessed: publicProcedure.input(z.object({
+      studentNumber: z.string(),
+      moduleSlug: z.string()
+    })).mutation(async ({ input }) => {
+      await db.updateStudyStudentLastModule(input.studentNumber, input.moduleSlug);
+      return { success: true };
+    }),
+  }),
+
+  storage: router({
+    upload: adminProcedure.input(z.object({
+      path: z.string(),
+      fileName: z.string(),
+      contentType: z.string(),
+      contentBase64: z.string(),
+    })).mutation(async ({ input }) => {
+      const buffer = Buffer.from(input.contentBase64, 'base64');
+      const { url } = await storagePut(
+        `${input.path}/${input.fileName}`,
+        buffer,
+        input.contentType
+      );
+      return { url };
     }),
   }),
 });

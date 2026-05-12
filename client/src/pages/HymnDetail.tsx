@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
 import { useMemo } from "react";
 import LyricsPlayer from "@/components/LyricsPlayer";
+import { useEffect } from "react";
+import { saveLastAccessed } from "@/lib/lastAccessed";
 
 const categoryLabels: Record<string, string> = {
   nacional: "Hino Nacional",
@@ -45,6 +47,18 @@ export default function HymnDetail() {
     { collection: "tfm" },
     { enabled: hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
   );
+
+  useEffect(() => {
+    if (hymn) {
+      saveLastAccessed({
+        type: "hymn",
+        id: hymn.id,
+        title: hymn.title,
+        subtitle: hymn.author || hymn.subtitle || undefined,
+        url: `/hino/${hymn.id}`
+      });
+    }
+  }, [hymn]);
 
   const isTfm = hymn?.collection === "tfm";
   const catalogHref = isTfm ? "/charlie-mike" : "/hinos";

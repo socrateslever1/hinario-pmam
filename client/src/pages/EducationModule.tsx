@@ -25,8 +25,10 @@ import {
   BookOpen
 } from "lucide-react";
 import StudyStudio from "@/components/StudyStudio";
-import StudyAuthGuard from "@/components/StudyAuthGuard";
+import StudyAuthGuard, { useStudyAuth } from "@/components/StudyAuthGuard";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
+import { saveLastAccessed } from "@/lib/lastAccessed";
 
 type EducationModuleProps = {
   params: {
@@ -45,6 +47,28 @@ function difficultyLabel(level: string) {
 }
 
 export default function EducationModule({ params }: EducationModuleProps) {
+  const { session } = useStudyAuth();
+  const updateLastAccessed = trpc.study.updateLastAccessed.useMutation();
+
+  useEffect(() => {
+    if (session?.student?.studentNumber && params.slug) {
+      updateLastAccessed.mutate({
+        studentNumber: session.student.studentNumber,
+        moduleSlug: params.slug
+      });
+      
+      if (libraryItem) {
+        saveLastAccessed({
+          type: "study",
+          id: params.slug,
+          title: libraryItem.title,
+          subtitle: libraryItem.category === "manual" ? "Manual de Formação" : "Lei/Regulamento",
+          url: `/estudos/${params.slug}`
+        });
+      }
+    }
+  }, [params.slug, session?.student?.studentNumber, libraryItem]);
+
   const module = getStudyModule(params.slug);
   const libraryItem = getStudyLibraryItem(params.slug);
   const [query, setQuery] = useState("");
