@@ -3,10 +3,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake, History, PlayCircle } from "lucide-react";
+import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { useEffect, useState } from "react";
-import { getLastAccessed, LastAccessedItem } from "@/lib/lastAccessed";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
 
@@ -19,41 +17,11 @@ const categories = [
 ];
 
 export default function Home() {
-  const [lastActivity, setLastActivity] = useState<LastAccessedItem | null>(null);
-
-  useEffect(() => {
-    setLastActivity(getLastAccessed());
-  }, []);
-
   const { data: hymns } = trpc.hymns.list.useQuery();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
-      {lastActivity && (
-        <div className="bg-[#1a3a2a] border-b border-[#c4a84b]/20">
-          <div className="container py-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-[#c4a84b]/20 p-2 rounded-lg">
-                  <History className="h-5 w-5 text-[#c4a84b]" />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-[#c4a84b] font-bold">Continuar de onde parei</p>
-                  <h3 className="text-white font-semibold text-sm line-clamp-1">{lastActivity.title}</h3>
-                </div>
-              </div>
-              <Link href={lastActivity.url}>
-                <Button size="sm" className="bg-[#c4a84b] text-[#1a3a2a] hover:bg-[#d4b85b] font-bold gap-2">
-                  <PlayCircle className="h-4 w-4" />
-                  Retomar
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
       <section className="military-gradient relative overflow-hidden">

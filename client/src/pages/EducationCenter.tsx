@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import StudyAuthGuard, { useStudyAuth } from "@/components/StudyAuthGuard";
-import { studyLibraryItems, getStudyLibraryItem } from "@/lib/studyLibrary";
+import StudyAuthGuard from "@/components/StudyAuthGuard";
+import { studyLibraryItems } from "@/lib/studyLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { BookOpenCheck, ExternalLink, FileText, GraduationCap, Library, Search, ShieldCheck, UploadCloud, PlayCircle, History } from "lucide-react";
-import { trpc } from "@/lib/trpc";
+import { BookOpenCheck, ExternalLink, FileText, GraduationCap, Library, Search, ShieldCheck, UploadCloud } from "lucide-react";
 
 function difficultyLabel(level: string) {
   if (level === "base") return "Base";
@@ -18,15 +17,7 @@ function difficultyLabel(level: string) {
 }
 
 export default function EducationCenter() {
-  const { session } = useStudyAuth();
-  const { data: dashboard } = trpc.study.dashboard.useQuery(
-    { studentNumber: session?.student.studentNumber || "", accessToken: session?.accessToken || "" },
-    { enabled: !!session }
-  );
-
   const [query, setQuery] = useState("");
-
-  const lastModule = dashboard?.student.lastModuleSlug ? getStudyLibraryItem(dashboard.student.lastModuleSlug) : null;
 
   const normalizedQuery = query.trim().toLowerCase();
   const filteredMaterials = useMemo(() => {
@@ -125,30 +116,6 @@ export default function EducationCenter() {
               </div>
             </CardContent>
           </Card>
-
-          {lastModule && (
-            <Card className="border-[#c4a84b]/40 bg-gradient-to-r from-[#1a3a2a] to-[#2d5a27] text-white overflow-hidden relative group">
-              <div className="absolute right-0 top-0 h-full w-32 bg-[#c4a84b]/10 skew-x-12 translate-x-10 group-hover:bg-[#c4a84b]/20 transition-colors" />
-              <CardContent className="p-6 relative z-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[#c4a84b]">
-                      <History className="h-4 w-4 animate-pulse" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Continuar de onde parei</span>
-                    </div>
-                    <h2 className="text-2xl font-bold" style={{ fontFamily: "Merriweather, serif" }}>{lastModule.title}</h2>
-                    <p className="text-white/70 text-sm max-w-xl line-clamp-1">{lastModule.description}</p>
-                  </div>
-                  <Link href={`/estudos/${lastModule.slug}`}>
-                    <Button className="bg-[#c4a84b] text-[#1a3a2a] hover:bg-[#d4b85b] font-bold px-8 h-12 shadow-lg shadow-black/20">
-                      <PlayCircle className="mr-2 h-5 w-5" />
-                      Retomar Agora
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-10">

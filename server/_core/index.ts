@@ -33,9 +33,6 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // Serve uploads directory
-  app.use("/uploads", express.static("uploads"));
-
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API

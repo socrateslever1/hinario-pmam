@@ -10,11 +10,6 @@ import {
   MessageSquare,
   Send,
   Shield,
-  Download,
-  ExternalLink,
-  FileText,
-  Youtube,
-  Music,
 } from "lucide-react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -27,7 +22,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { extractYouTubeId } from "@/lib/media";
 
 const VISITOR_ID_KEY = "pmam-public-visitor-id";
 const VISITOR_NAME_KEY = "pmam-public-comment-name";
@@ -146,8 +140,6 @@ function MissionCard({
         <div className="prose prose-sm max-w-none whitespace-pre-line text-muted-foreground">
           {mission.content}
         </div>
-
-        <MissionMediaDisplay missionId={mission.id} />
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
@@ -363,107 +355,6 @@ export default function Cfap2026() {
       </section>
 
       <Footer />
-    </div>
-  );
-}
-
-function MissionMediaDisplay({ missionId }: { missionId: number }) {
-  const { data: media } = trpc.missions.getMedia.useQuery({ missionId });
-
-  if (!media || media.length === 0) return null;
-
-  return (
-    <div className="mt-4 space-y-5">
-      {media.map((item: any) => {
-        const youtubeId = extractYouTubeId(item.url);
-        const isDocx = item.url.toLowerCase().endsWith(".docx") || item.url.toLowerCase().endsWith(".doc");
-
-        return (
-          <div key={item.id} className="rounded-2xl border bg-white shadow-sm overflow-hidden ring-1 ring-black/5">
-            {/* Cabeçalho da Mídia */}
-            <div className="px-4 py-2 bg-slate-50/80 border-b flex items-center justify-between">
-               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                 {item.type === 'video' && <PlayCircle className="h-3 w-3 text-red-500" />}
-                 {item.type === 'audio' && <Music className="h-3 w-3 text-emerald-500" />}
-                 {item.type === 'pdf' && <FileText className="h-3 w-3 text-orange-500" />}
-                 {item.type === 'document' && <FileText className="h-3 w-3 text-blue-500" />}
-                 {item.type === 'image' && <ImageIcon className="h-3 w-3 text-purple-500" />}
-                 {item.title || 'Anexo'}
-               </span>
-               <a href={item.url} download={item.title} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Download className="h-3.5 w-3.5" />
-               </a>
-            </div>
-
-            {item.type === "image" && (
-              <div className="group relative">
-                <img src={item.url} alt={item.title} className="w-full h-auto object-cover max-h-[600px]" />
-              </div>
-            )}
-
-            {item.type === "video" && (
-              <div className="aspect-video w-full bg-black">
-                {youtubeId ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${youtubeId}`}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <video src={item.url} controls className="w-full h-full" />
-                )}
-              </div>
-            )}
-
-            {item.type === "audio" && (
-              <div className="p-6 bg-emerald-50/20">
-                <audio src={item.url} controls className="w-full h-12" />
-              </div>
-            )}
-
-            {item.type === "pdf" && (
-              <div className="flex flex-col">
-                <div className="aspect-[4/5] w-full bg-slate-200 relative">
-                   <iframe 
-                    src={`${item.url}#toolbar=0&navpanes=0`} 
-                    className="w-full h-full border-0" 
-                    title={item.title || 'Visualizador PDF'} 
-                   />
-                </div>
-                <div className="p-3 bg-slate-50 flex justify-center">
-                   <Button variant="ghost" size="sm" asChild className="text-xs font-bold text-[#1a3a2a]">
-                      <a href={item.url} target="_blank" rel="noreferrer">
-                        Abrir em tela cheia <ExternalLink className="ml-2 h-3 w-3" />
-                      </a>
-                   </Button>
-                </div>
-              </div>
-            )}
-
-            {item.type === "document" && (
-              <div className="flex flex-col">
-                {isDocx ? (
-                  <div className="aspect-[4/5] w-full bg-slate-200">
-                    <iframe 
-                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + item.url)}`}
-                      className="w-full h-full border-0"
-                    />
-                  </div>
-                ) : (
-                  <div className="p-10 flex flex-col items-center justify-center text-center space-y-4">
-                    <FileText className="h-12 w-12 text-blue-500 opacity-20" />
-                    <p className="text-sm text-muted-foreground">Este documento requer download para ser visualizado.</p>
-                    <Button variant="outline" asChild>
-                      <a href={item.url} download>Baixar Arquivo</a>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }

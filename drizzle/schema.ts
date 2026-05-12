@@ -148,7 +148,6 @@ export const pmamStudyStudents = mysqlTable("pmam_study_students", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
   lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
-  lastModuleSlug: varchar("last_module_slug", { length: 96 }),
 });
 
 export type PmamStudyStudent = typeof pmamStudyStudents.$inferSelect;

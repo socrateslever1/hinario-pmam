@@ -1,4 +1,4 @@
-export function extractYouTubeId(url?: string | null): string | null {
+﻿export function extractYouTubeId(url?: string | null): string | null {
   if (!url) return null;
 
   const match = url.match(
@@ -28,15 +28,4 @@ export function resolvePlayableMediaUrl(input: {
   if (audioAsYoutube) return audioAsYoutube;
 
   return input.audioUrl || null;
-}
-
-export function isLocalAudio(url?: string | null): boolean {
-  if (!url) return false;
-  const isYoutube = isYouTubeUrl(url);
-  if (isYoutube) return false;
-
-  // Verifica extensões comuns de áudio
-  return /\.(mp3|wav|m4a|ogg|aac|flac)(\?.*)?$/i.test(url) || 
-         url.includes('manus.space') || 
-         url.includes('cloudfront.net');
 }

@@ -143,16 +143,15 @@ function safeParseJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-function mapStudyStudent(s: any): StudyStudent | null {
-  if (!s) return null;
+function mapStudyStudent(row: any): StudyStudent | null {
+  if (!row) return null;
   return {
-    id: s.id,
-    studentNumber: s.student_number,
-    accessToken: s.access_token,
-    createdAt: s.created_at,
-    updatedAt: s.updated_at,
-    lastActiveAt: s.last_active_at,
-    lastModuleSlug: s.last_module_slug,
+    id: row.id,
+    studentNumber: row.student_number,
+    displayName: row.display_name,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    lastActiveAt: row.last_active_at,
   };
 }
 
@@ -502,7 +501,7 @@ export async function createMission(mission: any) {
     mission.authorId || null
   ]);
 
-  return { id: (result as any).insertId };
+  return result;
 }
 
 export async function updateMission(id: number, mission: any) {
@@ -778,14 +777,6 @@ export async function ensureStudyStudentSession(
   };
 }
 
-export async function updateStudyStudentLastModule(studentNumber: string, moduleSlug: string) {
-  const normalized = normalizeStudyStudentNumber(studentNumber);
-  await query(
-    `UPDATE pmam_study_students SET last_module_slug = ?, last_active_at = CURRENT_TIMESTAMP WHERE student_number = ?`,
-    [moduleSlug, normalized]
-  );
-}
-
 export async function getStudyDashboard(
   studentNumber: string,
   _accessToken?: string | null,
@@ -1059,8 +1050,8 @@ export async function createMissionMedia(missionId: number, media: any) {
     media.isActive !== false ? 1 : 0,
     media.uploadedBy || null,
   ];
-  const result = await query(sql, params);
-  return { id: (result as any).insertId };
+  const result = await query(sql, params) as any;
+  return result?.insertId || null;
 }
 
 export async function getMissionMedia(missionId: number) {

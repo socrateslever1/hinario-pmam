@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { trpc } from "@/lib/trpc";
@@ -9,8 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
 import { useMemo } from "react";
 import LyricsPlayer from "@/components/LyricsPlayer";
-import { useEffect } from "react";
-import { saveLastAccessed } from "@/lib/lastAccessed";
 
 const categoryLabels: Record<string, string> = {
   nacional: "Hino Nacional",
@@ -36,44 +33,6 @@ function extractYouTubeId(url: string): string | null {
 export default function HymnDetail() {
   const { id } = useParams<{ id: string }>();
   const hymnId = parseInt(id || "0");
-=======
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { trpc } from "@/lib/trpc";
-import { useParams, Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
-import { useMemo } from "react";
-import LyricsPlayer from "@/components/LyricsPlayer";
-import { YouTubeOfflineIndicator } from "@/components/YouTubeOfflineIndicator";
-
-const categoryLabels: Record<string, string> = {
-  nacional: "Hino Nacional",
-  militar: "Canção Militar",
-  pmam: "Canção da PMAM",
-  arma: "Canção de Arma",
-  oracao: "Oração",
-};
-
-const categoryColors: Record<string, string> = {
-  nacional: "#c4a84b",
-  militar: "#2d5a27",
-  pmam: "#1a3a2a",
-  arma: "#8b4513",
-  oracao: "#1a2744",
-};
-
-function extractYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
-  return match ? match[1] : null;
-}
-
-export default function HymnDetail() {
-  const { id } = useParams<{ id: string }>();
-  const hymnId = parseInt(id || "0");
->>>>>>> Stashed changes
   const { data: hymn, isLoading } = trpc.hymns.getById.useQuery(
     { id: hymnId },
     { enabled: hymnId > 0, refetchOnMount: "always", refetchOnWindowFocus: true }
@@ -86,18 +45,6 @@ export default function HymnDetail() {
     { collection: "tfm" },
     { enabled: hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
   );
-
-  useEffect(() => {
-    if (hymn) {
-      saveLastAccessed({
-        type: "hymn",
-        id: hymn.id,
-        title: hymn.title,
-        subtitle: hymn.author || hymn.subtitle || undefined,
-        url: `/hino/${hymn.id}`
-      });
-    }
-  }, [hymn]);
 
   const isTfm = hymn?.collection === "tfm";
   const catalogHref = isTfm ? "/charlie-mike" : "/hinos";
@@ -212,15 +159,6 @@ export default function HymnDetail() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* YouTube Offline Indicator */}
-              {hymn.youtubeUrl && (
-                <Card className="border-border/50">
-                  <CardContent className="p-6">
-                    <YouTubeOfflineIndicator youtubeUrl={hymn.youtubeUrl} />
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Description */}
               {hymn.description && (
                 <Card className="border-border/50">

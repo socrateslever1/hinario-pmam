@@ -13,7 +13,7 @@ const ESSENTIAL_ASSETS = [
 // Padrões de URLs para cache
 const CACHE_PATTERNS = {
   api: /^\/api\/trpc\/(hymn|drill|cfap|mission)/,
-  assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico|json|mp3|wav|m4a|mp4|ogg)$/,
+  assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico|json)$/,
   pages: /\/(hinos|drill|cfap|sobre|estudos|xerife)(\?|$)/,
 };
 

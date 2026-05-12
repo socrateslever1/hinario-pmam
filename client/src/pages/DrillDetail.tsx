@@ -9,8 +9,6 @@ import { ordemUnidaManualHighlights } from "@/lib/studyLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect } from "react";
-import { saveLastAccessed } from "@/lib/lastAccessed";
 import {
   AlertCircle,
   ArrowLeft,
@@ -44,18 +42,6 @@ export default function DrillDetail() {
     { id: drillId ?? 0 },
     { enabled: Boolean(drillId) },
   );
-
-  useEffect(() => {
-    if (drill) {
-      saveLastAccessed({
-        type: "drill",
-        id: drill.id,
-        title: drill.title,
-        subtitle: `Ordem Unida - ${drill.category}`,
-        url: `/drill/${drill.id}`
-      });
-    }
-  }, [drill]);
 
   if (!drillId) {
     return (

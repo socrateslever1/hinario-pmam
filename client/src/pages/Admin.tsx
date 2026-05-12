@@ -20,12 +20,11 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock, Search, Image, AlertCircle
+  Clock, Search
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const categoryOptions = [
   { value: "nacional", label: "Hino Nacional" },
@@ -251,39 +250,10 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
     content: mission?.content ?? "",
     priority: mission?.priority ?? "normal",
   });
-  const [pendingMedia, setPendingMedia] = useState<any[]>([]);
-  const [showYoutubePending, setShowYoutubePending] = useState(false);
-  const [youtubePendingUrl, setYoutubePendingUrl] = useState("");
-  const [isUploadingTemp, setIsUploadingTemp] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
 
   const utils = trpc.useUtils();
-  const storageUpload = trpc.storage.upload.useMutation();
-  const addMediaMut = trpc.missions.addMedia.useMutation();
-
   const createMut = trpc.missions.create.useMutation({
-    onSuccess: async (data) => {
-      if (pendingMedia.length > 0) {
-        setIsLinking(true);
-        toast.info("Vinculando anexos ao comunicado...");
-        try {
-          for (const media of pendingMedia) {
-            await addMediaMut.mutateAsync({
-              missionId: data.id,
-              ...media
-            });
-          }
-        } catch (err) {
-          console.error("Erro ao vincular mídias:", err);
-          toast.error("Alguns anexos podem não ter sido salvos.");
-        } finally {
-          setIsLinking(false);
-        }
-      }
-      toast.success("Missão publicada com sucesso!");
-      utils.missions.invalidate();
-      onSuccess();
-    },
+    onSuccess: () => { toast.success("Missão publicada!"); utils.missions.invalidate(); onSuccess(); },
     onError: (e) => toast.error(e.message),
   });
   const updateMut = trpc.missions.update.useMutation({
@@ -291,56 +261,14 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
     onError: (e) => toast.error(e.message),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.content) { toast.error("Título e conteúdo são obrigatórios"); return; }
     if (mission) { updateMut.mutate({ id: mission.id, ...form, priority: form.priority as any }); }
     else { createMut.mutate({ ...form, priority: form.priority as any }); }
   };
 
-  const handlePendingFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingTemp(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = (reader.result as string).split(",")[1];
-      const toastId = toast.loading(`Preparando ${file.name}...`);
-      try {
-        const { url } = await storageUpload.mutateAsync({
-          path: `temp`,
-          fileName: file.name,
-          contentType: file.type,
-          contentBase64: base64,
-        });
-
-        let type: any = "document";
-        if (file.type.startsWith("image/")) type = "image";
-        else if (file.type.startsWith("video/")) type = "video";
-        else if (file.type.startsWith("audio/")) type = "audio";
-        else if (file.type === "application/pdf") type = "pdf";
-
-        setPendingMedia(prev => [...prev, { type, url, title: file.name, fileSize: file.size, mimeType: file.type }]);
-        toast.success("Arquivo pronto para publicação", { id: toastId });
-      } catch (err: any) {
-        toast.error("Erro no upload: " + err.message, { id: toastId });
-      } finally {
-        setIsUploadingTemp(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleAddPendingYoutube = () => {
-    if (!youtubePendingUrl) return;
-    setPendingMedia(prev => [...prev, { type: "video", url: youtubePendingUrl, title: "Vídeo do YouTube" }]);
-    setYoutubePendingUrl("");
-    setShowYoutubePending(false);
-    toast.success("Link do YouTube adicionado");
-  };
-
-  const saving = createMut.isPending || updateMut.isPending || isUploadingTemp || isLinking;
+  const saving = createMut.isPending || updateMut.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
@@ -352,225 +280,10 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
         </Select>
       </div>
       <div><Label>Conteúdo *</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} required /></div>
-      
-      {!mission && (
-        <div className="mt-6 space-y-4 border-t pt-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-bold">Anexos Pendentes ({pendingMedia.length})</Label>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Button size="sm" variant="outline" type="button" className="gap-2 h-8 text-xs" disabled={isUploadingTemp}>
-                  <Plus className="h-3 w-3" /> {isUploadingTemp ? "Enviando..." : "Arquivo"}
-                </Button>
-                <input
-                  type="file"
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                  onChange={handlePendingFile}
-                  disabled={isUploadingTemp}
-                  accept="image/*,video/*,audio/*,application/pdf"
-                />
-              </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                type="button" 
-                className="gap-2 h-8 text-xs"
-                onClick={() => setShowYoutubePending(!showYoutubePending)}
-              >
-                <Youtube className="h-3 w-3 text-red-600" /> YouTube
-              </Button>
-            </div>
-          </div>
-
-          {showYoutubePending && (
-            <div className="flex gap-2 p-3 bg-slate-100 rounded-lg animate-in fade-in slide-in-from-top-1">
-              <Input 
-                placeholder="Cole o link do YouTube aqui..." 
-                value={youtubePendingUrl} 
-                onChange={e => setYoutubePendingUrl(e.target.value)}
-                className="h-8 text-xs"
-              />
-              <Button size="sm" className="h-8 bg-[#1a3a2a]" onClick={handleAddPendingYoutube}>
-                Adicionar
-              </Button>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-2">
-            {pendingMedia.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-md border p-2 bg-amber-50/50">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  {item.type === 'image' && <Image className="h-4 w-4 text-blue-500" />}
-                  {item.type === 'video' && <Youtube className="h-4 w-4 text-red-500" />}
-                  {item.type === 'audio' && <Music className="h-4 w-4 text-green-500" />}
-                  {item.type === 'pdf' && <FileText className="h-4 w-4 text-orange-500" />}
-                  <span className="text-xs truncate">{item.title}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  className="h-7 w-7 text-destructive"
-                  onClick={() => setPendingMedia(prev => prev.filter((_, i) => i !== idx))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {mission && <MissionMediaManager missionId={mission.id} />}
-
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2 mt-4" disabled={saving}>
+      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
         <Save className="h-4 w-4" />{saving ? "Salvando..." : mission ? "Atualizar Missão" : "Publicar Missão"}
       </Button>
     </form>
-  );
-}
-
-function MissionMediaManager({ missionId }: { missionId: number }) {
-  const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [showYoutubeInput, setShowYoutubeInput] = useState(false);
-  
-  const utils = trpc.useUtils();
-  const { data: media, isLoading } = trpc.missions.getMedia.useQuery({ missionId });
-  const uploadMut = trpc.storage.upload.useMutation();
-  const addMediaMut = trpc.missions.addMedia.useMutation({
-    onSuccess: () => {
-      utils.missions.getMedia.invalidate({ missionId });
-      setYoutubeUrl("");
-      setShowYoutubeInput(false);
-    },
-  });
-  const deleteMediaMut = trpc.missions.deleteMedia.useMutation({
-    onSuccess: () => utils.missions.getMedia.invalidate({ missionId }),
-  });
-
-  const handleAddYoutube = async () => {
-    if (!youtubeUrl) return;
-    const toastId = toast.loading("Adicionando link do YouTube...");
-    try {
-      await addMediaMut.mutateAsync({
-        missionId,
-        type: "video",
-        url: youtubeUrl,
-        title: "Vídeo do YouTube",
-      });
-      toast.success("Vídeo adicionado!", { id: toastId });
-    } catch (err: any) {
-      toast.error("Erro ao adicionar: " + err.message, { id: toastId });
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = (reader.result as string).split(",")[1];
-      const toastId = toast.loading(`Enviando ${file.name}...`);
-      
-      try {
-        const { url } = await uploadMut.mutateAsync({
-          path: `missions/${missionId}`,
-          fileName: file.name,
-          contentType: file.type,
-          contentBase64: base64,
-        });
-
-        let type: "image" | "video" | "audio" | "pdf" | "document" = "document";
-        if (file.type.startsWith("image/")) type = "image";
-        else if (file.type.startsWith("video/")) type = "video";
-        else if (file.type.startsWith("audio/")) type = "audio";
-        else if (file.type === "application/pdf") type = "pdf";
-
-        await addMediaMut.mutateAsync({
-          missionId,
-          type,
-          url,
-          title: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-        });
-
-        toast.success("Arquivo anexado!", { id: toastId });
-      } catch (err: any) {
-        toast.error("Erro no upload: " + err.message, { id: toastId });
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  if (isLoading) return <Skeleton className="h-20 w-full" />;
-
-  return (
-    <div className="mt-6 space-y-4 border-t pt-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-bold">Anexos ({media?.length || 0})</Label>
-        <div className="flex gap-2">
-          <div className="relative">
-            <Button size="sm" variant="outline" type="button" className="gap-2 h-8 text-xs">
-              <Plus className="h-3 w-3" /> Arquivo
-            </Button>
-            <input
-              type="file"
-              className="absolute inset-0 cursor-pointer opacity-0"
-              onChange={handleFileChange}
-              accept="image/*,video/*,audio/*,application/pdf"
-            />
-          </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            type="button" 
-            className="gap-2 h-8 text-xs"
-            onClick={() => setShowYoutubeInput(!showYoutubeInput)}
-          >
-            <Youtube className="h-3 w-3 text-red-600" /> YouTube
-          </Button>
-        </div>
-      </div>
-
-      {showYoutubeInput && (
-        <div className="flex gap-2 p-3 bg-slate-100 rounded-lg animate-in fade-in slide-in-from-top-1">
-          <Input 
-            placeholder="Cole o link do YouTube aqui..." 
-            value={youtubeUrl} 
-            onChange={e => setYoutubeUrl(e.target.value)}
-            className="h-8 text-xs"
-          />
-          <Button size="sm" className="h-8 bg-[#1a3a2a]" onClick={handleAddYoutube} disabled={addMediaMut.isPending}>
-            Adicionar
-          </Button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-2">
-        {media?.map((item: any) => (
-          <div key={item.id} className="flex items-center justify-between rounded-md border p-2 bg-slate-50/50">
-            <div className="flex items-center gap-3 overflow-hidden">
-              {item.type === 'image' && <Image className="h-4 w-4 text-blue-500" />}
-              {item.type === 'video' && <Youtube className="h-4 w-4 text-red-500" />}
-              {item.type === 'audio' && <Music className="h-4 w-4 text-green-500" />}
-              {item.type === 'pdf' && <FileText className="h-4 w-4 text-orange-500" />}
-              <span className="text-xs truncate">{item.title}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="h-7 w-7 text-destructive"
-              onClick={() => { if (confirm("Remover este anexo?")) deleteMediaMut.mutate({ id: item.id }); }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 

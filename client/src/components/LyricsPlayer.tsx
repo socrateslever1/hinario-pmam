@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 import { Card, CardContent } from "@/components/ui/card";
-import { Music, Pause, Play, RotateCcw, Volume2, DownloadCloud, Check, Loader2 } from "lucide-react";
+import { Music, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { toast } from "sonner";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
-import { isYouTubeUrl, resolvePlayableMediaUrl, isLocalAudio } from "@/lib/media";
+import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
 
 interface LyricsPlayerProps {
   hymnTitle: string;
@@ -69,8 +68,6 @@ export default function LyricsPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
-  const [isCached, setIsCached] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   const playerRef = useRef<MediaPlayerElement | null>(null);
   const mediaUrl = resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
@@ -80,53 +77,7 @@ export default function LyricsPlayer({
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-    setIsCached(false);
   }, [mediaUrl, hymnTitle]);
-
-  const canBeOffline = isLocalAudio(mediaUrl);
-
-  useEffect(() => {
-    if (!mediaUrl || !canBeOffline) {
-      setIsCached(false);
-      return;
-    }
-
-    const checkCache = async () => {
-      try {
-        const cache = await caches.open("hinario-pmam-runtime-v1");
-        const match = await cache.match(mediaUrl);
-        setIsCached(!!match);
-      } catch (e) {
-        console.warn("Cache check failed", e);
-      }
-    };
-
-    checkCache();
-  }, [mediaUrl, canBeOffline]);
-
-  const handleDownloadOffline = async () => {
-    if (!mediaUrl || isDownloading || isCached) return;
-
-    setIsDownloading(true);
-    const toastId = toast.loading(`Baixando "${hymnTitle}" para uso offline...`);
-
-    try {
-      const cache = await caches.open("hinario-pmam-runtime-v1");
-      
-      // Forçamos o download completo do arquivo para o cache
-      const response = await fetch(mediaUrl);
-      if (!response.ok) throw new Error("Falha no download");
-      
-      await cache.put(mediaUrl, response);
-      setIsCached(true);
-      toast.success(`"${hymnTitle}" disponível offline!`, { id: toastId });
-    } catch (error) {
-      console.error("Erro ao baixar para offline:", error);
-      toast.error("Erro ao baixar hino. Tente novamente.", { id: toastId });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   const syncMediaState = (media?: MediaPlayerElement | null) => {
     if (!media) return;
@@ -233,31 +184,6 @@ export default function LyricsPlayer({
                   >
                     <RotateCcw className="h-5 w-5" />
                   </Button>
-
-                  {canBeOffline && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleDownloadOffline}
-                      className={cn(
-                        "h-11 w-11 rounded-full transition-all active:scale-95",
-                        isCached 
-                          ? "text-green-600 hover:bg-green-50" 
-                          : "text-muted-foreground hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
-                      )}
-                      disabled={isDownloading || isCached}
-                      title={isCached ? "Disponível offline" : "Baixar para ouvir offline"}
-                    >
-                      {isDownloading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : isCached ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <DownloadCloud className="h-5 w-5" />
-                      )}
-                    </Button>
-                  )}
-
                   <Button
                     variant="default"
                     size="icon"
