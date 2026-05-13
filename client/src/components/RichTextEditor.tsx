@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import Youtube from "@tiptap/extension-youtube";
 import { Button } from "@/components/ui/button";
 import {
   Bold,
@@ -14,6 +15,9 @@ import {
   Heading3,
   Quote,
   Code,
+  Video,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import "./RichTextEditor.css";
 
@@ -36,6 +40,10 @@ export default function RichTextEditor({
       }),
       Image.configure({
         allowBase64: true,
+      }),
+      Youtube.configure({
+        controls: true,
+        nocookie: true,
       }),
     ],
     content,
@@ -64,6 +72,13 @@ export default function RichTextEditor({
         .extendMarkRange("link")
         .setLink({ href: url })
         .run();
+    }
+  };
+
+  const addYoutube = () => {
+    const url = window.prompt("Insira a URL do YouTube:");
+    if (url) {
+      editor.chain().focus().setYoutube({ src: url }).run();
     }
   };
 
@@ -169,10 +184,21 @@ export default function RichTextEditor({
           <Button
             size="sm"
             variant="outline"
+            onClick={addYoutube}
+            title="Adicionar vídeo YouTube"
+          >
+            <Video className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="toolbar-group">
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => editor.chain().focus().undo().run()}
             title="Desfazer"
           >
-            ↶
+            <Undo2 className="h-4 w-4" />
           </Button>
           <Button
             size="sm"
@@ -180,7 +206,7 @@ export default function RichTextEditor({
             onClick={() => editor.chain().focus().redo().run()}
             title="Refazer"
           >
-            ↷
+            <Redo2 className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -207,7 +207,7 @@ export const pmamBlogPost = mysqlTable("pmam_blog_post", {
   id: int("id").autoincrement().primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   content: longtext("content").notNull(),
-  imageUrl: varchar("image_url", { length: 512 }),
+  imageUrl: varchar("image_url", { length: 512 }).default(null),
   authorId: int("author_id").notNull(),
   published: boolean("published").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
