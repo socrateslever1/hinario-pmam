@@ -70,6 +70,10 @@ export const pmamCfapMissions = mysqlTable("pmam_cfap_missions", {
   authorId: int("author_id"),
   likesCount: int("likes_count").default(0),
   viewsCount: int("views_count").default(0),
+  imageUrl: varchar("image_url", { length: 512 }),
+  videoUrl: varchar("video_url", { length: 512 }),
+  audioUrl: varchar("audio_url", { length: 512 }),
+  pdfUrl: varchar("pdf_url", { length: 512 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
