@@ -203,6 +203,20 @@ export const pmamMissionMedia = mysqlTable("pmam_mission_media", {
 export type PmamMissionMedia = typeof pmamMissionMedia.$inferSelect;
 export type InsertPmamMissionMedia = typeof pmamMissionMedia.$inferInsert;
 
+export const pmamBlogPost = mysqlTable("pmam_blog_post", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: longtext("content").notNull(),
+  imageUrl: varchar("image_url", { length: 512 }),
+  authorId: int("author_id").notNull(),
+  published: boolean("published").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamBlogPost = typeof pmamBlogPost.$inferSelect;
+export type InsertPmamBlogPost = typeof pmamBlogPost.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -214,6 +228,7 @@ export const runtimeTables = {
   pmamStudyStudents,
   pmamStudyModuleProgress,
   pmamMissionMedia,
+  pmamBlogPost,
 };
 
 /**
@@ -318,3 +333,4 @@ export const legacyTables = {
   legacyLikes,
   legacySiteSettings,
 };
+

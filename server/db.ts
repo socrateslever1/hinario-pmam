@@ -1113,3 +1113,103 @@ export async function reorderMissionMedia(missionId: number, mediaIds: number[])
     );
   }
 }
+
+
+// Blog Posts Helpers
+function mapBlogPost(p: any) {
+  if (!p) return p;
+  return {
+    id: p.id,
+    title: p.title,
+    content: p.content,
+    imageUrl: p.image_url,
+    authorId: p.author_id,
+    published: Boolean(p.published),
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  };
+}
+
+export async function createBlogPost(post: {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  authorId: number;
+  published?: boolean;
+}) {
+  const sql = `
+    INSERT INTO pmam_blog_post (title, content, image_url, author_id, published)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+  const params = [
+    post.title,
+    post.content,
+    post.imageUrl || null,
+    post.authorId,
+    post.published ? 1 : 0,
+  ];
+  const result = await query(sql, params) as any;
+  return result?.insertId || null;
+}
+
+export async function getBlogPostById(id: number) {
+  const result = await query(
+    'SELECT * FROM pmam_blog_post WHERE id = ?',
+    [id]
+  );
+  return result?.[0] ? mapBlogPost(result[0]) : null;
+}
+
+export async function listBlogPosts(published?: boolean) {
+  let sql = 'SELECT * FROM pmam_blog_post';
+  const params: any[] = [];
+  
+  if (published !== undefined) {
+    sql += ' WHERE published = ?';
+    params.push(published ? 1 : 0);
+  }
+  
+  sql += ' ORDER BY created_at DESC';
+  
+  const result = await query(sql, params);
+  return (result || []).map(mapBlogPost);
+}
+
+export async function updateBlogPost(id: number, updates: {
+  title?: string;
+  content?: string;
+  imageUrl?: string;
+  published?: boolean;
+}) {
+  const fields: string[] = [];
+  const params: any[] = [];
+  
+  if (updates.title !== undefined) {
+    fields.push('title = ?');
+    params.push(updates.title);
+  }
+  if (updates.content !== undefined) {
+    fields.push('content = ?');
+    params.push(updates.content);
+  }
+  if (updates.imageUrl !== undefined) {
+    fields.push('image_url = ?');
+    params.push(updates.imageUrl || null);
+  }
+  if (updates.published !== undefined) {
+    fields.push('published = ?');
+    params.push(updates.published ? 1 : 0);
+  }
+  
+  if (fields.length === 0) return;
+  
+  fields.push('updated_at = NOW()');
+  params.push(id);
+  
+  const sql = `UPDATE pmam_blog_post SET ${fields.join(', ')} WHERE id = ?`;
+  await query(sql, params);
+}
+
+export async function deleteBlogPost(id: number) {
+  await query('DELETE FROM pmam_blog_post WHERE id = ?', [id]);
+}

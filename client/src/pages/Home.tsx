@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import BlogFeed from "@/components/BlogFeed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -29,7 +30,7 @@ export default function Home() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#c4a84b] rounded-full blur-[150px]" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#2d5a27] rounded-full blur-[150px]" />
         </div>
-        <div className="container relative py-20 md:py-28">
+        <div className="container relative py-12 md:py-16">
           <div className="flex flex-col md:flex-row items-center gap-10">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
@@ -74,6 +75,9 @@ export default function Home() {
         </div>
         <div className="checkerboard-pattern w-full" />
       </section>
+
+      {/* Blog Feed Section */}
+      <BlogFeed />
 
       {/* Institutional Guidelines Section */}
       <section className="py-16 bg-background">

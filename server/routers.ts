@@ -524,34 +524,51 @@ export const appRouter = router({
       return { success: true, url };
     }),
   }),
-  study: router({
-    login: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      displayName: z.string().optional(),
-    })).mutation(async ({ input }) => {
-      const session = await db.ensureStudyStudentSession(input.studentNumber, input.displayName);
-      return session;
+
+  blog: router({
+    list: publicProcedure.query(async () => {
+      return await db.listBlogPosts(true);
     }),
-    getDashboard: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().optional(),
+    getById: publicProcedure.input(z.object({
+      id: z.number(),
     })).query(async ({ input }) => {
-      const dashboard = await db.getStudyDashboard(input.studentNumber, input.accessToken);
-      return dashboard;
+      return await db.getBlogPostById(input.id);
     }),
-    saveProgress: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().optional(),
-      moduleSlug: z.string(),
-      progress: z.any(),
+    create: adminProcedure.input(z.object({
+      title: z.string().min(1).max(255),
+      content: z.string().min(1),
+      imageUrl: z.string().optional(),
+      published: z.boolean().default(false),
+    })).mutation(async ({ input, ctx }) => {
+      const id = await db.createBlogPost({
+        title: input.title,
+        content: input.content,
+        imageUrl: input.imageUrl,
+        authorId: ctx.user.id,
+        published: input.published,
+      });
+      return await db.getBlogPostById(id!);
+    }),
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      title: z.string().min(1).max(255).optional(),
+      content: z.string().min(1).optional(),
+      imageUrl: z.string().optional(),
+      published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
-      const result = await db.saveStudyModuleProgress(
-        input.studentNumber,
-        input.accessToken,
-        input.moduleSlug,
-        input.progress
-      );
-      return result;
+      await db.updateBlogPost(input.id, {
+        title: input.title,
+        content: input.content,
+        imageUrl: input.imageUrl,
+        published: input.published,
+      });
+      return await db.getBlogPostById(input.id);
+    }),
+    delete: adminProcedure.input(z.object({
+      id: z.number(),
+    })).mutation(async ({ input }) => {
+      await db.deleteBlogPost(input.id);
+      return { success: true };
     }),
   }),
 });

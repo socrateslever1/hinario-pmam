@@ -79,3 +79,18 @@
 - [ ] Implementar histórico de versões
 - [ ] Adicionar preview em tempo real
 - [ ] Criar sistema de publicar/despublicar
+
+## Seção de Blog/Posts na Home
+
+- [x] Reduzir altura da seção hero verde (de ~600px para ~300px)
+- [x] Criar tabela pmamBlogPost no banco de dados com campos: id, title, content, imageUrl, createdAt, updatedAt, authorId, published
+- [x] Implementar procedures tRPC para CRUD de posts (criar, editar, deletar, listar)
+- [x] Criar seção "Notícias & Avisos" na Home com scroll horizontal
+- [x] Implementar cards de blog com data, título, imagem e preview de conteúdo
+- [x] Adicionar componente de formatação de data em português brasileiro
+- [ ] Criar interface de edição de posts na Área do Xerife com RichTextEditor
+- [ ] Integrar MediaUploadManager para upload de imagens nos posts
+- [ ] Adicionar botão "Editar/Novo Post" visível apenas para Xerife logado
+- [ ] Implementar sistema de publicação/despublicação de posts
+- [ ] Testar responsividade em mobile e desktop
+- [x] Escrever testes vitest para CRUD de posts
