@@ -1113,3 +1113,191 @@ export async function reorderMissionMedia(missionId: number, mediaIds: number[])
     );
   }
 }
+
+
+// CMS - Content Management System helpers
+
+export async function createContent(data: {
+  title: string;
+  type: 'post' | 'news' | 'announcement' | 'highlight';
+  content?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  pdfUrl?: string;
+  createdBy?: number;
+}) {
+  const sql = `
+    INSERT INTO pmam_content 
+    (title, type, content, image_url, video_url, audio_url, pdf_url, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
+  const params = [
+    data.title,
+    data.type,
+    data.content || null,
+    data.imageUrl || null,
+    data.videoUrl || null,
+    data.audioUrl || null,
+    data.pdfUrl || null,
+    data.createdBy || null,
+  ];
+  const result = await query(sql, params);
+  return (result as any).insertId;
+}
+
+export async function updateContent(id: number, data: Partial<{
+  title: string;
+  type: 'post' | 'news' | 'announcement' | 'highlight';
+  content: string;
+  imageUrl: string;
+  videoUrl: string;
+  audioUrl: string;
+  pdfUrl: string;
+  position: number;
+  isActive: boolean;
+  isArchived: boolean;
+}>) {
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  if (data.title !== undefined) {
+    updates.push('title = ?');
+    params.push(data.title);
+  }
+  if (data.type !== undefined) {
+    updates.push('type = ?');
+    params.push(data.type);
+  }
+  if (data.content !== undefined) {
+    updates.push('content = ?');
+    params.push(data.content);
+  }
+  if (data.imageUrl !== undefined) {
+    updates.push('image_url = ?');
+    params.push(data.imageUrl);
+  }
+  if (data.videoUrl !== undefined) {
+    updates.push('video_url = ?');
+    params.push(data.videoUrl);
+  }
+  if (data.audioUrl !== undefined) {
+    updates.push('audio_url = ?');
+    params.push(data.audioUrl);
+  }
+  if (data.pdfUrl !== undefined) {
+    updates.push('pdf_url = ?');
+    params.push(data.pdfUrl);
+  }
+  if (data.position !== undefined) {
+    updates.push('position = ?');
+    params.push(data.position);
+  }
+  if (data.isActive !== undefined) {
+    updates.push('is_active = ?');
+    params.push(data.isActive ? 1 : 0);
+  }
+  if (data.isArchived !== undefined) {
+    updates.push('is_archived = ?');
+    params.push(data.isArchived ? 1 : 0);
+  }
+
+  updates.push('updated_at = NOW()');
+  params.push(id);
+
+  const sql = `UPDATE pmam_content SET ${updates.join(', ')} WHERE id = ?`;
+  await query(sql, params);
+}
+
+export async function getContent(id: number) {
+  const sql = 'SELECT * FROM pmam_content WHERE id = ?';
+  const result = await query(sql, [id]);
+  return (result as any[])[0] || null;
+}
+
+export async function listContent(filters?: {
+  type?: string;
+  isActive?: boolean;
+  isArchived?: boolean;
+  limit?: number;
+  offset?: number;
+}) {
+  let sql = 'SELECT * FROM pmam_content WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters?.type) {
+    sql += ' AND type = ?';
+    params.push(filters.type);
+  }
+  if (filters?.isActive !== undefined) {
+    sql += ' AND is_active = ?';
+    params.push(filters.isActive ? 1 : 0);
+  }
+  if (filters?.isArchived !== undefined) {
+    sql += ' AND is_archived = ?';
+    params.push(filters.isArchived ? 1 : 0);
+  }
+
+  sql += ' ORDER BY position ASC, created_at DESC';
+
+  if (filters?.limit) {
+    sql += ' LIMIT ?';
+    params.push(filters.limit);
+    if (filters?.offset) {
+      sql += ' OFFSET ?';
+      params.push(filters.offset);
+    }
+  }
+
+  const result = await query(sql, params);
+  return result as any[];
+}
+
+export async function deleteContent(id: number) {
+  await query('DELETE FROM pmam_content WHERE id = ?', [id]);
+}
+
+export async function archiveContent(id: number) {
+  await query('UPDATE pmam_content SET is_archived = 1, updated_at = NOW() WHERE id = ?', [id]);
+}
+
+export async function reorderContent(contentIds: number[]) {
+  for (let i = 0; i < contentIds.length; i++) {
+    await query(
+      'UPDATE pmam_content SET position = ?, updated_at = NOW() WHERE id = ?',
+      [i, contentIds[i]]
+    );
+  }
+}
+
+export async function setContentLayout(contentId: number, layout: {
+  section: string;
+  column?: number;
+  row?: number;
+  width?: string;
+}) {
+  const sql = `
+    INSERT INTO pmam_content_layout (content_id, section, column, row, width, updated_at)
+    VALUES (?, ?, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE
+    section = VALUES(section),
+    column = VALUES(column),
+    row = VALUES(row),
+    width = VALUES(width),
+    updated_at = NOW()
+  `;
+  const params = [
+    contentId,
+    layout.section,
+    layout.column || 1,
+    layout.row || 1,
+    layout.width || 'full',
+  ];
+  await query(sql, params);
+}
+
+export async function getContentLayout(contentId: number) {
+  const sql = 'SELECT * FROM pmam_content_layout WHERE content_id = ?';
+  const result = await query(sql, [contentId]);
+  return (result as any[])[0] || null;
+}
