@@ -136,7 +136,7 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
                     <Award className="h-5 w-5 text-[#c4a84b]" />
                   </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Princípios</h3>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Principios</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   Hierarquia, Disciplina e Eficácia.
