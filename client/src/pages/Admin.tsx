@@ -25,6 +25,7 @@ import {
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
+import { BlogManagementPanel } from "@/components/BlogManagementPanel";
 
 const categoryOptions = [
   { value: "nacional", label: "Hino Nacional" },
@@ -636,6 +637,7 @@ export default function Admin() {
               <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
               <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
               <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
+              <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
             </TabsList>
@@ -924,6 +926,11 @@ export default function Admin() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            {/* BLOG/COMUNICADOS TAB */}
+            <TabsContent value="blog">
+              <BlogManagementPanel />
             </TabsContent>
 
             {/* SETTINGS TAB */}
