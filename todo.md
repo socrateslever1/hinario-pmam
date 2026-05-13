@@ -67,3 +67,15 @@
 - [ ] Leitor de PDF integrado
 - [ ] Download de arquivos
 - [ ] Testes de upload e visualização
+
+
+## Painel de Controle Profissional
+
+- [ ] Criar painel de controle na Área do Xerife com editor visual
+- [ ] Implementar editor de texto rico (WYSIWYG) com TipTap ou similar
+- [ ] Adicionar gerenciador de mídia com upload drag-and-drop
+- [ ] Implementar edição inline na Home (quando logado como Xerife)
+- [ ] Adicionar agendamento de publicação
+- [ ] Implementar histórico de versões
+- [ ] Adicionar preview em tempo real
+- [ ] Criar sistema de publicar/despublicar
