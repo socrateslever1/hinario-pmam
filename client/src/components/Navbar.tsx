@@ -62,7 +62,7 @@ export default function Navbar() {
                 className={`gap-2 ${location.startsWith("/xerife") ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
               >
                 <Star className="h-4 w-4" />
-                Área do Xerife
+                Area do Xerife
               </Button>
             </Link>
           ) : (
@@ -110,7 +110,7 @@ export default function Navbar() {
                 <Link href="/xerife" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
                     <Star className="h-4 w-4" />
-                    Área do Xerife
+                    Area do Xerife
                   </Button>
                 </Link>
               ) : (

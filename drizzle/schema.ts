@@ -210,8 +210,6 @@ export const runtimeTables = {
   pmamStudyStudents,
   pmamStudyModuleProgress,
   pmamMissionMedia,
-  pmamContent,
-  pmamContentLayout,
 };
 
 /**
