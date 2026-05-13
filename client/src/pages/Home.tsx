@@ -31,6 +31,18 @@ export default function Home() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#2d5a27] rounded-full blur-[150px]" />
         </div>
         <div className="container relative py-12 md:py-16">
+          {/* Brasão no topo */}
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#c4a84b]/20 rounded-full blur-2xl" />
+              <img
+                src={BRASAO_URL}
+                alt="Brasão da PMAM"
+                className="relative w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
+              />
+            </div>
+          </div>
+          
           <div className="flex flex-col md:flex-row items-center gap-10">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
@@ -59,16 +71,6 @@ export default function Home() {
                     CFAP 2026
                   </Button>
                 </Link>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#c4a84b]/20 rounded-full blur-2xl" />
-                <img
-                  src={BRASAO_URL}
-                  alt="Brasão da PMAM"
-                  className="relative w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-2xl"
-                />
               </div>
             </div>
           </div>
