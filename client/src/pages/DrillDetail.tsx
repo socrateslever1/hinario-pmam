@@ -191,11 +191,7 @@ export default function DrillDetail() {
                           width="100%"
                           height="100%"
                           style={{ backgroundColor: "#000" }}
-                          config={
-                            youtubeId
-                              ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
-                              : undefined
-                          }
+                          config={undefined}
                         />
                       </div>
                     </div>

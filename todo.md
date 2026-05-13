@@ -87,10 +87,12 @@
 - [x] Implementar procedures tRPC para CRUD de posts (criar, editar, deletar, listar)
 - [x] Criar seção "Notícias & Avisos" na Home com scroll horizontal
 - [x] Implementar cards de blog com data, título, imagem e preview de conteúdo
-- [x] Adicionar componente de formatação de data em português brasileiro
-- [ ] Criar interface de edição de posts na Área do Xerife com RichTextEditor
-- [ ] Integrar MediaUploadManager para upload de imagens nos posts
-- [ ] Adicionar botão "Editar/Novo Post" visível apenas para Xerife logado
-- [ ] Implementar sistema de publicação/despublicação de posts
-- [ ] Testar responsividade em mobile e desktop
+- [x] Adicionar componente de formatacao de data em portugues brasileiro
+- [x] Corrigir erros de playerVars em componentes de video
+- [x] Criar tabela pmam_blog_post no banco de dados
 - [x] Escrever testes vitest para CRUD de posts
+- [ ] Criar interface de edicao de posts na Area do Xerife com RichTextEditor
+- [ ] Integrar MediaUploadManager para upload de imagens nos posts
+- [ ] Adicionar botao "Editar/Novo Post" visivel apenas para Xerife logado
+- [ ] Implementar sistema de publicacao/despublicacao de posts
+- [ ] Testar responsividade em mobile e desktop

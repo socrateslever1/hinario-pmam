@@ -245,7 +245,7 @@ export default function PlaylistPlayer({
                       onPause: () => setPlaying(false),
                       onEnded: handleEnded,
                       config: isYoutube
-                        ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
+                        ? undefined
                         : undefined,
                     })}
                   </div>
@@ -431,7 +431,7 @@ export default function PlaylistPlayer({
                     onPause: () => setPlaying(false),
                     onEnded: handleEnded,
                     config: isYoutube
-                      ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
+                      ? undefined
                       : undefined,
                   })}
                 </div>
