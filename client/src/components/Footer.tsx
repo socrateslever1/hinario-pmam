@@ -19,20 +19,20 @@ export default function Footer() {
                 Hinario PMAM
               </h3>
               <p className="mt-1 text-sm text-white/60">
-                {settings?.footer_text || "Hinos, cancoes militares e material de estudo da Policia Militar do Amazonas"}
+                {settings?.footer_text || "Hinos, canções militares e material de estudo da Polícia Militar do Amazonas"}
               </p>
-              <p className="mt-1 text-xs text-white/40">Edicao 2026</p>
+              <p className="mt-1 text-xs text-white/40">Edição 2026</p>
             </div>
           </div>
           <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Navegacao</h4>
+            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Navegação</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Pagina Inicial</Link></li>
-              <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Catalogo de Hinos</Link></li>
+              <li><Link href="/" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Página Inicial</Link></li>
+              <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Catálogo de Hinos</Link></li>
               <li><Link href="/charlie-mike" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Charlie Mike</Link></li>
               <li><Link href="/estudos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Centro de Estudos</Link></li>
               <li><Link href="/cfap-2026" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">CFAP 2026</Link></li>
-              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o Hinario</Link></li>
+              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o Hinário</Link></li>
             </ul>
           </div>
           <div>
@@ -72,16 +72,16 @@ export default function Footer() {
               )}
               {!settings?.footer_phone && !settings?.footer_email && !settings?.footer_address && (
                 <>
-                  <p className="text-white/60">Policia Militar do Estado do Amazonas</p>
-                  <p className="text-white/60">Centro de Formacao e Aperfeicoamento de Pracas - CFAP</p>
-                  <p className="text-white/60">Academia de Policia Militar - APM Neper Alencar</p>
+                  <p className="text-white/60">Polícia Militar do Estado do Amazonas</p>
+                  <p className="text-white/60">Centro de Formação e Aperfeiçoamento de Praças - CFAP</p>
+                  <p className="text-white/60">Academia de Polícia Militar - APM Neper Alencar</p>
                 </>
               )}
             </div>
           </div>
         </div>
         <div className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-white/40">
-          <p>Hinario da PMAM - Tradicao, estudo e identidade institucional</p>
+          <p>Hinário da PMAM - Tradição, estudo e identidade institucional</p>
           <p className="mt-1 flex items-center justify-center gap-1">
             <Shield className="h-3 w-3" /> Servir e Proteger
           </p>
