@@ -12,6 +12,10 @@ Estas tabelas sao as usadas pelo backend atual em `server/db.ts`:
 - `pmam_site_settings`
 - `pmam_study_students`
 - `pmam_study_module_progress`
+- `pmam_drill`
+- `pmam_mission_media`
+- `pmam_content`
+- `pmam_content_layout`
 
 ## Legado preservado
 

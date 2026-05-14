@@ -20,6 +20,9 @@ const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNum
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
 
+const contentTypeSchema = z.enum(["post", "news", "announcement", "highlight"]);
+const mediaTypeSchema = z.enum(["image", "video", "audio", "pdf", "document"]);
+
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
@@ -218,6 +221,31 @@ export const appRouter = router({
         throw error;
       }
     }),
+    login: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      displayName: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      return db.ensureStudyStudentSession(input.studentNumber, input.displayName);
+    }),
+    getDashboard: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().optional(),
+    })).query(async ({ input }) => {
+      return db.getStudyDashboard(input.studentNumber, input.accessToken);
+    }),
+    saveProgress: publicProcedure.input(z.object({
+      studentNumber: studyStudentNumberSchema,
+      accessToken: z.string().optional(),
+      moduleSlug: z.string(),
+      progress: z.any(),
+    })).mutation(async ({ input }) => {
+      return db.saveStudyModuleProgress(
+        input.studentNumber,
+        input.accessToken,
+        input.moduleSlug,
+        input.progress
+      );
+    }),
   }),
 
   hymns: router({
@@ -310,6 +338,81 @@ export const appRouter = router({
     })).query(async ({ input }) => {
       return db.getMissionComments(input.missionId);
     }),
+    media: publicProcedure.input(z.object({
+      missionId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getMissionMedia(input.missionId);
+    }),
+    addMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      type: mediaTypeSchema,
+      title: z.string().trim().max(255).optional(),
+      description: z.string().trim().max(1000).optional(),
+      url: z.string().trim().url().max(512),
+      fileSize: z.number().int().positive().optional(),
+      mimeType: z.string().trim().max(100).optional(),
+      duration: z.number().int().positive().optional(),
+      thumbnail: z.string().trim().url().max(512).optional(),
+      order: z.number().int().min(0).optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+      const { missionId, ...media } = input;
+      const id = await db.createMissionMedia(missionId, { ...media, uploadedBy: ctx.user.id });
+      return { success: true, id };
+    }),
+    uploadMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      fileName: z.string().trim().min(1).max(255),
+      fileBase64: z.string().min(1),
+      contentType: z.string().trim().min(1).max(100),
+      type: mediaTypeSchema,
+      title: z.string().trim().max(255).optional(),
+      description: z.string().trim().max(1000).optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const fileKey = `missions/${input.type}/${input.missionId}-${nanoid(8)}-${input.fileName}`;
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+      const id = await db.createMissionMedia(input.missionId, {
+        type: input.type,
+        title: input.title || input.fileName,
+        description: input.description,
+        url,
+        fileSize: buffer.length,
+        mimeType: input.contentType,
+        uploadedBy: ctx.user.id,
+      });
+      return { success: true, id, url };
+    }),
+    updateMedia: adminProcedure.input(z.object({
+      id: z.number(),
+      title: z.string().trim().max(255).nullable().optional(),
+      description: z.string().trim().max(1000).nullable().optional(),
+      url: z.string().trim().url().max(512).optional(),
+      fileSize: z.number().int().positive().nullable().optional(),
+      mimeType: z.string().trim().max(100).nullable().optional(),
+      duration: z.number().int().positive().nullable().optional(),
+      thumbnail: z.string().trim().url().max(512).nullable().optional(),
+      order: z.number().int().min(0).optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.updateMissionMedia(id, data);
+      return { success: true };
+    }),
+    deleteMedia: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteMissionMedia(input.id);
+      return { success: true };
+    }),
+    reorderMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      mediaIds: z.array(z.number()),
+    })).mutation(async ({ input }) => {
+      await db.reorderMissionMedia(input.missionId, input.mediaIds);
+      return { success: true };
+    }),
     addComment: publicProcedure.input(z.object({
       missionId: z.number(),
       authorName: z.string().trim().min(2).max(80),
@@ -338,6 +441,8 @@ export const appRouter = router({
       title: z.string(),
       content: z.string(),
       priority: z.enum(["normal", "urgente", "critica"]).default("normal"),
+      status: z.enum(["ativa", "cumprida", "inativa"]).optional(),
+      dueDate: z.coerce.date().nullable().optional(),
     })).mutation(async ({ input, ctx }) => {
       await db.createMission({ ...input, authorId: ctx.user.id });
       await notifyOwner({
@@ -351,6 +456,8 @@ export const appRouter = router({
       title: z.string().optional(),
       content: z.string().optional(),
       priority: z.enum(["normal", "urgente", "critica"]).optional(),
+      status: z.enum(["ativa", "cumprida", "inativa"]).optional(),
+      dueDate: z.coerce.date().nullable().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       const { id, ...data } = input;
@@ -475,6 +582,8 @@ export const appRouter = router({
       instructor: z.string().optional(),
       prerequisites: z.string().optional(),
       learningOutcomes: z.string().optional(),
+      youtubeUrl: z.string().optional(),
+      cornettaAudioUrl: z.string().optional(),
     })).mutation(async ({ input, ctx }) => {
       await db.createDrill({ ...input, authorId: ctx.user.id });
       return { success: true };
@@ -494,6 +603,8 @@ export const appRouter = router({
       instructor: z.string().optional(),
       prerequisites: z.string().optional(),
       learningOutcomes: z.string().optional(),
+      youtubeUrl: z.string().nullable().optional(),
+      cornettaAudioUrl: z.string().nullable().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       const { id, ...data } = input;
@@ -524,34 +635,90 @@ export const appRouter = router({
       return { success: true, url };
     }),
   }),
-  study: router({
-    login: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      displayName: z.string().optional(),
-    })).mutation(async ({ input }) => {
-      const session = await db.ensureStudyStudentSession(input.studentNumber, input.displayName);
-      return session;
+  content: router({
+    list: publicProcedure.input(z.object({
+      type: contentTypeSchema.optional(),
+      limit: z.number().int().min(1).max(50).optional(),
+      offset: z.number().int().min(0).optional(),
+    }).optional()).query(async ({ input }) => {
+      return db.listContent({
+        type: input?.type,
+        isActive: true,
+        isArchived: false,
+        limit: input?.limit,
+        offset: input?.offset,
+      });
     }),
-    getDashboard: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().optional(),
-    })).query(async ({ input }) => {
-      const dashboard = await db.getStudyDashboard(input.studentNumber, input.accessToken);
-      return dashboard;
+    listAll: adminProcedure.input(z.object({
+      type: contentTypeSchema.optional(),
+      isActive: z.boolean().optional(),
+      isArchived: z.boolean().optional(),
+      limit: z.number().int().min(1).max(100).optional(),
+      offset: z.number().int().min(0).optional(),
+    }).optional()).query(async ({ input }) => {
+      return db.listContent(input);
     }),
-    saveProgress: publicProcedure.input(z.object({
-      studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().optional(),
-      moduleSlug: z.string(),
-      progress: z.any(),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const content = await db.getContent(input.id);
+      if (!content) throw new TRPCError({ code: "NOT_FOUND", message: "Conteúdo não encontrado" });
+      return content;
+    }),
+    create: adminProcedure.input(z.object({
+      title: z.string().trim().min(2).max(255),
+      type: contentTypeSchema,
+      content: z.string().optional(),
+      imageUrl: z.string().trim().url().max(512).optional().or(z.literal("")),
+      videoUrl: z.string().trim().url().max(512).optional().or(z.literal("")),
+      audioUrl: z.string().trim().url().max(512).optional().or(z.literal("")),
+      pdfUrl: z.string().trim().url().max(512).optional().or(z.literal("")),
+      position: z.number().int().min(0).optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const id = await db.createContent({ ...input, createdBy: ctx.user.id });
+      return { success: true, id };
+    }),
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      title: z.string().trim().min(2).max(255).optional(),
+      type: contentTypeSchema.optional(),
+      content: z.string().optional(),
+      imageUrl: z.string().trim().url().max(512).nullable().optional().or(z.literal("")),
+      videoUrl: z.string().trim().url().max(512).nullable().optional().or(z.literal("")),
+      audioUrl: z.string().trim().url().max(512).nullable().optional().or(z.literal("")),
+      pdfUrl: z.string().trim().url().max(512).nullable().optional().or(z.literal("")),
+      position: z.number().int().min(0).optional(),
+      isActive: z.boolean().optional(),
+      isArchived: z.boolean().optional(),
     })).mutation(async ({ input }) => {
-      const result = await db.saveStudyModuleProgress(
-        input.studentNumber,
-        input.accessToken,
-        input.moduleSlug,
-        input.progress
-      );
-      return result;
+      const { id, ...data } = input;
+      await db.updateContent(id, data);
+      return { success: true };
+    }),
+    archive: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.archiveContent(input.id);
+      return { success: true };
+    }),
+    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteContent(input.id);
+      return { success: true };
+    }),
+    reorder: adminProcedure.input(z.object({ contentIds: z.array(z.number()) })).mutation(async ({ input }) => {
+      await db.reorderContent(input.contentIds);
+      return { success: true };
+    }),
+    setLayout: adminProcedure.input(z.object({
+      contentId: z.number(),
+      section: z.string().trim().min(1).max(100),
+      column: z.number().int().min(1).optional(),
+      row: z.number().int().min(1).optional(),
+      width: z.string().trim().min(1).max(50).optional(),
+    })).mutation(async ({ input }) => {
+      const { contentId, ...layout } = input;
+      await db.setContentLayout(contentId, layout);
+      return { success: true };
+    }),
+    getLayout: publicProcedure.input(z.object({ contentId: z.number() })).query(async ({ input }) => {
+      return db.getContentLayout(input.contentId);
     }),
   }),
 });

@@ -54,18 +54,18 @@
 - [x] Cache de hinos e Ordem Unida
 - [x] Componente OfflineIndicator com status de conexão
 - [x] Hook usePWA para gerenciar instalação e atualizações
-- [ ] Testes de funcionalidade offline
+- [x] Testes de funcionalidade offline
 
 ## Mídia em Missões
 
-- [ ] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
-- [ ] Criar procedures tRPC para upload de mídia
-- [ ] UI para upload de múltiplos arquivos em missões
-- [ ] Visualizador de imagens com preview
-- [ ] Visualizador de vídeos
-- [ ] Visualizador de áudio
-- [ ] Leitor de PDF integrado
-- [ ] Download de arquivos
+- [x] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
+- [x] Criar procedures tRPC para upload de mídia
+- [x] UI para upload de múltiplos arquivos em missões
+- [x] Visualizador de imagens com preview
+- [x] Visualizador de vídeos
+- [x] Visualizador de áudio
+- [x] Leitor de PDF integrado
+- [x] Download de arquivos
 - [ ] Testes de upload e visualização
 
 
@@ -73,16 +73,16 @@
 
 - [x] Criar tabelas pmamContent, pmamContentLayout no banco de dados
 - [x] Adicionar helpers de banco para CRUD de conteúdo
-- [ ] Implementar procedures tRPC para CRUD de conteúdo
-- [ ] Criar painel gerencial de conteúdo (CMS Admin)
-- [ ] Implementar componentes de visualização de conteúdo na Home
-- [ ] Adicionar suporte para edição de posts, imagens, vídeos, links
-- [ ] Implementar sistema de posicionamento customizável
-- [ ] Adicionar funcionalidade de arquivar/deletar conteúdo
+- [x] Implementar procedures tRPC para CRUD de conteúdo
+- [x] Criar painel gerencial de conteúdo (CMS Admin)
+- [x] Implementar componentes de visualização de conteúdo na Home
+- [x] Adicionar suporte para edição de posts, imagens, vídeos, links
+- [x] Implementar sistema de posicionamento customizável
+- [x] Adicionar funcionalidade de arquivar/deletar conteúdo
 
 ## Correção de Idioma
 
-- [ ] Adicionar meta tag hreflang para português brasileiro
+- [x] Adicionar meta tag hreflang para português brasileiro
 - [ ] Corrigir acentuação em todos os textos do site
 - [ ] Revisar e atualizar conteúdo em português correto
 - [ ] Testar tradução automática do navegador

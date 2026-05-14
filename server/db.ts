@@ -118,6 +118,8 @@ function mapDrill(d: any) {
     videoUrl: d.video_url,
     pdfUrl: d.pdf_url,
     imageUrl: d.image_url,
+    youtubeUrl: d.youtube_url,
+    cornettaAudioUrl: d.cornetta_audio_url,
     content: d.content,
     instructor: d.instructor,
     prerequisites: d.prerequisites,
@@ -932,8 +934,8 @@ export async function createDrill(drill: any) {
   const attachmentsJson = drill.attachmentsJson ? JSON.stringify(drill.attachmentsJson) : null;
   const sql = `
     INSERT INTO pmam_drill 
-    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, youtube_url, cornetta_audio_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -946,6 +948,8 @@ export async function createDrill(drill: any) {
     drill.videoUrl || null,
     drill.pdfUrl || null,
     drill.imageUrl || null,
+    drill.youtubeUrl || null,
+    drill.cornettaAudioUrl || null,
     drill.content || null,
     drill.instructor || null,
     drill.prerequisites || null,
@@ -972,6 +976,8 @@ export async function updateDrill(id: number, drill: any) {
     videoUrl: 'video_url',
     pdfUrl: 'pdf_url',
     imageUrl: 'image_url',
+    youtubeUrl: 'youtube_url',
+    cornettaAudioUrl: 'cornetta_audio_url',
     content: 'content',
     instructor: 'instructor',
     prerequisites: 'prerequisites',
@@ -1117,6 +1123,26 @@ export async function reorderMissionMedia(missionId: number, mediaIds: number[])
 
 // CMS - Content Management System helpers
 
+function mapContent(row: any) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    title: row.title,
+    type: row.type,
+    content: row.content,
+    imageUrl: row.image_url,
+    videoUrl: row.video_url,
+    audioUrl: row.audio_url,
+    pdfUrl: row.pdf_url,
+    position: row.position,
+    isActive: row.is_active === 1 || row.is_active === true,
+    isArchived: row.is_archived === 1 || row.is_archived === true,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export async function createContent(data: {
   title: string;
   type: 'post' | 'news' | 'announcement' | 'highlight';
@@ -1125,12 +1151,14 @@ export async function createContent(data: {
   videoUrl?: string;
   audioUrl?: string;
   pdfUrl?: string;
+  position?: number;
+  isActive?: boolean;
   createdBy?: number;
 }) {
   const sql = `
     INSERT INTO pmam_content 
-    (title, type, content, image_url, video_url, audio_url, pdf_url, created_by, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+    (title, type, content, image_url, video_url, audio_url, pdf_url, position, is_active, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
   `;
   const params = [
     data.title,
@@ -1140,6 +1168,8 @@ export async function createContent(data: {
     data.videoUrl || null,
     data.audioUrl || null,
     data.pdfUrl || null,
+    data.position || 0,
+    data.isActive !== false ? 1 : 0,
     data.createdBy || null,
   ];
   const result = await query(sql, params);
@@ -1150,10 +1180,10 @@ export async function updateContent(id: number, data: Partial<{
   title: string;
   type: 'post' | 'news' | 'announcement' | 'highlight';
   content: string;
-  imageUrl: string;
-  videoUrl: string;
-  audioUrl: string;
-  pdfUrl: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  audioUrl: string | null;
+  pdfUrl: string | null;
   position: number;
   isActive: boolean;
   isArchived: boolean;
@@ -1212,7 +1242,7 @@ export async function updateContent(id: number, data: Partial<{
 export async function getContent(id: number) {
   const sql = 'SELECT * FROM pmam_content WHERE id = ?';
   const result = await query(sql, [id]);
-  return (result as any[])[0] || null;
+  return mapContent((result as any[])[0]) || null;
 }
 
 export async function listContent(filters?: {
@@ -1250,7 +1280,7 @@ export async function listContent(filters?: {
   }
 
   const result = await query(sql, params);
-  return result as any[];
+  return (result as any[]).map(mapContent);
 }
 
 export async function deleteContent(id: number) {

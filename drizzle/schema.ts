@@ -199,6 +199,42 @@ export const pmamMissionMedia = mysqlTable("pmam_mission_media", {
 export type PmamMissionMedia = typeof pmamMissionMedia.$inferSelect;
 export type InsertPmamMissionMedia = typeof pmamMissionMedia.$inferInsert;
 
+export const pmamContent = mysqlTable("pmam_content", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  type: mysqlEnum("type", ["post", "news", "announcement", "highlight"]).notNull(),
+  content: longtext("content"),
+  imageUrl: varchar("image_url", { length: 512 }),
+  videoUrl: varchar("video_url", { length: 512 }),
+  audioUrl: varchar("audio_url", { length: 512 }),
+  pdfUrl: varchar("pdf_url", { length: 512 }),
+  position: int("position").default(0),
+  isActive: boolean("is_active").default(true),
+  isArchived: boolean("is_archived").default(false),
+  createdBy: int("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamContent = typeof pmamContent.$inferSelect;
+export type InsertPmamContent = typeof pmamContent.$inferInsert;
+
+export const pmamContentLayout = mysqlTable("pmam_content_layout", {
+  id: int("id").autoincrement().primaryKey(),
+  contentId: int("content_id").notNull(),
+  section: varchar("section", { length: 100 }).notNull(),
+  column: int("column").default(1),
+  row: int("row").default(1),
+  width: varchar("width", { length: 50 }).default("full"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (table) => ({
+  contentUnique: uniqueIndex("uq_pmam_content_layout_content").on(table.contentId),
+}));
+
+export type PmamContentLayout = typeof pmamContentLayout.$inferSelect;
+export type InsertPmamContentLayout = typeof pmamContentLayout.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,

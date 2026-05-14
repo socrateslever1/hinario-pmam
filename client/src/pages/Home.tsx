@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake } from "lucide-react";
+import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake, FileText, ExternalLink } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -16,8 +16,24 @@ const categories = [
   { key: "oracao", label: "Orações", icon: BookOpen, count: 4, desc: "Orações dos guerreiros" },
 ];
 
+function BadgeLabel({ type }: { type: string }) {
+  const labels: Record<string, string> = {
+    highlight: "Destaque",
+    announcement: "Aviso",
+    news: "Notícia",
+    post: "Post",
+  };
+
+  return (
+    <span className="rounded-full bg-[#1a3a2a]/10 px-2 py-1 text-xs font-semibold text-[#1a3a2a]">
+      {labels[type] || type}
+    </span>
+  );
+}
+
 export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
+  const { data: contents } = trpc.content.list.useQuery({ limit: 6 });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -74,6 +90,47 @@ export default function Home() {
         </div>
         <div className="checkerboard-pattern w-full" />
       </section>
+
+      {contents && contents.length > 0 && (
+        <section className="py-12 bg-background">
+          <div className="container">
+            <div className="mb-8 flex items-center gap-3">
+              <FileText className="h-6 w-6 text-[#c4a84b]" />
+              <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                Comunicados e Destaques
+              </h2>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {contents.map((item: any) => (
+                <Card key={item.id} className="overflow-hidden border-border/50 bg-white">
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt={item.title} className="h-48 w-full object-cover" />
+                  )}
+                  {item.videoUrl && !item.imageUrl && (
+                    <video controls className="aspect-video w-full bg-black" src={item.videoUrl} />
+                  )}
+                  <CardContent className="space-y-3 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-bold text-foreground">{item.title}</h3>
+                      <BadgeLabel type={item.type} />
+                    </div>
+                    {item.content && <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{item.content}</p>}
+                    {item.audioUrl && <audio controls className="w-full" src={item.audioUrl} />}
+                    {item.pdfUrl && (
+                      <a href={item.pdfUrl} target="_blank" rel="noreferrer">
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <ExternalLink className="h-4 w-4" />
+                          Abrir PDF
+                        </Button>
+                      </a>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Institutional Guidelines Section */}
       <section className="py-16 bg-background">

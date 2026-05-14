@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -39,20 +39,21 @@ export default function StudyStudio({ module }: StudyStudioProps) {
   const [bestScore, setBestScore] = useState<number | null>(null);
 
   // Carregar progresso inicial
-  trpc.study.getDashboard.useQuery(
+  const dashboardQuery = trpc.study.getDashboard.useQuery(
     { studentNumber: session?.student.studentNumber || "", accessToken: session?.accessToken },
     {
       enabled: !!session,
       staleTime: Infinity,
-      onSuccess: (data) => {
-        const prog = data.modules.find(m => m.moduleSlug === module.slug);
-        if (prog) {
-          setCompletedSectionIds(prog.completedSectionIds);
-          setBestScore(prog.bestScore);
-        }
-      }
     }
   );
+
+  useEffect(() => {
+    const prog = dashboardQuery.data?.modules.find((m) => m.moduleSlug === module.slug);
+    if (prog) {
+      setCompletedSectionIds(prog.completedSectionIds);
+      setBestScore(prog.bestScore);
+    }
+  }, [dashboardQuery.data, module.slug]);
 
   const saveProgressMutation = trpc.study.saveProgress.useMutation();
 
@@ -64,9 +65,10 @@ export default function StudyStudio({ module }: StudyStudioProps) {
       moduleSlug: module.slug,
       progress: {
         completedSectionIds: newCompletedSections,
+        answers: {},
         lastScore: score,
         bestScore: score !== null ? Math.max(score, bestScore || 0) : bestScore,
-        lastSubmittedAt: score !== null ? new Date().toISOString() : undefined,
+        lastSubmittedAt: score !== null ? new Date().toISOString() : null,
       }
     });
     if (score !== null && score > (bestScore || 0)) {
@@ -318,7 +320,10 @@ export default function StudyStudio({ module }: StudyStudioProps) {
             >
               <StudyExam 
                 module={module} 
-                onFinish={() => setMode("results")}
+                onFinish={(score) => {
+                  handleSaveProgress(completedSectionIds, score);
+                  setMode("results");
+                }}
                 onRestart={startExam}
               />
             </motion.div>
@@ -374,7 +379,7 @@ function StudyExam({
   onRestart 
 }: { 
   module: StudyModule; 
-  onFinish: () => void;
+  onFinish: (score: number) => void;
   onRestart: () => void;
 }) {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -534,7 +539,7 @@ function StudyExam({
               className="bg-[#1a3a2a] text-white hover:bg-[#10281d] px-8"
               onClick={() => {
                 setIsFinished(true);
-                handleSaveProgress(completedSectionIds, score);
+                onFinish(score);
               }}
               disabled={!(answers[currentQuestion.id]?.length > 0)}
             >

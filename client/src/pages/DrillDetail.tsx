@@ -4,7 +4,7 @@ import { Streamdown } from "streamdown";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
-import { extractYouTubeId, resolvePlayableMediaUrl } from "@/lib/media";
+import { resolvePlayableMediaUrl } from "@/lib/media";
 import { ordemUnidaManualHighlights } from "@/lib/studyLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,8 +93,6 @@ export default function DrillDetail() {
   const hasPdf = Boolean(drill.pdfUrl);
   const hasYoutube = Boolean(drill.youtubeUrl);
   const hasCornettaAudio = Boolean(drill.cornettaAudioUrl);
-  const youtubeId = extractYouTubeId(drill.videoUrl);
-  const youtubeExecutionId = extractYouTubeId(drill.youtubeUrl);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -191,11 +189,6 @@ export default function DrillDetail() {
                           width="100%"
                           height="100%"
                           style={{ backgroundColor: "#000" }}
-                          config={
-                            youtubeId
-                              ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
-                              : undefined
-                          }
                         />
                       </div>
                     </div>
@@ -226,11 +219,6 @@ export default function DrillDetail() {
                             width="100%"
                             height="100%"
                             style={{ backgroundColor: "#000" }}
-                            config={
-                              youtubeExecutionId
-                                ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
-                                : undefined
-                            }
                           />
                         </div>
                       </div>
