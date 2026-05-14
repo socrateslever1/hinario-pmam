@@ -537,7 +537,7 @@ export const appRouter = router({
     create: adminProcedure.input(z.object({
       title: z.string().min(1).max(255),
       content: z.string().min(1),
-      imageUrl: z.string().nullable().optional(),
+      imageUrl: z.string().optional(),
       published: z.boolean().default(false),
     })).mutation(async ({ input, ctx }) => {
       const id = await db.createBlogPost({
@@ -553,7 +553,7 @@ export const appRouter = router({
       id: z.number(),
       title: z.string().min(1).max(255).optional(),
       content: z.string().min(1).optional(),
-      imageUrl: z.string().nullable().optional(),
+      imageUrl: z.string().optional(),
       published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       await db.updateBlogPost(input.id, {

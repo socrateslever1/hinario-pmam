@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import RichTextEditor from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -213,12 +212,13 @@ export function BlogManagementPanel() {
 
               <div>
                 <label className="text-sm font-medium">Conteúdo *</label>
-                <RichTextEditor
-                  content={formData.content}
-                  onChange={(content) =>
-                    setFormData({ ...formData, content })
+                <Textarea
+                  placeholder="Digite o conteúdo do post"
+                  value={formData.content}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
                   }
-                  placeholder="Digite o conteúdo do post com formatação..."
+                  className="mt-1 min-h-[200px]"
                 />
               </div>
 
