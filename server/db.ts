@@ -118,6 +118,8 @@ function mapDrill(d: any) {
     videoUrl: d.video_url,
     pdfUrl: d.pdf_url,
     imageUrl: d.image_url,
+    youtubeUrl: d.youtube_url,
+    cornettaAudioUrl: d.cornetta_audio_url,
     content: d.content,
     instructor: d.instructor,
     prerequisites: d.prerequisites,
@@ -932,8 +934,8 @@ export async function createDrill(drill: any) {
   const attachmentsJson = drill.attachmentsJson ? JSON.stringify(drill.attachmentsJson) : null;
   const sql = `
     INSERT INTO pmam_drill 
-    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, youtube_url, cornetta_audio_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -946,6 +948,8 @@ export async function createDrill(drill: any) {
     drill.videoUrl || null,
     drill.pdfUrl || null,
     drill.imageUrl || null,
+    drill.youtubeUrl || null,
+    drill.cornettaAudioUrl || null,
     drill.content || null,
     drill.instructor || null,
     drill.prerequisites || null,
@@ -972,6 +976,8 @@ export async function updateDrill(id: number, drill: any) {
     videoUrl: 'video_url',
     pdfUrl: 'pdf_url',
     imageUrl: 'image_url',
+    youtubeUrl: 'youtube_url',
+    cornettaAudioUrl: 'cornetta_audio_url',
     content: 'content',
     instructor: 'instructor',
     prerequisites: 'prerequisites',
@@ -1115,101 +1121,213 @@ export async function reorderMissionMedia(missionId: number, mediaIds: number[])
 }
 
 
-// Blog Posts Helpers
-function mapBlogPost(p: any) {
-  if (!p) return p;
+// CMS - Content Management System helpers
+
+function mapContent(row: any) {
+  if (!row) return row;
   return {
-    id: p.id,
-    title: p.title,
-    content: p.content,
-    imageUrl: p.image_url,
-    authorId: p.author_id,
-    published: Boolean(p.published),
-    createdAt: p.created_at,
-    updatedAt: p.updated_at,
+    id: row.id,
+    title: row.title,
+    type: row.type,
+    content: row.content,
+    imageUrl: row.image_url,
+    videoUrl: row.video_url,
+    audioUrl: row.audio_url,
+    pdfUrl: row.pdf_url,
+    position: row.position,
+    isActive: row.is_active === 1 || row.is_active === true,
+    isArchived: row.is_archived === 1 || row.is_archived === true,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
-export async function createBlogPost(post: {
+export async function createContent(data: {
   title: string;
-  content: string;
-  imageUrl?: string;
-  authorId: number;
-  published?: boolean;
-}) {
-  const sql = `
-    INSERT INTO pmam_blog_post (title, content, image_url, author_id, published)
-    VALUES (?, ?, ?, ?, ?)
-  `;
-  const params = [
-    post.title,
-    post.content,
-    post.imageUrl || null,
-    post.authorId,
-    post.published ? 1 : 0,
-  ];
-  const result = await query(sql, params) as any;
-  return result?.insertId || null;
-}
-
-export async function getBlogPostById(id: number) {
-  const result = await query(
-    'SELECT * FROM pmam_blog_post WHERE id = ?',
-    [id]
-  );
-  return result?.[0] ? mapBlogPost(result[0]) : null;
-}
-
-export async function listBlogPosts(published?: boolean) {
-  let sql = 'SELECT * FROM pmam_blog_post';
-  const params: any[] = [];
-  
-  if (published !== undefined) {
-    sql += ' WHERE published = ?';
-    params.push(published ? 1 : 0);
-  }
-  
-  sql += ' ORDER BY created_at DESC';
-  
-  const result = await query(sql, params);
-  return (result || []).map(mapBlogPost);
-}
-
-export async function updateBlogPost(id: number, updates: {
-  title?: string;
+  type: 'post' | 'news' | 'announcement' | 'highlight';
   content?: string;
   imageUrl?: string;
-  published?: boolean;
+  videoUrl?: string;
+  audioUrl?: string;
+  pdfUrl?: string;
+  position?: number;
+  isActive?: boolean;
+  createdBy?: number;
 }) {
-  const fields: string[] = [];
+  const sql = `
+    INSERT INTO pmam_content 
+    (title, type, content, image_url, video_url, audio_url, pdf_url, position, is_active, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
+  const params = [
+    data.title,
+    data.type,
+    data.content || null,
+    data.imageUrl || null,
+    data.videoUrl || null,
+    data.audioUrl || null,
+    data.pdfUrl || null,
+    data.position || 0,
+    data.isActive !== false ? 1 : 0,
+    data.createdBy || null,
+  ];
+  const result = await query(sql, params);
+  return (result as any).insertId;
+}
+
+export async function updateContent(id: number, data: Partial<{
+  title: string;
+  type: 'post' | 'news' | 'announcement' | 'highlight';
+  content: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  audioUrl: string | null;
+  pdfUrl: string | null;
+  position: number;
+  isActive: boolean;
+  isArchived: boolean;
+}>) {
+  const updates: string[] = [];
   const params: any[] = [];
-  
-  if (updates.title !== undefined) {
-    fields.push('title = ?');
-    params.push(updates.title);
+
+  if (data.title !== undefined) {
+    updates.push('title = ?');
+    params.push(data.title);
   }
-  if (updates.content !== undefined) {
-    fields.push('content = ?');
-    params.push(updates.content);
+  if (data.type !== undefined) {
+    updates.push('type = ?');
+    params.push(data.type);
   }
-  if (updates.imageUrl !== undefined) {
-    fields.push('image_url = ?');
-    params.push(updates.imageUrl || null);
+  if (data.content !== undefined) {
+    updates.push('content = ?');
+    params.push(data.content);
   }
-  if (updates.published !== undefined) {
-    fields.push('published = ?');
-    params.push(updates.published ? 1 : 0);
+  if (data.imageUrl !== undefined) {
+    updates.push('image_url = ?');
+    params.push(data.imageUrl);
   }
-  
-  if (fields.length === 0) return;
-  
-  fields.push('updated_at = NOW()');
+  if (data.videoUrl !== undefined) {
+    updates.push('video_url = ?');
+    params.push(data.videoUrl);
+  }
+  if (data.audioUrl !== undefined) {
+    updates.push('audio_url = ?');
+    params.push(data.audioUrl);
+  }
+  if (data.pdfUrl !== undefined) {
+    updates.push('pdf_url = ?');
+    params.push(data.pdfUrl);
+  }
+  if (data.position !== undefined) {
+    updates.push('position = ?');
+    params.push(data.position);
+  }
+  if (data.isActive !== undefined) {
+    updates.push('is_active = ?');
+    params.push(data.isActive ? 1 : 0);
+  }
+  if (data.isArchived !== undefined) {
+    updates.push('is_archived = ?');
+    params.push(data.isArchived ? 1 : 0);
+  }
+
+  updates.push('updated_at = NOW()');
   params.push(id);
-  
-  const sql = `UPDATE pmam_blog_post SET ${fields.join(', ')} WHERE id = ?`;
+
+  const sql = `UPDATE pmam_content SET ${updates.join(', ')} WHERE id = ?`;
   await query(sql, params);
 }
 
-export async function deleteBlogPost(id: number) {
-  await query('DELETE FROM pmam_blog_post WHERE id = ?', [id]);
+export async function getContent(id: number) {
+  const sql = 'SELECT * FROM pmam_content WHERE id = ?';
+  const result = await query(sql, [id]);
+  return mapContent((result as any[])[0]) || null;
+}
+
+export async function listContent(filters?: {
+  type?: string;
+  isActive?: boolean;
+  isArchived?: boolean;
+  limit?: number;
+  offset?: number;
+}) {
+  let sql = 'SELECT * FROM pmam_content WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters?.type) {
+    sql += ' AND type = ?';
+    params.push(filters.type);
+  }
+  if (filters?.isActive !== undefined) {
+    sql += ' AND is_active = ?';
+    params.push(filters.isActive ? 1 : 0);
+  }
+  if (filters?.isArchived !== undefined) {
+    sql += ' AND is_archived = ?';
+    params.push(filters.isArchived ? 1 : 0);
+  }
+
+  sql += ' ORDER BY position ASC, created_at DESC';
+
+  if (filters?.limit) {
+    sql += ' LIMIT ?';
+    params.push(filters.limit);
+    if (filters?.offset) {
+      sql += ' OFFSET ?';
+      params.push(filters.offset);
+    }
+  }
+
+  const result = await query(sql, params);
+  return (result as any[]).map(mapContent);
+}
+
+export async function deleteContent(id: number) {
+  await query('DELETE FROM pmam_content WHERE id = ?', [id]);
+}
+
+export async function archiveContent(id: number) {
+  await query('UPDATE pmam_content SET is_archived = 1, updated_at = NOW() WHERE id = ?', [id]);
+}
+
+export async function reorderContent(contentIds: number[]) {
+  for (let i = 0; i < contentIds.length; i++) {
+    await query(
+      'UPDATE pmam_content SET position = ?, updated_at = NOW() WHERE id = ?',
+      [i, contentIds[i]]
+    );
+  }
+}
+
+export async function setContentLayout(contentId: number, layout: {
+  section: string;
+  column?: number;
+  row?: number;
+  width?: string;
+}) {
+  const sql = `
+    INSERT INTO pmam_content_layout (content_id, section, column, row, width, updated_at)
+    VALUES (?, ?, ?, ?, ?, NOW())
+    ON DUPLICATE KEY UPDATE
+    section = VALUES(section),
+    column = VALUES(column),
+    row = VALUES(row),
+    width = VALUES(width),
+    updated_at = NOW()
+  `;
+  const params = [
+    contentId,
+    layout.section,
+    layout.column || 1,
+    layout.row || 1,
+    layout.width || 'full',
+  ];
+  await query(sql, params);
+}
+
+export async function getContentLayout(contentId: number) {
+  const sql = 'SELECT * FROM pmam_content_layout WHERE content_id = ?';
+  const result = await query(sql, [contentId]);
+  return (result as any[])[0] || null;
 }

@@ -144,7 +144,7 @@ export default function LyricsPlayer({
                   onPause: () => setPlaying(false),
                   onEnded: () => setPlaying(false),
                   config: isYoutube
-                    ? undefined
+                    ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
                     : undefined,
                 })}
               </div>

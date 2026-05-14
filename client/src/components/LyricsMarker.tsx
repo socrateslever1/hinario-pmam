@@ -659,7 +659,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
           onPause={() => setPlaying(false)}
           config={
             hymn.youtubeUrl
-              ? undefined
+              ? { youtube: { playerVars: { rel: 0, modestbranding: 1, playsinline: 1 } } }
               : undefined
           }
         />
