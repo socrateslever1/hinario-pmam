@@ -7,14 +7,9 @@ import {
   Bell,
   Calendar,
   CheckCircle2,
-  Download,
-  FileText,
-  Image as ImageIcon,
   MessageSquare,
-  Music,
   Send,
   Shield,
-  Video,
 } from "lucide-react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -72,7 +67,6 @@ function MissionCard({
     { missionId: mission.id },
     { enabled: showComments }
   );
-  const mediaQuery = trpc.missions.media.useQuery({ missionId: mission.id });
 
   useEffect(() => {
     setAuthorName(savedVisitorName);
@@ -146,42 +140,6 @@ function MissionCard({
         <div className="prose prose-sm max-w-none whitespace-pre-line text-muted-foreground">
           {mission.content}
         </div>
-
-        {mediaQuery.data && mediaQuery.data.length > 0 && (
-          <div className="mt-5 grid gap-4">
-            {mediaQuery.data.map((item: any) => (
-              <div key={item.id} className="overflow-hidden rounded-xl border bg-white">
-                <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    {item.type === "image" && <ImageIcon className="h-4 w-4 text-[#1a3a2a]" />}
-                    {item.type === "video" && <Video className="h-4 w-4 text-red-600" />}
-                    {item.type === "audio" && <Music className="h-4 w-4 text-[#1a3a2a]" />}
-                    {(item.type === "pdf" || item.type === "document") && <FileText className="h-4 w-4 text-blue-700" />}
-                    <span className="truncate text-sm font-semibold text-foreground">{item.title || "Anexo da missão"}</span>
-                  </div>
-                  <a href={item.url} target="_blank" rel="noreferrer" className="text-[#1a3a2a]">
-                    <Download className="h-4 w-4" />
-                  </a>
-                </div>
-                {item.description && <p className="px-4 pt-3 text-sm text-muted-foreground">{item.description}</p>}
-                {item.type === "image" && (
-                  <img src={item.url} alt={item.title || mission.title} className="max-h-[520px] w-full object-contain bg-slate-50" />
-                )}
-                {item.type === "video" && (
-                  <video controls className="aspect-video w-full bg-black" src={item.url} />
-                )}
-                {item.type === "audio" && (
-                  <div className="p-4">
-                    <audio controls className="w-full" src={item.url} />
-                  </div>
-                )}
-                {item.type === "pdf" && (
-                  <iframe title={item.title || "PDF da missão"} src={`${item.url}#toolbar=1&navpanes=0&view=FitH`} className="h-[520px] w-full bg-white" />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">

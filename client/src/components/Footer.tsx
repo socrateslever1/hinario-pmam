@@ -16,7 +16,7 @@ export default function Footer() {
             <img src={LOGO_URL} alt="Brasao PMAM" className="h-12 w-12 object-contain" />
             <div>
               <h3 className="text-lg font-bold text-white" style={{ fontFamily: "Merriweather, serif" }}>
-                Hinário PMAM
+                Hinario PMAM
               </h3>
               <p className="mt-1 text-sm text-white/60">
                 {settings?.footer_text || "Hinos, canções militares e material de estudo da Polícia Militar do Amazonas"}

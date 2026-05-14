@@ -12,7 +12,7 @@ const ESSENTIAL_ASSETS = [
 
 // Padrões de URLs para cache
 const CACHE_PATTERNS = {
-  api: /^\/api\/trpc\/(hymns|drill|missions|content)(\.|\/|\?|$)/,
+  api: /^\/api\/trpc\/(hymn|drill|cfap|mission)/,
   assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico|json)$/,
   pages: /\/(hinos|drill|cfap|sobre|estudos|xerife)(\?|$)/,
 };
@@ -150,9 +150,8 @@ async function cacheFirstStrategy(request, cacheName) {
     
     // Fallback para imagem placeholder se for imagem
     if (request.headers.get('accept')?.includes('image')) {
-      const pngBytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='), (char) => char.charCodeAt(0));
       return new Response(
-        pngBytes,
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
         {
           headers: { 'Content-Type': 'image/png' },
         }

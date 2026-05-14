@@ -20,11 +20,12 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock, Search, Image as ImageIcon, Video, Archive
+  Clock, Search
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
+import { BlogManagementPanel } from "@/components/BlogManagementPanel";
 
 const categoryOptions = [
   { value: "nacional", label: "Hino Nacional" },
@@ -38,27 +39,6 @@ const priorityOptions = [
   { value: "normal", label: "Normal" },
   { value: "urgente", label: "Urgente" },
   { value: "critica", label: "Crítica" },
-];
-
-const statusOptions = [
-  { value: "ativa", label: "Ativa" },
-  { value: "cumprida", label: "Cumprida" },
-  { value: "inativa", label: "Inativa" },
-];
-
-const missionMediaOptions = [
-  { value: "image", label: "Imagem" },
-  { value: "video", label: "Vídeo" },
-  { value: "audio", label: "Áudio" },
-  { value: "pdf", label: "PDF" },
-  { value: "document", label: "Documento" },
-];
-
-const contentTypeOptions = [
-  { value: "highlight", label: "Destaque" },
-  { value: "announcement", label: "Aviso" },
-  { value: "news", label: "Notícia" },
-  { value: "post", label: "Post" },
 ];
 
 const difficultyOptions = [
@@ -270,8 +250,6 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
     title: mission?.title ?? "",
     content: mission?.content ?? "",
     priority: mission?.priority ?? "normal",
-    status: mission?.status ?? "ativa",
-    dueDate: mission?.dueDate ? String(mission.dueDate).slice(0, 10) : "",
   });
 
   const utils = trpc.useUtils();
@@ -287,14 +265,8 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.content) { toast.error("Título e conteúdo são obrigatórios"); return; }
-    const data = {
-      ...form,
-      priority: form.priority as any,
-      status: form.status as any,
-      dueDate: form.dueDate ? new Date(`${form.dueDate}T12:00:00`) : null,
-    };
-    if (mission) { updateMut.mutate({ id: mission.id, ...data }); }
-    else { createMut.mutate(data); }
+    if (mission) { updateMut.mutate({ id: mission.id, ...form, priority: form.priority as any }); }
+    else { createMut.mutate({ ...form, priority: form.priority as any }); }
   };
 
   const saving = createMut.isPending || updateMut.isPending;
@@ -308,274 +280,11 @@ function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => v
           <SelectContent>{priorityOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
         </Select>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div><Label>Status</Label>
-          <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{statusOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div><Label>Data de Cumprimento</Label><Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
-      </div>
       <div><Label>Conteúdo *</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} required /></div>
       <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
         <Save className="h-4 w-4" />{saving ? "Salvando..." : mission ? "Atualizar Missão" : "Publicar Missão"}
       </Button>
     </form>
-  );
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-function MissionMediaManager({ missionId }: { missionId: number }) {
-  const [form, setForm] = useState({ type: "image", title: "", description: "", url: "" });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const utils = trpc.useUtils();
-  const { data: media } = trpc.missions.media.useQuery({ missionId });
-
-  const addMedia = trpc.missions.addMedia.useMutation({
-    onSuccess: () => {
-      toast.success("Mídia vinculada.");
-      setForm({ type: "image", title: "", description: "", url: "" });
-      utils.missions.media.invalidate({ missionId });
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  const uploadMedia = trpc.missions.uploadMedia.useMutation({
-    onSuccess: () => {
-      toast.success("Arquivo enviado.");
-      setSelectedFile(null);
-      setForm({ type: "image", title: "", description: "", url: "" });
-      utils.missions.media.invalidate({ missionId });
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  const deleteMedia = trpc.missions.deleteMedia.useMutation({
-    onSuccess: () => {
-      toast.success("Mídia removida.");
-      utils.missions.media.invalidate({ missionId });
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const handleSave = async () => {
-    if (selectedFile) {
-      const fileBase64 = await fileToBase64(selectedFile);
-      uploadMedia.mutate({
-        missionId,
-        type: form.type as any,
-        title: form.title || selectedFile.name,
-        description: form.description || undefined,
-        fileName: selectedFile.name,
-        fileBase64,
-        contentType: selectedFile.type || "application/octet-stream",
-      });
-      return;
-    }
-
-    if (!form.url.trim()) {
-      toast.error("Informe uma URL ou selecione um arquivo.");
-      return;
-    }
-
-    addMedia.mutate({
-      missionId,
-      type: form.type as any,
-      title: form.title || undefined,
-      description: form.description || undefined,
-      url: form.url.trim(),
-    });
-  };
-
-  const saving = addMedia.isPending || uploadMedia.isPending;
-
-  return (
-    <div className="mt-3 space-y-3 rounded-lg border bg-muted/20 p-3">
-      <div className="grid gap-3 md:grid-cols-[150px_minmax(0,1fr)]">
-        <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{missionMediaOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-        </Select>
-        <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Título da mídia" />
-      </div>
-      <Input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="URL de imagem, vídeo, áudio ou PDF" />
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-        <Input type="file" onChange={e => setSelectedFile(e.target.files?.[0] ?? null)} />
-        <Button type="button" className="bg-[#1a3a2a] text-white gap-2" onClick={handleSave} disabled={saving}>
-          <Upload className="h-4 w-4" />{saving ? "Enviando..." : "Adicionar Mídia"}
-        </Button>
-      </div>
-      <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Descrição opcional" rows={2} />
-
-      <div className="space-y-2">
-        {media?.map((item: any) => (
-          <div key={item.id} className="flex flex-col gap-2 rounded-md bg-white p-3 text-sm sm:flex-row sm:items-center">
-            <Badge variant="secondary">{item.type}</Badge>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{item.title || item.url}</p>
-              <a className="block truncate text-xs text-[#1a3a2a] underline" href={item.url} target="_blank" rel="noreferrer">{item.url}</a>
-            </div>
-            <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMedia.mutate({ id: item.id })}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function getDefaultContentFormState(content?: any) {
-  return {
-    title: content?.title ?? "",
-    type: content?.type ?? "highlight",
-    content: content?.content ?? "",
-    imageUrl: content?.imageUrl ?? "",
-    videoUrl: content?.videoUrl ?? "",
-    audioUrl: content?.audioUrl ?? "",
-    pdfUrl: content?.pdfUrl ?? "",
-    position: content?.position ?? 0,
-    isActive: content?.isActive ?? true,
-  };
-}
-
-function ContentForm({ content, onSuccess }: { content?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState(() => getDefaultContentFormState(content));
-  const utils = trpc.useUtils();
-  const createMut = trpc.content.create.useMutation({
-    onSuccess: () => { toast.success("Conteúdo criado!"); utils.content.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const updateMut = trpc.content.update.useMutation({
-    onSuccess: () => { toast.success("Conteúdo atualizado!"); utils.content.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  useEffect(() => setForm(getDefaultContentFormState(content)), [content]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim()) {
-      toast.error("Título é obrigatório");
-      return;
-    }
-    const data = {
-      ...form,
-      type: form.type as any,
-      position: Number(form.position) || 0,
-      imageUrl: form.imageUrl.trim() || "",
-      videoUrl: form.videoUrl.trim() || "",
-      audioUrl: form.audioUrl.trim() || "",
-      pdfUrl: form.pdfUrl.trim() || "",
-    };
-    if (content?.id) updateMut.mutate({ id: content.id, ...data });
-    else createMut.mutate(data);
-  };
-
-  const saving = createMut.isPending || updateMut.isPending;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
-      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div><Label>Tipo</Label>
-          <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{contentTypeOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div><Label>Posição</Label><Input type="number" value={form.position} onChange={e => setForm(f => ({ ...f, position: Number(e.target.value) }))} /></div>
-      </div>
-      <div><Label>Texto</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={6} /></div>
-      <div><Label>URL da Imagem</Label><Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>URL do Vídeo</Label><Input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>URL do Áudio</Label><Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>URL do PDF</Label><Input value={form.pdfUrl} onChange={e => setForm(f => ({ ...f, pdfUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div className="flex items-center gap-3 rounded-lg border p-3">
-        <Switch checked={form.isActive} onCheckedChange={checked => setForm(f => ({ ...f, isActive: checked }))} />
-        <Label>Publicado na Home</Label>
-      </div>
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
-        <Save className="h-4 w-4" />{saving ? "Salvando..." : content?.id ? "Atualizar Conteúdo" : "Criar Conteúdo"}
-      </Button>
-    </form>
-  );
-}
-
-function ContentTab() {
-  const { data: contents } = trpc.content.listAll.useQuery();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<any>(null);
-  const utils = trpc.useUtils();
-  const toggleContent = trpc.content.update.useMutation({ onSuccess: () => utils.content.invalidate() });
-  const archiveContent = trpc.content.archive.useMutation({
-    onSuccess: () => { toast.success("Conteúdo arquivado."); utils.content.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const deleteContent = trpc.content.delete.useMutation({
-    onSuccess: () => { toast.success("Conteúdo removido."); utils.content.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-bold text-foreground">Gerenciar Conteúdo da Home</h2>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingContent(null); }}>
-          <DialogTrigger asChild>
-            <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingContent(null)}>
-              <Plus className="h-4 w-4" /> Novo Conteúdo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
-            <DialogHeader>
-              <DialogTitle>{editingContent ? "Editar Conteúdo" : "Novo Conteúdo"}</DialogTitle>
-              <DialogDescription>Publique posts, avisos, imagens, vídeos, links e PDFs na página inicial.</DialogDescription>
-            </DialogHeader>
-            <ContentForm key={editingContent?.id ?? "new-content"} content={editingContent} onSuccess={() => setDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="space-y-2">
-        {contents?.map((item: any) => (
-          <Card key={item.id} className="border-border/50">
-            <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-foreground text-sm truncate">{item.title}</p>
-                  <Badge variant="secondary">{contentTypeOptions.find(o => o.value === item.type)?.label || item.type}</Badge>
-                  {item.isArchived && <Badge variant="outline">Arquivado</Badge>}
-                </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{item.content || item.imageUrl || item.videoUrl || "Sem texto"}</p>
-              </div>
-              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                {item.imageUrl && <ImageIcon className="h-4 w-4 text-green-600" />}
-                {item.videoUrl && <Video className="h-4 w-4 text-red-600" />}
-                {item.pdfUrl && <FileText className="h-4 w-4 text-blue-600" />}
-                <Switch checked={item.isActive} onCheckedChange={(checked) => toggleContent.mutate({ id: item.id, isActive: checked })} />
-                <Button variant="ghost" size="icon" onClick={() => { setEditingContent(item); setDialogOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => archiveContent.mutate({ id: item.id })}>
-                  <Archive className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { if (confirm("Remover este conteúdo?")) deleteContent.mutate({ id: item.id }); }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -928,7 +637,7 @@ export default function Admin() {
               <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
               <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
               <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
-              <TabsTrigger value="content" className="gap-2"><FileText className="h-4 w-4" /> Conteúdo</TabsTrigger>
+              <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
               <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
             </TabsList>
@@ -1057,7 +766,7 @@ export default function Admin() {
                   })
                   ?.map((hymn: any) => (
                     <Card key={hymn.id} className="border-border/50">
-                      <CardContent className="p-4 flex flex-col gap-3">
+                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="w-10 h-10 rounded-lg bg-[#2d5a27] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {String(hymn.number).padStart(2, "0")}
                         </div>
@@ -1139,7 +848,6 @@ export default function Admin() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <MissionMediaManager missionId={mission.id} />
                       </CardContent>
                     </Card>
                   ))}
@@ -1220,14 +928,14 @@ export default function Admin() {
               )}
             </TabsContent>
 
+            {/* BLOG/COMUNICADOS TAB */}
+            <TabsContent value="blog">
+              <BlogManagementPanel />
+            </TabsContent>
+
             {/* SETTINGS TAB */}
             <TabsContent value="settings">
               <SettingsTab />
-            </TabsContent>
-
-            {/* CONTENT TAB */}
-            <TabsContent value="content">
-              <ContentTab />
             </TabsContent>
 
             {/* USERS TAB (Master only) */}
