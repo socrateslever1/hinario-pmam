@@ -1,0 +1,1 @@
+ALTER TABLE `pmam_blog_post` MODIFY COLUMN `image_url` varchar(512) DEFAULT null;
