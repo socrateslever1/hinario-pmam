@@ -27,6 +27,8 @@ export function BlogManagementPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [searchTitle, setSearchTitle] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"todos" | "publicados" | "rascunhos">("todos");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -293,6 +295,39 @@ export function BlogManagementPanel() {
         </Dialog>
       </div>
 
+      {/* Filtros */}
+      <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium">Buscar por titulo</label>
+            <Input
+              placeholder="Digite o titulo para buscar..."
+              value={searchTitle}
+              onChange={(e) => setSearchTitle(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Filtrar por status</label>
+            <div className="flex gap-2 mt-1">
+              {(["todos", "publicados", "rascunhos"] as const).map((status) => (
+                <Button
+                  key={status}
+                  variant={filterStatus === status ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterStatus(status)}
+                  className="capitalize"
+                >
+                  {status === "todos" && "Todos"}
+                  {status === "publicados" && "Publicados"}
+                  {status === "rascunhos" && "Rascunhos"}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tabela de Posts */}
       <div className="border rounded-lg overflow-hidden">
         <Table>
@@ -312,7 +347,16 @@ export function BlogManagementPanel() {
                 </TableCell>
               </TableRow>
             ) : posts && posts.length > 0 ? (
-              posts.map((post) => (
+              posts
+                .filter((post) => {
+                  const matchesTitle = post.title.toLowerCase().includes(searchTitle.toLowerCase());
+                  const matchesStatus =
+                    filterStatus === "todos" ||
+                    (filterStatus === "publicados" && post.published) ||
+                    (filterStatus === "rascunhos" && !post.published);
+                  return matchesTitle && matchesStatus;
+                })
+                .map((post) => (
                 <TableRow key={post.id}>
                   <TableCell className="font-medium max-w-xs truncate">
                     {post.title}
@@ -362,7 +406,9 @@ export function BlogManagementPanel() {
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8">
-                  Nenhum post criado ainda
+                  {posts && posts.length > 0
+                    ? "Nenhum post encontrado com esses filtros"
+                    : "Nenhum post criado ainda"}
                 </TableCell>
               </TableRow>
             )}
