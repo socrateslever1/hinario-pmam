@@ -45,7 +45,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
       enabled: !!session,
       staleTime: Infinity,
       onSuccess: (data) => {
-        const prog = data.modules.find(m => m.moduleSlug === module.slug);
+        const prog = data.modules.find((m: any) => m.moduleSlug === module.slug);
         if (prog) {
           setCompletedSectionIds(prog.completedSectionIds);
           setBestScore(prog.bestScore);
@@ -54,7 +54,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
     }
   );
 
-  const saveProgressMutation = trpc.study.saveProgress.useMutation();
+  const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
 
   const handleSaveProgress = (newCompletedSections: string[], score: number | null) => {
     if (!session) return;

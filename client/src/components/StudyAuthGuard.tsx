@@ -35,7 +35,7 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const loginMutation = trpc.study.login.useMutation({
+  const loginMutation = trpc.study.ensureStudent.useMutation({
     onSuccess: (data) => {
       setSession(data);
       localStorage.setItem("pmam_study_session", JSON.stringify(data));
@@ -67,7 +67,7 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
       setError(getStudyStudentNumberErrorMessage());
       return;
     }
-    loginMutation.mutate({ studentNumber, displayName: displayName || undefined });
+    loginMutation.mutate({ studentNumber, displayName: displayName || undefined, accessToken: null });
   };
 
   const logout = () => {
