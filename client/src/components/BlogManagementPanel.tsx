@@ -36,7 +36,7 @@ export function BlogManagementPanel() {
     imageUrl: "",
     published: true,
   });
-  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Queries
   const { data: posts, isLoading, refetch } = trpc.blog.list.useQuery();
@@ -72,7 +72,7 @@ export function BlogManagementPanel() {
       published: true,
     });
     setEditingId(null);
-    setAlert(null);
+    setFeedback(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -83,12 +83,14 @@ export function BlogManagementPanel() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Por favor, selecione uma imagem válida");
+      setFeedback({ type: 'error', message: 'Por favor, selecione uma imagem válida' });
+      setTimeout(() => setFeedback(null), 5000);
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("A imagem deve ter no máximo 5MB");
+      setFeedback({ type: 'error', message: 'A imagem deve ter no máximo 5MB' });
+      setTimeout(() => setFeedback(null), 5000);
       return;
     }
 
@@ -111,7 +113,8 @@ export function BlogManagementPanel() {
       setFormData({ ...formData, imageUrl: data.url });
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
-      alert("Erro ao fazer upload da imagem");
+      setFeedback({ type: 'error', message: 'Erro ao fazer upload da imagem' });
+      setTimeout(() => setFeedback(null), 5000);
     } finally {
       setIsUploading(false);
     }
@@ -121,8 +124,8 @@ export function BlogManagementPanel() {
     e.preventDefault();
 
     if (!formData.title.trim() || !formData.content.trim()) {
-      setAlert({ type: 'error', message: 'Título e conteúdo são obrigatórios' });
-      setTimeout(() => setAlert(null), 5000);
+      setFeedback({ type: 'error', message: 'Título e conteúdo são obrigatórios' });
+      setTimeout(() => setFeedback(null), 5000);
       return;
     }
 
@@ -135,7 +138,7 @@ export function BlogManagementPanel() {
           imageUrl: formData.imageUrl || null,
           published: formData.published,
         });
-        setAlert({ type: 'success', message: 'Post atualizado com sucesso!' });
+        setFeedback({ type: 'success', message: 'Post atualizado com sucesso!' });
       } else {
         await createMutation.mutateAsync({
           title: formData.title,
@@ -143,14 +146,14 @@ export function BlogManagementPanel() {
           imageUrl: formData.imageUrl || null,
           published: formData.published,
         });
-        setAlert({ type: 'success', message: 'Post publicado com sucesso!' });
+        setFeedback({ type: 'success', message: 'Post publicado com sucesso!' });
       }
-      setTimeout(() => setAlert(null), 5000);
+      setTimeout(() => setFeedback(null), 5000);
     } catch (error: any) {
       const errorMessage = error?.message || 'Erro ao salvar post';
-      setAlert({ type: 'error', message: `Erro: ${errorMessage}` });
+      setFeedback({ type: 'error', message: `Erro: ${errorMessage}` });
       console.error("Erro ao salvar post:", error);
-      setTimeout(() => setAlert(null), 5000);
+      setTimeout(() => setFeedback(null), 5000);
     }
   };
 
@@ -171,7 +174,8 @@ export function BlogManagementPanel() {
         await deleteMutation.mutateAsync({ id });
       } catch (error) {
         console.error("Erro ao deletar post:", error);
-        alert("Erro ao deletar post");
+        setFeedback({ type: 'error', message: 'Erro ao deletar post' });
+        setTimeout(() => setFeedback(null), 5000);
       }
     }
   };
@@ -205,16 +209,16 @@ export function BlogManagementPanel() {
               </DialogDescription>
             </DialogHeader>
 
-            {alert && (
+            {feedback && (
               <div className={`p-4 rounded-lg mb-4 ${
-                alert.type === 'success'
+                feedback.type === 'success'
                   ? 'bg-green-50 text-green-800 border border-green-200'
                   : 'bg-red-50 text-red-800 border border-red-200'
               }`}>
                 <p className="font-medium">
-                  {alert.type === 'success' ? '✓ Sucesso' : '✗ Erro'}
+                  {feedback.type === 'success' ? '✓ Sucesso' : '✗ Erro'}
                 </p>
-                <p className="text-sm">{alert.message}</p>
+                <p className="text-sm">{feedback.message}</p>
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
