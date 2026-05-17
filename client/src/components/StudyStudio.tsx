@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -49,7 +49,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
 
   useEffect(() => {
     if (dashboardData) {
-      const prog = dashboardData.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null }) => m.moduleSlug === module.slug);
+      const prog = dashboardData.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null; saveProgress?: (newCompleted: string[], score: number | null) => void }) => m.moduleSlug === module.slug);
       if (prog) {
         setCompletedSectionIds(prog.completedSectionIds);
         setBestScore(prog.bestScore);
@@ -57,22 +57,24 @@ export default function StudyStudio({ module }: StudyStudioProps) {
     }
   }, [dashboardData, module.slug]);
 
-  const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
+  const saveProgressMutation = trpc.study.saveModuleProgress?.useMutation?.() || { mutate: () => {} };
 
   const handleSaveProgress = (newCompletedSections: string[], score: number | null) => {
     if (!session) return;
-    saveProgressMutation.mutate({
-      studentNumber: session.student.studentNumber,
-      accessToken: session.accessToken,
-      moduleSlug: module.slug,
-      progress: {
-        completedSectionIds: newCompletedSections,
-        answers: {},
-        lastScore: score,
-        bestScore: score !== null ? Math.max(score, bestScore || 0) : bestScore,
-        lastSubmittedAt: score !== null ? new Date().toISOString() : null,
-      }
-    });
+    if (saveProgressMutation?.mutate) {
+      saveProgressMutation.mutate({
+        studentNumber: session.student.studentNumber,
+        accessToken: session.accessToken,
+        moduleSlug: module.slug,
+        progress: {
+          completedSectionIds: newCompletedSections,
+          answers: {},
+          lastScore: score,
+          bestScore: score !== null ? Math.max(score, bestScore || 0) : bestScore,
+          lastSubmittedAt: score !== null ? new Date().toISOString() : null,
+        }
+      });
+    }
     if (score !== null && score > (bestScore || 0)) {
       setBestScore(score);
     }

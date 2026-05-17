@@ -105,3 +105,4 @@
 - [x] Corrigir SlateEditor.tsx - tipagem customizada do Slate (module augmentation + children recursivos)
 - [x] Corrigir StudyStudio.tsx - getDashboard→dashboard, onSuccess→useEffect, tipar data, answers no progress, props para ExamPanel
 - [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)
+- [ ] Bug: NotFoundError ao remover nó do DOM em cfap2026pmam.manus.space — "O nó a ser removido não é filho deste nó"

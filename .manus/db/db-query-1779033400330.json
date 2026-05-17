@@ -1,0 +1,64 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user CZ6fqEVQpCUKFJb.9db839fe7bfc --database oYQqDtLooPR5vbQ65ChDb9 --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "cfap_missions"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "comments"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "hymns"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "likes"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_blog_post"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_cfap_missions"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_comments"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_drill"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_hymns"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_likes"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_mission_media"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_site_settings"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_study_module_progress"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_study_students"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "pmam_users"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "site_settings"
+    },
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_oYQqDtLooPR5vbQ65ChDb9\n__drizzle_migrations\ncfap_missions\ncomments\nhymns\nlikes\npmam_blog_post\npmam_cfap_missions\npmam_comments\npmam_drill\npmam_hymns\npmam_likes\npmam_mission_media\npmam_site_settings\npmam_study_module_progress\npmam_study_students\npmam_users\nsite_settings\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 660
+}
