@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import multer from "multer";
 import { storagePut } from "../storage";
 import crypto from "crypto";
+import { getVersionInfo } from "./version";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,6 +40,12 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
   app.use(express.text({ limit: "50mb" }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
+  // Version endpoint for auto-update mechanism
+  app.get("/api/version", (req, res) => {
+    const versionInfo = getVersionInfo();
+    res.json(versionInfo);
+  });
   
   // File upload endpoint
   const upload = multer({ 

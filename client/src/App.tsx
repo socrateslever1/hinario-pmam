@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import Home from "./pages/Home";
 import Hymns from "./pages/Hymns";
 import HymnDetail from "./pages/HymnDetail";
@@ -44,6 +45,9 @@ function Router() {
 }
 
 function App() {
+  // Ativar auto-atualização silenciosa
+  useAutoUpdate();
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">

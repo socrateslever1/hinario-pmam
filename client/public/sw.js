@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+let CACHE_VERSION = localStorage.getItem('sw_cache_version') || 'v1';
 const CACHE_NAME = `hinario-pmam-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `hinario-pmam-runtime-${CACHE_VERSION}`;
 const API_CACHE = `hinario-pmam-api-${CACHE_VERSION}`;
@@ -243,5 +243,14 @@ self.addEventListener('message', (event) => {
         });
       });
     });
+  }
+
+  if (event.data.type === 'UPDATE_CACHE_VERSION') {
+    const newVersion = event.data.version;
+    if (newVersion && newVersion !== CACHE_VERSION) {
+      console.log('[SW] Updating cache version:', CACHE_VERSION, '->', newVersion);
+      CACHE_VERSION = newVersion;
+      localStorage.setItem('sw_cache_version', newVersion);
+    }
   }
 });
