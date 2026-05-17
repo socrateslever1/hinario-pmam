@@ -54,10 +54,9 @@ export default function SyncedLyricsPanel({
   }, [duration, hasManualSync, hymnTitle, lyrics, manualLines]);
   const hasSync = useMemo(() => hasLyricsSyncData(lines), [lines]);
 
-  // Resetar ao trocar de hino
+  // Resetar ao trocar de hino (mantém autoScroll ativo)
   useEffect(() => {
     setActiveLineIndex(-1);
-    setAutoScroll(false);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [hymnTitle, lyrics]);
 
