@@ -34,13 +34,12 @@ export function BlogManagementPanel() {
     title: "",
     content: "",
     imageUrl: "",
-    published: false,
+    published: true,
   });
+  const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Queries
-  const { data: posts, isLoading, refetch } = trpc.blog.list.useQuery({
-    published: undefined,
-  });
+  const { data: posts, isLoading, refetch } = trpc.blog.list.useQuery();
 
   // Mutations
   const createMutation = trpc.blog.create.useMutation({
@@ -70,9 +69,10 @@ export function BlogManagementPanel() {
       title: "",
       content: "",
       imageUrl: "",
-      published: false,
+      published: true,
     });
     setEditingId(null);
+    setAlert(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -121,7 +121,8 @@ export function BlogManagementPanel() {
     e.preventDefault();
 
     if (!formData.title.trim() || !formData.content.trim()) {
-      alert("Título e conteúdo são obrigatórios");
+      setAlert({ type: 'error', message: 'Título e conteúdo são obrigatórios' });
+      setTimeout(() => setAlert(null), 5000);
       return;
     }
 
@@ -134,6 +135,7 @@ export function BlogManagementPanel() {
           imageUrl: formData.imageUrl || null,
           published: formData.published,
         });
+        setAlert({ type: 'success', message: 'Post atualizado com sucesso!' });
       } else {
         await createMutation.mutateAsync({
           title: formData.title,
@@ -141,10 +143,14 @@ export function BlogManagementPanel() {
           imageUrl: formData.imageUrl || null,
           published: formData.published,
         });
+        setAlert({ type: 'success', message: 'Post publicado com sucesso!' });
       }
-    } catch (error) {
+      setTimeout(() => setAlert(null), 5000);
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Erro ao salvar post';
+      setAlert({ type: 'error', message: `Erro: ${errorMessage}` });
       console.error("Erro ao salvar post:", error);
-      alert("Erro ao salvar post");
+      setTimeout(() => setAlert(null), 5000);
     }
   };
 
@@ -199,6 +205,18 @@ export function BlogManagementPanel() {
               </DialogDescription>
             </DialogHeader>
 
+            {alert && (
+              <div className={`p-4 rounded-lg mb-4 ${
+                alert.type === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}>
+                <p className="font-medium">
+                  {alert.type === 'success' ? '✓ Sucesso' : '✗ Erro'}
+                </p>
+                <p className="text-sm">{alert.message}</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Título *</label>
@@ -215,13 +233,15 @@ export function BlogManagementPanel() {
               <div>
                 <label className="text-sm font-medium">Conteúdo *</label>
                 <div className="mt-1">
-                  <SlateEditor
-                    value={formData.content}
-                    onChange={(content) =>
-                      setFormData({ ...formData, content })
-                    }
-                    placeholder="Digite o conteúdo da notícia com formatação..."
-                  />
+                  <div style={{ minHeight: '500px' }}>
+                    <SlateEditor
+                      value={formData.content}
+                      onChange={(content) =>
+                        setFormData({ ...formData, content })
+                      }
+                      placeholder="Digite o conteúdo da notícia com formatação..."
+                    />
+                  </div>
                 </div>
               </div>
 

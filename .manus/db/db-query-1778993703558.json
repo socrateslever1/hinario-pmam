@@ -1,0 +1,60 @@
+{
+  "query": "SELECT * FROM pmam_blog_post;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user CZ6fqEVQpCUKFJb.9db839fe7bfc --database oYQqDtLooPR5vbQ65ChDb9 --execute SELECT * FROM pmam_blog_post;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "Test",
+      "content": "<p><strong>tste</strong></p>",
+      "image_url": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/blog-images/blog-1778717191901-1d41d429.png",
+      "author_id": "1",
+      "published": "0",
+      "created_at": "2026-05-14 00:06:56",
+      "updated_at": "2026-05-14 00:06:56"
+    },
+    {
+      "id": "30001",
+      "title": "teSTE",
+      "content": "<p><strong><em>teste</em></strong></p>",
+      "image_url": "NULL",
+      "author_id": "1",
+      "published": "0",
+      "created_at": "2026-05-14 02:36:50",
+      "updated_at": "2026-05-14 02:36:50"
+    },
+    {
+      "id": "30002",
+      "title": "TESTE",
+      "content": "<p>TETS</p>",
+      "image_url": "NULL",
+      "author_id": "1",
+      "published": "0",
+      "created_at": "2026-05-14 02:37:20",
+      "updated_at": "2026-05-14 02:37:20"
+    },
+    {
+      "id": "30003",
+      "title": "geste",
+      "content": "<p>teste</p>",
+      "image_url": "NULL",
+      "author_id": "1",
+      "published": "0",
+      "created_at": "2026-05-14 02:38:39",
+      "updated_at": "2026-05-14 02:38:39"
+    },
+    {
+      "id": "60001",
+      "title": "Test",
+      "content": "<p>Teste</p>",
+      "image_url": "NULL",
+      "author_id": "1",
+      "published": "0",
+      "created_at": "2026-05-17 04:52:22",
+      "updated_at": "2026-05-17 04:52:22"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tcontent\timage_url\tauthor_id\tpublished\tcreated_at\tupdated_at\n1\tTest\t<p><strong>tste</strong></p>\thttps://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/blog-images/blog-1778717191901-1d41d429.png\t1\t0\t2026-05-14 00:06:56\t2026-05-14 00:06:56\n30001\tteSTE\t<p><strong><em>teste</em></strong></p>\tNULL\t1\t0\t2026-05-14 02:36:50\t2026-05-14 02:36:50\n30002\tTESTE\t<p>TETS</p>\tNULL\t1\t0\t2026-05-14 02:37:20\t2026-05-14 02:37:20\n30003\tgeste\t<p>teste</p>\tNULL\t1\t0\t2026-05-14 02:38:39\t2026-05-14 02:38:39\n60001\tTest\t<p>Teste</p>\tNULL\t1\t0\t2026-05-17 04:52:22\t2026-05-17 04:52:22\n",
+  "stderr": "",
+  "execution_time_ms": 564
+}
