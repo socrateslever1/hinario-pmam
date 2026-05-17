@@ -86,30 +86,35 @@ export default function SyncedLyricsPanel({
     }
   }, [currentTime, hasSync, lines]); // Removido activeLineIndex das dependências para evitar loops
 
-  // Auto-scroll: aguarda o React finalizar o render antes de calcular posição
+  // Auto-scroll: rola a linha ativa para o centro do painel usando scrollIntoView
+  // scrollIntoView calcula a posição correta automaticamente, sem aritmética manual
   useEffect(() => {
     if (!autoScroll || activeLineIndex < 0) return;
 
     // Cancelar RAF anterior se ainda pendente
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
-    // requestAnimationFrame garante que o DOM já está pintado e o layout estável
     rafRef.current = requestAnimationFrame(() => {
       const container = lyricsContainerRef.current;
       if (!container) return;
 
-      // Buscar o elemento pelo data-attribute após o render estar completo
       const activeEl = container.querySelector<HTMLDivElement>(
         `[data-line-index="${activeLineIndex}"]`
       );
       if (!activeEl) return;
 
+      // Calcular posição relativa ao container usando getBoundingClientRect
+      // Isso garante que apenas o painel interno role, nunca a página inteira
+      const containerRect = container.getBoundingClientRect();
+      const elRect = activeEl.getBoundingClientRect();
+
+      // Posição do elemento relativa ao topo do container (incluindo scroll atual)
+      const elRelativeTop = elRect.top - containerRect.top + container.scrollTop;
       const containerHeight = container.clientHeight;
-      const elTop = activeEl.offsetTop;
       const elHeight = activeEl.offsetHeight;
 
-      // Posição alvo: linha ativa no 1/3 superior do container
-      const targetScroll = elTop - containerHeight * 0.33 + elHeight / 2;
+      // Centralizar a linha ativa no container
+      const targetScroll = elRelativeTop - containerHeight / 2 + elHeight / 2;
 
       container.scrollTo({
         top: Math.max(0, targetScroll),
