@@ -12,14 +12,14 @@ interface SlateEditorProps {
   placeholder?: string;
 }
 
-type CustomElement = { type: 'paragraph' | 'heading' | 'block-quote' | 'code-block' | 'bulleted-list' | 'numbered-list' | 'list-item'; children: CustomText[] };
+type CustomElement = { type: 'paragraph' | 'heading' | 'block-quote' | 'code-block' | 'bulleted-list' | 'numbered-list' | 'list-item'; children: (CustomText | CustomElement)[] };
 type CustomText = { text: string; bold?: boolean; italic?: boolean; code?: boolean };
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'div': React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
-    }
+declare module 'slate' {
+  interface CustomTypes {
+    Editor: import('slate').BaseEditor & import('slate-react').ReactEditor & import('slate-history').HistoryEditor;
+    Element: CustomElement;
+    Text: CustomText;
   }
 }
 
@@ -111,14 +111,14 @@ export default function SlateEditor({ value, onChange, placeholder = 'Escreva o 
     Transforms.setNodes(editor, newProperties);
 
     if (!isActive && isList) {
-      const block = { type: format, children: [] };
+      const block = { type: format as CustomElement['type'], children: [] as (CustomText | CustomElement)[] };
       Transforms.wrapNodes(editor, block);
     }
   };
 
   const isMarkActive = (editor: any, format: string) => {
     const marks = Editor.marks(editor);
-    return marks ? marks[format] === true : false;
+    return marks ? (marks as Record<string, boolean>)[format] === true : false;
   };
 
   const isBlockActive = (editor: any, format: string) => {

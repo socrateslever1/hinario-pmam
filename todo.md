@@ -102,3 +102,4 @@
 - [x] Corrigir Service Worker (sw.js) - remover localStorage (indisponível em SW context)
 - [x] Corrigir posts antigos no banco com published=0 → published=1
 - [x] Corrigir BlogManagementPanel.tsx - renomear estado alert para feedback (conflito com window.alert)
+- [x] Corrigir SlateEditor.tsx - tipagem customizada do Slate (module augmentation + children recursivos)
