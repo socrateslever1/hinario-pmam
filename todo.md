@@ -106,3 +106,4 @@
 - [x] Corrigir StudyStudio.tsx - getDashboard→dashboard, onSuccess→useEffect, tipar data, answers no progress, props para ExamPanel
 - [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)
 - [ ] Bug: NotFoundError ao remover nó do DOM em cfap2026pmam.manus.space — "O nó a ser removido não é filho deste nó"
+- [x] Bug: Auto-scroll de letra pula para o final em vez de acompanhar sincronismo das estrofes

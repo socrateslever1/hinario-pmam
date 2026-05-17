@@ -67,12 +67,21 @@ export default function SyncedLyricsPanel({
     let nextIndex = -1;
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
-      if (line.time >= 0 && !isLyricsSectionLabel(line.text) && currentTime + 0.08 >= line.time) {
-        nextIndex = index;
+      // Pular linhas de seção (labels como "Verso 1", "Refrão")
+      if (isLyricsSectionLabel(line.text)) {
         continue;
       }
-      if (line.time >= 0 && currentTime + 0.08 < line.time) {
+      // Pular linhas sem tempo sincronizado
+      if (line.time < 0) {
+        continue;
+      }
+      // Se a linha atual está no futuro, paramos
+      if (currentTime + 0.08 < line.time) {
         break;
+      }
+      // Se a linha está no passado ou presente, atualizar nextIndex
+      if (currentTime + 0.08 >= line.time) {
+        nextIndex = index;
       }
     }
 
