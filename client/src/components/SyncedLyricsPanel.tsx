@@ -42,9 +42,9 @@ export default function SyncedLyricsPanel({
   maxHeightClassName = "max-h-[18rem] md:max-h-[24rem] xl:max-h-[28rem]",
 }: SyncedLyricsPanelProps) {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const activeLineRef = useRef<HTMLDivElement | null>(null);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(false);
+  const rafRef = useRef<number | null>(null);
 
   const manualLines = useMemo(() => buildLyricsSyncLines(lyrics, lyricsSync), [lyrics, lyricsSync]);
   const hasManualSync = useMemo(() => hasLyricsSyncData(manualLines), [manualLines]);
@@ -58,7 +58,7 @@ export default function SyncedLyricsPanel({
   useEffect(() => {
     setActiveLineIndex(-1);
     setAutoScroll(false);
-    activeLineRef.current = null;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [hymnTitle, lyrics]);
 
   // Detectar linha ativa com base no tempo atual
@@ -86,35 +86,40 @@ export default function SyncedLyricsPanel({
     }
   }, [currentTime, hasSync, lines]); // Removido activeLineIndex das dependências para evitar loops
 
-  // Auto-scroll: rolar para a linha ativa usando ref direto (sem querySelector)
+  // Auto-scroll: aguarda o React finalizar o render antes de calcular posição
   useEffect(() => {
     if (!autoScroll || activeLineIndex < 0) return;
-    const container = lyricsContainerRef.current;
-    const activeEl = activeLineRef.current;
-    if (!container || !activeEl) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const elRect = activeEl.getBoundingClientRect();
+    // Cancelar RAF anterior se ainda pendente
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
-    // Posição relativa do elemento dentro do container
-    const elTop = activeEl.offsetTop;
-    const elHeight = activeEl.offsetHeight;
-    const containerHeight = container.clientHeight;
+    // requestAnimationFrame garante que o DOM já está pintado e o layout estável
+    rafRef.current = requestAnimationFrame(() => {
+      const container = lyricsContainerRef.current;
+      if (!container) return;
 
-    // Centralizar a linha ativa no container (1/3 do topo)
-    const targetScroll = elTop - containerHeight * 0.33 + elHeight / 2;
+      // Buscar o elemento pelo data-attribute após o render estar completo
+      const activeEl = container.querySelector<HTMLDivElement>(
+        `[data-line-index="${activeLineIndex}"]`
+      );
+      if (!activeEl) return;
 
-    // Só rolar se o elemento estiver fora da zona confortável (20%-80% do container)
-    const currentScroll = container.scrollTop;
-    const visibleTop = currentScroll + containerHeight * 0.15;
-    const visibleBottom = currentScroll + containerHeight * 0.85;
+      const containerHeight = container.clientHeight;
+      const elTop = activeEl.offsetTop;
+      const elHeight = activeEl.offsetHeight;
 
-    if (elTop >= visibleTop && elTop + elHeight <= visibleBottom) return;
+      // Posição alvo: linha ativa no 1/3 superior do container
+      const targetScroll = elTop - containerHeight * 0.33 + elHeight / 2;
 
-    container.scrollTo({
-      top: Math.max(0, targetScroll),
-      behavior: "smooth",
+      container.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: "smooth",
+      });
     });
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [activeLineIndex, autoScroll]);
 
   const handleLineClick = (time: number) => {
@@ -162,7 +167,6 @@ export default function SyncedLyricsPanel({
               return (
                 <div
                   key={index}
-                  ref={isActive ? activeLineRef : null}
                   data-line-index={index}
                   onClick={() => handleLineClick(line.time)}
                   className={`rounded-xl px-4 py-3 transition-all ${
