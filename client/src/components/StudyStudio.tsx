@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -39,20 +39,23 @@ export default function StudyStudio({ module }: StudyStudioProps) {
   const [bestScore, setBestScore] = useState<number | null>(null);
 
   // Carregar progresso inicial
-  trpc.study.getDashboard.useQuery(
+  const { data: dashboardData } = trpc.study.dashboard.useQuery(
     { studentNumber: session?.student.studentNumber || "", accessToken: session?.accessToken },
     {
       enabled: !!session,
       staleTime: Infinity,
-      onSuccess: (data) => {
-        const prog = data.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null }) => m.moduleSlug === module.slug);
-        if (prog) {
-          setCompletedSectionIds(prog.completedSectionIds);
-          setBestScore(prog.bestScore);
-        }
-      }
     }
   );
+
+  useEffect(() => {
+    if (dashboardData) {
+      const prog = dashboardData.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null }) => m.moduleSlug === module.slug);
+      if (prog) {
+        setCompletedSectionIds(prog.completedSectionIds);
+        setBestScore(prog.bestScore);
+      }
+    }
+  }, [dashboardData, module.slug]);
 
   const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
 
@@ -64,9 +67,10 @@ export default function StudyStudio({ module }: StudyStudioProps) {
       moduleSlug: module.slug,
       progress: {
         completedSectionIds: newCompletedSections,
+        answers: {},
         lastScore: score,
         bestScore: score !== null ? Math.max(score, bestScore || 0) : bestScore,
-        lastSubmittedAt: score !== null ? new Date().toISOString() : undefined,
+        lastSubmittedAt: score !== null ? new Date().toISOString() : null,
       }
     });
     if (score !== null && score > (bestScore || 0)) {
@@ -320,6 +324,8 @@ export default function StudyStudio({ module }: StudyStudioProps) {
                 module={module} 
                 onFinish={() => setMode("results")}
                 onRestart={startExam}
+                handleSaveProgress={handleSaveProgress}
+                completedSectionIds={completedSectionIds}
               />
             </motion.div>
           )}
@@ -371,11 +377,15 @@ function NavButton({
 function StudyExam({ 
   module, 
   onFinish,
-  onRestart 
+  onRestart,
+  handleSaveProgress,
+  completedSectionIds
 }: { 
   module: StudyModule; 
   onFinish: () => void;
   onRestart: () => void;
+  handleSaveProgress: (newCompletedSections: string[], score: number | null) => void;
+  completedSectionIds: string[];
 }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});

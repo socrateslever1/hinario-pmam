@@ -543,7 +543,7 @@ export const appRouter = router({
       const id = await db.createBlogPost({
         title: input.title,
         content: input.content,
-        imageUrl: input.imageUrl,
+        imageUrl: input.imageUrl ?? undefined,
         authorId: ctx.user.id,
         published: input.published,
       });
@@ -559,7 +559,7 @@ export const appRouter = router({
       await db.updateBlogPost(input.id, {
         title: input.title,
         content: input.content,
-        imageUrl: input.imageUrl,
+        imageUrl: input.imageUrl ?? undefined,
         published: input.published,
       });
       return await db.getBlogPostById(input.id);

@@ -103,3 +103,5 @@
 - [x] Corrigir posts antigos no banco com published=0 → published=1
 - [x] Corrigir BlogManagementPanel.tsx - renomear estado alert para feedback (conflito com window.alert)
 - [x] Corrigir SlateEditor.tsx - tipagem customizada do Slate (module augmentation + children recursivos)
+- [x] Corrigir StudyStudio.tsx - getDashboard→dashboard, onSuccess→useEffect, tipar data, answers no progress, props para ExamPanel
+- [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)
