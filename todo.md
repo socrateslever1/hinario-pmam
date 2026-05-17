@@ -107,3 +107,6 @@
 - [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)- [x] Bug: NotFoundError ao remover nó do DOM — corrigido via key={index} em SyncedLyricsPanel
 - [x] Sistema de atualização: Network First para JS/CSS, detecção de reconexão, versão estável por processo"
 - [x] Bug: Auto-scroll de letra pula para o final em vez de acompanhar sincronismo das estrofes (correção definitiva: key=index, ref direto, loop reverso, dependências corrigidas)
+- [x] Auto-scroll ativado por padrão (useState true)
+- [x] Play na mesma linha do nome do hino no player
+- [x] Botões: tocar 1x, tocar todas, repetir no player

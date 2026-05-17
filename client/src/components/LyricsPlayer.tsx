@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import ReactPlayer from "react-player";
 import { Card, CardContent } from "@/components/ui/card";
-import { Music, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
+import { Music, Pause, Play, RotateCcw, Volume2, Repeat, List, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
@@ -14,7 +14,11 @@ interface LyricsPlayerProps {
   lyricsSync?: LyricsSyncInput;
   audioUrl?: string | null;
   youtubeUrl?: string | null;
+  /** Chamado quando a faixa termina (para modo "tocar todas") */
+  onEnded?: () => void;
 }
+
+type PlayMode = "once" | "all" | "repeat";
 
 type MediaPlayerElement = HTMLMediaElement & {
   currentTime: number;
@@ -31,31 +35,35 @@ function formatTime(seconds: number): string {
 
 function readTimeValue(value: any, fallback: MediaPlayerElement | null): number | null {
   const media = value?.currentTarget ?? fallback;
-
-  if (media && Number.isFinite(media.currentTime)) {
-    return media.currentTime;
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
+  if (media && Number.isFinite(media.currentTime)) return media.currentTime;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
   return null;
 }
 
 function readDurationValue(value: any, fallback: MediaPlayerElement | null): number | null {
   const media = value?.currentTarget ?? fallback;
-
-  if (media && Number.isFinite(media.duration) && media.duration > 0) {
-    return media.duration;
-  }
-
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    return value;
-  }
-
+  if (media && Number.isFinite(media.duration) && media.duration > 0) return media.duration;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
   return null;
 }
+
+const playModeConfig: Record<PlayMode, { label: string; icon: React.ReactNode; next: PlayMode }> = {
+  once: {
+    label: "Tocar 1x",
+    icon: <PlayCircle className="h-4 w-4" />,
+    next: "all",
+  },
+  all: {
+    label: "Tocar todas",
+    icon: <List className="h-4 w-4" />,
+    next: "repeat",
+  },
+  repeat: {
+    label: "Repetir",
+    icon: <Repeat className="h-4 w-4" />,
+    next: "once",
+  },
+};
 
 export default function LyricsPlayer({
   hymnTitle,
@@ -63,11 +71,13 @@ export default function LyricsPlayer({
   lyricsSync,
   audioUrl,
   youtubeUrl,
+  onEnded,
 }: LyricsPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
+  const [playMode, setPlayMode] = useState<PlayMode>("once");
 
   const playerRef = useRef<MediaPlayerElement | null>(null);
   const mediaUrl = resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
@@ -82,18 +92,15 @@ export default function LyricsPlayer({
   const syncMediaState = (media?: MediaPlayerElement | null) => {
     if (!media) return;
     playerRef.current = media;
-
     if (Number.isFinite(media.currentTime)) setCurrentTime(media.currentTime);
     if (Number.isFinite(media.duration) && media.duration > 0) setDuration(media.duration);
   };
 
   useEffect(() => {
     if (!mediaUrl) return;
-
     const interval = window.setInterval(() => {
       syncMediaState(playerRef.current);
     }, playing ? 100 : 300);
-
     return () => window.clearInterval(interval);
   }, [mediaUrl, playing]);
 
@@ -103,6 +110,17 @@ export default function LyricsPlayer({
     playerRef.current.currentTime = safeTime;
     setCurrentTime(safeTime);
   };
+
+  const handleEnded = useCallback(() => {
+    if (playMode === "repeat") {
+      seekTo(0);
+      setPlaying(true);
+    } else if (playMode === "all" && onEnded) {
+      onEnded();
+    } else {
+      setPlaying(false);
+    }
+  }, [playMode, onEnded]);
 
   const handleSeek = (values: number[]) => seekTo(values[0] ?? 0);
 
@@ -114,10 +132,17 @@ export default function LyricsPlayer({
     }
   };
 
+  const cyclePlayMode = () => {
+    setPlayMode((prev) => playModeConfig[prev].next);
+  };
+
+  const modeConfig = playModeConfig[playMode];
+
   return (
     <div className="mx-auto w-full max-w-[58rem] space-y-4 md:space-y-5">
       <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
         <CardContent className="p-0">
+          {/* Vídeo YouTube (visível apenas se for YouTube) */}
           {mediaUrl ? (
             <div className="overflow-hidden border-b border-[#1a3a2a]/10 bg-black">
               <div className={isYoutube ? "mx-auto aspect-video w-full bg-black" : "h-0 overflow-hidden"}>
@@ -142,86 +167,110 @@ export default function LyricsPlayer({
                   },
                   onPlay: () => setPlaying(true),
                   onPause: () => setPlaying(false),
-                  onEnded: () => setPlaying(false),
-                  config: isYoutube
-                    ? undefined
-                    : undefined,
+                  onEnded: handleEnded,
                 })}
               </div>
             </div>
           ) : null}
 
           <div className="bg-gradient-to-br from-[#f8f5ea] via-white to-[#f7f9f6] p-4 sm:p-5 md:p-6">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-4">
-                  <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#1a3a2a] shadow-lg"
-                    style={playing ? { animation: "player-spin 12s linear infinite" } : undefined}
-                  >
-                    <Music className="h-6 w-6 text-[#c4a84b]" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="truncate text-lg font-extrabold tracking-tight text-[#1d2b23] sm:text-xl md:text-2xl">
-                      {hymnTitle}
-                    </h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/75">
-                        {isYoutube ? "Streaming do YouTube" : mediaUrl ? "Audio do sistema" : "Sem midia"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 self-end sm:self-auto">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => seekTo(0)}
-                    className="h-11 w-11 rounded-full text-muted-foreground transition-all hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] active:scale-95"
-                    disabled={!mediaUrl}
-                  >
-                    <RotateCcw className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={() => mediaUrl && setPlaying(!playing)}
-                    disabled={!mediaUrl}
-                    className="h-14 w-14 rounded-full border-4 border-[#c4a84b]/10 bg-[#1a3a2a] text-white shadow-[0_10px_30px_rgba(26,58,42,0.22)] transition-all hover:bg-[#1a3a2a]/95 active:scale-95 sm:h-16 sm:w-16"
-                  >
-                    {playing ? <Pause className="h-7 w-7" /> : <Play className="ml-1 h-7 w-7" />}
-                  </Button>
-                </div>
+            {/* Linha única: ícone + nome + botões de controle */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* Ícone animado */}
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#1a3a2a] shadow-lg sm:h-14 sm:w-14"
+                style={playing ? { animation: "player-spin 12s linear infinite" } : undefined}
+              >
+                <Music className="h-5 w-5 text-[#c4a84b] sm:h-6 sm:w-6" />
               </div>
 
-              <div className="space-y-1.5">
-                <Slider
-                  value={[currentTime]}
-                  max={duration || 100}
-                  step={0.1}
-                  onValueChange={handleSeek}
+              {/* Nome do hino — ocupa o espaço disponível */}
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-base font-extrabold tracking-tight text-[#1d2b23] sm:text-lg md:text-xl">
+                  {hymnTitle}
+                </h3>
+                <span className="mt-0.5 inline-block rounded-full bg-[#1a3a2a]/6 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/70">
+                  {isYoutube ? "Streaming do YouTube" : mediaUrl ? "Áudio do sistema" : "Sem mídia"}
+                </span>
+              </div>
+
+              {/* Botões de controle: reiniciar + play/pause */}
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => seekTo(0)}
+                  className="h-9 w-9 rounded-full text-muted-foreground transition-all hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] active:scale-95"
                   disabled={!mediaUrl}
-                  className="cursor-pointer py-1"
+                  title="Reiniciar"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={() => mediaUrl && setPlaying(!playing)}
+                  disabled={!mediaUrl}
+                  className="h-12 w-12 rounded-full border-4 border-[#c4a84b]/10 bg-[#1a3a2a] text-white shadow-[0_8px_24px_rgba(26,58,42,0.22)] transition-all hover:bg-[#1a3a2a]/95 active:scale-95 sm:h-14 sm:w-14"
+                >
+                  {playing ? <Pause className="h-5 w-5 sm:h-6 sm:w-6" /> : <Play className="ml-0.5 h-5 w-5 sm:h-6 sm:w-6" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Barra de progresso */}
+            <div className="mt-4 space-y-1.5">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={0.1}
+                onValueChange={handleSeek}
+                disabled={!mediaUrl}
+                className="cursor-pointer py-1"
+              />
+              <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Volume + modos de reprodução */}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#1a3a2a]/8 pt-3">
+              {/* Volume */}
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Slider
+                  value={[volume * 100]}
+                  max={100}
+                  onValueChange={handleVolumeChange}
+                  disabled={!mediaUrl}
+                  className="w-24 md:w-28"
                 />
-                <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-[#1a3a2a]/8 pt-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3">
-                  <Volume2 className="h-4 w-4 text-muted-foreground" />
-                  <Slider
-                    value={[volume * 100]}
-                    max={100}
-                    onValueChange={handleVolumeChange}
-                    disabled={!mediaUrl}
-                    className="w-28 md:w-32"
-                  />
-                </div>
+              {/* Modos de reprodução */}
+              <div className="flex items-center gap-1.5">
+                {(["once", "all", "repeat"] as PlayMode[]).map((mode) => {
+                  const cfg = playModeConfig[mode];
+                  const isActive = playMode === mode;
+                  return (
+                    <Button
+                      key={mode}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPlayMode(mode)}
+                      disabled={!mediaUrl}
+                      className={`h-8 gap-1.5 rounded-full px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                        isActive
+                          ? "bg-[#1a3a2a] text-white shadow-sm hover:bg-[#1a3a2a]/90"
+                          : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
+                      }`}
+                    >
+                      {cfg.icon}
+                      {cfg.label}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </div>
