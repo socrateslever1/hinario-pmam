@@ -43,7 +43,7 @@ export default function SyncedLyricsPanel({
 }: SyncedLyricsPanelProps) {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
-  const [autoScroll, setAutoScroll] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const rafRef = useRef<number | null>(null);
 
   const manualLines = useMemo(() => buildLyricsSyncLines(lyrics, lyricsSync), [lyrics, lyricsSync]);
