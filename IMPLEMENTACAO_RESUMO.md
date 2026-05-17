@@ -131,3 +131,46 @@ curl http://localhost:3000/api/version
 
 **Data:** 17 de Maio de 2026  
 **Versão:** 1.0.0
+
+---
+
+# Correção do Service Worker (sw.js)
+
+## Problema
+
+O Service Worker falhava ao registrar com o erro: `ServiceWorker script evaluation failed`. Isso impedia o PWA de funcionar (instalação, cache offline, atualizações).
+
+## Causa Raiz
+
+**Linha 1 do sw.js usava `localStorage`**, que não existe no contexto de Service Worker. Service Workers operam em escopo isolado (`self`) sem acesso a `localStorage`, `document`, ou `window`.
+
+```javascript
+// ❌ ANTES (causava crash imediato)
+let CACHE_VERSION = localStorage.getItem('sw_cache_version') || 'v1';
+```
+
+Também na linha 253:
+```javascript
+// ❌ ANTES
+localStorage.setItem('sw_cache_version', newVersion);
+```
+
+## Correção Aplicada
+
+Removido todo uso de `localStorage`. O versionamento agora é mantido em variável de memória do SW, atualizado via mensagem `UPDATE_CACHE_VERSION` enviada pelo hook `useAutoUpdate.ts`.
+
+```javascript
+// ✅ DEPOIS
+let CACHE_VERSION = 'v1';
+```
+
+## Resultado
+
+- Service Worker registra e ativa corretamente (state: `activated`)
+- PWA instalável (beforeinstallprompt disparado)
+- Cache offline funcional
+- Comunicação bidirecional SW ↔ página operacional
+
+---
+
+**Data:** 17 de Maio de 2026

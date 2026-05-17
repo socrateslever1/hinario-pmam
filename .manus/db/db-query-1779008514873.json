@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, title, published, created_at FROM pmam_blog_post ORDER BY created_at DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user CZ6fqEVQpCUKFJb.9db839fe7bfc --database oYQqDtLooPR5vbQ65ChDb9 --execute SELECT id, title, published, created_at FROM pmam_blog_post ORDER BY created_at DESC;",
+  "rows": [
+    {
+      "id": "60001",
+      "title": "Test",
+      "published": "0",
+      "created_at": "2026-05-17 04:52:22"
+    },
+    {
+      "id": "30003",
+      "title": "geste",
+      "published": "0",
+      "created_at": "2026-05-14 02:38:39"
+    },
+    {
+      "id": "30002",
+      "title": "TESTE",
+      "published": "0",
+      "created_at": "2026-05-14 02:37:20"
+    },
+    {
+      "id": "30001",
+      "title": "teSTE",
+      "published": "0",
+      "created_at": "2026-05-14 02:36:50"
+    },
+    {
+      "id": "1",
+      "title": "Test",
+      "published": "0",
+      "created_at": "2026-05-14 00:06:56"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tpublished\tcreated_at\n60001\tTest\t0\t2026-05-17 04:52:22\n30003\tgeste\t0\t2026-05-14 02:38:39\n30002\tTESTE\t0\t2026-05-14 02:37:20\n30001\tteSTE\t0\t2026-05-14 02:36:50\n1\tTest\t0\t2026-05-14 00:06:56\n",
+  "stderr": "",
+  "execution_time_ms": 1217
+}

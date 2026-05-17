@@ -1,0 +1,35 @@
+{
+  "query": "SELECT id, title, published FROM pmam_blog_post ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user CZ6fqEVQpCUKFJb.9db839fe7bfc --database oYQqDtLooPR5vbQ65ChDb9 --execute SELECT id, title, published FROM pmam_blog_post ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "title": "Test",
+      "published": "1"
+    },
+    {
+      "id": "30001",
+      "title": "teSTE",
+      "published": "1"
+    },
+    {
+      "id": "30002",
+      "title": "TESTE",
+      "published": "1"
+    },
+    {
+      "id": "30003",
+      "title": "geste",
+      "published": "1"
+    },
+    {
+      "id": "60001",
+      "title": "Test",
+      "published": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tpublished\n1\tTest\t1\n30001\tteSTE\t1\n30002\tTESTE\t1\n30003\tgeste\t1\n60001\tTest\t1\n",
+  "stderr": "",
+  "execution_time_ms": 671
+}

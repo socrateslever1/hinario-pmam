@@ -1,7 +1,15 @@
-let CACHE_VERSION = localStorage.getItem('sw_cache_version') || 'v1';
-const CACHE_NAME = `hinario-pmam-${CACHE_VERSION}`;
-const RUNTIME_CACHE = `hinario-pmam-runtime-${CACHE_VERSION}`;
-const API_CACHE = `hinario-pmam-api-${CACHE_VERSION}`;
+let CACHE_VERSION = 'v1';
+const CACHE_PREFIX = 'hinario-pmam';
+
+function getCacheName() {
+  return `${CACHE_PREFIX}-${CACHE_VERSION}`;
+}
+function getRuntimeCache() {
+  return `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
+}
+function getApiCache() {
+  return `${CACHE_PREFIX}-api-${CACHE_VERSION}`;
+}
 
 // Arquivos essenciais para cache offline
 const ESSENTIAL_ASSETS = [
@@ -21,11 +29,10 @@ const CACHE_PATTERNS = {
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker');
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(getCacheName()).then((cache) => {
       console.log('[SW] Caching essential assets');
       return cache.addAll(ESSENTIAL_ASSETS).catch((err) => {
         console.warn('[SW] Failed to cache some essential assets:', err);
-        // Continuar mesmo se falhar em alguns assets
         return Promise.resolve();
       });
     })
@@ -41,9 +48,10 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (
-            cacheName !== CACHE_NAME &&
-            cacheName !== RUNTIME_CACHE &&
-            cacheName !== API_CACHE
+            cacheName.startsWith(CACHE_PREFIX) &&
+            cacheName !== getCacheName() &&
+            cacheName !== getRuntimeCache() &&
+            cacheName !== getApiCache()
           ) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
@@ -77,24 +85,24 @@ self.addEventListener('fetch', (event) => {
 
   // API: Network First com fallback para cache
   if (CACHE_PATTERNS.api.test(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request, API_CACHE));
+    event.respondWith(networkFirstStrategy(request, getApiCache()));
     return;
   }
 
   // Assets: Cache First com fallback para network
   if (CACHE_PATTERNS.assets.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request, RUNTIME_CACHE));
+    event.respondWith(cacheFirstStrategy(request, getRuntimeCache()));
     return;
   }
 
   // Páginas: Network First com fallback para cache
   if (CACHE_PATTERNS.pages.test(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request, RUNTIME_CACHE));
+    event.respondWith(networkFirstStrategy(request, getRuntimeCache()));
     return;
   }
 
   // Padrão: Stale While Revalidate
-  event.respondWith(staleWhileRevalidateStrategy(request, RUNTIME_CACHE));
+  event.respondWith(staleWhileRevalidateStrategy(request, getRuntimeCache()));
 });
 
 // Network First Strategy
@@ -218,8 +226,8 @@ self.addEventListener('message', (event) => {
 
   if (event.data.type === 'CLEAR_CACHE') {
     Promise.all([
-      caches.delete(RUNTIME_CACHE),
-      caches.delete(API_CACHE),
+      caches.delete(getRuntimeCache()),
+      caches.delete(getApiCache()),
     ]).then(() => {
       console.log('[SW] Caches cleared');
     });
@@ -227,7 +235,7 @@ self.addEventListener('message', (event) => {
 
   if (event.data.type === 'CACHE_URLS') {
     const urls = event.data.urls || [];
-    caches.open(RUNTIME_CACHE).then((cache) => {
+    caches.open(getRuntimeCache()).then((cache) => {
       cache.addAll(urls).catch((err) => {
         console.warn('[SW] Failed to cache URLs:', err);
       });
@@ -236,7 +244,7 @@ self.addEventListener('message', (event) => {
 
   if (event.data.type === 'PRECACHE_ASSETS') {
     const assets = event.data.assets || [];
-    caches.open(RUNTIME_CACHE).then((cache) => {
+    caches.open(getRuntimeCache()).then((cache) => {
       assets.forEach((url) => {
         cache.add(url).catch((err) => {
           console.warn('[SW] Failed to precache:', url, err);
@@ -250,7 +258,6 @@ self.addEventListener('message', (event) => {
     if (newVersion && newVersion !== CACHE_VERSION) {
       console.log('[SW] Updating cache version:', CACHE_VERSION, '->', newVersion);
       CACHE_VERSION = newVersion;
-      localStorage.setItem('sw_cache_version', newVersion);
     }
   }
 });

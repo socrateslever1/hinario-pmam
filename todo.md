@@ -96,3 +96,8 @@
 - [ ] Adicionar botao "Editar/Novo Post" visivel apenas para Xerife logado
 - [ ] Implementar sistema de publicacao/despublicacao de posts
 - [ ] Testar responsividade em mobile e desktop
+
+## Correções de Erros
+
+- [x] Corrigir Service Worker (sw.js) - remover localStorage (indisponível em SW context)
+- [x] Corrigir posts antigos no banco com published=0 → published=1
