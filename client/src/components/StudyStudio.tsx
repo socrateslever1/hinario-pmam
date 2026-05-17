@@ -45,7 +45,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
       enabled: !!session,
       staleTime: Infinity,
       onSuccess: (data) => {
-        const prog = data.modules.find((m: any) => m.moduleSlug === module.slug);
+        const prog = data.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null }) => m.moduleSlug === module.slug);
         if (prog) {
           setCompletedSectionIds(prog.completedSectionIds);
           setBestScore(prog.bestScore);

@@ -133,7 +133,9 @@ export function useAutoUpdate() {
   useEffect(() => {
     // Armazenar versão atual na primeira carga
     if (!state.currentVersion) {
-      const hash = Buffer.from(`${Date.now()}`).toString('base64').slice(0, 8);
+      const timestamp = Date.now().toString(36);
+      const random = Math.random().toString(36).slice(2, 8);
+      const hash = `${timestamp}-${random}`;
       setState((prev) => ({ ...prev, currentVersion: hash }));
       localStorage.setItem(STORAGE_KEY, hash);
     }
