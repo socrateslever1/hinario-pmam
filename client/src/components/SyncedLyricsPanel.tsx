@@ -158,7 +158,7 @@ export default function SyncedLyricsPanel({
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/60">Auto-scroll</span>
-                <Switch checked={autoScroll} onCheckedChange={setAutoScroll} disabled={!hasSync} className="data-[state=checked]:bg-[#1a3a2a]" />
+                <Switch checked={autoScroll} onCheckedChange={setAutoScroll} className="data-[state=checked]:bg-[#1a3a2a]" />
               </div>
             </div>
           </div>
