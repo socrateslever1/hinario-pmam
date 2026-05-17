@@ -42,6 +42,7 @@ export default function SyncedLyricsPanel({
   maxHeightClassName = "max-h-[18rem] md:max-h-[24rem] xl:max-h-[28rem]",
 }: SyncedLyricsPanelProps) {
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const activeLineRef = useRef<HTMLDivElement | null>(null);
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(false);
 
@@ -53,64 +54,66 @@ export default function SyncedLyricsPanel({
   }, [duration, hasManualSync, hymnTitle, lyrics, manualLines]);
   const hasSync = useMemo(() => hasLyricsSyncData(lines), [lines]);
 
+  // Resetar ao trocar de hino
   useEffect(() => {
     setActiveLineIndex(-1);
     setAutoScroll(false);
+    activeLineRef.current = null;
   }, [hymnTitle, lyrics]);
 
+  // Detectar linha ativa com base no tempo atual
   useEffect(() => {
     if (!hasSync) {
       if (activeLineIndex !== -1) setActiveLineIndex(-1);
       return;
     }
 
+    // Encontrar a última linha cujo tempo <= currentTime
+    // Iterar de trás para frente é mais eficiente e evita qualquer ambiguidade
     let nextIndex = -1;
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index];
-      // Pular linhas de seção (labels como "Verso 1", "Refrão")
-      if (isLyricsSectionLabel(line.text)) {
-        continue;
-      }
-      // Pular linhas sem tempo sincronizado
-      if (line.time < 0) {
-        continue;
-      }
-      // Se a linha atual está no futuro, paramos
-      if (currentTime + 0.08 < line.time) {
-        break;
-      }
-      // Se a linha está no passado ou presente, atualizar nextIndex
-      if (currentTime + 0.08 >= line.time) {
-        nextIndex = index;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      if (isLyricsSectionLabel(line.text)) continue;
+      if (line.time < 0) continue;
+      if (line.time <= currentTime + 0.08) {
+        nextIndex = i;
+        break; // Encontrou a linha mais recente que já passou — parar
       }
     }
 
     if (nextIndex !== activeLineIndex) {
       setActiveLineIndex(nextIndex);
     }
-  }, [activeLineIndex, currentTime, hasSync, lines]);
+  }, [currentTime, hasSync, lines]); // Removido activeLineIndex das dependências para evitar loops
 
+  // Auto-scroll: rolar para a linha ativa usando ref direto (sem querySelector)
   useEffect(() => {
-    if (!autoScroll || activeLineIndex < 0 || !lyricsContainerRef.current) return;
-
+    if (!autoScroll || activeLineIndex < 0) return;
     const container = lyricsContainerRef.current;
-    const activeElement = container.querySelector<HTMLElement>(`[data-line-index="${activeLineIndex}"]`);
-    if (!activeElement) return;
+    const activeEl = activeLineRef.current;
+    if (!container || !activeEl) return;
 
+    const containerRect = container.getBoundingClientRect();
+    const elRect = activeEl.getBoundingClientRect();
+
+    // Posição relativa do elemento dentro do container
+    const elTop = activeEl.offsetTop;
+    const elHeight = activeEl.offsetHeight;
+    const containerHeight = container.clientHeight;
+
+    // Centralizar a linha ativa no container (1/3 do topo)
+    const targetScroll = elTop - containerHeight * 0.33 + elHeight / 2;
+
+    // Só rolar se o elemento estiver fora da zona confortável (20%-80% do container)
     const currentScroll = container.scrollTop;
-    const viewportTop = currentScroll + container.clientHeight * 0.18;
-    const viewportBottom = currentScroll + container.clientHeight * 0.82;
-    const elementTop = activeElement.offsetTop;
-    const elementBottom = elementTop + activeElement.offsetHeight;
+    const visibleTop = currentScroll + containerHeight * 0.15;
+    const visibleBottom = currentScroll + containerHeight * 0.85;
 
-    if (elementTop >= viewportTop && elementBottom <= viewportBottom) return;
-
-    const targetScroll = elementTop - container.clientHeight * 0.32;
-    const distance = Math.abs(currentScroll - targetScroll);
+    if (elTop >= visibleTop && elTop + elHeight <= visibleBottom) return;
 
     container.scrollTo({
       top: Math.max(0, targetScroll),
-      behavior: distance > container.clientHeight * 0.85 ? "auto" : "smooth",
+      behavior: "smooth",
     });
   }, [activeLineIndex, autoScroll]);
 
@@ -158,7 +161,8 @@ export default function SyncedLyricsPanel({
               const isActive = activeLineIndex === index;
               return (
                 <div
-                  key={`${index}-${line.text}`}
+                  key={index}
+                  ref={isActive ? activeLineRef : null}
                   data-line-index={index}
                   onClick={() => handleLineClick(line.time)}
                   className={`rounded-xl px-4 py-3 transition-all ${
