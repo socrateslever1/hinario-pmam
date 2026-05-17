@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
+import SlateEditor from "./SlateEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -214,14 +214,15 @@ export function BlogManagementPanel() {
 
               <div>
                 <label className="text-sm font-medium">Conteúdo *</label>
-                <Textarea
-                  placeholder="Digite o conteúdo do post"
-                  value={formData.content}
-                  onChange={(e) =>
-                    setFormData({ ...formData, content: e.target.value })
-                  }
-                  className="mt-1 min-h-[200px]"
-                />
+                <div className="mt-1">
+                  <SlateEditor
+                    value={formData.content}
+                    onChange={(content) =>
+                      setFormData({ ...formData, content })
+                    }
+                    placeholder="Digite o conteúdo da notícia com formatação..."
+                  />
+                </div>
               </div>
 
               <div>
