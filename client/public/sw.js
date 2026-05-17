@@ -1,263 +1,139 @@
-let CACHE_VERSION = 'v1';
-const CACHE_PREFIX = 'hinario-pmam';
+/**
+ * Service Worker — Hinário PMAM
+ *
+ * Estratégia de cache:
+ * - JS/CSS/HTML: Network First — sempre busca da rede, usa cache só se offline
+ * - Imagens/fontes: Cache First — carrega do cache, atualiza em background
+ * - API tRPC: Network First — dados sempre frescos, fallback para cache offline
+ *
+ * Isso garante que ao conectar à internet, o app sempre carrega a versão mais recente.
+ */
 
-function getCacheName() {
-  return `${CACHE_PREFIX}-${CACHE_VERSION}`;
-}
-function getRuntimeCache() {
-  return `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
-}
-function getApiCache() {
-  return `${CACHE_PREFIX}-api-${CACHE_VERSION}`;
-}
+const CACHE_NAME = 'hinario-pmam-v2';
+const OFFLINE_FALLBACK = '/index.html';
 
-// Arquivos essenciais para cache offline
+// Arquivos essenciais para funcionamento offline
 const ESSENTIAL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
 ];
 
-// Padrões de URLs para cache
-const CACHE_PATTERNS = {
-  api: /^\/api\/trpc\/(hymn|drill|cfap|mission)/,
-  assets: /\.(js|css|woff2|png|jpg|jpeg|webp|svg|ico|json)$/,
-  pages: /\/(hinos|drill|cfap|sobre|estudos|xerife)(\?|$)/,
-};
-
-// Instalação do Service Worker
+// ─── Instalação ──────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker');
+  console.log('[SW] Installing');
   event.waitUntil(
-    caches.open(getCacheName()).then((cache) => {
-      console.log('[SW] Caching essential assets');
+    caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ESSENTIAL_ASSETS).catch((err) => {
-        console.warn('[SW] Failed to cache some essential assets:', err);
-        return Promise.resolve();
+        console.warn('[SW] Failed to cache essential assets:', err);
       });
     })
   );
+  // Ativar imediatamente sem esperar páginas antigas fecharem
   self.skipWaiting();
 });
 
-// Ativação do Service Worker
+// ─── Ativação ────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker');
+  console.log('[SW] Activating — clearing old caches');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (
-            cacheName.startsWith(CACHE_PREFIX) &&
-            cacheName !== getCacheName() &&
-            cacheName !== getRuntimeCache() &&
-            cacheName !== getApiCache()
-          ) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((name) => name.startsWith('hinario-pmam') && name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Estratégia de cache: Network First para API, Cache First para assets
+// ─── Fetch ───────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorar requisições não-GET
-  if (request.method !== 'GET') {
-    return;
-  }
+  // Ignorar não-GET
+  if (request.method !== 'GET') return;
 
-  // Ignorar requisições de outros domínios (exceto CDN confiáveis)
-  const isSameDomain = url.origin === self.location.origin;
-  const isTrustedCDN = url.hostname.includes('cloudfront') || 
+  // Ignorar domínios externos (exceto CDN confiável)
+  const isSameOrigin = url.origin === self.location.origin;
+  const isTrustedCDN = url.hostname.includes('cloudfront') ||
                        url.hostname.includes('d2xsxph8kpxj0f') ||
                        url.hostname.includes('manus.space');
-  
-  if (!isSameDomain && !isTrustedCDN) {
+  if (!isSameOrigin && !isTrustedCDN) return;
+
+  // Imagens e fontes: Cache First (estáticas, raramente mudam)
+  if (/\.(png|jpg|jpeg|webp|svg|ico|woff2|woff|ttf)(\?|$)/.test(url.pathname)) {
+    event.respondWith(cacheFirstStrategy(request));
     return;
   }
 
-  // API: Network First com fallback para cache
-  if (CACHE_PATTERNS.api.test(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request, getApiCache()));
-    return;
-  }
-
-  // Assets: Cache First com fallback para network
-  if (CACHE_PATTERNS.assets.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request, getRuntimeCache()));
-    return;
-  }
-
-  // Páginas: Network First com fallback para cache
-  if (CACHE_PATTERNS.pages.test(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request, getRuntimeCache()));
-    return;
-  }
-
-  // Padrão: Stale While Revalidate
-  event.respondWith(staleWhileRevalidateStrategy(request, getRuntimeCache()));
+  // Tudo o mais (JS, CSS, HTML, API): Network First
+  // Garante versão mais recente quando há internet
+  event.respondWith(networkFirstStrategy(request));
 });
 
-// Network First Strategy
-async function networkFirstStrategy(request, cacheName) {
+// ─── Network First ────────────────────────────────────────────────────────────
+async function networkFirstStrategy(request) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
+    if (response.ok || response.type === 'opaque') {
+      const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone());
     }
     return response;
-  } catch (error) {
-    console.log('[SW] Network failed, using cache:', request.url);
+  } catch {
+    // Sem internet — tentar cache
     const cached = await caches.match(request);
-    if (cached) {
-      return cached;
-    }
-    
-    // Fallback para página offline
+    if (cached) return cached;
+
+    // Fallback HTML para navegação
     if (request.headers.get('accept')?.includes('text/html')) {
-      return caches.match('/index.html').then((response) => {
-        return response || new Response('Offline - Conteúdo não disponível', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'text/html' },
-        });
-      });
+      const fallback = await caches.match(OFFLINE_FALLBACK);
+      return fallback || new Response('Offline', { status: 503 });
     }
-    
-    return new Response('Offline', {
-      status: 503,
-      statusText: 'Service Unavailable',
-    });
+
+    return new Response('Offline', { status: 503 });
   }
 }
 
-// Cache First Strategy
-async function cacheFirstStrategy(request, cacheName) {
+// ─── Cache First ──────────────────────────────────────────────────────────────
+async function cacheFirstStrategy(request) {
   const cached = await caches.match(request);
   if (cached) {
+    // Atualizar cache em background
+    fetch(request).then((response) => {
+      if (response.ok) {
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
+      }
+    }).catch(() => {});
     return cached;
   }
 
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(cacheName);
+      const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone());
     }
     return response;
-  } catch (error) {
-    console.log('[SW] Failed to fetch:', request.url);
-    
-    // Fallback para imagem placeholder se for imagem
-    if (request.headers.get('accept')?.includes('image')) {
-      return new Response(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-        {
-          headers: { 'Content-Type': 'image/png' },
-        }
-      );
-    }
-    
-    return new Response('Offline - Recurso não disponível', {
-      status: 503,
-      statusText: 'Service Unavailable',
-    });
+  } catch {
+    return new Response('Offline', { status: 503 });
   }
 }
 
-// Stale While Revalidate Strategy
-async function staleWhileRevalidateStrategy(request, cacheName) {
-  const cached = await caches.match(request);
-
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) {
-        const cache = caches.open(cacheName);
-        cache.then((c) => c.put(request, response.clone()));
-      }
-      return response;
-    })
-    .catch((error) => {
-      console.log('[SW] Fetch failed in SWR:', request.url);
-      return cached || new Response('Offline', { status: 503 });
-    });
-
-  return cached || fetchPromise;
-}
-
-// Background Sync para sincronizar dados quando voltar online
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync event:', event.tag);
-  if (event.tag === 'sync-data') {
-    event.waitUntil(syncData());
-  }
-});
-
-async function syncData() {
-  try {
-    console.log('[SW] Syncing data with server');
-    const clients = await self.clients.matchAll();
-    clients.forEach((client) => {
-      client.postMessage({
-        type: 'SYNC_COMPLETE',
-        timestamp: new Date().toISOString(),
-      });
-    });
-  } catch (error) {
-    console.error('[SW] Sync failed:', error);
-  }
-}
-
-// Message Handler para comunicação com a página
+// ─── Mensagens ────────────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-
-  if (event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 
-  if (event.data.type === 'CLEAR_CACHE') {
-    Promise.all([
-      caches.delete(getRuntimeCache()),
-      caches.delete(getApiCache()),
-    ]).then(() => {
-      console.log('[SW] Caches cleared');
+  if (event.data?.type === 'CLEAR_CACHE') {
+    caches.delete(CACHE_NAME).then(() => {
+      console.log('[SW] Cache cleared');
     });
-  }
-
-  if (event.data.type === 'CACHE_URLS') {
-    const urls = event.data.urls || [];
-    caches.open(getRuntimeCache()).then((cache) => {
-      cache.addAll(urls).catch((err) => {
-        console.warn('[SW] Failed to cache URLs:', err);
-      });
-    });
-  }
-
-  if (event.data.type === 'PRECACHE_ASSETS') {
-    const assets = event.data.assets || [];
-    caches.open(getRuntimeCache()).then((cache) => {
-      assets.forEach((url) => {
-        cache.add(url).catch((err) => {
-          console.warn('[SW] Failed to precache:', url, err);
-        });
-      });
-    });
-  }
-
-  if (event.data.type === 'UPDATE_CACHE_VERSION') {
-    const newVersion = event.data.version;
-    if (newVersion && newVersion !== CACHE_VERSION) {
-      console.log('[SW] Updating cache version:', CACHE_VERSION, '->', newVersion);
-      CACHE_VERSION = newVersion;
-    }
   }
 });

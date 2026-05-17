@@ -104,6 +104,6 @@
 - [x] Corrigir BlogManagementPanel.tsx - renomear estado alert para feedback (conflito com window.alert)
 - [x] Corrigir SlateEditor.tsx - tipagem customizada do Slate (module augmentation + children recursivos)
 - [x] Corrigir StudyStudio.tsx - getDashboard→dashboard, onSuccess→useEffect, tipar data, answers no progress, props para ExamPanel
-- [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)
-- [ ] Bug: NotFoundError ao remover nó do DOM em cfap2026pmam.manus.space — "O nó a ser removido não é filho deste nó"
+- [x] Corrigir routers.ts - imageUrl null→undefined com nullish coalescing (?? undefined)- [x] Bug: NotFoundError ao remover nó do DOM — corrigido via key={index} em SyncedLyricsPanel
+- [x] Sistema de atualização: Network First para JS/CSS, detecção de reconexão, versão estável por processo"
 - [x] Bug: Auto-scroll de letra pula para o final em vez de acompanhar sincronismo das estrofes (correção definitiva: key=index, ref direto, loop reverso, dependências corrigidas)

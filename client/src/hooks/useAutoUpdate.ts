@@ -1,191 +1,88 @@
-import { useEffect, useRef, useState } from 'react';
-
-interface VersionInfo {
-  version: string;
-  timestamp: number;
-  buildTime: string;
-}
-
-interface AutoUpdateState {
-  currentVersion: string | null;
-  latestVersion: string | null;
-  updateAvailable: boolean;
-  isChecking: boolean;
-  lastCheckTime: number | null;
-  userIsActive: boolean;
-}
+import { useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'hinario_pmam_version';
-const CHECK_INTERVAL = 60000; // 1 minuto entre verificações
-const INACTIVITY_TIMEOUT = 30000; // 30 segundos de inatividade para considerar usuário inativo
 
+/**
+ * Hook de atualização automática.
+ *
+ * Comportamento:
+ * - Ao carregar a página: verifica versão no servidor e armazena como "versão atual"
+ * - Ao reconectar à internet (evento 'online'): verifica versão e recarrega se diferente
+ * - A cada 5 minutos em background: verifica silenciosamente
+ *
+ * Garante que o usuário sempre usa a versão mais recente ao conectar à internet.
+ */
 export function useAutoUpdate() {
-  const [state, setState] = useState<AutoUpdateState>({
-    currentVersion: localStorage.getItem(STORAGE_KEY),
-    latestVersion: null,
-    updateAvailable: false,
-    isChecking: false,
-    lastCheckTime: null,
-    userIsActive: true,
-  });
+  const currentVersionRef = useRef<string | null>(localStorage.getItem(STORAGE_KEY));
+  const isReloadingRef = useRef(false);
 
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastActivityRef = useRef<number>(Date.now());
-
-  /**
-   * Detectar atividade do usuário
-   */
-  const detectUserActivity = () => {
-    lastActivityRef.current = Date.now();
-    setState((prev) => ({ ...prev, userIsActive: true }));
-
-    // Resetar timer de inatividade
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
-
-    inactivityTimerRef.current = setTimeout(() => {
-      setState((prev) => ({ ...prev, userIsActive: false }));
-    }, INACTIVITY_TIMEOUT);
-  };
-
-  /**
-   * Verificar versão no servidor
-   */
-  const checkForUpdates = async () => {
-    // Não verificar se usuário está ativo
-    if (state.userIsActive) {
-      console.log('[AutoUpdate] User is active, skipping check');
-      return;
-    }
-
-    setState((prev) => ({ ...prev, isChecking: true }));
+  const checkAndUpdate = async (source: string) => {
+    if (isReloadingRef.current) return;
 
     try {
       const response = await fetch('/api/version', {
         method: 'GET',
-        cache: 'no-cache',
+        cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0',
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Version check failed: ${response.status}`);
+      if (!response.ok) return;
+
+      const { version } = await response.json() as { version: string };
+      const stored = currentVersionRef.current;
+
+      if (!stored) {
+        // Primeira carga: armazenar versão atual
+        currentVersionRef.current = version;
+        localStorage.setItem(STORAGE_KEY, version);
+        console.log(`[AutoUpdate] Version stored on first load: ${version}`);
+        return;
       }
 
-      const versionInfo: VersionInfo = await response.json();
-      const latestVersion = versionInfo.version;
+      if (stored !== version) {
+        console.log(`[AutoUpdate] Update detected (${source}): ${stored} → ${version}. Reloading...`);
+        isReloadingRef.current = true;
+        currentVersionRef.current = version;
+        localStorage.setItem(STORAGE_KEY, version);
 
-      setState((prev) => {
-        const hasUpdate = prev.currentVersion && prev.currentVersion !== latestVersion;
-
-        if (hasUpdate) {
-          console.log(
-            `[AutoUpdate] Update available: ${prev.currentVersion} -> ${latestVersion}`
-          );
-          localStorage.setItem(STORAGE_KEY, latestVersion);
-
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.controller?.postMessage({
-              type: 'UPDATE_CACHE_VERSION',
-              version: latestVersion,
-            });
-          }
+        // Limpar caches do Service Worker antes de recarregar
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
         }
 
-        return {
-          ...prev,
-          latestVersion,
-          updateAvailable: hasUpdate || false,
-          isChecking: false,
-          lastCheckTime: Date.now(),
-        };
-      });
-    } catch (error) {
-      console.error('[AutoUpdate] Version check failed:', error);
-      setState((prev) => ({ ...prev, isChecking: false }));
+        // Pequena pausa para o SW processar, depois recarregar
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      }
+    } catch {
+      // Sem internet ou servidor indisponível — ignorar silenciosamente
     }
   };
 
-  /**
-   * Aplicar atualização silenciosamente
-   */
-  const applyUpdate = () => {
-    console.log('[AutoUpdate] Applying update silently');
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
-    }
-
-    // Aguardar um pouco para o SW processar
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
-
-  /**
-   * Inicializar hook
-   */
   useEffect(() => {
-    // Armazenar versão atual na primeira carga
-    if (!state.currentVersion) {
-      const timestamp = Date.now().toString(36);
-      const random = Math.random().toString(36).slice(2, 8);
-      const hash = `${timestamp}-${random}`;
-      setState((prev) => ({ ...prev, currentVersion: hash }));
-      localStorage.setItem(STORAGE_KEY, hash);
-    }
+    // Verificação inicial ao carregar a página
+    checkAndUpdate('page-load');
 
-    // Detectar atividade do usuário
-    const events = ['mousedown', 'keydown', 'touchstart', 'click', 'scroll'];
-    events.forEach((event) => {
-      window.addEventListener(event, detectUserActivity, true);
-    });
+    // Ao reconectar à internet: verificar imediatamente
+    const handleOnline = () => {
+      console.log('[AutoUpdate] Back online — checking for updates...');
+      checkAndUpdate('online-event');
+    };
 
-    // Verificar atualizações a cada intervalo
-    checkTimerRef.current = setInterval(() => {
-      checkForUpdates();
-    }, CHECK_INTERVAL);
+    // Verificação periódica a cada 5 minutos (em background)
+    const interval = setInterval(() => {
+      checkAndUpdate('periodic');
+    }, 5 * 60 * 1000);
 
-    // Verificação inicial após 5 segundos
-    const initialCheckTimer = setTimeout(() => {
-      checkForUpdates();
-    }, 5000);
+    window.addEventListener('online', handleOnline);
 
     return () => {
-      events.forEach((event) => {
-        window.removeEventListener(event, detectUserActivity, true);
-      });
-
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-
-      if (checkTimerRef.current) {
-        clearInterval(checkTimerRef.current);
-      }
-
-      clearTimeout(initialCheckTimer);
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
     };
   }, []);
-
-  /**
-   * Aplicar atualização quando disponível e usuário inativo
-   */
-  useEffect(() => {
-    if (state.updateAvailable && !state.userIsActive) {
-      console.log('[AutoUpdate] Applying silent update');
-      applyUpdate();
-    }
-  }, [state.updateAvailable, state.userIsActive]);
-
-  return {
-    ...state,
-    checkForUpdates,
-    applyUpdate,
-  };
 }
