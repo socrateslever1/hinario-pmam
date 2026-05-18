@@ -135,7 +135,7 @@ export default function SlateEditor({ value, onChange, placeholder = 'Escreva o 
   };
 
   return (
-    <div className="w-full border border-border rounded-lg overflow-hidden bg-background">
+    <div className="w-full border border-border rounded-lg overflow-hidden bg-background" style={{ touchAction: 'pan-y' }}>
       <Slate editor={editor} initialValue={initialValue} onChange={handleChange}>
         {/* Toolbar */}
         <div className="flex flex-wrap gap-1 p-3 bg-muted border-b border-border">
@@ -224,12 +224,14 @@ export default function SlateEditor({ value, onChange, placeholder = 'Escreva o 
 
         {/* Editor */}
         <Editable
-          className="p-4 min-h-[300px] focus:outline-none prose prose-sm max-w-none"
+          className="p-4 min-h-[200px] max-h-[60vh] overflow-y-auto focus:outline-none prose prose-sm max-w-none"
           placeholder={placeholder}
           spellCheck="true"
           style={{
-            fontSize: '14px',
+            fontSize: '16px',
             lineHeight: '1.6',
+            touchAction: 'pan-y',
+            WebkitOverflowScrolling: 'touch',
           }}
         />
       </Slate>

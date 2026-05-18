@@ -110,3 +110,4 @@
 - [x] Auto-scroll ativado por padrão (useState true)
 - [x] Play na mesma linha do nome do hino no player
 - [x] Botões: tocar 1x, tocar todas, repetir no player
+- [x] Bug: Editor de texto do comunicado bloqueia scroll por toque em dispositivos móveis
