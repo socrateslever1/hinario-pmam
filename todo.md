@@ -111,3 +111,5 @@
 - [x] Play na mesma linha do nome do hino no player
 - [x] Botões: tocar 1x, tocar todas, repetir no player
 - [x] Bug: Editor de texto do comunicado bloqueia scroll por toque em dispositivos móveis
+- [ ] Bug: Painel comunicados — scroll ao redor do editor não funciona em touch, botão Salvar fica fora da tela
+- [ ] Bug: Painel comunicados — tela trava após adicionar imagem, impossível continuar editando
