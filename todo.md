@@ -111,5 +111,8 @@
 - [x] Play na mesma linha do nome do hino no player
 - [x] Botões: tocar 1x, tocar todas, repetir no player
 - [x] Bug: Editor de texto do comunicado bloqueia scroll por toque em dispositivos móveis
-- [ ] Bug: Painel comunicados — scroll ao redor do editor não funciona em touch, botão Salvar fica fora da tela
-- [ ] Bug: Painel comunicados — tela trava após adicionar imagem, impossível continuar editando
+- [x] Bug: Painel comunicados — scroll ao redor do editor não funciona em touch, botão Salvar fica fora da tela
+- [x] Bug: Painel comunicados — tela trava após adicionar imagem, impossível continuar editando
+- [x] Melhoria: Salvamento automático de rascunho no painel de comunicados (localStorage)
+- [x] Melhoria: Botão “Continuar rascunho” ao abrir painel com rascunho salvo
+- [x] Melhoria: Inserção de link YouTube e outros conteúdos no editor de comunicados
