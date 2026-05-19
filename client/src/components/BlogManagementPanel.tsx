@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import SlateEditor from "./SlateEditor";
+import RichTextEditor from "./RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -352,8 +352,8 @@ export function BlogManagementPanel() {
                   <div>
                     <label className="text-sm font-medium">Conteúdo *</label>
                     <div className="mt-1">
-                      <SlateEditor
-                        value={formData.content}
+                      <RichTextEditor
+                        content={formData.content}
                         onChange={(content) => setFormData(prev => ({ ...prev, content }))}
                         placeholder="Digite o conteúdo da notícia com formatação..."
                       />

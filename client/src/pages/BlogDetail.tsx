@@ -60,11 +60,12 @@ export default function BlogDetail() {
 
       {/* Hero with Image */}
       {post.imageUrl && (
-        <div className="relative h-96 w-full overflow-hidden bg-muted">
+        <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '60vw', minHeight: '200px' }}>
           <img
             src={post.imageUrl}
             alt={post.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain block"
+            style={{ maxWidth: '100%', display: 'block' }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </div>
@@ -115,8 +116,23 @@ export default function BlogDetail() {
             {/* Body */}
             <div
               className="prose prose-sm md:prose-base max-w-none text-foreground"
+              style={{
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+              }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
+            <style>{`
+              .prose img { max-width: 100% !important; height: auto !important; display: block; border-radius: 0.5rem; margin: 0.75rem auto; }
+              .prose blockquote { border-left: 4px solid #c4a84b; padding-left: 1rem; color: #6b7280; font-style: italic; }
+              .prose ul { list-style-type: disc; padding-left: 1.5rem; }
+              .prose ol { list-style-type: decimal; padding-left: 1.5rem; }
+              .prose h2 { font-size: 1.5rem; font-weight: bold; margin: 1rem 0 0.5rem; }
+              .prose h3 { font-size: 1.25rem; font-weight: bold; margin: 0.75rem 0 0.5rem; }
+              .prose a { color: #c4a84b; text-decoration: underline; }
+              .prose pre { background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+              .prose code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
+            `}</style>
           </article>
 
           {/* Related Posts Section */}

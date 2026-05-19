@@ -116,3 +116,6 @@
 - [x] Melhoria: Salvamento automático de rascunho no painel de comunicados (localStorage)
 - [x] Melhoria: Botão “Continuar rascunho” ao abrir painel com rascunho salvo
 - [x] Melhoria: Inserção de link YouTube e outros conteúdos no editor de comunicados
+- [x] Bug: Imagem do post de blog não responsiva (object-contain, max-w-full, maxHeight:60vw)
+- [x] Bug: Botões de formatação do editor não funcionam (substituído SlateEditor por RichTextEditor/Tiptap)
+- [x] Bug: Botão de aspas publicava acidentalmente (type=button adicionado em todos os botões da toolbar)

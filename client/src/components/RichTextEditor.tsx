@@ -72,6 +72,7 @@ export default function RichTextEditor({
       <div className="editor-toolbar">
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("bold") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -80,6 +81,7 @@ export default function RichTextEditor({
             <Bold className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("italic") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -91,6 +93,7 @@ export default function RichTextEditor({
 
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("heading", { level: 2 }) ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -99,6 +102,7 @@ export default function RichTextEditor({
             <Heading2 className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("heading", { level: 3 }) ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -110,6 +114,7 @@ export default function RichTextEditor({
 
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("bulletList") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -118,6 +123,7 @@ export default function RichTextEditor({
             <List className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("orderedList") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -129,6 +135,7 @@ export default function RichTextEditor({
 
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("blockquote") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -137,6 +144,7 @@ export default function RichTextEditor({
             <Quote className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             size="sm"
             variant={editor.isActive("codeBlock") ? "default" : "outline"}
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -148,6 +156,7 @@ export default function RichTextEditor({
 
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={addLink}
@@ -156,6 +165,7 @@ export default function RichTextEditor({
             <LinkIcon className="h-4 w-4" />
           </Button>
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={addImage}
@@ -167,6 +177,7 @@ export default function RichTextEditor({
 
         <div className="toolbar-group">
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={() => editor.chain().focus().undo().run()}
@@ -175,6 +186,7 @@ export default function RichTextEditor({
             ↶
           </Button>
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={() => editor.chain().focus().redo().run()}
