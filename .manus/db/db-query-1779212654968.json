@@ -1,0 +1,13 @@
+{
+  "query": "SHOW TABLES LIKE 'pmam_post_images';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user CZ6fqEVQpCUKFJb.9db839fe7bfc --database oYQqDtLooPR5vbQ65ChDb9 --execute SHOW TABLES LIKE 'pmam_post_images';",
+  "rows": [
+    {
+      "Tables_in_oYQqDtLooPR5vbQ65ChDb9 (pmam_post_images)": "pmam_post_images"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_oYQqDtLooPR5vbQ65ChDb9 (pmam_post_images)\npmam_post_images\n",
+  "stderr": "",
+  "execution_time_ms": 1267
+}

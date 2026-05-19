@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -14,20 +15,29 @@ import {
   Heading3,
   Quote,
   Code,
+  Loader2,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 import "./RichTextEditor.css";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  postId?: number;
 }
 
 export default function RichTextEditor({
   content,
   onChange,
   placeholder = "Escreva seu conteúdo aqui...",
+  postId,
 }: RichTextEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const uploadImageMutation = trpc.blog.uploadImage.useMutation();
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -35,7 +45,10 @@ export default function RichTextEditor({
         openOnClick: false,
       }),
       Image.configure({
-        allowBase64: true,
+        allowBase64: false,
+        HTMLAttributes: {
+          style: "max-width: 100%; height: auto; display: block; margin: 0 auto;",
+        },
       }),
     ],
     content,
@@ -48,7 +61,51 @@ export default function RichTextEditor({
     return null;
   }
 
-  const addImage = () => {
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    e.target.value = "";
+
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecione um arquivo de imagem.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("A imagem deve ter no máximo 5MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageMutation.mutateAsync({
+        fileName: file.name,
+        mimeType: file.type,
+        base64Data,
+        postId,
+        alignment: "center",
+        sizePercent: 100,
+      });
+
+      editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+    } catch (err) {
+      console.error("Erro ao fazer upload da imagem:", err);
+      alert("Erro ao fazer upload da imagem. Tente novamente.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const addImageByUrl = () => {
     const url = window.prompt("Insira a URL da imagem:");
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
@@ -69,6 +126,15 @@ export default function RichTextEditor({
 
   return (
     <div className="rich-text-editor">
+      {/* Input de arquivo oculto para upload de imagem */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleImageFileChange}
+      />
+
       <div className="editor-toolbar">
         <div className="toolbar-group">
           <Button
@@ -168,10 +234,25 @@ export default function RichTextEditor({
             type="button"
             size="sm"
             variant="outline"
-            onClick={addImage}
-            title="Adicionar imagem"
+            onClick={() => fileInputRef.current?.click()}
+            title="Enviar imagem do dispositivo (máx 5MB)"
+            disabled={isUploading}
           >
-            <ImageIcon className="h-4 w-4" />
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImageIcon className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={addImageByUrl}
+            title="Inserir imagem por URL"
+            className="text-xs px-2"
+          >
+            URL
           </Button>
         </div>
 

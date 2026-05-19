@@ -122,6 +122,32 @@ export default function BlogDetail() {
               }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
+
+            {/* Player YouTube */}
+            {post.youtubeUrl && (() => {
+              // Extrair o ID do vídeo do YouTube
+              const ytMatch = post.youtubeUrl.match(
+                /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/
+              );
+              const videoId = ytMatch?.[1];
+              if (!videoId) return null;
+              return (
+                <div className="mt-8">
+                  <div
+                    className="relative w-full rounded-lg overflow-hidden"
+                    style={{ paddingTop: '56.25%' }}
+                  >
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoId}`}
+                      title="Vídeo do YouTube"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full border-0"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
             <style>{`
               .prose img { max-width: 100% !important; height: auto !important; display: block; border-radius: 0.5rem; margin: 0.75rem auto; }
               .prose blockquote { border-left: 4px solid #c4a84b; padding-left: 1rem; color: #6b7280; font-style: italic; }

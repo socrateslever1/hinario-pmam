@@ -208,6 +208,7 @@ export const pmamBlogPost = mysqlTable("pmam_blog_post", {
   title: varchar("title", { length: 255 }).notNull(),
   content: longtext("content").notNull(),
   imageUrl: varchar("image_url", { length: 512 }),
+  youtubeUrl: varchar("youtube_url", { length: 512 }),
   authorId: int("author_id").notNull(),
   published: boolean("published").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -216,6 +217,25 @@ export const pmamBlogPost = mysqlTable("pmam_blog_post", {
 
 export type PmamBlogPost = typeof pmamBlogPost.$inferSelect;
 export type InsertPmamBlogPost = typeof pmamBlogPost.$inferInsert;
+
+export const pmamPostImages = mysqlTable("pmam_post_images", {
+  id: int("id").autoincrement().primaryKey(),
+  postId: int("post_id"),
+  url: varchar("url", { length: 512 }).notNull(),
+  fileKey: varchar("file_key", { length: 512 }).notNull(),
+  altText: varchar("alt_text", { length: 255 }),
+  width: int("width"),
+  height: int("height"),
+  alignment: varchar("alignment", { length: 20 }).default("center"),
+  sizePercent: int("size_percent").default(100),
+  mimeType: varchar("mime_type", { length: 100 }),
+  fileSize: int("file_size"),
+  uploadedBy: int("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PmamPostImage = typeof pmamPostImages.$inferSelect;
+export type InsertPmamPostImage = typeof pmamPostImages.$inferInsert;
 
 export const runtimeTables = {
   pmamUsers,
@@ -229,6 +249,7 @@ export const runtimeTables = {
   pmamStudyModuleProgress,
   pmamMissionMedia,
   pmamBlogPost,
+  pmamPostImages,
 };
 
 /**

@@ -538,12 +538,14 @@ export const appRouter = router({
       title: z.string().min(1).max(255),
       content: z.string().min(1),
       imageUrl: z.string().nullable().optional(),
+      youtubeUrl: z.string().nullable().optional(),
       published: z.boolean().default(false),
     })).mutation(async ({ input, ctx }) => {
       const id = await db.createBlogPost({
         title: input.title,
         content: input.content,
         imageUrl: input.imageUrl ?? undefined,
+        youtubeUrl: input.youtubeUrl ?? undefined,
         authorId: ctx.user.id,
         published: input.published,
       });
@@ -554,12 +556,14 @@ export const appRouter = router({
       title: z.string().min(1).max(255).optional(),
       content: z.string().min(1).optional(),
       imageUrl: z.string().nullable().optional(),
+      youtubeUrl: z.string().nullable().optional(),
       published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
       await db.updateBlogPost(input.id, {
         title: input.title,
         content: input.content,
         imageUrl: input.imageUrl ?? undefined,
+        youtubeUrl: input.youtubeUrl,
         published: input.published,
       });
       return await db.getBlogPostById(input.id);
@@ -569,6 +573,38 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       await db.deleteBlogPost(input.id);
       return { success: true };
+    }),
+    uploadImage: adminProcedure.input(z.object({
+      fileName: z.string(),
+      mimeType: z.string(),
+      base64Data: z.string(),
+      postId: z.number().optional(),
+      altText: z.string().optional(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+      alignment: z.string().optional(),
+      sizePercent: z.number().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const suffix = nanoid(10);
+      const ext = input.fileName.split('.').pop() || 'jpg';
+      const fileKey = `blog-images/post-img-${suffix}.${ext}`;
+      const buffer = Buffer.from(input.base64Data, 'base64');
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      // Salvar metadados na tabela pmam_post_images
+      await db.savePostImage({
+        postId: input.postId,
+        url,
+        fileKey,
+        altText: input.altText,
+        width: input.width,
+        height: input.height,
+        alignment: input.alignment || 'center',
+        sizePercent: input.sizePercent || 100,
+        mimeType: input.mimeType,
+        fileSize: buffer.length,
+        uploadedBy: ctx.user.id,
+      });
+      return { url, fileKey };
     }),
   }),
 });

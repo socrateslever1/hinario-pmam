@@ -1123,6 +1123,7 @@ function mapBlogPost(p: any) {
     title: p.title,
     content: p.content,
     imageUrl: p.image_url,
+    youtubeUrl: p.youtube_url,
     authorId: p.author_id,
     published: Boolean(p.published),
     createdAt: p.created_at,
@@ -1134,17 +1135,19 @@ export async function createBlogPost(post: {
   title: string;
   content: string;
   imageUrl?: string;
+  youtubeUrl?: string;
   authorId: number;
   published?: boolean;
 }) {
   const sql = `
-    INSERT INTO pmam_blog_post (title, content, image_url, author_id, published)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO pmam_blog_post (title, content, image_url, youtube_url, author_id, published)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
   const params = [
     post.title,
     post.content,
     post.imageUrl || null,
+    post.youtubeUrl || null,
     post.authorId,
     post.published ? 1 : 0,
   ];
@@ -1179,6 +1182,7 @@ export async function updateBlogPost(id: number, updates: {
   title?: string;
   content?: string;
   imageUrl?: string;
+  youtubeUrl?: string | null;
   published?: boolean;
 }) {
   const fields: string[] = [];
@@ -1196,6 +1200,10 @@ export async function updateBlogPost(id: number, updates: {
     fields.push('image_url = ?');
     params.push(updates.imageUrl || null);
   }
+  if (updates.youtubeUrl !== undefined) {
+    fields.push('youtube_url = ?');
+    params.push(updates.youtubeUrl || null);
+  }
   if (updates.published !== undefined) {
     fields.push('published = ?');
     params.push(updates.published ? 1 : 0);
@@ -1212,4 +1220,37 @@ export async function updateBlogPost(id: number, updates: {
 
 export async function deleteBlogPost(id: number) {
   await query('DELETE FROM pmam_blog_post WHERE id = ?', [id]);
+}
+
+export async function savePostImage(img: {
+  postId?: number;
+  url: string;
+  fileKey: string;
+  altText?: string;
+  width?: number;
+  height?: number;
+  alignment?: string;
+  sizePercent?: number;
+  mimeType?: string;
+  fileSize?: number;
+  uploadedBy?: number;
+}) {
+  const result = await query(
+    `INSERT INTO pmam_post_images (post_id, url, file_key, alt_text, width, height, alignment, size_percent, mime_type, file_size, uploaded_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      img.postId ?? null,
+      img.url,
+      img.fileKey,
+      img.altText ?? null,
+      img.width ?? null,
+      img.height ?? null,
+      img.alignment ?? 'center',
+      img.sizePercent ?? 100,
+      img.mimeType ?? null,
+      img.fileSize ?? null,
+      img.uploadedBy ?? null,
+    ]
+  );
+  return (result as any).insertId as number;
 }

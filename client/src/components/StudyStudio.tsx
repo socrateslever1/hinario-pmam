@@ -49,7 +49,8 @@ export default function StudyStudio({ module }: StudyStudioProps) {
 
   useEffect(() => {
     if (dashboardData) {
-      const prog = dashboardData.modules.find((m: { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null; saveProgress?: (newCompleted: string[], score: number | null) => void }) => m.moduleSlug === module.slug);
+      type ModuleProgress = { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null };
+      const prog = (dashboardData.modules as ModuleProgress[]).find((m) => m.moduleSlug === module.slug);
       if (prog) {
         setCompletedSectionIds(prog.completedSectionIds);
         setBestScore(prog.bestScore);
@@ -57,7 +58,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
     }
   }, [dashboardData, module.slug]);
 
-  const saveProgressMutation = trpc.study.saveModuleProgress?.useMutation?.() || { mutate: () => {} };
+  const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
 
   const handleSaveProgress = (newCompletedSections: string[], score: number | null) => {
     if (!session) return;

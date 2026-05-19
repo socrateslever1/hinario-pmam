@@ -209,6 +209,7 @@ export function BlogManagementPanel() {
           title: formData.title,
           content: formData.content,
           imageUrl: formData.imageUrl || null,
+          youtubeUrl: formData.youtubeUrl || null,
           published: formData.published,
         });
         setFeedback({ type: 'success', message: 'Post atualizado com sucesso!' });
@@ -217,6 +218,7 @@ export function BlogManagementPanel() {
           title: formData.title,
           content: formData.content,
           imageUrl: formData.imageUrl || null,
+          youtubeUrl: formData.youtubeUrl || null,
           published: formData.published,
         });
         setFeedback({ type: 'success', message: 'Post publicado com sucesso!' });
@@ -235,7 +237,7 @@ export function BlogManagementPanel() {
       title: post.title,
       content: post.content,
       imageUrl: post.imageUrl || "",
-      youtubeUrl: "",
+      youtubeUrl: post.youtubeUrl || "",
       published: post.published,
     });
     setEditingId(post.id);

@@ -119,3 +119,23 @@
 - [x] Bug: Imagem do post de blog não responsiva (object-contain, max-w-full, maxHeight:60vw)
 - [x] Bug: Botões de formatação do editor não funcionam (substituído SlateEditor por RichTextEditor/Tiptap)
 - [x] Bug: Botão de aspas publicava acidentalmente (type=button adicionado em todos os botões da toolbar)
+
+## Upload de Imagem no Editor
+
+- [x] Upload direto de imagem no editor de comunicados (S3, sem depender de serviços externos)
+- [x] Tabela pmam_post_images no banco para metadados de imagens dos posts
+- [x] Endpoint tRPC blog.uploadImage para upload de imagem via S3
+- [ ] Edição inline de imagem no editor (tamanho, alinhamento, alt text)
+
+## Player YouTube em Posts de Blog
+
+- [x] Adicionar coluna youtube_url à tabela pmam_blog_post
+- [x] Atualizar endpoints create/update do blog para aceitar youtubeUrl
+- [x] Exibir player YouTube embutido na página de detalhe do post (BlogDetail.tsx)
+- [x] Campo youtubeUrl no formulário do BlogManagementPanel já existia — agora é salvo no banco
+
+## Erros TypeScript Persistentes
+
+- [x] StudyStudio.tsx: parâmetro 'm' sem tipo — corrigido com type alias ModuleProgress
+- [x] StudyStudio.tsx: saveProgress não existe — corrigido para saveModuleProgress.useMutation()
+- [x] BlogManagementPanel.tsx: Identifier useState duplicado — era erro de cache do Vite (arquivo correto)
