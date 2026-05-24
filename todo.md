@@ -167,6 +167,15 @@
 - [x] Estilos de float/wrap de imagem preservados
 
 
+## Correção de Layout do BlogDetail
+
+- [x] Imagens com `display: block` (não inline)
+- [x] Imagens limitadas a `max-width: 100%` do container
+- [x] Imagens centralizadas por padrão (`margin: 0 auto`)
+- [x] Container com `overflow: hidden` para evitar overflow
+- [x] Float preservado para imagens com `float: left/right`
+- [x] Seção "Mais Comunicados" nunca é "imprensada"
+
 ## Upload de MP3 e Cache Offline para Hinos
 
 - [x] Endpoint tRPC hymns.uploadAudio para upload de MP3 para S3

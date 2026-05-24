@@ -203,7 +203,7 @@ export default function BlogDetail() {
 
             {/* Corpo do post — overflow controlado, imagens limitadas ao container */}
             <div
-              className="prose prose-sm md:prose-base max-w-none text-foreground"
+              className="prose prose-sm md:prose-base max-w-none text-foreground overflow-hidden"
               style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
@@ -225,7 +225,28 @@ export default function BlogDetail() {
 
             {/* Estilos do conteúdo do editor */}
             <style>{`
-              .prose img { max-width: 100% !important; height: auto !important; border-radius: 0.5rem; margin: 0.75rem 0; }
+              /* Imagens: display block, max-width 100%, sem overflow */
+              .prose img { 
+                max-width: 100% !important; 
+                height: auto !important; 
+                display: block !important;
+                border-radius: 0.5rem; 
+                margin: 0.75rem auto !important;
+              }
+              /* Imagens com float: inline, margin ajustado */
+              .prose img[style*="float: left"] { 
+                display: inline !important;
+                float: left; 
+                margin: 0 1rem 0.5rem 0 !important; 
+              }
+              .prose img[style*="float: right"] { 
+                display: inline !important;
+                float: right; 
+                margin: 0 0 0.5rem 1rem !important; 
+              }
+              /* Limpar floats */
+              .prose::after { content: ""; display: table; clear: both; }
+              /* Outros estilos */
               .prose blockquote { border-left: 4px solid #c4a84b; padding-left: 1rem; color: #6b7280; font-style: italic; }
               .prose ul { list-style-type: disc; padding-left: 1.5rem; }
               .prose ol { list-style-type: decimal; padding-left: 1.5rem; }
@@ -234,10 +255,6 @@ export default function BlogDetail() {
               .prose a { color: #c4a84b; text-decoration: underline; }
               .prose pre { background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
               .prose code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
-              /* Imagens com float do editor */
-              .prose img[style*="float: left"] { float: left; margin: 0 1rem 0.5rem 0; }
-              .prose img[style*="float: right"] { float: right; margin: 0 0 0.5rem 1rem; }
-              .prose::after { content: ""; display: table; clear: both; }
             `}</style>
           </article>
 
