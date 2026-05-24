@@ -20,7 +20,14 @@ export function isYouTubeUrl(url?: string | null): boolean {
 export function resolvePlayableMediaUrl(input: {
   youtubeUrl?: string | null;
   audioUrl?: string | null;
+  isOffline?: boolean;
 }): string | null {
+  // Offline: preferir MP3 em cache
+  if (input.isOffline && input.audioUrl) {
+    return input.audioUrl;
+  }
+
+  // Online: preferir YouTube
   const youtubeUrl = normalizeYouTubeUrl(input.youtubeUrl);
   if (youtubeUrl) return youtubeUrl;
 

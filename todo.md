@@ -145,3 +145,35 @@
 - [x] StudyStudio.tsx: parâmetro 'm' sem tipo — corrigido com type alias ModuleProgress
 - [x] StudyStudio.tsx: saveProgress não existe — corrigido para saveModuleProgress.useMutation()
 - [x] BlogManagementPanel.tsx: Identifier useState duplicado — era erro de cache do Vite (arquivo correto)
+
+
+## Curtidas e Comentários em Posts de Blog
+
+- [x] Tabelas pmam_comments e pmam_likes já existiam no banco com suporte a target_type
+- [x] Funções de curtidas e comentários adicionadas ao db.ts
+- [x] Endpoints tRPC: toggleLike, getLikes, getComments, addComment, deleteComment
+- [x] Barra de curtidas com contador de likes
+- [x] Seção de comentários com formulário de novo comentário
+- [x] Suporte a comentários anônimos (por nome)
+- [x] Admins podem deletar comentários
+
+## Layout Corrigido do BlogDetail
+
+- [x] Imagem de capa com altura fixa (não cresce)
+- [x] Conteúdo com max-width: 3xl e padding lateral consistente
+- [x] Seção "Mais Comunicados" sempre abaixo de tudo
+- [x] Imagens do editor com overflow controlado
+- [x] Player YouTube com aspect ratio 16:9
+- [x] Estilos de float/wrap de imagem preservados
+
+
+## Upload de MP3 e Cache Offline para Hinos
+
+- [x] Endpoint tRPC hymns.uploadAudio para upload de MP3 para S3
+- [x] Botão "Upload MP3" no painel admin com seletor de arquivo
+- [x] Service Worker melhorado para cachear MP3 com estratégia Cache First
+- [x] Detecção de modo offline no LyricsPlayer
+- [x] Fallback automático para MP3 cacheado quando offline
+- [x] Sincronismo de letra preservado (funciona em ambos os modos)
+- [x] Badge "🔴 Áudio Offline" quando tocando MP3 cacheado
+- [x] Pré-caching automático de MP3 ao acessar hino (via usePWA.cacheUrls)

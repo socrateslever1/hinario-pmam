@@ -65,6 +65,12 @@ self.addEventListener('fetch', (event) => {
                        url.hostname.includes('manus.space');
   if (!isSameOrigin && !isTrustedCDN) return;
 
+  // MP3 e áudio: Cache First (offline priority)
+  if (/\.(mp3|wav|ogg|m4a)(\?|$)/.test(url.pathname)) {
+    event.respondWith(cacheFirstStrategy(request));
+    return;
+  }
+
   // Imagens e fontes: Cache First (estáticas, raramente mudam)
   if (/\.(png|jpg|jpeg|webp|svg|ico|woff2|woff|ttf)(\?|$)/.test(url.pathname)) {
     event.respondWith(cacheFirstStrategy(request));

@@ -1254,3 +1254,59 @@ export async function savePostImage(img: {
   );
   return (result as any).insertId as number;
 }
+
+// ===== BLOG COMMENTS & LIKES =====
+export async function getBlogComments(postId: number) {
+  const rows = await query(
+    'SELECT * FROM pmam_comments WHERE target_type = ? AND target_id = ? ORDER BY created_at ASC',
+    ['blog', postId]
+  );
+  return rows.map(mapComment);
+}
+
+export async function createBlogComment(postId: number, authorName: string, content: string) {
+  await query(
+    'INSERT INTO pmam_comments (target_type, target_id, author_name, content) VALUES (?, ?, ?, ?)',
+    ['blog', postId, authorName, content]
+  );
+}
+
+export async function deleteBlogComment(commentId: number) {
+  await query('DELETE FROM pmam_comments WHERE id = ? AND target_type = ?', [commentId, 'blog']);
+}
+
+export async function getBlogLikesCount(postId: number): Promise<number> {
+  const rows = await query(
+    'SELECT COUNT(*) as cnt FROM pmam_likes WHERE target_type = ? AND target_id = ?',
+    ['blog', postId]
+  );
+  return Number(rows?.[0]?.cnt ?? 0);
+}
+
+export async function getBlogLikedByVisitor(postId: number, visitorId: string): Promise<boolean> {
+  const rows = await query(
+    'SELECT id FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ? LIMIT 1',
+    ['blog', postId, visitorId]
+  );
+  return rows.length > 0;
+}
+
+export async function toggleBlogLike(postId: number, visitorId: string): Promise<{ liked: boolean; count: number }> {
+  const existing = await query(
+    'SELECT id FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ? LIMIT 1',
+    ['blog', postId, visitorId]
+  );
+  if (existing.length > 0) {
+    await query(
+      'DELETE FROM pmam_likes WHERE target_type = ? AND target_id = ? AND visitor_id = ?',
+      ['blog', postId, visitorId]
+    );
+  } else {
+    await query(
+      'INSERT INTO pmam_likes (target_type, target_id, visitor_id) VALUES (?, ?, ?)',
+      ['blog', postId, visitorId]
+    );
+  }
+  const count = await getBlogLikesCount(postId);
+  return { liked: existing.length === 0, count };
+}

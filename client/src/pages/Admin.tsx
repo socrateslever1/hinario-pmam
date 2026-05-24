@@ -20,7 +20,7 @@ import {
   Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
   Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock, Search
+  Clock, Search, Loader2
 } from "lucide-react";
 import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
@@ -156,8 +156,8 @@ function getDefaultHymnFormState(hymn?: any) {
 
 function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
   const [form, setForm] = useState(() => getDefaultHymnFormState(hymn));
-
-  const utils = trpc.useUtils();
+  const [uploading, setUploading] = useState(false);
+  const utils = trpc.useUtils();;
   const createMut = trpc.hymns.create.useMutation({
     onSuccess: async () => {
       toast.success("Hino criado!");
@@ -182,6 +182,42 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
     },
     onError: (e) => toast.error(e.message),
   });
+  const uploadAudioMut = trpc.hymns.uploadAudio.useMutation({
+    onSuccess: (data) => {
+      setForm(f => ({ ...f, audioUrl: data.url }));
+      toast.success("Áudio enviado com sucesso!");
+      setUploading(false);
+    },
+    onError: (e) => {
+      toast.error(`Erro ao enviar áudio: ${e.message}`);
+      setUploading(false);
+    },
+  });
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 50MB)");
+      return;
+    }
+    if (!hymn?.id) {
+      toast.error("Salve o hino primeiro antes de fazer upload de áudio");
+      return;
+    }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const base64 = (evt.target?.result as string)?.split(',')[1];
+      if (!base64) return;
+      uploadAudioMut.mutate({
+        hymnId: hymn.id,
+        fileName: file.name,
+        fileBase64: base64,
+        contentType: file.type || 'audio/mpeg',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     setForm(getDefaultHymnFormState(hymn));
@@ -237,7 +273,16 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube</Label>
         <Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
       <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Áudio (MP3)</Label>
-        <Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." /></div>
+        <div className="flex gap-2">
+          <Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
+          <Button type="button" variant="outline" disabled={uploading || !hymn?.id} className="gap-2" onClick={() => document.getElementById('audio-upload')?.click()}>
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? "Enviando..." : "Upload MP3"}
+          </Button>
+          <input id="audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={handleAudioUpload} className="hidden" />
+        </div>
+        {form.audioUrl && <p className="text-xs text-green-600 mt-1">✓ Áudio salvo</p>}
+      </div>
       <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
         <Save className="h-4 w-4" />{saving ? "Salvando..." : hymn ? "Atualizar Hino" : "Criar Hino"}
       </Button>

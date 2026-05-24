@@ -574,6 +574,43 @@ export const appRouter = router({
       await db.deleteBlogPost(input.id);
       return { success: true };
     }),
+    // ---- Curtidas ----
+    toggleLike: publicProcedure.input(z.object({
+      postId: z.number(),
+      visitorId: z.string().trim().min(8).max(128),
+    })).mutation(async ({ input }) => {
+      return db.toggleBlogLike(input.postId, input.visitorId);
+    }),
+    getLikes: publicProcedure.input(z.object({
+      postId: z.number(),
+      visitorId: z.string().trim().min(8).max(128).optional(),
+    })).query(async ({ input }) => {
+      const count = await db.getBlogLikesCount(input.postId);
+      const liked = input.visitorId ? await db.getBlogLikedByVisitor(input.postId, input.visitorId) : false;
+      return { count, liked };
+    }),
+    // ---- Comentários ----
+    getComments: publicProcedure.input(z.object({
+      postId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getBlogComments(input.postId);
+    }),
+    addComment: publicProcedure.input(z.object({
+      postId: z.number(),
+      authorName: z.string().trim().min(2).max(80),
+      content: z.string().trim().min(2).max(2000),
+    })).mutation(async ({ input }) => {
+      const post = await db.getBlogPostById(input.postId);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post não encontrado" });
+      await db.createBlogComment(input.postId, input.authorName, input.content);
+      return { success: true };
+    }),
+    deleteComment: adminProcedure.input(z.object({
+      commentId: z.number(),
+    })).mutation(async ({ input }) => {
+      await db.deleteBlogComment(input.commentId);
+      return { success: true };
+    }),
     uploadImage: adminProcedure.input(z.object({
       fileName: z.string(),
       mimeType: z.string(),
