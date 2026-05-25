@@ -176,13 +176,21 @@
 - [x] Float preservado para imagens com `float: left/right`
 - [x] Seção "Mais Comunicados" nunca é "imprensada"
 
-## Upload de MP3 e Cache Offline para Hinos
+### Upload de MP3 e Cache Offline para Hinos
 
 - [x] Endpoint tRPC hymns.uploadAudio para upload de MP3 para S3
 - [x] Botão "Upload MP3" no painel admin com seletor de arquivo
 - [x] Service Worker melhorado para cachear MP3 com estratégia Cache First
-- [x] Detecção de modo offline no LyricsPlayer
-- [x] Fallback automático para MP3 cacheado quando offline
-- [x] Sincronismo de letra preservado (funciona em ambos os modos)
-- [x] Badge "🔴 Áudio Offline" quando tocando MP3 cacheado
-- [x] Pré-caching automático de MP3 ao acessar hino (via usePWA.cacheUrls)
+- [x] Detecção de offline no LyricsPlayer para tocar MP3 cacheado
+- [x] Sincronismo de letra preservado em ambos os modos (YouTube e MP3 offline)
+- [x] Badge de status "🔴 Áudio Offline" quando tocando MP3 cacheado
+- [x] Pré-caching automático de MP3 via usePWA.cacheUrls
+
+## Correção do Banco de Dados para Áudio
+
+- [x] Coluna audio_url mudada de varchar(255) para LONGTEXT
+- [x] Suporta URLs de qualquer tamanho (MP3, WAV, OGG, M4A, AAC, FLAC, WebM)
+- [x] Endpoint hymns.uploadAudio com validação de formato
+- [x] Limite de tamanho: 100MB por arquivo
+- [x] Upload para S3 com nome único (hymns/{id}-{nanoid}.{ext})
+- [x] Suporte a múltiplos formatos de áudio (7 formatos diferentes)cessar hino (via usePWA.cacheUrls)

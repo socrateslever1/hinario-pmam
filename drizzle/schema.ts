@@ -46,7 +46,7 @@ export const pmamHymns = mysqlTable("pmam_hymns", {
   lyrics: text("lyrics"),
   description: text("description"),
   youtubeUrl: varchar("youtube_url", { length: 255 }),
-  audioUrl: varchar("audio_url", { length: 255 }),
+  audioUrl: text("audio_url"), // Suporta URLs de qualquer tamanho (MP3, WAV, OGG, M4A, etc.)
   lyricsSync: json("lyrics_sync"),
   isActive: boolean("is_active").default(true),
   likesCount: int("likes_count").default(0),

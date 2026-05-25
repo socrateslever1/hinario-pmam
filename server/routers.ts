@@ -284,6 +284,33 @@ export const appRouter = router({
       await db.deleteHymn(input.id);
       return { success: true };
     }),
+    uploadAudio: adminProcedure.input(z.object({
+      id: z.number(),
+      fileData: z.string(),
+      fileName: z.string(),
+    })).mutation(async ({ input }) => {
+      const validFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'];
+      const ext = input.fileName.split('.').pop()?.toLowerCase() || '';
+      if (!validFormats.includes(ext)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Formato nao suportado. Use: ${validFormats.join(', ')}`
+        });
+      }
+      const buffer = Buffer.from(input.fileData, 'base64');
+      const maxSize = 100 * 1024 * 1024;
+      if (buffer.length > maxSize) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Arquivo muito grande. Maximo: 100MB`
+        });
+      }
+      const fileKey = `hymns/${input.id}-${nanoid()}.${ext}`;
+      const mimeType = `audio/${ext === 'mp3' ? 'mpeg' : ext}`;
+      const { url } = await storagePut(fileKey, buffer, mimeType);
+      await db.updateHymn(input.id, { audioUrl: url });
+      return { success: true, url };
+    }),
   }),
 
   missions: router({

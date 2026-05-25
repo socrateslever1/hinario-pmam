@@ -210,10 +210,9 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       const base64 = (evt.target?.result as string)?.split(',')[1];
       if (!base64) return;
       uploadAudioMut.mutate({
-        hymnId: hymn.id,
+        id: hymn.id,
         fileName: file.name,
-        fileBase64: base64,
-        contentType: file.type || 'audio/mpeg',
+        fileData: base64,
       });
     };
     reader.readAsDataURL(file);
