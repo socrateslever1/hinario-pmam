@@ -57,18 +57,26 @@ self.addEventListener('fetch', (event) => {
                        url.hostname.includes('manus.space');
   if (!isSameOrigin && !isTrustedCDN) return;
 
-  // Tudo: Network First (tenta rede, fallback para cache)
+  // API tRPC: cachear para offline
+  if (url.pathname.includes('/api/trpc/')) {
+    event.respondWith(networkFirstStrategy(request, true));
+    return;
+  }
+
+  // Tudo mais: Network First
   event.respondWith(networkFirstStrategy(request));
 });
 
 // ─── Network First ────────────────────────────────────────────────────────
-async function networkFirstStrategy(request) {
+async function networkFirstStrategy(request, cacheResponse = false) {
   try {
     const response = await fetch(request);
     if (response.ok || response.type === 'opaque') {
-      // Cachear resposta bem-sucedida
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
+      // Cachear resposta bem-sucedida (especialmente API)
+      if (cacheResponse) {
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, response.clone());
+      }
     }
     return response;
   } catch {
