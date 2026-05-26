@@ -6,6 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAutoUpdate } from "./hooks/useAutoUpdate";
+import { usePWA } from "./hooks/usePWA";
+import { useEffect } from "react";
 import Home from "./pages/Home";
 import Hymns from "./pages/Hymns";
 import HymnDetail from "./pages/HymnDetail";
@@ -47,6 +49,35 @@ function Router() {
 function App() {
   // Ativar auto-atualização silenciosa
   useAutoUpdate();
+  
+  // Pré-cachear assets para offline
+  const { precacheAssets } = usePWA();
+  useEffect(() => {
+    // Coletar todos os scripts e links carregados
+    const assets = new Set<string>();
+    
+    // Scripts
+    document.querySelectorAll('script[src]').forEach((script) => {
+      const src = (script as HTMLScriptElement).src;
+      if (src && src.includes('/assets/')) {
+        assets.add(src);
+      }
+    });
+    
+    // Stylesheets
+    document.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
+      const href = (link as HTMLLinkElement).href;
+      if (href && href.includes('/assets/')) {
+        assets.add(href);
+      }
+    });
+    
+    // Enviar para Service Worker pré-cachear
+    if (assets.size > 0) {
+      console.log('[App] Sending', assets.size, 'assets to SW for pre-cache');
+      precacheAssets(Array.from(assets));
+    }
+  }, [precacheAssets]);
 
   return (
     <ErrorBoundary>
