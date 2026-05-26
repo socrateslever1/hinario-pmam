@@ -1,20 +1,14 @@
 /**
  * Service Worker — Hinário PMAM
- *
- * Estratégia de cache:
- * - MP3/Áudio: Cache First — offline priority, atualiza em background
- * - Imagens/Fontes: Cache First — estáticas, raramente mudam
- * - JS/CSS: Network First com cache — versão recente online, offline usa cache
- * - HTML/API: Network First — sempre tenta rede primeiro
- *
- * Pré-cache: ao carregar a página, automaticamente cachea todos os assets
- * para garantir que a próxima visita offline funcione completamente.
+ * 
+ * Estratégia simples:
+ * - Tudo: Network First (tenta rede, fallback para cache)
+ * - Resultado: online = sempre versão recente, offline = usa cache
  */
 
-const CACHE_NAME = 'hinario-pmam-v3';
+const CACHE_NAME = 'hinario-pmam-v4';
 const OFFLINE_FALLBACK = '/index.html';
 
-// Arquivos essenciais para funcionamento offline
 const ESSENTIAL_ASSETS = [
   '/',
   '/index.html',
@@ -31,22 +25,18 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  // Ativar imediatamente sem esperar páginas antigas fecharem
   self.skipWaiting();
 });
 
 // ─── Ativação ────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating — clearing old caches');
+  console.log('[SW] Activating');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
           .filter((name) => name.startsWith('hinario-pmam') && name !== CACHE_NAME)
-          .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
-            return caches.delete(name);
-          })
+          .map((name) => caches.delete(name))
       );
     }).then(() => self.clients.claim())
   );
@@ -67,37 +57,18 @@ self.addEventListener('fetch', (event) => {
                        url.hostname.includes('manus.space');
   if (!isSameOrigin && !isTrustedCDN) return;
 
-  // MP3 e áudio: Cache First (offline priority)
-  if (/\.(mp3|wav|ogg|m4a|aac|flac|webm)(\?|$)/.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request));
-    return;
-  }
-
-  // Imagens e fontes: Cache First (estáticas, raramente mudam)
-  if (/\.(png|jpg|jpeg|webp|svg|ico|woff2|woff|ttf)(\?|$)/.test(url.pathname)) {
-    event.respondWith(cacheFirstStrategy(request));
-    return;
-  }
-
-  // JS e CSS: Network First com cache para offline
-  if (/\.(js|css)(\?|$)/.test(url.pathname)) {
-    event.respondWith(networkFirstStrategy(request, true));
-    return;
-  }
-
-  // HTML e API: Network First (sempre tenta rede)
-  event.respondWith(networkFirstStrategy(request, false));
+  // Tudo: Network First (tenta rede, fallback para cache)
+  event.respondWith(networkFirstStrategy(request));
 });
 
 // ─── Network First ────────────────────────────────────────────────────────
-async function networkFirstStrategy(request, shouldCache = true) {
+async function networkFirstStrategy(request) {
   try {
     const response = await fetch(request);
     if (response.ok || response.type === 'opaque') {
-      if (shouldCache) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone());
-      }
+      // Cachear resposta bem-sucedida
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
     }
     return response;
   } catch {
@@ -108,42 +79,16 @@ async function networkFirstStrategy(request, shouldCache = true) {
       return cached;
     }
 
-    // Fallback HTML para navegação
+    // Fallback para HTML (navegação)
     if (request.headers.get('accept')?.includes('text/html')) {
       const fallback = await caches.match(OFFLINE_FALLBACK);
       if (fallback) {
-        console.log('[SW] Serving fallback HTML (offline)');
+        console.log('[SW] Serving fallback HTML');
         return fallback;
       }
     }
 
-    console.log('[SW] No cache available for:', request.url);
-    return new Response('Offline', { status: 503 });
-  }
-}
-
-// ─── Cache First ──────────────────────────────────────────────────────────
-async function cacheFirstStrategy(request) {
-  const cached = await caches.match(request);
-  if (cached) {
-    // Atualizar cache em background
-    fetch(request).then((response) => {
-      if (response.ok) {
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
-      }
-    }).catch(() => {});
-    return cached;
-  }
-
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    console.log('[SW] Offline and no cache for:', request.url);
+    console.log('[SW] No cache for:', request.url);
     return new Response('Offline', { status: 503 });
   }
 }
@@ -157,21 +102,6 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'CLEAR_CACHE') {
     caches.delete(CACHE_NAME).then(() => {
       console.log('[SW] Cache cleared');
-    });
-  }
-
-  if (event.data?.type === 'PRECACHE_ASSETS') {
-    const assets = event.data.assets || [];
-    console.log('[SW] Pre-caching', assets.length, 'assets for offline');
-    caches.open(CACHE_NAME).then((cache) => {
-      assets.forEach(url => {
-        fetch(url).then(response => {
-          if (response.ok) {
-            cache.put(url, response);
-            console.log('[SW] Cached:', url);
-          }
-        }).catch(err => console.log('[SW] Failed to cache:', url, err));
-      });
     });
   }
 });
