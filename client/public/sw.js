@@ -72,11 +72,9 @@ async function networkFirstStrategy(request, cacheResponse = false) {
   try {
     const response = await fetch(request);
     if (response.ok || response.type === 'opaque') {
-      // Cachear resposta bem-sucedida (especialmente API)
-      if (cacheResponse) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone());
-      }
+      // Cachear TODAS as respostas bem-sucedidas
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
     }
     return response;
   } catch {
