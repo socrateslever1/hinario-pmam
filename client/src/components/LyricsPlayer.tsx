@@ -7,8 +7,6 @@ import { Slider } from "@/components/ui/slider";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
 import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
-import { usePWA } from "@/hooks/usePWA";
-import { useEffect as useEffectOrig } from "react";
 
 interface LyricsPlayerProps {
   hymnTitle: string;
@@ -81,18 +79,10 @@ export default function LyricsPlayer({
   const [volume, setVolume] = useState(0.8);
   const [playMode, setPlayMode] = useState<PlayMode>("once");
   
-  const { isOnline, cacheUrls } = usePWA();
   const playerRef = useRef<MediaPlayerElement | null>(null);
-  const mediaUrl = resolvePlayableMediaUrl({ youtubeUrl, audioUrl, isOffline: !isOnline });
+  const mediaUrl = resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
   const isYoutube = isYouTubeUrl(mediaUrl);
   
-  // Cachear MP3 automaticamente quando o hino é carregado
-  useEffectOrig(() => {
-    if (audioUrl && !isYoutube) {
-      cacheUrls([audioUrl]);
-    }
-  }, [audioUrl, isYoutube, cacheUrls]);
-
   useEffect(() => {
     setPlaying(false);
     setCurrentTime(0);
@@ -200,7 +190,7 @@ export default function LyricsPlayer({
                   {hymnTitle}
                 </h3>
               <span className="mt-0.5 inline-block rounded-full bg-[#1a3a2a]/6 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/70">
-                {isYoutube ? "Streaming do YouTube" : mediaUrl ? (!isOnline ? "🔴 Áudio Offline" : "Áudio do sistema") : "Sem mídia"}
+                {isYoutube ? "Streaming do YouTube" : mediaUrl ? "Áudio do sistema" : "Sem mídia"}
               </span>
               </div>
 

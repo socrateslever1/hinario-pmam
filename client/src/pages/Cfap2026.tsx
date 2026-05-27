@@ -10,13 +10,11 @@ import {
   MessageSquare,
   Send,
   Shield,
-  DownloadCloud,
   FileText,
   Image as ImageIcon,
   Video,
   Music as MusicIcon,
 } from "lucide-react";
-import { usePWA } from "@/hooks/usePWA";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
@@ -68,10 +66,6 @@ function MissionCard({
   const [showComments, setShowComments] = useState(false);
   const [authorName, setAuthorName] = useState(savedVisitorName);
   const [commentText, setCommentText] = useState("");
-  const [isCaching, setIsCaching] = useState(false);
-  
-  const pwa = usePWA();
-
   const utils = trpc.useUtils();
   const commentsQuery = trpc.missions.comments.useQuery(
     { missionId: mission.id },
@@ -131,15 +125,6 @@ function MissionCard({
     });
   };
 
-  const handleCacheMedia = () => {
-    if (!mediaQuery.data || mediaQuery.data.length === 0) return;
-    setIsCaching(true);
-    const urls = mediaQuery.data.map((m: MissionMedia) => m.url);
-    pwa.cacheUrls(urls);
-    toast.success("Baixando anexos em background para acesso offline. Isso consumirá dados de internet.");
-    setTimeout(() => setIsCaching(false), 2000);
-  };
-
   return (
     <Card className="border-border/50 hover:border-[#c4a84b]/30 transition-colors">
       <CardContent className="p-6">
@@ -172,17 +157,6 @@ function MissionCard({
                 <FileText className="h-4 w-4 text-[#1a3a2a]" />
                 Anexos e Documentos ({mediaQuery.data.length})
               </h4>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleCacheMedia} 
-                disabled={isCaching}
-                className="h-8 text-xs bg-[#c4a84b]/10 text-[#7b641f] border-[#c4a84b]/30 hover:bg-[#c4a84b]/20"
-                title="Salve as mídias desta missão no aparelho para abrir sem internet"
-              >
-                <DownloadCloud className="h-3 w-3 mr-1.5" />
-                {isCaching ? "Iniciando..." : "Salvar para Offline"}
-              </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {mediaQuery.data.map((media: MissionMedia) => (
