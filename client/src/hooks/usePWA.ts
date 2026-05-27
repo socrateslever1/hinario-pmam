@@ -20,34 +20,8 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Registrar Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
-        .then((registration) => {
-          console.log('[PWA] Service Worker registered:', registration);
-          setState((prev) => ({ ...prev, swReady: true }));
-
-          // Verificar atualizações
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            newWorker?.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[PWA] Update available');
-                setState((prev) => ({ ...prev, updateAvailable: true }));
-              }
-            });
-          });
-
-          // Verificar atualizações periodicamente
-          setInterval(() => {
-            registration.update();
-          }, 60000); // A cada minuto
-        })
-        .catch((error) => {
-          console.error('[PWA] Service Worker registration failed:', error);
-        });
-    }
+    // Service Worker desabilitado — usando apenas detecção de online/offline
+    setState((prev) => ({ ...prev, swReady: true }));
 
     // Detectar online/offline
     const handleOnline = () => {
@@ -112,34 +86,19 @@ export function usePWA() {
   };
 
   const updateApp = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
-    }
+    window.location.reload();
   };
 
   const clearCache = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.controller?.postMessage({ type: 'CLEAR_CACHE' });
-    }
+    // Cache desabilitado
   };
 
   const cacheUrls = (urls: string[]) => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.controller?.postMessage({
-        type: 'CACHE_URLS',
-        urls,
-      });
-    }
+    // Cache desabilitado
   };
 
   const precacheAssets = (assets: string[]) => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.controller?.postMessage({
-        type: 'PRECACHE_ASSETS',
-        assets,
-      });
-    }
+    // Cache desabilitado
   };
 
   return {
