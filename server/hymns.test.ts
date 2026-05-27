@@ -110,6 +110,7 @@ const dbMock = vi.hoisted(() => ({
   getHymnsByCategory: vi.fn(),
   getActiveMissions: vi.fn(),
   getAllMissions: vi.fn(),
+  getMissionMedia: vi.fn(),
   getStats: vi.fn(),
   getSetting: vi.fn(),
   setSetting: vi.fn(),
@@ -220,6 +221,25 @@ beforeEach(() => {
   );
   dbMock.getActiveMissions.mockResolvedValue(state.missions.filter((item) => item.isActive));
   dbMock.getAllMissions.mockResolvedValue(state.missions);
+  dbMock.getMissionMedia.mockResolvedValue([
+    {
+      id: 1,
+      missionId: 1,
+      type: "image",
+      title: "Test Image",
+      description: "Test description",
+      url: "https://example.com/test.jpg",
+      fileSize: 1024,
+      mimeType: "image/jpeg",
+      duration: null,
+      thumbnail: null,
+      order: 0,
+      isActive: true,
+      uploadedBy: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  ]);
   dbMock.getStats.mockResolvedValue({
     totalHymns: state.hymns.length,
     totalCharlieMike: 0,
@@ -322,6 +342,15 @@ describe("missions.list", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.missions.list();
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("returns mission media list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.missions.media({ missionId: 1 });
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(1);
+    expect(result[0].title).toBe("Test Image");
   });
 });
 

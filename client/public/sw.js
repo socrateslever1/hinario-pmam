@@ -110,4 +110,29 @@ self.addEventListener('message', (event) => {
       console.log('[SW] Cache cleared');
     });
   }
+
+  if (event.data?.type === 'CACHE_URLS' || event.data?.type === 'PRECACHE_ASSETS') {
+    const urlsToCache = event.data?.urls || event.data?.assets || [];
+    if (urlsToCache.length > 0) {
+      console.log('[SW] Caching requested URLs for offline use:', urlsToCache.length, 'files');
+      event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+          return Promise.all(
+            urlsToCache.map((url) => {
+              return fetch(new Request(url, { mode: 'cors' }))
+                .then((response) => {
+                  if (response.ok || response.type === 'opaque') {
+                    return cache.put(url, response);
+                  }
+                })
+                .catch((err) => console.warn('[SW] Failed to cache requested URL:', url, err));
+            })
+          );
+        })
+      );
+      // Optional: Post message back to client saying it's done
+      event.source?.postMessage({ type: 'CACHE_URLS_DONE', urls: urlsToCache });
+    }
+  }
 });
+

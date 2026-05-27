@@ -67,7 +67,6 @@
   padding: 1rem;
   font-size: 1rem;
   line-height: 1.6;
-  overflow: auto;
 }
 
 .editor-content:focus {

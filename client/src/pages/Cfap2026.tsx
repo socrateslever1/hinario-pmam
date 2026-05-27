@@ -10,11 +10,18 @@ import {
   MessageSquare,
   Send,
   Shield,
+  DownloadCloud,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  Music as MusicIcon,
 } from "lucide-react";
+import { usePWA } from "@/hooks/usePWA";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { isValidStudyStudentNumber, getStudyStudentNumberErrorMessage } from "@shared/study";
+import { MissionMedia } from "@shared/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,11 +68,19 @@ function MissionCard({
   const [showComments, setShowComments] = useState(false);
   const [authorName, setAuthorName] = useState(savedVisitorName);
   const [commentText, setCommentText] = useState("");
+  const [isCaching, setIsCaching] = useState(false);
+  
+  const pwa = usePWA();
 
   const utils = trpc.useUtils();
   const commentsQuery = trpc.missions.comments.useQuery(
     { missionId: mission.id },
     { enabled: showComments }
+  );
+  
+  const mediaQuery = trpc.missions.media.useQuery(
+    { missionId: mission.id },
+    { enabled: true }
   );
 
   useEffect(() => {
@@ -116,6 +131,15 @@ function MissionCard({
     });
   };
 
+  const handleCacheMedia = () => {
+    if (!mediaQuery.data || mediaQuery.data.length === 0) return;
+    setIsCaching(true);
+    const urls = mediaQuery.data.map((m: MissionMedia) => m.url);
+    pwa.cacheUrls(urls);
+    toast.success("Baixando anexos em background para acesso offline. Isso consumirá dados de internet.");
+    setTimeout(() => setIsCaching(false), 2000);
+  };
+
   return (
     <Card className="border-border/50 hover:border-[#c4a84b]/30 transition-colors">
       <CardContent className="p-6">
@@ -140,6 +164,60 @@ function MissionCard({
         <div className="prose prose-sm max-w-none whitespace-pre-line text-muted-foreground">
           {mission.content}
         </div>
+
+        {mediaQuery.data && mediaQuery.data.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#1a3a2a]" />
+                Anexos e Documentos ({mediaQuery.data.length})
+              </h4>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCacheMedia} 
+                disabled={isCaching}
+                className="h-8 text-xs bg-[#c4a84b]/10 text-[#7b641f] border-[#c4a84b]/30 hover:bg-[#c4a84b]/20"
+                title="Salve as mídias desta missão no aparelho para abrir sem internet"
+              >
+                <DownloadCloud className="h-3 w-3 mr-1.5" />
+                {isCaching ? "Iniciando..." : "Salvar para Offline"}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {mediaQuery.data.map((media: MissionMedia) => (
+                <div key={media.id} className="border border-border/60 rounded-xl overflow-hidden bg-slate-50/50 group">
+                  {media.type === 'image' ? (
+                    <a href={media.url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square">
+                      <img src={media.url} alt={media.title || "Anexo"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                        <ImageIcon className="text-white h-6 w-6" />
+                      </div>
+                    </a>
+                  ) : media.type === 'video' ? (
+                    <a href={media.url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square bg-[#1a3a2a] flex items-center justify-center group-hover:bg-[#10281d] transition-colors">
+                      <Video className="text-white/80 h-8 w-8 group-hover:scale-110 transition-transform" />
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                        <p className="text-[10px] text-white truncate text-center font-medium">{media.title || 'Vídeo'}</p>
+                      </div>
+                    </a>
+                  ) : media.type === 'audio' ? (
+                     <div className="p-3 flex flex-col justify-between h-full aspect-square bg-slate-100/50">
+                       <MusicIcon className="text-[#c4a84b] h-8 w-8 mb-1" />
+                       <p className="text-xs font-semibold truncate text-[#1a3a2a]" title={media.title || 'Áudio'}>{media.title || 'Áudio'}</p>
+                       <audio src={media.url} controls className="w-full h-8 mt-auto scale-90 origin-left" />
+                     </div>
+                  ) : (
+                    <a href={media.url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square flex flex-col items-center justify-center p-3 hover:bg-slate-100 transition-colors">
+                      <FileText className="text-red-600 h-10 w-10 mb-2 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                      <p className="text-xs font-semibold text-center line-clamp-2 w-full text-[#1a3a2a]">{media.title || 'Documento / PDF'}</p>
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
