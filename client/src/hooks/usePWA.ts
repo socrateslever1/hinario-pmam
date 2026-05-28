@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 
-const SW_CLEANUP_RELOAD_KEY = 'hinario_pmam_sw_cleanup_reloaded';
-
 interface PWAState {
   isOnline: boolean;
   isInstallable: boolean;
   isInstalled: boolean;
+  swReady: boolean;
+  updateAvailable: boolean;
 }
 
 export function usePWA() {
@@ -13,50 +13,52 @@ export function usePWA() {
     isOnline: navigator.onLine,
     isInstallable: false,
     isInstalled: false,
+    swReady: false,
+    updateAvailable: false,
   });
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Offline via Service Worker foi desabilitado. Remove registros antigos para
-    // impedir que um SW legado continue servindo a tela "Modo Offline".
+    // Registrar Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations()
-        .then((registrations) => {
-          registrations.forEach((registration) => {
-            registration.unregister();
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .then((registration) => {
+          console.log('[PWA] Service Worker registered:', registration);
+          setState((prev) => ({ ...prev, swReady: true }));
+
+          // Verificar atualizações
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            newWorker?.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[PWA] Update available');
+                setState((prev) => ({ ...prev, updateAvailable: true }));
+              }
+            });
           });
 
-          if (registrations.length > 0) {
-            console.log('[PWA] Service Worker disabled and unregistered');
-          }
-
-          if (registrations.length > 0 && navigator.serviceWorker.controller) {
-            const alreadyReloaded = sessionStorage.getItem(SW_CLEANUP_RELOAD_KEY);
-            if (!alreadyReloaded) {
-              sessionStorage.setItem(SW_CLEANUP_RELOAD_KEY, '1');
-              window.location.reload();
-            }
-          } else {
-            sessionStorage.removeItem(SW_CLEANUP_RELOAD_KEY);
-          }
+          // Verificar atualizações periodicamente
+          setInterval(() => {
+            registration.update();
+          }, 60000); // A cada minuto
         })
         .catch((error) => {
-          console.error('[PWA] Failed to unregister Service Worker:', error);
+          console.error('[PWA] Service Worker registration failed:', error);
         });
     }
 
-    if ('caches' in window) {
-      caches.keys()
-        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-        .catch((error) => {
-          console.error('[PWA] Failed to clear legacy caches:', error);
-        });
-    }
-
+    // Detectar online/offline
     const handleOnline = () => {
       console.log('[PWA] Online');
       setState((prev) => ({ ...prev, isOnline: true }));
+      // Sincronizar dados quando voltar online
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then((registration) => {
+          (registration as any).sync.register('sync-data');
+        });
+      }
     };
 
     const handleOffline = () => {
@@ -67,6 +69,7 @@ export function usePWA() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Detectar instalabilidade
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -75,8 +78,8 @@ export function usePWA() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    const displayModeQuery = window.matchMedia('(display-mode: standalone)');
-    if (displayModeQuery.matches) {
+    // Detectar se já está instalado
+    if (window.matchMedia('(display-mode: standalone)').matches) {
       setState((prev) => ({ ...prev, isInstalled: true }));
     }
 
@@ -84,13 +87,13 @@ export function usePWA() {
       setState((prev) => ({ ...prev, isInstalled: e.matches }));
     };
 
-    displayModeQuery.addEventListener('change', handleDisplayModeChange);
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', handleDisplayModeChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      displayModeQuery.removeEventListener('change', handleDisplayModeChange);
+      window.matchMedia('(display-mode: standalone)').removeEventListener('change', handleDisplayModeChange);
     };
   }, []);
 
@@ -108,8 +111,43 @@ export function usePWA() {
     setDeferredPrompt(null);
   };
 
+  const updateApp = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
+      window.location.reload();
+    }
+  };
+
+  const clearCache = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage({ type: 'CLEAR_CACHE' });
+    }
+  };
+
+  const cacheUrls = (urls: string[]) => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage({
+        type: 'CACHE_URLS',
+        urls,
+      });
+    }
+  };
+
+  const precacheAssets = (assets: string[]) => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.controller?.postMessage({
+        type: 'PRECACHE_ASSETS',
+        assets,
+      });
+    }
+  };
+
   return {
     ...state,
     installApp,
+    updateApp,
+    clearCache,
+    cacheUrls,
+    precacheAssets,
   };
 }

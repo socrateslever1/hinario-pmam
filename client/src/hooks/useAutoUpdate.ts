@@ -3,12 +3,14 @@ import { useEffect, useRef } from 'react';
 const STORAGE_KEY = 'hinario_pmam_version';
 
 /**
- * Hook de atualizacao automatica.
+ * Hook de atualização automática.
  *
  * Comportamento:
- * - Ao carregar a pagina: verifica versao no servidor e armazena como versao atual
- * - Ao reconectar a internet: verifica versao e recarrega se diferente
+ * - Ao carregar a página: verifica versão no servidor e armazena como "versão atual"
+ * - Ao reconectar à internet (evento 'online'): verifica versão e recarrega se diferente
  * - A cada 5 minutos em background: verifica silenciosamente
+ *
+ * Garante que o usuário sempre usa a versão mais recente ao conectar à internet.
  */
 export function useAutoUpdate() {
   const currentVersionRef = useRef<string | null>(localStorage.getItem(STORAGE_KEY));
@@ -33,6 +35,7 @@ export function useAutoUpdate() {
       const stored = currentVersionRef.current;
 
       if (!stored) {
+        // Primeira carga: armazenar versão atual
         currentVersionRef.current = version;
         localStorage.setItem(STORAGE_KEY, version);
         console.log(`[AutoUpdate] Version stored on first load: ${version}`);
@@ -40,25 +43,37 @@ export function useAutoUpdate() {
       }
 
       if (stored !== version) {
-        console.log(`[AutoUpdate] Update detected (${source}): ${stored} -> ${version}. Reloading...`);
+        console.log(`[AutoUpdate] Update detected (${source}): ${stored} → ${version}. Reloading...`);
         isReloadingRef.current = true;
         currentVersionRef.current = version;
         localStorage.setItem(STORAGE_KEY, version);
-        window.location.reload();
+
+        // Limpar caches do Service Worker antes de recarregar
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+        }
+
+        // Pequena pausa para o SW processar, depois recarregar
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
       }
     } catch {
-      // Sem internet ou servidor indisponivel: ignorar silenciosamente.
+      // Sem internet ou servidor indisponível — ignorar silenciosamente
     }
   };
 
   useEffect(() => {
+    // Verificação inicial ao carregar a página
     checkAndUpdate('page-load');
 
+    // Ao reconectar à internet: verificar imediatamente
     const handleOnline = () => {
-      console.log('[AutoUpdate] Back online - checking for updates...');
+      console.log('[AutoUpdate] Back online — checking for updates...');
       checkAndUpdate('online-event');
     };
 
+    // Verificação periódica a cada 5 minutos (em background)
     const interval = setInterval(() => {
       checkAndUpdate('periodic');
     }, 5 * 60 * 1000);

@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as db from "./db";
 
