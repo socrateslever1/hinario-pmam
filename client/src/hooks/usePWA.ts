@@ -18,7 +18,6 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-<<<<<<< HEAD
     // Offline via Service Worker foi desabilitado. Remove registros antigos para
     // impedir que um SW legado continue servindo a tela "Modo Offline".
     if ('serviceWorker' in navigator) {
@@ -54,10 +53,6 @@ export function usePWA() {
           console.error('[PWA] Failed to clear legacy caches:', error);
         });
     }
-=======
-    // Service Worker desabilitado — usando apenas detecção de online/offline
-    setState((prev) => ({ ...prev, swReady: true }));
->>>>>>> 0c1a881781b503d0bbc0990de154febaf209f35f
 
     const handleOnline = () => {
       console.log('[PWA] Online');
@@ -113,25 +108,6 @@ export function usePWA() {
     setDeferredPrompt(null);
   };
 
-<<<<<<< HEAD
-=======
-  const updateApp = () => {
-    window.location.reload();
-  };
-
-  const clearCache = () => {
-    // Cache desabilitado
-  };
-
-  const cacheUrls = (urls: string[]) => {
-    // Cache desabilitado
-  };
-
-  const precacheAssets = (assets: string[]) => {
-    // Cache desabilitado
-  };
-
->>>>>>> 0c1a881781b503d0bbc0990de154febaf209f35f
   return {
     ...state,
     installApp,
