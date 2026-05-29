@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PWAState {
   isOnline: boolean;
@@ -81,12 +81,17 @@ export function usePWA() {
     setDeferredPrompt(null);
   };
 
+  const updateApp = () => window.location.reload();
+  const clearCache = () => undefined;
+  const cacheUrls = (_urls: string[]) => undefined;
+  const precacheAssets = (_assets: string[]) => undefined;
+
   return {
     ...state,
     installApp,
-    updateApp: useCallback(() => window.location.reload(), []),
-    clearCache: useCallback(() => undefined, []),
-    cacheUrls: useCallback((_urls: string[]) => undefined, []),
-    precacheAssets: useCallback((_assets: string[]) => undefined, []),
+    updateApp,
+    clearCache,
+    cacheUrls,
+    precacheAssets,
   };
 }
