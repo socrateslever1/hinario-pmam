@@ -146,10 +146,6 @@ export default function LyricsPlayer({
     }
   };
 
-  const cyclePlayMode = () => {
-    setPlayMode((prev) => playModeConfig[prev].next);
-  };
-
   useEffect(() => {
     if (audioVariant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl) {
       setAudioVariant("voice");
@@ -271,25 +267,24 @@ export default function LyricsPlayer({
               </div>
             </div>
 
-            {/* Volume + modos de reprodução */}
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#1a3a2a]/8 pt-3">
-              {/* Volume */}
-              <div className="flex items-center gap-2">
+            {/* Controles compactos */}
+            <div className="mt-3 grid gap-3 border-t border-[#1a3a2a]/8 pt-3 md:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)_auto] md:items-center">
+              <div className="flex items-center gap-2 md:min-w-0">
                 <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <Slider
                   value={[volume * 100]}
                   max={100}
                   onValueChange={handleVolumeChange}
                   disabled={!mediaUrl}
-                  className="w-24 md:w-28"
+                  className="w-full min-w-24"
                 />
               </div>
 
-              {/* Modos de reprodução */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-full text-[9px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 sm:w-auto">
-                  Fonte do audio
+              <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-center">
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55">
+                  Fonte
                 </span>
+                <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-md border border-[#1a3a2a]/12 bg-[#1a3a2a]/5 p-0.5">
                 {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
                   const isActive = audioVariant === variant;
                   const disabled = variant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl;
@@ -301,16 +296,20 @@ export default function LyricsPlayer({
                       size="sm"
                       onClick={() => setAudioVariant(variant)}
                       disabled={disabled}
-                      className={`h-10 rounded-md border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all ${
+                      className={`h-8 rounded px-3 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
                         isActive
-                          ? "border-[#c4a84b] bg-[#c4a84b] text-[#1a3a2a] shadow-sm hover:bg-[#c4a84b]/90"
-                          : "border-[#1a3a2a]/12 bg-[#1a3a2a]/5 text-[#1a3a2a]/70 hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a]"
+                          ? "bg-[#c4a84b] text-[#1a3a2a] shadow-sm hover:bg-[#c4a84b]/90"
+                          : "text-[#1a3a2a]/70 hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a]"
                       }`}
                     >
-                      {variant === "voice" ? "Hino com voz" : "Instrumental"}
+                      {variant === "voice" ? "Voz" : "Instrumental"}
                     </Button>
                   );
                 })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
                 {(["once", "all", "repeat"] as PlayMode[]).map((mode) => {
                   const cfg = playModeConfig[mode];
                   const isActive = playMode === mode;
@@ -321,14 +320,15 @@ export default function LyricsPlayer({
                       size="sm"
                       onClick={() => setPlayMode(mode)}
                       disabled={!mediaUrl}
-                      className={`h-8 gap-1.5 rounded-full px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                      title={cfg.label}
+                      className={`h-8 gap-1 rounded-full px-2.5 text-[10px] font-black uppercase tracking-[0.1em] transition-all ${
                         isActive
                           ? "bg-[#1a3a2a] text-white shadow-sm hover:bg-[#1a3a2a]/90"
                           : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
                       }`}
                     >
                       {cfg.icon}
-                      {cfg.label}
+                      <span className="hidden sm:inline">{cfg.label}</span>
                     </Button>
                   );
                 })}
