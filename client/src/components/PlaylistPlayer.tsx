@@ -91,7 +91,7 @@ function toHymn(item: PlaylistItem): Hymn {
     youtubeUrl: item.youtubeUrl ?? null,
     audioUrl: item.audioUrl ?? null,
     instrumentalAudioUrl: item.instrumentalAudioUrl ?? null,
-    lyricsSync: item.lyricsSync ?? null,
+    lyricsSync: (item.lyricsSync as any) ?? null,
     isActive: true,
     likesCount: 0,
     viewsCount: 0,

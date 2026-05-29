@@ -93,22 +93,4 @@ export interface StudyStudentSession {
   accessToken: string;
 }
 
-export interface MissionMedia {
-  id: number;
-  missionId: number;
-  type: 'image' | 'video' | 'audio' | 'pdf' | 'document';
-  title: string | null;
-  description: string | null;
-  url: string;
-  fileSize: number | null;
-  mimeType: string | null;
-  duration: number | null;
-  thumbnail: string | null;
-  order: number;
-  isActive: boolean;
-  uploadedBy: number | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}
-
 export * from "./_core/errors";

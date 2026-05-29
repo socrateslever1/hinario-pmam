@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
 import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
+import { usePWA } from "@/hooks/usePWA";
 
 interface LyricsPlayerProps {
   hymnTitle: string;
@@ -83,10 +84,11 @@ export default function LyricsPlayer({
   const [playMode, setPlayMode] = useState<PlayMode>("once");
   const [audioVariant, setAudioVariant] = useState<AudioVariant>("voice");
   
+  const { isOnline } = usePWA();
   const playerRef = useRef<MediaPlayerElement | null>(null);
   const mediaUrl = audioVariant === "instrumental" && instrumentalAudioUrl
     ? instrumentalAudioUrl
-    : resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
+    : resolvePlayableMediaUrl({ youtubeUrl, audioUrl, isOffline: !isOnline });
   const isYoutube = isYouTubeUrl(mediaUrl);
   
   useEffect(() => {
@@ -153,8 +155,8 @@ export default function LyricsPlayer({
     : isYoutube
       ? "Streaming do YouTube"
       : mediaUrl
-        ? "Audio do sistema"
-        : "Sem midia";
+        ? (!isOnline ? "🔴 Áudio Offline" : "Áudio do sistema")
+        : "Sem mídia";
 
   return (
     <div className="mx-auto w-full max-w-[58rem] space-y-4 md:space-y-5">

@@ -343,11 +343,6 @@ export const appRouter = router({
     })).query(async ({ input }) => {
       return db.getMissionComments(input.missionId);
     }),
-    media: publicProcedure.input(z.object({
-      missionId: z.number(),
-    })).query(async ({ input }) => {
-      return db.getMissionMedia(input.missionId);
-    }),
     addComment: publicProcedure.input(z.object({
       missionId: z.number(),
       authorName: z.string().trim().min(2).max(80),

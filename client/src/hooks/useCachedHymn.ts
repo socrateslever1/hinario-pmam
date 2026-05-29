@@ -78,7 +78,7 @@ export function useCachedHymn(hymnId: number, onlineHymn?: Hymn | null) {
       setCacheStatus('saving');
 
       try {
-        const record = await cacheHymnForOffline(onlineHymn);
+        const record = await cacheHymnForOffline(onlineHymn!);
         if (cancelled) return;
 
         setCachedHymn(record);
@@ -160,7 +160,7 @@ export function useCachedHymnCatalog(onlineHymns?: Hymn[] | null) {
     let cancelled = false;
 
     async function saveCatalog() {
-      await Promise.all(onlineHymns.map((hymn) => saveCachedHymn(hymn)));
+      await Promise.all(onlineHymns!.map((hymn) => saveCachedHymn(hymn)));
       if (!cancelled) {
         setCachedHymns(await getCachedHymns());
       }

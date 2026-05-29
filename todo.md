@@ -58,15 +58,15 @@
 
 ## Mídia em Missões
 
-- [x] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
+- [ ] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
 - [ ] Criar procedures tRPC para upload de mídia
 - [ ] UI para upload de múltiplos arquivos em missões
-- [x] Visualizador de imagens com preview
-- [x] Visualizador de vídeos
-- [x] Visualizador de áudio
+- [ ] Visualizador de imagens com preview
+- [ ] Visualizador de vídeos
+- [ ] Visualizador de áudio
 - [ ] Leitor de PDF integrado
-- [x] Download de arquivos
-- [x] Testes de upload e visualização
+- [ ] Download de arquivos
+- [ ] Testes de upload e visualização
 
 
 ## Painel de Controle Profissional
