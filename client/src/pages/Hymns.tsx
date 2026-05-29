@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Music, Search, Star, Shield, Target, BookOpen, Play, ListMusic } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCachedHymnCatalog } from "@/hooks/useCachedHymn";
+import { usePWA } from "@/hooks/usePWA";
 
 const categoryConfig: Record<string, { label: string; icon: any; color: string; description: string }> = {
   all: { label: "Todos", icon: Music, color: "#1a3a2a", description: "Todos os hinos, canções e orações disponíveis no sistema." },
@@ -26,7 +28,12 @@ export default function Hymns() {
 
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: hymns, isLoading } = trpc.hymns.list.useQuery();
+  const { isOnline } = usePWA();
+  const { data: onlineHymns, isLoading } = trpc.hymns.list.useQuery(undefined, {
+    enabled: isOnline,
+  });
+  const { cachedHymns, isLoadingCache } = useCachedHymnCatalog(onlineHymns ?? null);
+  const hymns = onlineHymns && onlineHymns.length > 0 ? onlineHymns : cachedHymns;
 
   const filteredHymns = useMemo(() => {
     if (!hymns) return [];
@@ -115,7 +122,7 @@ export default function Hymns() {
             </div>
           </div>
 
-          {isLoading ? (
+          {isLoading && isLoadingCache && filteredHymns.length === 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-36 rounded-2xl" />

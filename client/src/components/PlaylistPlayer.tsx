@@ -20,6 +20,9 @@ import type { LyricsSyncInput } from "@/lib/lyricsSync";
 import SyncedLyricsPanel from "@/components/SyncedLyricsPanel";
 import { useIsMobile } from "@/hooks/useMobile";
 import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
+import { usePWA } from "@/hooks/usePWA";
+import { cacheHymnForOffline, getCachedHymnAudio } from "@/lib/offlineHymns";
+import type { Hymn } from "@shared/types";
 
 interface PlaylistItem {
   id: number;
@@ -32,6 +35,7 @@ interface PlaylistItem {
   lyricsSync?: LyricsSyncInput;
   youtubeUrl?: string | null;
   audioUrl?: string | null;
+  instrumentalAudioUrl?: string | null;
 }
 
 interface PlaylistPlayerProps {
@@ -42,6 +46,7 @@ interface PlaylistPlayerProps {
 }
 
 type RepeatMode = "off" | "all" | "one";
+type AudioVariant = "voice" | "instrumental";
 
 type MediaPlayerElement = HTMLMediaElement & {
   currentTime: number;
@@ -56,8 +61,43 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-function getMediaUrl(item: PlaylistItem) {
+function audioCacheKey(id: number, variant: AudioVariant) {
+  return `${id}:${variant}`;
+}
+
+function getOnlineMediaUrl(item: PlaylistItem, variant: AudioVariant) {
+  if (variant === "instrumental" && item.instrumentalAudioUrl) {
+    return item.instrumentalAudioUrl;
+  }
   return resolvePlayableMediaUrl({ youtubeUrl: item.youtubeUrl, audioUrl: item.audioUrl });
+}
+
+function getVariantSourceUrl(item: PlaylistItem, variant: AudioVariant) {
+  return variant === "instrumental" ? item.instrumentalAudioUrl : item.audioUrl;
+}
+
+function toHymn(item: PlaylistItem): Hymn {
+  return {
+    id: item.id,
+    number: item.number,
+    title: item.title,
+    subtitle: item.subtitle ?? null,
+    author: item.author ?? null,
+    composer: null,
+    category: (item.category ?? "pmam") as Hymn["category"],
+    collection: null,
+    lyrics: item.lyrics ?? "",
+    description: null,
+    youtubeUrl: item.youtubeUrl ?? null,
+    audioUrl: item.audioUrl ?? null,
+    instrumentalAudioUrl: item.instrumentalAudioUrl ?? null,
+    lyricsSync: item.lyricsSync ?? null,
+    isActive: true,
+    likesCount: 0,
+    viewsCount: 0,
+    createdAt: "",
+    updatedAt: "",
+  };
 }
 
 export default function PlaylistPlayer({
@@ -67,7 +107,17 @@ export default function PlaylistPlayer({
   accentColor = "#c4a84b",
 }: PlaylistPlayerProps) {
   const isMobile = useIsMobile();
-  const queue = useMemo(() => items.filter((item) => Boolean(getMediaUrl(item))), [items]);
+  const { isOnline } = usePWA();
+  const [cachedAudioUrls, setCachedAudioUrls] = useState<Record<string, string>>({});
+  const [isPreparingOffline, setIsPreparingOffline] = useState(false);
+  const [audioVariant, setAudioVariant] = useState<AudioVariant>("voice");
+  const queue = useMemo(
+    () => items.filter((item) => {
+      if (isOnline) return Boolean(getOnlineMediaUrl(item, audioVariant));
+      return Boolean(cachedAudioUrls[audioCacheKey(item.id, audioVariant)]);
+    }),
+    [audioVariant, cachedAudioUrls, isOnline, items],
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -77,6 +127,81 @@ export default function PlaylistPlayer({
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const playerRef = useRef<MediaPlayerElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+
+    async function loadCachedAudio() {
+      const entries = await Promise.all(
+        items.flatMap((item) => (["voice", "instrumental"] as AudioVariant[]).map(async (variant) => {
+          const sourceUrl = getVariantSourceUrl(item, variant);
+          if (!sourceUrl) return null;
+          const blob = await getCachedHymnAudio(item.id, sourceUrl, variant);
+          if (!blob) return null;
+          const objectUrl = URL.createObjectURL(blob);
+          objectUrls.push(objectUrl);
+          return [audioCacheKey(item.id, variant), objectUrl] as const;
+        })),
+      );
+
+      if (cancelled) {
+        objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      setCachedAudioUrls((current) => {
+        Object.values(current).forEach((url) => URL.revokeObjectURL(url));
+        return Object.fromEntries(entries.filter(Boolean) as Array<readonly [string, string]>);
+      });
+    }
+
+    loadCachedAudio();
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [items]);
+
+  useEffect(() => {
+    if (!isOnline || items.length === 0) return;
+
+    let cancelled = false;
+
+    async function prepareOfflineQueue() {
+      setIsPreparingOffline(true);
+
+      for (const item of items) {
+        if (cancelled) break;
+        const hymn = toHymn(item);
+        await cacheHymnForOffline(hymn);
+
+        for (const variant of ["voice", "instrumental"] as AudioVariant[]) {
+          const sourceUrl = variant === "instrumental" ? hymn.instrumentalAudioUrl : hymn.audioUrl;
+          if (!sourceUrl || cancelled) continue;
+          const blob = await getCachedHymnAudio(hymn.id, sourceUrl, variant);
+          if (!blob || cancelled) continue;
+
+          const objectUrl = URL.createObjectURL(blob);
+          const key = audioCacheKey(hymn.id, variant);
+          setCachedAudioUrls((current) => {
+            if (current[key]) URL.revokeObjectURL(current[key]);
+            return { ...current, [key]: objectUrl };
+          });
+        }
+      }
+
+      if (!cancelled) setIsPreparingOffline(false);
+    }
+
+    prepareOfflineQueue();
+
+    return () => {
+      cancelled = true;
+      setIsPreparingOffline(false);
+    };
+  }, [isOnline, items]);
 
   useEffect(() => {
     if (queue.length === 0) {
@@ -90,8 +215,19 @@ export default function PlaylistPlayer({
   }, [queue.length]);
 
   const currentItem = queue[currentIndex] ?? null;
-  const currentMediaUrl = currentItem ? getMediaUrl(currentItem) : null;
+  const currentMediaUrl = currentItem
+    ? isOnline
+      ? getOnlineMediaUrl(currentItem, audioVariant)
+      : cachedAudioUrls[audioCacheKey(currentItem.id, audioVariant)] ?? null
+    : null;
   const isYoutube = isYouTubeUrl(currentMediaUrl);
+  const mediaModeLabel = audioVariant === "instrumental"
+    ? "Instrumental"
+    : !isOnline
+      ? "MP3 offline"
+      : isYoutube
+        ? "YouTube"
+        : "Audio";
 
   useEffect(() => {
     setCurrentTime(0);
@@ -202,6 +338,32 @@ export default function PlaylistPlayer({
     }
   };
 
+  const renderVariantButtons = (tone: "dark" | "light" = "dark") => (
+    <div className="flex items-center gap-1">
+      {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
+        const isActive = audioVariant === variant;
+        return (
+          <Button
+            key={variant}
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setAudioVariant(variant)}
+            className={`h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-[0.14em] ${
+              isActive
+                ? "bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90"
+                : tone === "dark"
+                  ? "text-white/60 hover:bg-white/10 hover:text-white"
+                  : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
+            }`}
+          >
+            {variant === "voice" ? "Voz" : "Instrumental"}
+          </Button>
+        );
+      })}
+    </div>
+  );
+
   if (queue.length === 0) {
     return (
       <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
@@ -209,8 +371,11 @@ export default function PlaylistPlayer({
           <ListMusic className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
           <h3 className="text-xl font-bold text-foreground">{title}</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Nenhum item desta selecao possui audio ou YouTube configurado ainda.
+            {isOnline
+              ? "Nenhum item desta selecao possui audio ou YouTube configurado ainda."
+              : "Nenhum MP3 desta selecao esta salvo neste aparelho para tocar offline."}
           </p>
+          <div className="mt-4 flex justify-center">{renderVariantButtons("light")}</div>
         </CardContent>
       </Card>
     );
@@ -280,7 +445,7 @@ export default function PlaylistPlayer({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
-                      {isYoutube ? "YouTube" : "Audio"} • {currentIndex + 1}/{queue.length}
+                      {mediaModeLabel} • {currentIndex + 1}/{queue.length}
                     </p>
                     <h4 className="mt-0.5 line-clamp-2 text-sm font-bold leading-tight text-white">
                       {currentItem?.title}
@@ -370,9 +535,13 @@ export default function PlaylistPlayer({
                 </div>
 
                 {/* Status Compacto */}
+                {renderVariantButtons("dark")}
+
+                {/* Status Compacto */}
                 <div className="flex flex-wrap items-center gap-1 text-[8px] font-bold uppercase tracking-[0.15em] text-white/45">
                   <span className="rounded-full bg-white/10 px-2 py-0.5">Repeat: {repeatMode}</span>
                   <span className="rounded-full bg-white/10 px-2 py-0.5">Auto: {autoAdvance ? "on" : "off"}</span>
+                  {isPreparingOffline && <span className="rounded-full bg-white/10 px-2 py-0.5">Salvando offline</span>}
                 </div>
               </div>
             </div>
@@ -460,7 +629,7 @@ export default function PlaylistPlayer({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
-                      {isYoutube ? "YouTube" : "Audio"}
+                      {mediaModeLabel}
                     </p>
                     <h4 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-white sm:text-lg xl:text-xl">
                       {currentItem?.title}
@@ -504,6 +673,7 @@ export default function PlaylistPlayer({
                 <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={cycleRepeatMode}>
                   {repeatMode === "off" ? <Repeat className="h-5 w-5" /> : repeatMode === "all" ? <Repeat className="h-5 w-5 text-white" /> : <Repeat1 className="h-5 w-5 text-white" />}
                 </Button>
+                {renderVariantButtons("dark")}
               </div>
 
               <div className="flex flex-col gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -514,6 +684,7 @@ export default function PlaylistPlayer({
                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
                   <span className="rounded-full bg-white/10 px-3 py-1">Repeat: {repeatMode}</span>
                   <span className="rounded-full bg-white/10 px-3 py-1">Auto: {autoAdvance ? "ligado" : "desligado"}</span>
+                  {isPreparingOffline && <span className="rounded-full bg-white/10 px-3 py-1">Salvando offline</span>}
                 </div>
               </div>
             </div>
@@ -547,7 +718,7 @@ export default function PlaylistPlayer({
                         <p className={`line-clamp-2 text-sm font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23]"}`}>
                           {item.title}
                         </p>
-                        {item.youtubeUrl ? <Youtube className="h-4 w-4 shrink-0" /> : <Music className="h-4 w-4 shrink-0" />}
+                        {isOnline && item.youtubeUrl ? <Youtube className="h-4 w-4 shrink-0" /> : <Music className="h-4 w-4 shrink-0" />}
                       </div>
                       <p className={`mt-1 line-clamp-2 text-xs ${isCurrent ? "text-white/65" : "text-[#1d2b23]/60"}`}>
                         {item.subtitle || item.author || "Selecionar faixa"}

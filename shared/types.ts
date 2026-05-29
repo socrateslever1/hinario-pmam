@@ -29,6 +29,7 @@ export interface Hymn {
   description: string | null;
   youtubeUrl: string | null;
   audioUrl: string | null;
+  instrumentalAudioUrl: string | null;
   lyricsSync?: Array<{ time: number; text: string }> | null;
   isActive: boolean;
   likesCount: number;
@@ -111,4 +112,3 @@ export interface MissionMedia {
 }
 
 export * from "./_core/errors";
-

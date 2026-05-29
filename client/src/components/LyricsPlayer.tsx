@@ -13,12 +13,14 @@ interface LyricsPlayerProps {
   lyrics: string;
   lyricsSync?: LyricsSyncInput;
   audioUrl?: string | null;
+  instrumentalAudioUrl?: string | null;
   youtubeUrl?: string | null;
   /** Chamado quando a faixa termina (para modo "tocar todas") */
   onEnded?: () => void;
 }
 
 type PlayMode = "once" | "all" | "repeat";
+type AudioVariant = "voice" | "instrumental";
 
 type MediaPlayerElement = HTMLMediaElement & {
   currentTime: number;
@@ -70,6 +72,7 @@ export default function LyricsPlayer({
   lyrics,
   lyricsSync,
   audioUrl,
+  instrumentalAudioUrl,
   youtubeUrl,
   onEnded,
 }: LyricsPlayerProps) {
@@ -78,9 +81,12 @@ export default function LyricsPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [playMode, setPlayMode] = useState<PlayMode>("once");
+  const [audioVariant, setAudioVariant] = useState<AudioVariant>("voice");
   
   const playerRef = useRef<MediaPlayerElement | null>(null);
-  const mediaUrl = resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
+  const mediaUrl = audioVariant === "instrumental" && instrumentalAudioUrl
+    ? instrumentalAudioUrl
+    : resolvePlayableMediaUrl({ youtubeUrl, audioUrl });
   const isYoutube = isYouTubeUrl(mediaUrl);
   
   useEffect(() => {
@@ -136,7 +142,19 @@ export default function LyricsPlayer({
     setPlayMode((prev) => playModeConfig[prev].next);
   };
 
-  const modeConfig = playModeConfig[playMode];
+  useEffect(() => {
+    if (audioVariant === "instrumental" && !instrumentalAudioUrl) {
+      setAudioVariant("voice");
+    }
+  }, [audioVariant, instrumentalAudioUrl]);
+
+  const mediaLabel = audioVariant === "instrumental"
+    ? "Instrumental"
+    : isYoutube
+      ? "Streaming do YouTube"
+      : mediaUrl
+        ? "Audio do sistema"
+        : "Sem midia";
 
   return (
     <div className="mx-auto w-full max-w-[58rem] space-y-4 md:space-y-5">
@@ -190,7 +208,7 @@ export default function LyricsPlayer({
                   {hymnTitle}
                 </h3>
               <span className="mt-0.5 inline-block rounded-full bg-[#1a3a2a]/6 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/70">
-                {isYoutube ? "Streaming do YouTube" : mediaUrl ? "Áudio do sistema" : "Sem mídia"}
+                {mediaLabel}
               </span>
               </div>
 
@@ -250,6 +268,27 @@ export default function LyricsPlayer({
 
               {/* Modos de reprodução */}
               <div className="flex items-center gap-1.5">
+                {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
+                  const isActive = audioVariant === variant;
+                  const disabled = variant === "instrumental" && !instrumentalAudioUrl;
+                  return (
+                    <Button
+                      key={variant}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAudioVariant(variant)}
+                      disabled={disabled}
+                      className={`h-8 rounded-full px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                        isActive
+                          ? "bg-[#c4a84b] text-[#1a3a2a] shadow-sm hover:bg-[#c4a84b]/90"
+                          : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
+                      }`}
+                    >
+                      {variant === "voice" ? "Voz" : "Instrumental"}
+                    </Button>
+                  );
+                })}
                 {(["once", "all", "repeat"] as PlayMode[]).map((mode) => {
                   const cfg = playModeConfig[mode];
                   const isActive = playMode === mode;

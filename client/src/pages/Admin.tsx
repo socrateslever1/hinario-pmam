@@ -151,12 +151,14 @@ function getDefaultHymnFormState(hymn?: any) {
     description: hymn?.description ?? "",
     youtubeUrl: hymn?.youtubeUrl ?? "",
     audioUrl: hymn?.audioUrl ?? "",
+    instrumentalAudioUrl: hymn?.instrumentalAudioUrl ?? "",
   };
 }
 
 function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
   const [form, setForm] = useState(() => getDefaultHymnFormState(hymn));
   const [uploading, setUploading] = useState(false);
+  const [uploadingInstrumental, setUploadingInstrumental] = useState(false);
   const utils = trpc.useUtils();;
   const createMut = trpc.hymns.create.useMutation({
     onSuccess: async () => {
@@ -183,17 +185,21 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
     onError: (e) => toast.error(e.message),
   });
   const uploadAudioMut = trpc.hymns.uploadAudio.useMutation({
-    onSuccess: (data) => {
-      setForm(f => ({ ...f, audioUrl: data.url }));
+    onSuccess: (data, variables) => {
+      setForm(f => variables.variant === "instrumental"
+        ? ({ ...f, instrumentalAudioUrl: data.url })
+        : ({ ...f, audioUrl: data.url }));
       toast.success("Áudio enviado com sucesso!");
       setUploading(false);
+      setUploadingInstrumental(false);
     },
     onError: (e) => {
       toast.error(`Erro ao enviar áudio: ${e.message}`);
       setUploading(false);
+      setUploadingInstrumental(false);
     },
   });
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>, variant: "voice" | "instrumental" = "voice") => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
@@ -204,7 +210,8 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       toast.error("Salve o hino primeiro antes de fazer upload de áudio");
       return;
     }
-    setUploading(true);
+    if (variant === "instrumental") setUploadingInstrumental(true);
+    else setUploading(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const base64 = (evt.target?.result as string)?.split(',')[1];
@@ -213,6 +220,7 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
         id: hymn.id,
         fileName: file.name,
         fileData: base64,
+        variant,
       });
     };
     reader.readAsDataURL(file);
@@ -233,6 +241,7 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       description: form.description || undefined,
       youtubeUrl: form.youtubeUrl.trim() || undefined,
       audioUrl: form.audioUrl.trim() || undefined,
+      instrumentalAudioUrl: form.instrumentalAudioUrl.trim() || undefined,
       category: form.category as any,
     };
     if (hymn) { updateMut.mutate({ id: hymn.id, ...data }); }
@@ -281,6 +290,17 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
           <input id="audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={handleAudioUpload} className="hidden" />
         </div>
         {form.audioUrl && <p className="text-xs text-green-600 mt-1">✓ Áudio salvo</p>}
+      </div>
+      <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Instrumental (MP3)</Label>
+        <div className="flex gap-2">
+          <Input value={form.instrumentalAudioUrl} onChange={e => setForm(f => ({ ...f, instrumentalAudioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
+          <Button type="button" variant="outline" disabled={uploadingInstrumental || !hymn?.id} className="gap-2" onClick={() => document.getElementById('instrumental-audio-upload')?.click()}>
+            {uploadingInstrumental ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploadingInstrumental ? "Enviando..." : "Upload Instrumental"}
+          </Button>
+          <input id="instrumental-audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={(event) => handleAudioUpload(event, "instrumental")} className="hidden" />
+        </div>
+        {form.instrumentalAudioUrl && <p className="text-xs text-green-600 mt-1">Instrumental salvo</p>}
       </div>
       <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
         <Save className="h-4 w-4" />{saving ? "Salvando..." : hymn ? "Atualizar Hino" : "Criar Hino"}

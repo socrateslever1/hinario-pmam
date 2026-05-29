@@ -55,6 +55,7 @@ function mapHymn(h: any) {
     description: h.description,
     youtubeUrl: h.youtube_url,
     audioUrl: h.audio_url,
+    instrumentalAudioUrl: h.instrumental_audio_url,
     lyricsSync,
     isActive: h.is_active === 1 || h.is_active === true,
     likesCount: h.likes_count,
@@ -306,12 +307,35 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // ===== HYMNS =====
+let hymnSchemaPromise: Promise<void> | null = null;
+
+async function ensureHymnSchema() {
+  if (!hymnSchemaPromise) {
+    hymnSchemaPromise = (async () => {
+      const rows = await query<{ Field: string }>(
+        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
+        ["instrumental_audio_url"]
+      );
+      if (rows.length === 0) {
+        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_audio_url LONGTEXT NULL AFTER audio_url`);
+      }
+    })().catch((error) => {
+      hymnSchemaPromise = null;
+      throw error;
+    });
+  }
+
+  await hymnSchemaPromise;
+}
+
 export async function getAllHymns() {
+  await ensureHymnSchema();
   const rows = await query('SELECT * FROM pmam_hymns ORDER BY number ASC');
   return rows.map(mapHymn);
 }
 
 export async function getActiveHymns() {
+  await ensureHymnSchema();
   const rows = await query(
     "SELECT * FROM pmam_hymns WHERE is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC"
   );
@@ -319,16 +343,19 @@ export async function getActiveHymns() {
 }
 
 export async function getHymnById(id: number) {
+  await ensureHymnSchema();
   const rows = await query('SELECT * FROM pmam_hymns WHERE id = ? LIMIT 1', [id]);
   return mapHymn(rows[0]);
 }
 
 export async function getHymnByNumber(number: number) {
+  await ensureHymnSchema();
   const rows = await query('SELECT * FROM pmam_hymns WHERE number = ? LIMIT 1', [number]);
   return mapHymn(rows[0]);
 }
 
 export async function getHymnsByCategory(category: string) {
+  await ensureHymnSchema();
   const rows = await query(
     "SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC",
     [category]
@@ -337,6 +364,7 @@ export async function getHymnsByCategory(category: string) {
 }
 
 export async function getHymnsByCollection(collection: string) {
+  await ensureHymnSchema();
   const rows = await query(
     'SELECT * FROM pmam_hymns WHERE collection = ? AND is_active = 1 ORDER BY number ASC',
     [collection]
@@ -345,11 +373,12 @@ export async function getHymnsByCollection(collection: string) {
 }
 
 export async function createHymn(hymn: any) {
+  await ensureHymnSchema();
   const lyricsSync = hymn.lyricsSync ? JSON.stringify(hymn.lyricsSync) : null;
   const sql = `
     INSERT INTO pmam_hymns 
-    (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, audio_url, lyrics_sync, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, audio_url, instrumental_audio_url, lyrics_sync, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -364,6 +393,7 @@ export async function createHymn(hymn: any) {
     hymn.description || null,
     hymn.youtubeUrl || null,
     hymn.audioUrl || null,
+    hymn.instrumentalAudioUrl || null,
     lyricsSync,
     hymn.isActive ?? 1
   ]);
@@ -372,6 +402,7 @@ export async function createHymn(hymn: any) {
 }
 
 export async function updateHymn(id: number, hymn: any) {
+  await ensureHymnSchema();
   const updates: string[] = [];
   const params: any[] = [];
 
@@ -387,6 +418,7 @@ export async function updateHymn(id: number, hymn: any) {
     description: 'description',
     youtubeUrl: 'youtube_url',
     audioUrl: 'audio_url',
+    instrumentalAudioUrl: 'instrumental_audio_url',
     isActive: 'is_active'
   };
 

@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
 import { useMemo } from "react";
 import LyricsPlayer from "@/components/LyricsPlayer";
+import { useCachedHymn } from "@/hooks/useCachedHymn";
+import { usePWA } from "@/hooks/usePWA";
 
 const categoryLabels: Record<string, string> = {
   nacional: "Hino Nacional",
@@ -33,17 +35,23 @@ function extractYouTubeId(url: string): string | null {
 export default function HymnDetail() {
   const { id } = useParams<{ id: string }>();
   const hymnId = parseInt(id || "0");
-  const { data: hymn, isLoading } = trpc.hymns.getById.useQuery(
+  const { isOnline } = usePWA();
+  const { data: onlineHymn, isLoading: isLoadingOnline } = trpc.hymns.getById.useQuery(
     { id: hymnId },
-    { enabled: hymnId > 0, refetchOnMount: "always", refetchOnWindowFocus: true }
+    { enabled: hymnId > 0 && isOnline, refetchOnMount: "always", refetchOnWindowFocus: true }
   );
+  const { cachedHymn, cachedAudioUrl, cachedInstrumentalAudioUrl, isLoadingCache, cacheStatus } = useCachedHymn(hymnId, onlineHymn ?? null);
+  const hymn = onlineHymn ?? cachedHymn;
+  const usingCachedHymn = !onlineHymn && Boolean(cachedHymn);
+
   const { data: allHymns } = trpc.hymns.list.useQuery(undefined, {
+    enabled: isOnline,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
   const { data: tfmHymns } = trpc.hymns.getByCollection.useQuery(
     { collection: "tfm" },
-    { enabled: hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
+    { enabled: isOnline && hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
   );
 
   const isTfm = hymn?.collection === "tfm";
@@ -60,7 +68,7 @@ export default function HymnDetail() {
     };
   }, [navigationBase, hymn]);
 
-  if (isLoading) {
+  if ((isLoadingOnline || isLoadingCache) && !hymn) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -152,13 +160,35 @@ export default function HymnDetail() {
                 hymnTitle={hymn.title}
                 lyrics={hymn.lyrics}
                 lyricsSync={hymn.lyricsSync}
-                audioUrl={hymn.audioUrl}
-                youtubeUrl={hymn.youtubeUrl}
+                audioUrl={cachedAudioUrl ?? hymn.audioUrl}
+                instrumentalAudioUrl={cachedInstrumentalAudioUrl ?? hymn.instrumentalAudioUrl}
+                youtubeUrl={isOnline ? hymn.youtubeUrl : null}
               />
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {(usingCachedHymn || cacheStatus !== "idle") && (
+                <Card className="border-[#c4a84b]/30 bg-[#c4a84b]/5">
+                  <CardContent className="p-5">
+                    <h3 className="font-bold text-foreground mb-2 text-sm uppercase tracking-wider">
+                      Disponibilidade Offline
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {usingCachedHymn
+                        ? "Este hino foi carregado do aparelho. A letra sincronizada continua disponivel sem internet."
+                        : cacheStatus === "ready"
+                          ? "Hino e MP3 salvos neste aparelho para abrir sem internet."
+                          : cacheStatus === "saving"
+                            ? "Salvando hino e MP3 para uso offline..."
+                            : cacheStatus === "metadata-only"
+                              ? "Letra salva. O MP3 ainda nao ficou disponivel offline neste aparelho."
+                              : "Nao foi possivel concluir o cache offline deste hino."}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Description */}
               {hymn.description && (
                 <Card className="border-border/50">

@@ -255,6 +255,7 @@ export const appRouter = router({
       description: z.string().optional(),
       youtubeUrl: z.string().optional(),
       audioUrl: z.string().optional(),
+      instrumentalAudioUrl: z.string().optional(),
       lyricsSync: z.any().optional(),
     })).mutation(async ({ input }) => {
       await db.createHymn(input);
@@ -273,6 +274,7 @@ export const appRouter = router({
       description: z.string().optional(),
       youtubeUrl: z.string().nullable().optional(),
       audioUrl: z.string().nullable().optional(),
+      instrumentalAudioUrl: z.string().nullable().optional(),
       lyricsSync: z.any().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ input }) => {
@@ -288,6 +290,7 @@ export const appRouter = router({
       id: z.number(),
       fileData: z.string(),
       fileName: z.string(),
+      variant: z.enum(["voice", "instrumental"]).default("voice"),
     })).mutation(async ({ input }) => {
       const validFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'];
       const ext = input.fileName.split('.').pop()?.toLowerCase() || '';
@@ -308,7 +311,10 @@ export const appRouter = router({
       const fileKey = `hymns/${input.id}-${nanoid()}.${ext}`;
       const mimeType = `audio/${ext === 'mp3' ? 'mpeg' : ext}`;
       const { url } = await storagePut(fileKey, buffer, mimeType);
-      await db.updateHymn(input.id, { audioUrl: url });
+      await db.updateHymn(
+        input.id,
+        input.variant === "instrumental" ? { instrumentalAudioUrl: url } : { audioUrl: url },
+      );
       return { success: true, url };
     }),
   }),
