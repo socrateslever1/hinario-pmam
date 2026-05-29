@@ -54,6 +54,7 @@ function mapHymn(h: any) {
     lyrics: h.lyrics,
     description: h.description,
     youtubeUrl: h.youtube_url,
+    instrumentalYoutubeUrl: h.instrumental_youtube_url,
     audioUrl: h.audio_url,
     instrumentalAudioUrl: h.instrumental_audio_url,
     lyricsSync,
@@ -312,12 +313,19 @@ let hymnSchemaPromise: Promise<void> | null = null;
 async function ensureHymnSchema() {
   if (!hymnSchemaPromise) {
     hymnSchemaPromise = (async () => {
-      const rows = await query<{ Field: string }>(
+      const instrumentalAudioRows = await query<{ Field: string }>(
         `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
         ["instrumental_audio_url"]
       );
-      if (rows.length === 0) {
+      if (instrumentalAudioRows.length === 0) {
         await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_audio_url LONGTEXT NULL AFTER audio_url`);
+      }
+      const instrumentalYoutubeRows = await query<{ Field: string }>(
+        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
+        ["instrumental_youtube_url"]
+      );
+      if (instrumentalYoutubeRows.length === 0) {
+        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_youtube_url VARCHAR(512) NULL AFTER youtube_url`);
       }
     })().catch((error) => {
       hymnSchemaPromise = null;
@@ -377,8 +385,8 @@ export async function createHymn(hymn: any) {
   const lyricsSync = hymn.lyricsSync ? JSON.stringify(hymn.lyricsSync) : null;
   const sql = `
     INSERT INTO pmam_hymns 
-    (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, audio_url, instrumental_audio_url, lyrics_sync, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, instrumental_youtube_url, audio_url, instrumental_audio_url, lyrics_sync, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -392,6 +400,7 @@ export async function createHymn(hymn: any) {
     hymn.lyrics,
     hymn.description || null,
     hymn.youtubeUrl || null,
+    hymn.instrumentalYoutubeUrl || null,
     hymn.audioUrl || null,
     hymn.instrumentalAudioUrl || null,
     lyricsSync,
@@ -417,6 +426,7 @@ export async function updateHymn(id: number, hymn: any) {
     lyrics: 'lyrics',
     description: 'description',
     youtubeUrl: 'youtube_url',
+    instrumentalYoutubeUrl: 'instrumental_youtube_url',
     audioUrl: 'audio_url',
     instrumentalAudioUrl: 'instrumental_audio_url',
     isActive: 'is_active'

@@ -150,6 +150,7 @@ function getDefaultHymnFormState(hymn?: any) {
     lyrics: hymn?.lyrics ?? "",
     description: hymn?.description ?? "",
     youtubeUrl: hymn?.youtubeUrl ?? "",
+    instrumentalYoutubeUrl: hymn?.instrumentalYoutubeUrl ?? "",
     audioUrl: hymn?.audioUrl ?? "",
     instrumentalAudioUrl: hymn?.instrumentalAudioUrl ?? "",
   };
@@ -240,6 +241,7 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       composer: form.composer || undefined,
       description: form.description || undefined,
       youtubeUrl: form.youtubeUrl.trim() || undefined,
+      instrumentalYoutubeUrl: form.instrumentalYoutubeUrl.trim() || undefined,
       audioUrl: form.audioUrl.trim() || undefined,
       instrumentalAudioUrl: form.instrumentalAudioUrl.trim() || undefined,
       category: form.category as any,
@@ -280,6 +282,8 @@ function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
       <div><Label>Letra *</Label><Textarea value={form.lyrics} onChange={e => setForm(f => ({ ...f, lyrics: e.target.value }))} rows={10} required className="font-mono text-sm" /></div>
       <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube</Label>
         <Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
+      <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube Instrumental</Label>
+        <Input value={form.instrumentalYoutubeUrl} onChange={e => setForm(f => ({ ...f, instrumentalYoutubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
       <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Áudio (MP3)</Label>
         <div className="flex gap-2">
           <Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />

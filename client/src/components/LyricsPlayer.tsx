@@ -16,6 +16,7 @@ interface LyricsPlayerProps {
   audioUrl?: string | null;
   instrumentalAudioUrl?: string | null;
   youtubeUrl?: string | null;
+  instrumentalYoutubeUrl?: string | null;
   /** Chamado quando a faixa termina (para modo "tocar todas") */
   onEnded?: () => void;
 }
@@ -75,6 +76,7 @@ export default function LyricsPlayer({
   audioUrl,
   instrumentalAudioUrl,
   youtubeUrl,
+  instrumentalYoutubeUrl,
   onEnded,
 }: LyricsPlayerProps) {
   const [playing, setPlaying] = useState(false);
@@ -86,8 +88,12 @@ export default function LyricsPlayer({
   
   const { isOnline } = usePWA();
   const playerRef = useRef<MediaPlayerElement | null>(null);
-  const mediaUrl = audioVariant === "instrumental" && instrumentalAudioUrl
-    ? instrumentalAudioUrl
+  const mediaUrl = audioVariant === "instrumental"
+    ? resolvePlayableMediaUrl({
+        youtubeUrl: isOnline ? instrumentalYoutubeUrl : null,
+        audioUrl: instrumentalAudioUrl,
+        isOffline: !isOnline,
+      })
     : resolvePlayableMediaUrl({ youtubeUrl, audioUrl, isOffline: !isOnline });
   const isYoutube = isYouTubeUrl(mediaUrl);
   
@@ -145,10 +151,10 @@ export default function LyricsPlayer({
   };
 
   useEffect(() => {
-    if (audioVariant === "instrumental" && !instrumentalAudioUrl) {
+    if (audioVariant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl) {
       setAudioVariant("voice");
     }
-  }, [audioVariant, instrumentalAudioUrl]);
+  }, [audioVariant, instrumentalAudioUrl, instrumentalYoutubeUrl]);
 
   const mediaLabel = audioVariant === "instrumental"
     ? "Instrumental"
@@ -157,6 +163,14 @@ export default function LyricsPlayer({
       : mediaUrl
         ? (!isOnline ? "🔴 Áudio Offline" : "Áudio do sistema")
         : "Sem mídia";
+
+  const availabilityLabel = !mediaUrl
+    ? "Midia indisponivel"
+    : !isOnline
+      ? "Salvo offline"
+      : isYoutube
+        ? "Video online"
+        : "Audio online";
 
   return (
     <div className="mx-auto w-full max-w-[58rem] space-y-4 md:space-y-5">
@@ -211,6 +225,9 @@ export default function LyricsPlayer({
                 </h3>
               <span className="mt-0.5 inline-block rounded-full bg-[#1a3a2a]/6 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/70">
                 {mediaLabel}
+              </span>
+              <span className="ml-1 mt-0.5 inline-block rounded-full bg-[#c4a84b]/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#1a3a2a]/70">
+                {availabilityLabel}
               </span>
               </div>
 
@@ -269,10 +286,13 @@ export default function LyricsPlayer({
               </div>
 
               {/* Modos de reprodução */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-full text-[9px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 sm:w-auto">
+                  Fonte do audio
+                </span>
                 {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
                   const isActive = audioVariant === variant;
-                  const disabled = variant === "instrumental" && !instrumentalAudioUrl;
+                  const disabled = variant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl;
                   return (
                     <Button
                       key={variant}
@@ -281,13 +301,13 @@ export default function LyricsPlayer({
                       size="sm"
                       onClick={() => setAudioVariant(variant)}
                       disabled={disabled}
-                      className={`h-8 rounded-full px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                      className={`h-10 rounded-md border px-4 text-[11px] font-black uppercase tracking-[0.12em] transition-all ${
                         isActive
-                          ? "bg-[#c4a84b] text-[#1a3a2a] shadow-sm hover:bg-[#c4a84b]/90"
-                          : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
+                          ? "border-[#c4a84b] bg-[#c4a84b] text-[#1a3a2a] shadow-sm hover:bg-[#c4a84b]/90"
+                          : "border-[#1a3a2a]/12 bg-[#1a3a2a]/5 text-[#1a3a2a]/70 hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a]"
                       }`}
                     >
-                      {variant === "voice" ? "Voz" : "Instrumental"}
+                      {variant === "voice" ? "Hino com voz" : "Instrumental"}
                     </Button>
                   );
                 })}

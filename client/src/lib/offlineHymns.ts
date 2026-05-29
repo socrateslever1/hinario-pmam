@@ -4,6 +4,7 @@ const DB_NAME = 'hinario-pmam-hymns-offline';
 const DB_VERSION = 2;
 const HYMNS_STORE = 'hymns';
 const AUDIO_STORE = 'audio-v2';
+const LEGACY_AUDIO_STORE = 'audio';
 
 export type HymnAudioVariant = 'voice' | 'instrumental';
 
@@ -67,6 +68,28 @@ function runStoreOperation<T>(
   ));
 }
 
+function storeExists(database: IDBDatabase, storeName: string) {
+  return database.objectStoreNames.contains(storeName);
+}
+
+function getFromStore<T>(storeName: string, key: IDBValidKey): Promise<T | null> {
+  return openOfflineHymnsDB().then((database) => (
+    new Promise<T | null>((resolve, reject) => {
+      if (!storeExists(database, storeName)) {
+        resolve(null);
+        return;
+      }
+
+      const transaction = database.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      const request = store.get(key);
+
+      transaction.onerror = () => reject(transaction.error);
+      transaction.oncomplete = () => resolve(request.result ?? null);
+    })
+  ));
+}
+
 export async function saveCachedHymn(hymn: Hymn, patch: Partial<CachedHymn> = {}) {
   const existing = await getCachedHymn(hymn.id);
   const record: CachedHymn = {
@@ -104,10 +127,20 @@ export async function getCachedHymnAudio(
   sourceUrl?: string | null,
   variant: HymnAudioVariant = 'voice',
 ): Promise<Blob | null> {
-  const record = await runStoreOperation<CachedAudioRecord>(AUDIO_STORE, 'readonly', (store) => store.get(getAudioKey(id, variant)));
-  if (!record) return null;
-  if (sourceUrl && record.sourceUrl !== sourceUrl) return null;
-  return record.blob;
+  const record = await getFromStore<CachedAudioRecord>(AUDIO_STORE, getAudioKey(id, variant));
+  if (record) {
+    if (sourceUrl && record.sourceUrl !== sourceUrl) return null;
+    return record.blob;
+  }
+
+  if (variant === 'voice') {
+    const legacyRecord = await getFromStore<CachedAudioRecord>(LEGACY_AUDIO_STORE, id);
+    if (!legacyRecord) return null;
+    if (sourceUrl && legacyRecord.sourceUrl !== sourceUrl) return null;
+    return legacyRecord.blob;
+  }
+
+  return null;
 }
 
 export async function cacheHymnForOffline(

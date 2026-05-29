@@ -34,6 +34,7 @@ interface PlaylistItem {
   lyrics?: string | null;
   lyricsSync?: LyricsSyncInput;
   youtubeUrl?: string | null;
+  instrumentalYoutubeUrl?: string | null;
   audioUrl?: string | null;
   instrumentalAudioUrl?: string | null;
 }
@@ -61,19 +62,48 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function readTimeValue(value: any, fallback: MediaPlayerElement | null): number | null {
+  const media = value?.currentTarget ?? fallback;
+  if (media && Number.isFinite(media.currentTime)) return media.currentTime;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
+}
+
+function readDurationValue(value: any, fallback: MediaPlayerElement | null): number | null {
+  const media = value?.currentTarget ?? fallback;
+  if (media && Number.isFinite(media.duration) && media.duration > 0) return media.duration;
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  return null;
+}
+
 function audioCacheKey(id: number, variant: AudioVariant) {
   return `${id}:${variant}`;
 }
 
-function getOnlineMediaUrl(item: PlaylistItem, variant: AudioVariant) {
-  if (variant === "instrumental" && item.instrumentalAudioUrl) {
-    return item.instrumentalAudioUrl;
-  }
+function getVoiceOnlineMediaUrl(item: PlaylistItem) {
   return resolvePlayableMediaUrl({ youtubeUrl: item.youtubeUrl, audioUrl: item.audioUrl });
+}
+
+function getInstrumentalOnlineMediaUrl(item: PlaylistItem) {
+  return resolvePlayableMediaUrl({
+    youtubeUrl: item.instrumentalYoutubeUrl,
+    audioUrl: item.instrumentalAudioUrl,
+  });
+}
+
+function getOnlineMediaUrl(item: PlaylistItem, variant: AudioVariant) {
+  if (variant === "instrumental") {
+    return getInstrumentalOnlineMediaUrl(item) ?? getVoiceOnlineMediaUrl(item);
+  }
+  return getVoiceOnlineMediaUrl(item);
 }
 
 function getVariantSourceUrl(item: PlaylistItem, variant: AudioVariant) {
   return variant === "instrumental" ? item.instrumentalAudioUrl : item.audioUrl;
+}
+
+function hasOnlineMedia(item: PlaylistItem) {
+  return Boolean(getVoiceOnlineMediaUrl(item) || getInstrumentalOnlineMediaUrl(item));
 }
 
 function toHymn(item: PlaylistItem): Hymn {
@@ -89,6 +119,7 @@ function toHymn(item: PlaylistItem): Hymn {
     lyrics: item.lyrics ?? "",
     description: null,
     youtubeUrl: item.youtubeUrl ?? null,
+    instrumentalYoutubeUrl: item.instrumentalYoutubeUrl ?? null,
     audioUrl: item.audioUrl ?? null,
     instrumentalAudioUrl: item.instrumentalAudioUrl ?? null,
     lyricsSync: (item.lyricsSync as any) ?? null,
@@ -111,12 +142,18 @@ export default function PlaylistPlayer({
   const [cachedAudioUrls, setCachedAudioUrls] = useState<Record<string, string>>({});
   const [isPreparingOffline, setIsPreparingOffline] = useState(false);
   const [audioVariant, setAudioVariant] = useState<AudioVariant>("voice");
+  const hasCachedVariant = (item: PlaylistItem, variant: AudioVariant) => Boolean(cachedAudioUrls[audioCacheKey(item.id, variant)]);
+  const getOfflineMediaUrl = (item: PlaylistItem, variant: AudioVariant) => (
+    cachedAudioUrls[audioCacheKey(item.id, variant)] ??
+    (variant === "instrumental" ? cachedAudioUrls[audioCacheKey(item.id, "voice")] : null) ??
+    null
+  );
   const queue = useMemo(
     () => items.filter((item) => {
-      if (isOnline) return Boolean(getOnlineMediaUrl(item, audioVariant));
-      return Boolean(cachedAudioUrls[audioCacheKey(item.id, audioVariant)]);
+      if (isOnline) return hasOnlineMedia(item);
+      return hasCachedVariant(item, "voice") || hasCachedVariant(item, "instrumental");
     }),
-    [audioVariant, cachedAudioUrls, isOnline, items],
+    [cachedAudioUrls, isOnline, items],
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -218,16 +255,39 @@ export default function PlaylistPlayer({
   const currentMediaUrl = currentItem
     ? isOnline
       ? getOnlineMediaUrl(currentItem, audioVariant)
-      : cachedAudioUrls[audioCacheKey(currentItem.id, audioVariant)] ?? null
+      : getOfflineMediaUrl(currentItem, audioVariant)
     : null;
   const isYoutube = isYouTubeUrl(currentMediaUrl);
+  const isUsingFallbackVoice = Boolean(
+    currentItem &&
+    audioVariant === "instrumental" &&
+    (
+      isOnline
+        ? !getInstrumentalOnlineMediaUrl(currentItem) && getVoiceOnlineMediaUrl(currentItem)
+        : !hasCachedVariant(currentItem, "instrumental") && hasCachedVariant(currentItem, "voice")
+    ),
+  );
+  const selectedMediaConfigured = Boolean(currentItem && (
+    audioVariant === "instrumental"
+      ? isOnline ? getInstrumentalOnlineMediaUrl(currentItem) : hasCachedVariant(currentItem, "instrumental")
+      : isOnline ? getVoiceOnlineMediaUrl(currentItem) : hasCachedVariant(currentItem, "voice")
+  ));
   const mediaModeLabel = audioVariant === "instrumental"
-    ? "Instrumental"
+    ? isUsingFallbackVoice ? "Hino com voz" : "Instrumental"
     : !isOnline
       ? "MP3 offline"
       : isYoutube
         ? "YouTube"
         : "Audio";
+  const availabilityLabel = !currentMediaUrl
+    ? "Midia indisponivel"
+    : isUsingFallbackVoice
+      ? "Variante nao alimentada"
+      : !isOnline
+        ? "Salvo offline"
+        : isYoutube
+          ? "Video online"
+          : "Audio online";
 
   useEffect(() => {
     setCurrentTime(0);
@@ -339,7 +399,15 @@ export default function PlaylistPlayer({
   };
 
   const renderVariantButtons = (tone: "dark" | "light" = "dark") => (
-    <div className="flex items-center gap-1">
+    <div className={`flex w-full flex-col gap-1.5 rounded-lg border p-2 sm:w-auto ${
+      tone === "dark" ? "border-white/15 bg-white/8" : "border-[#1a3a2a]/10 bg-[#1a3a2a]/5"
+    }`}>
+      <span className={`text-[9px] font-black uppercase tracking-[0.22em] ${
+        tone === "dark" ? "text-white/55" : "text-[#1a3a2a]/55"
+      }`}>
+        Fonte do audio
+      </span>
+      <div className="grid grid-cols-2 gap-1">
       {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
         const isActive = audioVariant === variant;
         return (
@@ -349,7 +417,7 @@ export default function PlaylistPlayer({
             variant="ghost"
             size="sm"
             onClick={() => setAudioVariant(variant)}
-            className={`h-8 rounded-full px-3 text-[10px] font-black uppercase tracking-[0.14em] ${
+            className={`h-10 rounded-md px-3 text-[11px] font-black uppercase tracking-[0.12em] ${
               isActive
                 ? "bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90"
                 : tone === "dark"
@@ -357,10 +425,16 @@ export default function PlaylistPlayer({
                   : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
             }`}
           >
-            {variant === "voice" ? "Voz" : "Instrumental"}
+            {variant === "voice" ? "Hino com voz" : "Instrumental"}
           </Button>
         );
       })}
+      </div>
+      {isUsingFallbackVoice && (
+        <span className={`text-[10px] font-semibold ${tone === "dark" ? "text-white/60" : "text-[#1a3a2a]/60"}`}>
+          Instrumental indisponivel neste hino; tocando a versao com voz.
+        </span>
+      )}
     </div>
   );
 
@@ -404,8 +478,14 @@ export default function PlaylistPlayer({
                       width: "100%",
                       height: "100%",
                       onReady: () => syncMediaState(playerRef.current),
-                      onTimeUpdate: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
-                      onDurationChange: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
+                      onTimeUpdate: (value: any) => {
+                        const nextTime = readTimeValue(value, playerRef.current);
+                        if (nextTime !== null) setCurrentTime(nextTime);
+                      },
+                      onDurationChange: (value: any) => {
+                        const nextDuration = readDurationValue(value, playerRef.current);
+                        if (nextDuration !== null) setDuration(nextDuration);
+                      },
                       onPlay: () => setPlaying(true),
                       onPause: () => setPlaying(false),
                       onEnded: handleEnded,
@@ -431,8 +511,14 @@ export default function PlaylistPlayer({
                     width: "0",
                     height: "0",
                     onReady: () => syncMediaState(playerRef.current),
-                    onTimeUpdate: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
-                    onDurationChange: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
+                    onTimeUpdate: (value: any) => {
+                      const nextTime = readTimeValue(value, playerRef.current);
+                      if (nextTime !== null) setCurrentTime(nextTime);
+                    },
+                    onDurationChange: (value: any) => {
+                      const nextDuration = readDurationValue(value, playerRef.current);
+                      if (nextDuration !== null) setDuration(nextDuration);
+                    },
                     onPlay: () => setPlaying(true),
                     onPause: () => setPlaying(false),
                     onEnded: handleEnded,
@@ -446,6 +532,9 @@ export default function PlaylistPlayer({
                   <div className="min-w-0 flex-1">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
                       {mediaModeLabel} • {currentIndex + 1}/{queue.length}
+                    </p>
+                    <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
+                      {availabilityLabel}
                     </p>
                     <h4 className="mt-0.5 line-clamp-2 text-sm font-bold leading-tight text-white">
                       {currentItem?.title}
@@ -541,6 +630,7 @@ export default function PlaylistPlayer({
                 <div className="flex flex-wrap items-center gap-1 text-[8px] font-bold uppercase tracking-[0.15em] text-white/45">
                   <span className="rounded-full bg-white/10 px-2 py-0.5">Repeat: {repeatMode}</span>
                   <span className="rounded-full bg-white/10 px-2 py-0.5">Auto: {autoAdvance ? "on" : "off"}</span>
+                  <span className="rounded-full bg-white/10 px-2 py-0.5">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
                   {isPreparingOffline && <span className="rounded-full bg-white/10 px-2 py-0.5">Salvando offline</span>}
                 </div>
               </div>
@@ -594,8 +684,14 @@ export default function PlaylistPlayer({
                     width: "100%",
                     height: "100%",
                     onReady: () => syncMediaState(playerRef.current),
-                    onTimeUpdate: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
-                    onDurationChange: (event: any) => syncMediaState(event.currentTarget as MediaPlayerElement),
+                    onTimeUpdate: (value: any) => {
+                      const nextTime = readTimeValue(value, playerRef.current);
+                      if (nextTime !== null) setCurrentTime(nextTime);
+                    },
+                    onDurationChange: (value: any) => {
+                      const nextDuration = readDurationValue(value, playerRef.current);
+                      if (nextDuration !== null) setDuration(nextDuration);
+                    },
                     onPlay: () => setPlaying(true),
                     onPause: () => setPlaying(false),
                     onEnded: handleEnded,
@@ -630,6 +726,9 @@ export default function PlaylistPlayer({
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
                       {mediaModeLabel}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
+                      {availabilityLabel}
                     </p>
                     <h4 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-white sm:text-lg xl:text-xl">
                       {currentItem?.title}
@@ -684,6 +783,7 @@ export default function PlaylistPlayer({
                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
                   <span className="rounded-full bg-white/10 px-3 py-1">Repeat: {repeatMode}</span>
                   <span className="rounded-full bg-white/10 px-3 py-1">Auto: {autoAdvance ? "ligado" : "desligado"}</span>
+                  <span className="rounded-full bg-white/10 px-3 py-1">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
                   {isPreparingOffline && <span className="rounded-full bg-white/10 px-3 py-1">Salvando offline</span>}
                 </div>
               </div>

@@ -160,9 +160,10 @@ export default function HymnDetail() {
                 hymnTitle={hymn.title}
                 lyrics={hymn.lyrics}
                 lyricsSync={hymn.lyricsSync}
-                audioUrl={cachedAudioUrl ?? hymn.audioUrl}
-                instrumentalAudioUrl={cachedInstrumentalAudioUrl ?? hymn.instrumentalAudioUrl}
+                audioUrl={isOnline ? hymn.audioUrl : cachedAudioUrl}
+                instrumentalAudioUrl={isOnline ? hymn.instrumentalAudioUrl : cachedInstrumentalAudioUrl}
                 youtubeUrl={isOnline ? hymn.youtubeUrl : null}
+                instrumentalYoutubeUrl={isOnline ? hymn.instrumentalYoutubeUrl : null}
               />
             </div>
 

@@ -28,6 +28,7 @@ export interface Hymn {
   lyrics: string;
   description: string | null;
   youtubeUrl: string | null;
+  instrumentalYoutubeUrl: string | null;
   audioUrl: string | null;
   instrumentalAudioUrl: string | null;
   lyricsSync?: Array<{ time: number; text: string }> | null;
