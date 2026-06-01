@@ -12,6 +12,7 @@ import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import bcrypt from "bcryptjs";
 import { getStudyStudentNumberErrorMessage, isValidStudyStudentNumber } from "../shared/study";
+import * as gradeDb from "./gradeDb";
 
 const INVALID_LOGIN_MESSAGE = "Email ou senha invalidos";
 const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage();
@@ -677,6 +678,88 @@ export const appRouter = router({
         uploadedBy: ctx.user.id,
       });
       return { url, fileKey };
+    }),
+  }),
+  grades: router({
+    login: publicProcedure.input(
+      z.object({
+        studentNumber: z.string().regex(/^\d{4}$/, "Número deve ter 4 dígitos").refine(
+          (val) => {
+            const num = parseInt(val);
+            return num >= 1111 && num <= 5252;
+          },
+          "Número deve estar entre 1111 e 5252"
+        ),
+        cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato XXX.XXX.XXX-XX"),
+      })
+    ).mutation(async ({ input }) => {
+      const student = await gradeDb.getGradeStudentByNumberAndCpf(
+        input.studentNumber,
+        input.cpf
+      );
+
+      if (!student) {
+        const newStudent = await gradeDb.createGradeStudent(
+          input.studentNumber,
+          input.cpf
+        );
+        return { student: newStudent, isNewStudent: true };
+      }
+
+      return { student, isNewStudent: false };
+    }),
+
+    getDisciplines: publicProcedure.input(
+      z.object({
+        studentId: z.number(),
+      })
+    ).query(async ({ input }) => {
+      const disciplines = await gradeDb.getDisciplinesByStudentId(input.studentId);
+      const total = await gradeDb.calculateTotalGrade(input.studentId);
+      return { disciplines, total };
+    }),
+
+    createDiscipline: publicProcedure.input(
+      z.object({
+        studentId: z.number(),
+        disciplineName: z.string().min(1).max(255),
+        professorName: z.string().max(255).optional(),
+        grade: z.number().min(0).max(100).optional(),
+      })
+    ).mutation(async ({ input }) => {
+      const discipline = await gradeDb.createDiscipline(
+        input.studentId,
+        input.disciplineName,
+        input.professorName,
+        input.grade
+      );
+      return discipline;
+    }),
+
+    updateDiscipline: publicProcedure.input(
+      z.object({
+        id: z.number(),
+        disciplineName: z.string().min(1).max(255).optional(),
+        professorName: z.string().max(255).optional(),
+        grade: z.number().min(0).max(100).optional(),
+      })
+    ).mutation(async ({ input }) => {
+      await gradeDb.updateDiscipline(
+        input.id,
+        input.disciplineName,
+        input.professorName,
+        input.grade
+      );
+      return { success: true };
+    }),
+
+    deleteDiscipline: publicProcedure.input(
+      z.object({
+        id: z.number(),
+      })
+    ).mutation(async ({ input }) => {
+      await gradeDb.deleteDiscipline(input.id);
+      return { success: true };
     }),
   }),
 });

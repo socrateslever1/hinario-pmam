@@ -220,6 +220,31 @@ export const pmamBlogPost = mysqlTable("pmam_blog_post", {
 export type PmamBlogPost = typeof pmamBlogPost.$inferSelect;
 export type InsertPmamBlogPost = typeof pmamBlogPost.$inferInsert;
 
+export const pmamGradeStudents = mysqlTable("pmam_grade_students", {
+  id: int("id").autoincrement().primaryKey(),
+  studentNumber: varchar("student_number", { length: 10 }).notNull().unique(),
+  cpf: varchar("cpf", { length: 14 }).notNull().unique(),
+  fullName: varchar("full_name", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamGradeStudent = typeof pmamGradeStudents.$inferSelect;
+export type InsertPmamGradeStudent = typeof pmamGradeStudents.$inferInsert;
+
+export const pmamGradeDisciplines = mysqlTable("pmam_grade_disciplines", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("student_id").notNull(),
+  disciplineName: varchar("discipline_name", { length: 255 }).notNull(),
+  professorName: varchar("professor_name", { length: 255 }),
+  grade: int("grade"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamGradeDiscipline = typeof pmamGradeDisciplines.$inferSelect;
+export type InsertPmamGradeDiscipline = typeof pmamGradeDisciplines.$inferInsert;
+
 export const pmamPostImages = mysqlTable("pmam_post_images", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("post_id"),
@@ -252,6 +277,8 @@ export const runtimeTables = {
   pmamMissionMedia,
   pmamBlogPost,
   pmamPostImages,
+  pmamGradeStudents,
+  pmamGradeDisciplines,
 };
 
 /**
