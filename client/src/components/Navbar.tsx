@@ -17,11 +17,6 @@ const navLinks = [
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
-const gradeLinks = [
-  { href: "/grades-login", label: "Fazer Login", icon: LogIn, requiresAuth: false },
-  { href: "/grades", label: "Notas do Curso", icon: BookMarked, requiresAuth: true },
-];
-
 export default function Navbar() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -34,6 +29,14 @@ export default function Navbar() {
   });
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
+
+  const handleNotasClick = () => {
+    if (isGradeLoggedIn) {
+      window.location.href = "/grades";
+    } else {
+      window.location.href = "/grades-login";
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -65,24 +68,32 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {gradeLinks.map((link) => {
-            const shouldShow = link.requiresAuth ? isGradeLoggedIn : true;
-            if (!shouldShow) return null;
-            const isActive = location === link.href || location.startsWith(link.href);
-            return (
-              <Link key={link.href} href={link.href}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
-                  className={`gap-2 ${isActive ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
-                >
-                  <link.icon className="h-4 w-4" />
-                  {link.label}
-                </Button>
-              </Link>
-            );
-          })}
-          {isAdminOrMaster ? (
+          
+          {/* Botão "Fazer Login" */}
+          <Link href="/grades-login">
+            <Button
+              variant={location === "/grades-login" ? "default" : "ghost"}
+              size="sm"
+              className={`gap-2 ${location === "/grades-login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
+            >
+              <LogIn className="h-4 w-4" />
+              Fazer Login
+            </Button>
+          </Link>
+
+          {/* Botão "Notas do Curso" - redireciona para login ou notas */}
+          <Button
+            onClick={handleNotasClick}
+            variant={location === "/grades" || location === "/grades-login" ? "default" : "ghost"}
+            size="sm"
+            className={`gap-2 ${location === "/grades" || location === "/grades-login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
+          >
+            <BookMarked className="h-4 w-4" />
+            Notas do Curso
+          </Button>
+
+          {/* Área do Xerife - apenas para admin */}
+          {isAdminOrMaster && (
             <Link href="/xerife">
               <Button
                 variant={location.startsWith("/xerife") ? "default" : "ghost"}
@@ -91,17 +102,6 @@ export default function Navbar() {
               >
                 <Star className="h-4 w-4" />
                 Área do Xerife
-              </Button>
-            </Link>
-          ) : (
-            <Link href="/login">
-              <Button
-                variant={location === "/login" ? "default" : "ghost"}
-                size="sm"
-                className={`gap-2 ${location === "/login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
-              >
-                <LogIn className="h-4 w-4" />
-                Entrar
               </Button>
             </Link>
           )}
@@ -134,31 +134,34 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              {gradeLinks.map((link) => {
-                const shouldShow = link.requiresAuth ? isAuthenticated : true;
-                if (!shouldShow) return null;
-                const isActive = location === link.href || location.startsWith(link.href);
-                return (
-                  <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
-                    <Button variant={isActive ? "default" : "ghost"} className={`w-full justify-start gap-3 ${isActive ? "bg-[#c4a84b] text-[#1a1a1a]" : "text-[#c4a84b]"}`}>
-                      <link.icon className="h-4 w-4" />
-                      {link.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-              {isAdminOrMaster ? (
+              
+              {/* Mobile: Fazer Login */}
+              <Link href="/grades-login" onClick={() => setOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
+                  <LogIn className="h-4 w-4" />
+                  Fazer Login
+                </Button>
+              </Link>
+
+              {/* Mobile: Notas do Curso */}
+              <Button
+                onClick={() => {
+                  handleNotasClick();
+                  setOpen(false);
+                }}
+                variant="ghost"
+                className="w-full justify-start gap-3 text-[#c4a84b]"
+              >
+                <BookMarked className="h-4 w-4" />
+                Notas do Curso
+              </Button>
+
+              {/* Mobile: Área do Xerife - apenas para admin */}
+              {isAdminOrMaster && (
                 <Link href="/xerife" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
                     <Star className="h-4 w-4" />
                     Área do Xerife
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/login" onClick={() => setOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
-                    <LogIn className="h-4 w-4" />
-                    Entrar
                   </Button>
                 </Link>
               )}
