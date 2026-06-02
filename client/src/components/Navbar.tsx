@@ -2,7 +2,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { BookOpenCheck, Info, ListMusic, LogIn, Menu, Music, Shield, Star, Target } from "lucide-react";
+import { BookOpenCheck, Info, ListMusic, LogIn, Menu, Music, Shield, Star, Target, BookMarked } from "lucide-react";
 import { useState } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -17,10 +17,21 @@ const navLinks = [
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
+const gradeLinks = [
+  { href: "/grades-login", label: "Fazer Login", icon: LogIn, requiresAuth: false },
+  { href: "/grades", label: "Notas do Curso", icon: BookMarked, requiresAuth: true },
+];
+
 export default function Navbar() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  const [isGradeLoggedIn, setIsGradeLoggedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !!sessionStorage.getItem('gradeStudentId');
+    }
+    return false;
+  });
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
 
@@ -47,6 +58,23 @@ export default function Navbar() {
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
                   className={`gap-2 ${isActive ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : "text-foreground"}`}
+                >
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                </Button>
+              </Link>
+            );
+          })}
+          {gradeLinks.map((link) => {
+            const shouldShow = link.requiresAuth ? isGradeLoggedIn : true;
+            if (!shouldShow) return null;
+            const isActive = location === link.href || location.startsWith(link.href);
+            return (
+              <Link key={link.href} href={link.href}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  size="sm"
+                  className={`gap-2 ${isActive ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
@@ -100,6 +128,19 @@ export default function Navbar() {
                 return (
                   <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
                     <Button variant={isActive ? "default" : "ghost"} className={`w-full justify-start gap-3 ${isActive ? "bg-[#1a3a2a] text-white" : ""}`}>
+                      <link.icon className="h-4 w-4" />
+                      {link.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+              {gradeLinks.map((link) => {
+                const shouldShow = link.requiresAuth ? isAuthenticated : true;
+                if (!shouldShow) return null;
+                const isActive = location === link.href || location.startsWith(link.href);
+                return (
+                  <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
+                    <Button variant={isActive ? "default" : "ghost"} className={`w-full justify-start gap-3 ${isActive ? "bg-[#c4a84b] text-[#1a1a1a]" : "text-[#c4a84b]"}`}>
                       <link.icon className="h-4 w-4" />
                       {link.label}
                     </Button>

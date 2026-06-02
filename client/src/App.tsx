@@ -24,6 +24,7 @@ import DrillDetail from "./pages/DrillDetail";
 import BlogDetail from "./pages/BlogDetail";
 import GradesLogin from "./pages/GradesLogin";
 import Grades from "./pages/Grades";
+import GradesRanking from "./pages/GradesRanking";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/grades-login" component={GradesLogin} />
       <Route path="/grades" component={Grades} />
+      <Route path="/grades-ranking" component={GradesRanking} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
