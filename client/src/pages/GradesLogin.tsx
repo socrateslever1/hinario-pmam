@@ -60,10 +60,14 @@ export default function GradesLogin() {
         cpf,
       });
 
-      sessionStorage.setItem('gradeStudentId', result.id.toString());
-      sessionStorage.setItem('gradeStudentNumber', result.studentNumber);
+      sessionStorage.setItem('gradeStudentId', result.student.id.toString());
+      sessionStorage.setItem('gradeStudentNumber', result.student.studentNumber);
 
-      toast.success('Login realizado com sucesso!');
+      toast.success(
+        result.isNewStudent
+          ? 'Conta criada com sucesso!'
+          : 'Login realizado com sucesso!'
+      );
 
       setLocation('/grades');
     } catch (err: any) {

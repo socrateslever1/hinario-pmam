@@ -703,10 +703,10 @@ export const appRouter = router({
           input.studentNumber,
           input.cpf
         );
-        return newStudent;
+        return { student: newStudent, isNewStudent: true };
       }
 
-      return student;
+      return { student, isNewStudent: false };
     }),
 
     getDisciplines: publicProcedure.input(
@@ -760,39 +760,6 @@ export const appRouter = router({
     ).mutation(async ({ input }) => {
       await gradeDb.deleteDiscipline(input.id);
       return { success: true };
-    }),
-
-    register: publicProcedure.input(
-      z.object({
-        studentNumber: z.string().regex(/^\d{4}$/, "Número deve ter 4 dígitos").refine(
-          (val) => {
-            const num = parseInt(val);
-            return num >= 1111 && num <= 5252;
-          },
-          "Número deve estar entre 1111 e 5252"
-        ),
-        cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato XXX.XXX.XXX-XX"),
-        fullName: z.string().min(1).max(255),
-      })
-    ).mutation(async ({ input }) => {
-      const existing = await gradeDb.getGradeStudentByNumberAndCpf(
-        input.studentNumber,
-        input.cpf
-      );
-
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Esta combinação de número e CPF já está registrada",
-        });
-      }
-
-      const newStudent = await gradeDb.createGradeStudent(
-        input.studentNumber,
-        input.cpf,
-        input.fullName
-      );
-      return newStudent;
     }),
   }),
 });

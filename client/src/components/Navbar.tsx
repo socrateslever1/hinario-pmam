@@ -2,7 +2,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { BookOpenCheck, Info, ListMusic, LogIn, Menu, Music, Shield, Star, Target, BookMarked } from "lucide-react";
+import { BookOpenCheck, Info, ListMusic, LogIn, Menu, Music, Shield, Star, Target } from "lucide-react";
 import { useState } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
@@ -21,22 +21,8 @@ export default function Navbar() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
-  const [isGradeLoggedIn, setIsGradeLoggedIn] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !!sessionStorage.getItem('gradeStudentId');
-    }
-    return false;
-  });
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
-
-  const handleNotasClick = () => {
-    if (isGradeLoggedIn) {
-      window.location.href = "/grades";
-    } else {
-      window.location.href = "/grades-login";
-    }
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -68,32 +54,7 @@ export default function Navbar() {
               </Link>
             );
           })}
-          
-          {/* Botão "Fazer Login" */}
-          <Link href="/grades-login">
-            <Button
-              variant={location === "/grades-login" ? "default" : "ghost"}
-              size="sm"
-              className={`gap-2 ${location === "/grades-login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
-            >
-              <LogIn className="h-4 w-4" />
-              Fazer Login
-            </Button>
-          </Link>
-
-          {/* Botão "Notas do Curso" - redireciona para login ou notas */}
-          <Button
-            onClick={handleNotasClick}
-            variant={location === "/grades" || location === "/grades-login" ? "default" : "ghost"}
-            size="sm"
-            className={`gap-2 ${location === "/grades" || location === "/grades-login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
-          >
-            <BookMarked className="h-4 w-4" />
-            Notas do Curso
-          </Button>
-
-          {/* Área do Xerife - apenas para admin */}
-          {isAdminOrMaster && (
+          {isAdminOrMaster ? (
             <Link href="/xerife">
               <Button
                 variant={location.startsWith("/xerife") ? "default" : "ghost"}
@@ -102,6 +63,17 @@ export default function Navbar() {
               >
                 <Star className="h-4 w-4" />
                 Área do Xerife
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button
+                variant={location === "/login" ? "default" : "ghost"}
+                size="sm"
+                className={`gap-2 ${location === "/login" ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" : "text-[#c4a84b]"}`}
+              >
+                <LogIn className="h-4 w-4" />
+                Entrar
               </Button>
             </Link>
           )}
@@ -134,34 +106,18 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              
-              {/* Mobile: Fazer Login */}
-              <Link href="/grades-login" onClick={() => setOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
-                  <LogIn className="h-4 w-4" />
-                  Fazer Login
-                </Button>
-              </Link>
-
-              {/* Mobile: Notas do Curso */}
-              <Button
-                onClick={() => {
-                  handleNotasClick();
-                  setOpen(false);
-                }}
-                variant="ghost"
-                className="w-full justify-start gap-3 text-[#c4a84b]"
-              >
-                <BookMarked className="h-4 w-4" />
-                Notas do Curso
-              </Button>
-
-              {/* Mobile: Área do Xerife - apenas para admin */}
-              {isAdminOrMaster && (
+              {isAdminOrMaster ? (
                 <Link href="/xerife" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
                     <Star className="h-4 w-4" />
                     Área do Xerife
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/login" onClick={() => setOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
+                    <LogIn className="h-4 w-4" />
+                    Entrar
                   </Button>
                 </Link>
               )}
