@@ -264,6 +264,62 @@ export const pmamPostImages = mysqlTable("pmam_post_images", {
 export type PmamPostImage = typeof pmamPostImages.$inferSelect;
 export type InsertPmamPostImage = typeof pmamPostImages.$inferInsert;
 
+export const pmamStudents = mysqlTable("pmam_students", {
+  id: int("id").autoincrement().primaryKey(),
+  numerica: varchar("numerica", { length: 4 }).notNull().unique(),
+  nomeGuerra: varchar("nome_guerra", { length: 255 }).notNull(),
+  senha: varchar("senha", { length: 255 }).notNull(),
+  companhia: int("companhia").notNull(), // 1-5
+  peloton: int("peloton").notNull(), // 1-2
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamStudent = typeof pmamStudents.$inferSelect;
+export type InsertPmamStudent = typeof pmamStudents.$inferInsert;
+
+export const pmamDisciplines = mysqlTable("pmam_disciplines", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdBy: int("created_by").notNull(), // Admin ID
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamDiscipline = typeof pmamDisciplines.$inferSelect;
+export type InsertPmamDiscipline = typeof pmamDisciplines.$inferInsert;
+
+export const pmamStudentGrades = mysqlTable("pmam_student_grades", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("student_id").notNull(),
+  disciplineId: int("discipline_id").notNull(),
+  professorName: varchar("professor_name", { length: 255 }),
+  grade: int("grade"), // 0-100
+  evaluationDate: date("evaluation_date"),
+  observation: text("observation"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamStudentGrade = typeof pmamStudentGrades.$inferSelect;
+export type InsertPmamStudentGrade = typeof pmamStudentGrades.$inferInsert;
+
+export const pmamAdmins = mysqlTable("pmam_admins", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  senha: varchar("senha", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).unique(),
+  role: mysqlEnum("role", ["xerife", "super_admin"]).default("xerife"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamAdmin = typeof pmamAdmins.$inferSelect;
+export type InsertPmamAdmin = typeof pmamAdmins.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -279,6 +335,10 @@ export const runtimeTables = {
   pmamPostImages,
   pmamGradeStudents,
   pmamGradeDisciplines,
+  pmamStudents,
+  pmamDisciplines,
+  pmamStudentGrades,
+  pmamAdmins,
 };
 
 /**

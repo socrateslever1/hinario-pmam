@@ -13,6 +13,9 @@ import { ENV } from "./_core/env";
 import bcrypt from "bcryptjs";
 import { getStudyStudentNumberErrorMessage, isValidStudyStudentNumber } from "../shared/study";
 import * as gradeDb from "./gradeDb";
+import * as studentDb from "./studentDb";
+import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
+import { studentRouter } from "./studentRouter";
 
 const INVALID_LOGIN_MESSAGE = "Email ou senha invalidos";
 const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage();
@@ -762,6 +765,8 @@ export const appRouter = router({
       return { success: true };
     }),
   }),
+
+  student: studentRouter,
 });
 
 export type AppRouter = typeof appRouter;
