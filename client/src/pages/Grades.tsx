@@ -61,6 +61,7 @@ export default function Grades() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const utils = trpc.useUtils();
   const createGradeMutation = trpc.grades.createStudentGrade.useMutation();
@@ -116,7 +117,7 @@ export default function Grades() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!studentId) return;
+    if (!studentId || isSubmitting) return;
 
     const disciplineId = Number(formData.disciplineId);
     if (!disciplineId) {
@@ -131,6 +132,7 @@ export default function Grades() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (editingId) {
         await updateGradeMutation.mutateAsync({
@@ -161,6 +163,8 @@ export default function Grades() {
       await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar nota");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -354,8 +358,8 @@ export default function Grades() {
                   />
                 </div>
                 <div className="flex gap-2 md:col-span-2">
-                  <Button type="submit" className="bg-[#1a3a2a] hover:bg-[#214936]">
-                    {editingId ? "Atualizar" : "Salvar"}
+                  <Button type="submit" className="bg-[#1a3a2a] hover:bg-[#214936]" disabled={isSubmitting}>
+                    {isSubmitting ? (editingId ? "Atualizando..." : "Salvando...") : (editingId ? "Atualizar" : "Salvar")}
                   </Button>
                   <Button type="button" variant="outline" onClick={resetForm}>
                     Cancelar

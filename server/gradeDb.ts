@@ -172,6 +172,18 @@ export async function createStudentGradeEntry(
   evaluationDate?: string,
   observation?: string
 ): Promise<StudentGradeEntry> {
+  // Verificar se já existe nota para este aluno nesta disciplina
+  const existingRows = await query(
+    `SELECT id FROM pmam_student_grades
+    WHERE student_id = ? AND discipline_id = ?
+    LIMIT 1`,
+    [studentId, disciplineId]
+  );
+
+  if (existingRows.length > 0) {
+    throw new Error("Você já possui uma nota lançada para esta disciplina. Edite a nota existente ou delete-a antes de lançar uma nova.");
+  }
+
   const result = await query(
     `INSERT INTO pmam_student_grades
       (student_id, discipline_id, professor_name, grade, evaluation_date, observation)
