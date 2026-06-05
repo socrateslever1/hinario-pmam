@@ -272,6 +272,10 @@ export const pmamStudents = mysqlTable("pmam_students", {
   sessionToken: varchar("session_token", { length: 128 }),
   companhia: int("companhia").notNull(), // 1-5
   peloton: int("peloton").notNull(), // 1-2
+  nomeCompleto: varchar("nome_completo", { length: 255 }),
+  rg: varchar("rg", { length: 20 }),
+  email: varchar("email", { length: 255 }),
+  fotoUrl: longtext("foto_url"), // Base64 ou URL da foto
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
