@@ -19,6 +19,47 @@ export interface GradeDiscipline {
   updatedAt: Date;
 }
 
+export interface DisciplineCatalogItem {
+  id: number;
+  name: string;
+  description?: string;
+  createdBy: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StudentGradeEntry {
+  id: number;
+  studentId: number;
+  disciplineId: number;
+  disciplineName: string;
+  professorName?: string;
+  grade?: number;
+  evaluationDate?: string;
+  observation?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GradeRankingRow {
+  position: number;
+  studentId: number;
+  nomeGuerra: string;
+  numerica: string;
+  companhia: number;
+  peloton: number;
+  average: number;
+  disciplineCount: number;
+}
+
+export interface AdminStudentGradeEntry extends StudentGradeEntry {
+  studentName: string;
+  numerica: string;
+  companhia: number;
+  peloton: number;
+}
+
 function mapGradeStudent(row: any): GradeStudent | null {
   if (!row) return null;
   return {
@@ -42,6 +83,273 @@ function mapGradeDiscipline(row: any): GradeDiscipline | null {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function mapDisciplineCatalogItem(row: any): DisciplineCatalogItem | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    createdBy: row.created_by,
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapStudentGradeEntry(row: any): StudentGradeEntry | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    disciplineId: row.discipline_id,
+    disciplineName: row.discipline_name,
+    professorName: row.professor_name,
+    grade: row.grade,
+    evaluationDate: row.evaluation_date,
+    observation: row.observation,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// ===== NEW STUDENT GRADE SYSTEM =====
+
+export async function getActiveDisciplineCatalog(): Promise<DisciplineCatalogItem[]> {
+  const rows = await query(
+    "SELECT * FROM pmam_disciplines WHERE is_active = true ORDER BY name ASC"
+  );
+  return rows.map(mapDisciplineCatalogItem).filter((d): d is DisciplineCatalogItem => d !== null);
+}
+
+export async function createCatalogDiscipline(
+  name: string,
+  description: string | undefined,
+  createdBy: number
+): Promise<DisciplineCatalogItem> {
+  const result = await query(
+    "INSERT INTO pmam_disciplines (name, description, created_by) VALUES (?, ?, ?)",
+    [name, description || null, createdBy]
+  );
+
+  const rows = await query(
+    "SELECT * FROM pmam_disciplines WHERE id = ? LIMIT 1",
+    [(result as any).insertId]
+  );
+  const discipline = mapDisciplineCatalogItem(rows[0]);
+  if (!discipline) throw new Error("Failed to create discipline");
+  return discipline;
+}
+
+export async function getStudentGradeEntries(studentId: number): Promise<StudentGradeEntry[]> {
+  const rows = await query(
+    `SELECT
+      g.id,
+      g.student_id,
+      g.discipline_id,
+      d.name as discipline_name,
+      g.professor_name,
+      g.grade,
+      g.evaluation_date,
+      g.observation,
+      g.created_at,
+      g.updated_at
+    FROM pmam_student_grades g
+    INNER JOIN pmam_disciplines d ON d.id = g.discipline_id
+    WHERE g.student_id = ?
+    ORDER BY d.name ASC`,
+    [studentId]
+  );
+  return rows.map(mapStudentGradeEntry).filter((g): g is StudentGradeEntry => g !== null);
+}
+
+export async function createStudentGradeEntry(
+  studentId: number,
+  disciplineId: number,
+  professorName?: string,
+  grade?: number,
+  evaluationDate?: string,
+  observation?: string
+): Promise<StudentGradeEntry> {
+  const result = await query(
+    `INSERT INTO pmam_student_grades
+      (student_id, discipline_id, professor_name, grade, evaluation_date, observation)
+    VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      studentId,
+      disciplineId,
+      professorName || null,
+      grade ?? null,
+      evaluationDate || null,
+      observation || null,
+    ]
+  );
+
+  const gradeId = (result as any).insertId;
+  const rows = await query(
+    `SELECT
+      g.id,
+      g.student_id,
+      g.discipline_id,
+      d.name as discipline_name,
+      g.professor_name,
+      g.grade,
+      g.evaluation_date,
+      g.observation,
+      g.created_at,
+      g.updated_at
+    FROM pmam_student_grades g
+    INNER JOIN pmam_disciplines d ON d.id = g.discipline_id
+    WHERE g.id = ?
+    LIMIT 1`,
+    [gradeId]
+  );
+  const entry = mapStudentGradeEntry(rows[0]);
+  if (!entry) throw new Error("Failed to create student grade");
+  return entry;
+}
+
+export async function updateStudentGradeEntry(
+  id: number,
+  studentId: number,
+  disciplineId?: number,
+  professorName?: string,
+  grade?: number | null,
+  evaluationDate?: string | null,
+  observation?: string | null
+): Promise<void> {
+  const updates: string[] = [];
+  const params: any[] = [];
+
+  if (disciplineId !== undefined) {
+    updates.push("discipline_id = ?");
+    params.push(disciplineId);
+  }
+  if (professorName !== undefined) {
+    updates.push("professor_name = ?");
+    params.push(professorName || null);
+  }
+  if (grade !== undefined) {
+    updates.push("grade = ?");
+    params.push(grade);
+  }
+  if (evaluationDate !== undefined) {
+    updates.push("evaluation_date = ?");
+    params.push(evaluationDate || null);
+  }
+  if (observation !== undefined) {
+    updates.push("observation = ?");
+    params.push(observation || null);
+  }
+
+  if (updates.length === 0) return;
+
+  updates.push("updated_at = CURRENT_TIMESTAMP");
+  params.push(id, studentId);
+  await query(
+    `UPDATE pmam_student_grades SET ${updates.join(", ")} WHERE id = ? AND student_id = ?`,
+    params
+  );
+}
+
+export async function deleteStudentGradeEntry(id: number, studentId: number): Promise<void> {
+  await query("DELETE FROM pmam_student_grades WHERE id = ? AND student_id = ?", [id, studentId]);
+}
+
+export async function calculateStudentAverage(studentId: number): Promise<number> {
+  const rows = await query(
+    "SELECT AVG(grade) as avg_grade FROM pmam_student_grades WHERE student_id = ? AND grade IS NOT NULL",
+    [studentId]
+  );
+  const avgGrade = rows[0]?.avg_grade;
+  return avgGrade ? Math.round(avgGrade * 100) / 100 : 0;
+}
+
+export async function getGradeRanking(filters?: {
+  companhia?: number;
+  peloton?: number;
+}): Promise<GradeRankingRow[]> {
+  const where: string[] = [];
+  const params: any[] = [];
+
+  if (filters?.companhia !== undefined) {
+    where.push("s.companhia = ?");
+    params.push(filters.companhia);
+  }
+  if (filters?.peloton !== undefined) {
+    where.push("s.peloton = ?");
+    params.push(filters.peloton);
+  }
+
+  const rows = await query(
+    `SELECT
+      s.id as student_id,
+      s.nome_guerra,
+      s.numerica,
+      s.companhia,
+      s.peloton,
+      COALESCE(AVG(g.grade), 0) as average,
+      COUNT(g.id) as discipline_count
+    FROM pmam_students s
+    LEFT JOIN pmam_student_grades g ON g.student_id = s.id AND g.grade IS NOT NULL
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+    GROUP BY s.id, s.nome_guerra, s.numerica, s.companhia, s.peloton
+    ORDER BY average DESC, discipline_count DESC, s.numerica ASC`,
+    params
+  );
+
+  return rows.map((row: any, index: number) => ({
+    position: index + 1,
+    studentId: row.student_id,
+    nomeGuerra: row.nome_guerra,
+    numerica: row.numerica,
+    companhia: row.companhia,
+    peloton: row.peloton,
+    average: Math.round(Number(row.average || 0) * 100) / 100,
+    disciplineCount: Number(row.discipline_count || 0),
+  }));
+}
+
+export async function getAllStudentGradeEntries(): Promise<AdminStudentGradeEntry[]> {
+  const rows = await query(
+    `SELECT
+      g.id,
+      g.student_id,
+      s.nome_guerra as student_name,
+      s.numerica,
+      s.companhia,
+      s.peloton,
+      g.discipline_id,
+      d.name as discipline_name,
+      g.professor_name,
+      g.grade,
+      g.evaluation_date,
+      g.observation,
+      g.created_at,
+      g.updated_at
+    FROM pmam_student_grades g
+    INNER JOIN pmam_students s ON s.id = g.student_id
+    INNER JOIN pmam_disciplines d ON d.id = g.discipline_id
+    ORDER BY s.numerica ASC, d.name ASC`
+  );
+
+  return rows.map((row: any) => ({
+    id: row.id,
+    studentId: row.student_id,
+    studentName: row.student_name,
+    numerica: row.numerica,
+    companhia: row.companhia,
+    peloton: row.peloton,
+    disciplineId: row.discipline_id,
+    disciplineName: row.discipline_name,
+    professorName: row.professor_name,
+    grade: row.grade,
+    evaluationDate: row.evaluation_date,
+    observation: row.observation,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
 // ===== GRADE STUDENTS =====

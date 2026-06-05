@@ -24,6 +24,8 @@ import DrillDetail from "./pages/DrillDetail";
 import BlogDetail from "./pages/BlogDetail";
 import GradesLogin from "./pages/GradesLogin";
 import Grades from "./pages/Grades";
+import Documents from "./pages/Documents";
+import StudentProfilePage from "./pages/StudentProfile";
 
 function Router() {
   return (
@@ -42,8 +44,12 @@ function Router() {
       <Route path="/xerife" component={Admin} />
       <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
+      <Route path="/entrar" component={GradesLogin} />
+      <Route path="/notas-do-curso" component={Grades} />
+      <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/grades-login" component={GradesLogin} />
       <Route path="/grades" component={Grades} />
+      <Route path="/documentos" component={Documents} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

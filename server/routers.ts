@@ -24,6 +24,13 @@ const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNum
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
 
+async function requireStudentSession(studentId: number, sessionToken: string) {
+  const isValid = await studentDb.verifyStudentSession(studentId, sessionToken);
+  if (!isValid) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão do aluno inválida" });
+  }
+}
+
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
@@ -472,15 +479,19 @@ export const appRouter = router({
       id: z.number(),
       role: z.enum(["user", "admin"]),
     })).mutation(async ({ input }) => {
+      await db.updateUserRole(input.id, input.role);
       return { success: true };
     }),
     resetPassword: masterProcedure.input(z.object({
       id: z.number(),
       password: z.string().min(4),
     })).mutation(async ({ input }) => {
+      const hashedPassword = await bcrypt.hash(input.password, 12);
+      await db.resetUserPassword(input.id, hashedPassword);
       return { success: true };
     }),
     delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deleteUser(input.id);
       return { success: true };
     }),
   }),
@@ -684,6 +695,96 @@ export const appRouter = router({
     }),
   }),
   grades: router({
+    availableDisciplines: publicProcedure.query(async () => {
+      return gradeDb.getActiveDisciplineCatalog();
+    }),
+
+    ranking: publicProcedure.input(
+      z.object({
+        studentId: z.number(),
+        sessionToken: z.string().min(16),
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      })
+    ).query(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      return gradeDb.getGradeRanking({
+        companhia: input.companhia,
+        peloton: input.peloton,
+      });
+    }),
+
+    getMyGrades: publicProcedure.input(
+      z.object({
+        studentId: z.number(),
+        sessionToken: z.string().min(16),
+      })
+    ).query(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      const grades = await gradeDb.getStudentGradeEntries(input.studentId);
+      const average = await gradeDb.calculateStudentAverage(input.studentId);
+      return { grades, average };
+    }),
+
+    createStudentGrade: publicProcedure.input(
+      z.object({
+        studentId: z.number(),
+        sessionToken: z.string().min(16),
+        disciplineId: z.number(),
+        professorName: z.string().trim().max(255).optional(),
+        grade: z.number().int().min(0).max(100).optional(),
+        evaluationDate: z.string().trim().optional(),
+        observation: z.string().trim().max(2000).optional(),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      return gradeDb.createStudentGradeEntry(
+        input.studentId,
+        input.disciplineId,
+        input.professorName,
+        input.grade,
+        input.evaluationDate,
+        input.observation
+      );
+    }),
+
+    updateStudentGrade: publicProcedure.input(
+      z.object({
+        id: z.number(),
+        studentId: z.number(),
+        sessionToken: z.string().min(16),
+        disciplineId: z.number().optional(),
+        professorName: z.string().trim().max(255).optional(),
+        grade: z.number().int().min(0).max(100).nullable().optional(),
+        evaluationDate: z.string().trim().nullable().optional(),
+        observation: z.string().trim().max(2000).nullable().optional(),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      await gradeDb.updateStudentGradeEntry(
+        input.id,
+        input.studentId,
+        input.disciplineId,
+        input.professorName,
+        input.grade,
+        input.evaluationDate,
+        input.observation
+      );
+      return { success: true };
+    }),
+
+    deleteStudentGrade: publicProcedure.input(
+      z.object({
+        id: z.number(),
+        studentId: z.number(),
+        sessionToken: z.string().min(16),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      await gradeDb.deleteStudentGradeEntry(input.id, input.studentId);
+      return { success: true };
+    }),
+
     login: publicProcedure.input(
       z.object({
         studentNumber: z.string().regex(/^\d{4}$/, "Número deve ter 4 dígitos").refine(
@@ -763,6 +864,91 @@ export const appRouter = router({
     ).mutation(async ({ input }) => {
       await gradeDb.deleteDiscipline(input.id);
       return { success: true };
+    }),
+  }),
+
+  gradeAdmin: router({
+    createDiscipline: adminProcedure.input(
+      z.object({
+        name: z.string().trim().min(2).max(255),
+        description: z.string().trim().max(2000).optional(),
+      })
+    ).mutation(async ({ input, ctx }) => {
+      return gradeDb.createCatalogDiscipline(input.name, input.description, ctx.user.id);
+    }),
+
+    createStudent: adminProcedure.input(
+      z.object({
+        numerica: z.string().trim().length(4),
+        nomeGuerra: z.string().trim().min(2).max(255),
+        senha: z.string().min(6),
+      })
+    ).mutation(async ({ input }) => {
+      const validation = validateNumerica(input.numerica);
+      if (!validation.isValid) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: validation.error || "Numérica inválida",
+        });
+      }
+
+      const exists = await studentDb.studentExists(input.numerica);
+      if (exists) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Aluno com esta numérica já existe",
+        });
+      }
+
+      const student = await studentDb.createStudent(
+        input.numerica,
+        input.nomeGuerra,
+        input.senha,
+        validation.companhia,
+        validation.peloton
+      );
+
+      if (!student) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar aluno" });
+      }
+
+      return student;
+    }),
+
+    resetStudentPassword: adminProcedure.input(
+      z.object({
+        studentId: z.number(),
+        senha: z.string().min(6),
+      })
+    ).mutation(async ({ input }) => {
+      await studentDb.updateStudentPassword(input.studentId, input.senha);
+      return { success: true };
+    }),
+
+    deleteStudent: adminProcedure.input(
+      z.object({
+        studentId: z.number(),
+      })
+    ).mutation(async ({ input }) => {
+      await studentDb.deleteStudent(input.studentId);
+      return { success: true };
+    }),
+
+    students: adminProcedure.query(async () => {
+      return studentDb.getAllStudents();
+    }),
+
+    allGrades: adminProcedure.query(async () => {
+      return gradeDb.getAllStudentGradeEntries();
+    }),
+
+    ranking: adminProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ input }) => {
+      return gradeDb.getGradeRanking(input);
     }),
   }),
 

@@ -63,6 +63,7 @@ export const studentRouter = router({
         nomeGuerra: student.nomeGuerra,
         companhia: student.companhia,
         peloton: student.peloton,
+        sessionToken: student.sessionToken ?? "",
         companhiaLabel: getCompanhiaLabel(student.companhia),
         pelotonLabel: getPelotonLabel(student.peloton),
       };
@@ -107,14 +108,93 @@ export const studentRouter = router({
         });
       }
 
+      const sessionToken = await studentDb.rotateStudentSessionToken(student.id);
+
       return {
         id: student.id,
         numerica: student.numerica,
         nomeGuerra: student.nomeGuerra,
         companhia: student.companhia,
         peloton: student.peloton,
+        sessionToken,
         companhiaLabel: getCompanhiaLabel(student.companhia),
         pelotonLabel: getPelotonLabel(student.peloton),
+      };
+    }),
+  getProfile: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+
+      const student = await studentDb.getStudentById(input.id);
+      if (!student) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Aluno não encontrado",
+        });
+      }
+
+      return {
+        ...student,
+        companhiaLabel: getCompanhiaLabel(student.companhia),
+        pelotonLabel: getPelotonLabel(student.peloton),
+      };
+    }),
+
+  updateProfile: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+        nomeGuerra: z.string().trim().min(2).max(255).optional(),
+        nomeCompleto: z.string().trim().optional(),
+        rg: z.string().trim().optional(),
+        email: z.string().trim().email().or(z.literal("")).optional(),
+        fotoUrl: z.string().optional(),
+        senha: z.string().min(6).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+
+      await studentDb.updateStudentProfile(input.id, {
+        nomeGuerra: input.nomeGuerra,
+        nomeCompleto: input.nomeCompleto,
+        rg: input.rg,
+        email: input.email === "" ? null : input.email,
+        fotoUrl: input.fotoUrl,
+        senha: input.senha,
+      });
+
+      const updated = await studentDb.getStudentById(input.id);
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Erro ao carregar perfil atualizado",
+        });
+      }
+
+      return {
+        ...updated,
+        companhiaLabel: getCompanhiaLabel(updated.companhia),
+        pelotonLabel: getPelotonLabel(updated.peloton),
       };
     }),
 });

@@ -1,293 +1,432 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Plus, Trash2, Edit2, LogOut } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { AlertCircle, Edit2, LogOut, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { trpc } from "@/lib/trpc";
+import Navbar from "@/components/Navbar";
+import { clearStudentSession, getStudentSession } from "@/lib/studentSession";
 
-interface Discipline {
+interface DisciplineCatalogItem {
   id: number;
+  name: string;
+}
+
+interface StudentGradeEntry {
+  id: number;
+  studentId: number;
+  disciplineId: number;
   disciplineName: string;
   professorName?: string;
   grade?: number;
+  evaluationDate?: string;
+  observation?: string;
 }
+
+interface RankingRow {
+  position: number;
+  studentId: number;
+  nomeGuerra: string;
+  numerica: string;
+  companhia: number;
+  peloton: number;
+  average: number;
+  disciplineCount: number;
+}
+
+const emptyForm = {
+  disciplineId: "",
+  professorName: "",
+  grade: "",
+  evaluationDate: "",
+  observation: "",
+};
 
 export default function Grades() {
   const [, setLocation] = useLocation();
   const [studentId, setStudentId] = useState<number | null>(null);
-  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
-  const [total, setTotal] = useState(0);
+  const [studentName, setStudentName] = useState("");
+  const [studentNumber, setStudentNumber] = useState("");
+  const [disciplines, setDisciplines] = useState<DisciplineCatalogItem[]>([]);
+  const [grades, setGrades] = useState<StudentGradeEntry[]>([]);
+  const [generalRanking, setGeneralRanking] = useState<RankingRow[]>([]);
+  const [companyRanking, setCompanyRanking] = useState<RankingRow[]>([]);
+  const [platoonRanking, setPlatoonRanking] = useState<RankingRow[]>([]);
+  const [average, setAverage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState(emptyForm);
 
-  const [formData, setFormData] = useState({
-    disciplineName: '',
-    professorName: '',
-    grade: '',
-  });
-
-  const createDisciplineMutation = trpc.grades.createDiscipline.useMutation();
-  const updateDisciplineMutation = trpc.grades.updateDiscipline.useMutation();
-  const deleteDisciplineMutation = trpc.grades.deleteDiscipline.useMutation();
   const utils = trpc.useUtils();
+  const createGradeMutation = trpc.grades.createStudentGrade.useMutation();
+  const updateGradeMutation = trpc.grades.updateStudentGrade.useMutation();
+  const deleteGradeMutation = trpc.grades.deleteStudentGrade.useMutation();
 
   useEffect(() => {
-    const id = sessionStorage.getItem('gradeStudentId');
-    if (!id) {
-      setLocation('/grades-login');
+    const session = getStudentSession();
+    if (!session) {
+      setLocation("/entrar");
       return;
     }
 
-    const studentIdNum = parseInt(id);
-    setStudentId(studentIdNum);
-    loadDisciplines(studentIdNum);
+    setStudentId(session.id);
+    setStudentName(session.nomeGuerra);
+    setStudentNumber(session.numerica);
+    void loadPageData(session.id, session.companhia, session.peloton, session.sessionToken);
   }, [setLocation]);
 
-  const loadDisciplines = async (id: number) => {
+  const loadPageData = async (id: number, companhia?: number, peloton?: number, sessionToken?: string) => {
+    if (!sessionToken) {
+      setLocation("/entrar");
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const result = await utils.grades.getDisciplines.fetch({ studentId: id });
-      setDisciplines(result.disciplines);
-      setTotal(result.total);
+      const [disciplineList, gradeResult, generalRows, companyRows, platoonRows] = await Promise.all([
+        utils.grades.availableDisciplines.fetch(),
+        utils.grades.getMyGrades.fetch({ studentId: id, sessionToken }),
+        utils.grades.ranking.fetch({ studentId: id, sessionToken }),
+        companhia ? utils.grades.ranking.fetch({ studentId: id, sessionToken, companhia }) : Promise.resolve([]),
+        companhia && peloton ? utils.grades.ranking.fetch({ studentId: id, sessionToken, companhia, peloton }) : Promise.resolve([]),
+      ]);
+      setDisciplines(disciplineList);
+      setGrades(gradeResult.grades);
+      setAverage(gradeResult.average);
+      setGeneralRanking(generalRows);
+      setCompanyRanking(companyRows);
+      setPlatoonRanking(platoonRows);
     } catch (err) {
-      toast.error('Erro ao carregar disciplinas');
+      toast.error("Erro ao carregar notas");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAddDiscipline = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetForm = () => {
+    setFormData(emptyForm);
+    setEditingId(null);
+    setShowForm(false);
+  };
 
-    if (!formData.disciplineName.trim()) {
-      toast.error('Nome da disciplina é obrigatório');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!studentId) return;
+
+    const disciplineId = Number(formData.disciplineId);
+    if (!disciplineId) {
+      toast.error("Selecione uma disciplina");
+      return;
+    }
+
+    const grade = formData.grade === "" ? undefined : Number(formData.grade);
+    const session = getStudentSession();
+    if (!session) {
+      setLocation("/entrar");
       return;
     }
 
     try {
       if (editingId) {
-        await updateDisciplineMutation.mutateAsync({
+        await updateGradeMutation.mutateAsync({
           id: editingId,
-          disciplineName: formData.disciplineName,
+          studentId,
+          sessionToken: session.sessionToken,
+          disciplineId,
           professorName: formData.professorName || undefined,
-          grade: formData.grade ? parseInt(formData.grade) : undefined,
+          grade,
+          evaluationDate: formData.evaluationDate || null,
+          observation: formData.observation || null,
         });
-        toast.success('Disciplina atualizada com sucesso');
+        toast.success("Nota atualizada");
       } else {
-        await createDisciplineMutation.mutateAsync({
-          studentId: studentId!,
-          disciplineName: formData.disciplineName,
+        await createGradeMutation.mutateAsync({
+          studentId,
+          sessionToken: session.sessionToken,
+          disciplineId,
           professorName: formData.professorName || undefined,
-          grade: formData.grade ? parseInt(formData.grade) : undefined,
+          grade,
+          evaluationDate: formData.evaluationDate || undefined,
+          observation: formData.observation || undefined,
         });
-        toast.success('Disciplina adicionada com sucesso');
+        toast.success("Nota lançada");
       }
 
-      setFormData({ disciplineName: '', professorName: '', grade: '' });
-      setEditingId(null);
-      setShowForm(false);
-
-      if (studentId) {
-        await loadDisciplines(studentId);
-      }
-    } catch (err) {
-      toast.error('Erro ao salvar disciplina');
+      resetForm();
+      await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar nota");
     }
   };
 
-  const handleEdit = (discipline: Discipline) => {
+  const handleEdit = (entry: StudentGradeEntry) => {
     setFormData({
-      disciplineName: discipline.disciplineName,
-      professorName: discipline.professorName || '',
-      grade: discipline.grade?.toString() || '',
+      disciplineId: String(entry.disciplineId),
+      professorName: entry.professorName || "",
+      grade: entry.grade === undefined || entry.grade === null ? "" : String(entry.grade),
+      evaluationDate: entry.evaluationDate ? String(entry.evaluationDate).slice(0, 10) : "",
+      observation: entry.observation || "",
     });
-    setEditingId(discipline.id);
+    setEditingId(entry.id);
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja deletar esta disciplina?')) return;
+    if (!studentId || !confirm("Tem certeza que deseja deletar esta nota?")) return;
 
     try {
-      await deleteDisciplineMutation.mutateAsync({ id });
-      toast.success('Disciplina deletada com sucesso');
-
-      if (studentId) {
-        await loadDisciplines(studentId);
+      const session = getStudentSession();
+      if (!session) {
+        setLocation("/entrar");
+        return;
       }
-    } catch (err) {
-      toast.error('Erro ao deletar disciplina');
+
+      await deleteGradeMutation.mutateAsync({ id, studentId, sessionToken: session.sessionToken });
+      toast.success("Nota deletada");
+      await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao deletar nota");
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('gradeStudentId');
-    sessionStorage.removeItem('gradeStudentNumber');
-    setLocation('/grades-login');
+    clearStudentSession();
+    setLocation("/entrar");
   };
+
+  const RankingList = ({ title, rows }: { title: string; rows: RankingRow[] }) => (
+    <Card className="border-[#c4a84b]/30">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {rows.slice(0, 10).map((row) => (
+          <div
+            key={`${title}-${row.studentId}`}
+            className={`flex items-center gap-3 rounded-md border p-3 ${
+              row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "bg-white"
+            }`}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1a3a2a] text-sm font-bold text-white">
+              {row.position}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{row.nomeGuerra}</p>
+              <p className="text-xs text-muted-foreground">
+                {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-[#1a3a2a]">{row.average.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">{row.disciplineCount} notas</p>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
+      </CardContent>
+    </Card>
+  );
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c4a84b] mx-auto mb-4"></div>
-          <p>Carregando disciplinas...</p>
+      <div className="min-h-screen bg-[#f5f2e8]">
+        <Navbar />
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#1a3a2a]" />
+            <p>Carregando notas...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-[#f5f2e8]">
+      <Navbar />
+      <main className="p-4 md:p-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Gerenciador de Notas</h1>
-            <p className="text-muted-foreground">Aluno: {sessionStorage.getItem('gradeStudentNumber')}</p>
+            <h1 className="text-3xl font-bold text-[#1a3a2a]">Notas do Curso</h1>
+            <p className="text-sm text-muted-foreground">
+              {studentName || "Aluno"} - {studentNumber}
+            </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="gap-2"
-          >
-            <LogOut className="w-4 h-4" />
+          <Button variant="outline" onClick={handleLogout} className="gap-2 self-start sm:self-auto">
+            <LogOut className="h-4 w-4" />
             Sair
           </Button>
         </div>
 
-        <Card className="mb-8 bg-gradient-to-r from-[#c4a84b]/10 to-[#c4a84b]/5 border-[#c4a84b]/20">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-2">Média Geral</p>
-              <p className="text-4xl font-bold text-[#c4a84b]">{total.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <Card className="border-[#c4a84b]/30">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Média geral</p>
+              <p className="text-4xl font-bold text-[#1a3a2a]">{average.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[#c4a84b]/30">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Notas lançadas</p>
+              <p className="text-4xl font-bold text-[#1a3a2a]">{grades.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-[#c4a84b]/30">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Disciplinas disponíveis</p>
+              <p className="text-4xl font-bold text-[#1a3a2a]">{disciplines.length}</p>
+            </CardContent>
+          </Card>
+        </div>
 
-        {showForm && (
-          <Card className="mb-8">
+        {showForm ? (
+          <Card className="mb-8 border-[#c4a84b]/30">
             <CardHeader>
-              <CardTitle>{editingId ? 'Editar Disciplina' : 'Adicionar Nova Disciplina'}</CardTitle>
+              <CardTitle>{editingId ? "Editar nota" : "Lançar nota"}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddDiscipline} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Nome da Disciplina</label>
-                  <Input
-                    placeholder="Ex: Direito Penal"
-                    value={formData.disciplineName}
-                    onChange={(e) => setFormData({ ...formData, disciplineName: e.target.value })}
+              <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="discipline">Disciplina</Label>
+                  <select
+                    id="discipline"
+                    value={formData.disciplineId}
+                    onChange={(event) =>
+                      setFormData({ ...formData, disciplineId: event.target.value })
+                    }
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                     required
-                  />
+                  >
+                    <option value="">Selecione uma disciplina</option>
+                    {disciplines.map((discipline) => (
+                      <option key={discipline.id} value={discipline.id}>
+                        {discipline.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium">Professor</label>
+                <div className="space-y-2">
+                  <Label htmlFor="professor">Professor</Label>
                   <Input
-                    placeholder="Ex: Prof. João Silva"
+                    id="professor"
                     value={formData.professorName}
-                    onChange={(e) => setFormData({ ...formData, professorName: e.target.value })}
+                    onChange={(event) =>
+                      setFormData({ ...formData, professorName: event.target.value })
+                    }
                   />
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium">Nota (0-100)</label>
+                <div className="space-y-2">
+                  <Label htmlFor="grade">Nota (0-100)</Label>
                   <Input
+                    id="grade"
                     type="number"
                     min="0"
                     max="100"
-                    placeholder="Ex: 85"
                     value={formData.grade}
-                    onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                    onChange={(event) => setFormData({ ...formData, grade: event.target.value })}
                   />
                 </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-[#c4a84b] hover:bg-[#c4a84b]/90 text-[#1a3a2a] font-bold"
-                  >
-                    {editingId ? 'Atualizar' : 'Adicionar'}
+                <div className="space-y-2">
+                  <Label htmlFor="date">Data</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.evaluationDate}
+                    onChange={(event) =>
+                      setFormData({ ...formData, evaluationDate: event.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="observation">Observação</Label>
+                  <Textarea
+                    id="observation"
+                    value={formData.observation}
+                    onChange={(event) =>
+                      setFormData({ ...formData, observation: event.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex gap-2 md:col-span-2">
+                  <Button type="submit" className="bg-[#1a3a2a] hover:bg-[#214936]">
+                    {editingId ? "Atualizar" : "Salvar"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowForm(false);
-                      setEditingId(null);
-                      setFormData({ disciplineName: '', professorName: '', grade: '' });
-                    }}
-                  >
+                  <Button type="button" variant="outline" onClick={resetForm}>
                     Cancelar
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
-        )}
-
-        {!showForm && (
+        ) : (
           <Button
             onClick={() => setShowForm(true)}
-            className="mb-8 gap-2 bg-[#c4a84b] hover:bg-[#c4a84b]/90 text-[#1a3a2a] font-bold"
+            className="mb-8 gap-2 bg-[#1a3a2a] hover:bg-[#214936]"
+            disabled={disciplines.length === 0}
           >
-            <Plus className="w-4 h-4" />
-            Adicionar Disciplina
+            <Plus className="h-4 w-4" />
+            Lançar nota
           </Button>
         )}
 
+        {disciplines.length === 0 && (
+          <Card className="mb-6 border-amber-200 bg-amber-50">
+            <CardContent className="flex gap-3 pt-6 text-sm text-amber-800">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <p>Nenhuma disciplina foi criada pelo xerife ainda.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="mb-8 grid gap-4 lg:grid-cols-3">
+          <RankingList title="Ranking Geral" rows={generalRanking} />
+          <RankingList title="Ranking da Companhia" rows={companyRanking} />
+          <RankingList title="Ranking do Pelotão" rows={platoonRanking} />
+        </div>
+
         <div className="space-y-4">
-          {disciplines.length === 0 ? (
+          {grades.length === 0 ? (
             <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Nenhuma disciplina adicionada ainda</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Clique em "Adicionar Disciplina" para começar
-                  </p>
-                </div>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                Nenhuma nota lançada ainda.
               </CardContent>
             </Card>
           ) : (
-            disciplines.map((discipline) => (
-              <Card key={discipline.id} className="hover:shadow-lg transition-shadow">
+            grades.map((entry) => (
+              <Card key={entry.id} className="border-[#c4a84b]/30">
                 <CardContent className="pt-6">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">{discipline.disciplineName}</h3>
-                      {discipline.professorName && (
-                        <p className="text-sm text-muted-foreground">Prof. {discipline.professorName}</p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-[#1a3a2a]">{entry.disciplineName}</h3>
+                      {entry.professorName && (
+                        <p className="text-sm text-muted-foreground">Professor: {entry.professorName}</p>
                       )}
-                      {discipline.grade !== undefined && (
-                        <p className="text-sm mt-2">
-                          <span className="font-semibold">Nota:</span>{' '}
-                          <span className={discipline.grade >= 70 ? 'text-green-600' : 'text-red-600'}>
-                            {discipline.grade}
-                          </span>
+                      <p className="mt-2 text-sm">
+                        Nota:{" "}
+                        <span className={Number(entry.grade || 0) >= 70 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
+                          {entry.grade ?? "-"}
+                        </span>
+                      </p>
+                      {entry.evaluationDate && (
+                        <p className="text-sm text-muted-foreground">
+                          Data: {String(entry.evaluationDate).slice(0, 10)}
                         </p>
                       )}
+                      {entry.observation && <p className="mt-2 text-sm">{entry.observation}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(discipline)}
-                        className="gap-1"
-                      >
-                        <Edit2 className="w-4 h-4" />
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(entry)} className="gap-1">
+                        <Edit2 className="h-4 w-4" />
                         Editar
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(discipline.id)}
-                        className="gap-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(entry.id)} className="gap-1">
+                        <Trash2 className="h-4 w-4" />
                         Deletar
                       </Button>
                     </div>
@@ -298,6 +437,7 @@ export default function Grades() {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }

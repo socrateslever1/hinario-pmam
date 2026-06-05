@@ -1,150 +1,223 @@
-import { useState } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, BookOpen } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
-import { toast } from 'sonner';
+import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { AlertCircle, BookOpen, LogIn, UserPlus } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { trpc } from "@/lib/trpc";
+import { getCompanhiaLabel, getPelotonLabel, validateNumerica } from "@shared/studentValidation";
+import Navbar from "@/components/Navbar";
+import { saveStudentSession } from "@/lib/studentSession";
+
+function cleanNumerica(value: string) {
+  return value.replace(/\D/g, "").slice(0, 4);
+}
 
 export default function GradesLogin() {
   const [, setLocation] = useLocation();
-  const [studentNumber, setStudentNumber] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState("login");
+  const [error, setError] = useState("");
+  const [loginData, setLoginData] = useState({ numerica: "", senha: "" });
+  const [registerData, setRegisterData] = useState({
+    nomeGuerra: "",
+    numerica: "",
+    senha: "",
+    confirmarSenha: "",
+  });
 
-  const gradesLoginMutation = trpc.grades.login.useMutation();
+  const loginMutation = trpc.student.login.useMutation();
+  const registerMutation = trpc.student.register.useMutation();
 
-  const formatCPF = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 3) return cleaned;
-    if (cleaned.length <= 6) return `${cleaned.slice(0, 3)}.${cleaned.slice(3)}`;
-    if (cleaned.length <= 9) return `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6)}`;
-    return `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6, 9)}-${cleaned.slice(9, 11)}`;
-  };
+  const numericaInfo = useMemo(
+    () => validateNumerica(registerData.numerica),
+    [registerData.numerica]
+  );
 
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCpf(formatCPF(e.target.value));
-  };
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
 
-  const handleStudentNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-    setStudentNumber(value);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (studentNumber.length !== 4) {
-      setError('Número deve ter 4 dígitos');
-      return;
-    }
-
-    const num = parseInt(studentNumber);
-    if (num < 1111 || num > 5252) {
-      setError('Número deve estar entre 1111 e 5252');
-      return;
-    }
-
-    if (cpf.replace(/\D/g, '').length !== 11) {
-      setError('CPF deve ter 11 dígitos');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      const result = await gradesLoginMutation.mutateAsync({
-        studentNumber,
-        cpf,
-      });
-
-      sessionStorage.setItem('gradeStudentId', result.student.id.toString());
-      sessionStorage.setItem('gradeStudentNumber', result.student.studentNumber);
-
-      toast.success(
-        result.isNewStudent
-          ? 'Conta criada com sucesso!'
-          : 'Login realizado com sucesso!'
-      );
-
-      setLocation('/grades');
+      const student = await loginMutation.mutateAsync(loginData);
+      saveStudentSession(student);
+      toast.success("Login realizado com sucesso");
+      setLocation("/notas-do-curso");
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
-      toast.error('Erro ao fazer login');
-    } finally {
-      setIsLoading(false);
+      setError(err.message || "Erro ao entrar");
     }
   };
+
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+
+    try {
+      const student = await registerMutation.mutateAsync(registerData);
+      saveStudentSession(student);
+      toast.success("Conta criada com sucesso");
+      setLocation("/notas-do-curso");
+    } catch (err: any) {
+      setError(err.message || "Erro ao criar conta");
+    }
+  };
+
+  const isBusy = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a3a2a] to-[#0f2418] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-[#f5f2e8]">
+      <Navbar />
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <Card className="w-full max-w-md border-[#c4a84b]/30">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-[#c4a84b] rounded-full p-3">
               <BookOpen className="w-6 h-6 text-[#1a3a2a]" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Gerenciador de Notas</CardTitle>
-          <CardDescription>
-            Acesse suas notas e disciplinas com número e CPF
-          </CardDescription>
+          <CardTitle className="text-2xl">Acesso do Aluno</CardTitle>
+          <CardDescription>Use sua numérica para entrar nas áreas restritas</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Número de Aluno</label>
-              <Input
-                type="text"
-                placeholder="Ex: 1234"
-                value={studentNumber}
-                onChange={handleStudentNumberChange}
-                maxLength={4}
-                disabled={isLoading}
-                className="text-center text-lg tracking-widest"
-              />
-              <p className="text-xs text-muted-foreground">Entre 1111 e 5252</p>
+          {error && (
+            <div className="mb-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">CPF</label>
-              <Input
-                type="text"
-                placeholder="Ex: 123.456.789-10"
-                value={cpf}
-                onChange={handleCPFChange}
-                maxLength={14}
-                disabled={isLoading}
-                className="text-center"
-              />
-              <p className="text-xs text-muted-foreground">Formato: XXX.XXX.XXX-XX</p>
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                Entrar
+              </TabsTrigger>
+              <TabsTrigger value="register" className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Criar conta
+              </TabsTrigger>
+            </TabsList>
 
-            <Button
-              type="submit"
-              disabled={isLoading || studentNumber.length !== 4 || cpf.replace(/\D/g, '').length !== 11}
-              className="w-full bg-[#c4a84b] hover:bg-[#c4a84b]/90 text-[#1a3a2a] font-bold"
-            >
-              {isLoading ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </form>
+            <TabsContent value="login" className="pt-4">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-numerica">Numérica</Label>
+                  <Input
+                    id="login-numerica"
+                    inputMode="numeric"
+                    placeholder="1111"
+                    value={loginData.numerica}
+                    onChange={(event) =>
+                      setLoginData({ ...loginData, numerica: cleanNumerica(event.target.value) })
+                    }
+                    className="text-center text-lg tracking-widest"
+                    disabled={isBusy}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-senha">Senha</Label>
+                  <Input
+                    id="login-senha"
+                    type="password"
+                    value={loginData.senha}
+                    onChange={(event) => setLoginData({ ...loginData, senha: event.target.value })}
+                    disabled={isBusy}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full bg-[#1a3a2a] hover:bg-[#214936]" disabled={isBusy}>
+                  Entrar
+                </Button>
+              </form>
+            </TabsContent>
 
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-700">
-              <strong>Primeira vez?</strong> Ao entrar com seu número e CPF, sua conta será criada automaticamente.
-            </p>
-          </div>
+            <TabsContent value="register" className="pt-4">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome-guerra">Nome de guerra</Label>
+                  <Input
+                    id="nome-guerra"
+                    value={registerData.nomeGuerra}
+                    onChange={(event) =>
+                      setRegisterData({ ...registerData, nomeGuerra: event.target.value })
+                    }
+                    disabled={isBusy}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-numerica">Numérica</Label>
+                  <Input
+                    id="register-numerica"
+                    inputMode="numeric"
+                    placeholder="1111"
+                    value={registerData.numerica}
+                    onChange={(event) =>
+                      setRegisterData({
+                        ...registerData,
+                        numerica: cleanNumerica(event.target.value),
+                      })
+                    }
+                    className="text-center text-lg tracking-widest"
+                    disabled={isBusy}
+                    required
+                  />
+                  {registerData.numerica.length === 4 && (
+                    <p className={numericaInfo.isValid ? "text-xs text-muted-foreground" : "text-xs text-red-600"}>
+                      {numericaInfo.isValid
+                        ? `${getCompanhiaLabel(numericaInfo.companhia)} - ${getPelotonLabel(numericaInfo.peloton)}`
+                        : numericaInfo.error}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Companhia</Label>
+                    <Input value={numericaInfo.isValid ? `${numericaInfo.companhia}ª` : ""} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pelotão</Label>
+                    <Input value={numericaInfo.isValid ? `${numericaInfo.peloton}º` : ""} disabled />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-senha">Senha</Label>
+                  <Input
+                    id="register-senha"
+                    type="password"
+                    value={registerData.senha}
+                    onChange={(event) =>
+                      setRegisterData({ ...registerData, senha: event.target.value })
+                    }
+                    disabled={isBusy}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmar-senha">Confirmar senha</Label>
+                  <Input
+                    id="confirmar-senha"
+                    type="password"
+                    value={registerData.confirmarSenha}
+                    onChange={(event) =>
+                      setRegisterData({ ...registerData, confirmarSenha: event.target.value })
+                    }
+                    disabled={isBusy}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full bg-[#1a3a2a] hover:bg-[#214936]" disabled={isBusy}>
+                  Criar conta
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 }

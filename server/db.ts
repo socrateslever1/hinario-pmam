@@ -693,6 +693,24 @@ export async function createUserWithPassword(user: any) {
   ]);
 }
 
+export async function updateUserRole(id: number, role: "user" | "admin") {
+  await query(
+    "UPDATE pmam_users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role <> 'master'",
+    [role, id]
+  );
+}
+
+export async function resetUserPassword(id: number, hashedPassword: string) {
+  await query(
+    "UPDATE pmam_users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role <> 'master'",
+    [hashedPassword, id]
+  );
+}
+
+export async function deleteUser(id: number) {
+  await query("DELETE FROM pmam_users WHERE id = ? AND role <> 'master'", [id]);
+}
+
 // ===== SETTINGS =====
 export async function getSetting(key: string) {
   const rows = await query('SELECT setting_value FROM pmam_site_settings WHERE setting_key = ? LIMIT 1', [key]);
@@ -1344,11 +1362,7 @@ export async function toggleBlogLike(postId: number, visitorId: string): Promise
       ['blog', postId, visitorId]
     );
   } else {
-    await query(
-      'INSERT INTO pmam_likes (target_type, target_id, visitor_id) VALUES (?, ?, ?)',
-      ['blog', postId, visitorId]
-    );
-  }
-  const count = await getBlogLikesCount(postId);
-  return { liked: existing.length === 0, count };
+export async function deleteOfficialDocument(id: number) {
+  await ensureDocumentsSchema();
+  await query('DELETE FROM pmam_official_documents WHERE id = ?', [id]);
 }

@@ -269,6 +269,7 @@ export const pmamStudents = mysqlTable("pmam_students", {
   numerica: varchar("numerica", { length: 4 }).notNull().unique(),
   nomeGuerra: varchar("nome_guerra", { length: 255 }).notNull(),
   senha: varchar("senha", { length: 255 }).notNull(),
+  sessionToken: varchar("session_token", { length: 128 }),
   companhia: int("companhia").notNull(), // 1-5
   peloton: int("peloton").notNull(), // 1-2
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -306,20 +307,6 @@ export const pmamStudentGrades = mysqlTable("pmam_student_grades", {
 export type PmamStudentGrade = typeof pmamStudentGrades.$inferSelect;
 export type InsertPmamStudentGrade = typeof pmamStudentGrades.$inferInsert;
 
-export const pmamAdmins = mysqlTable("pmam_admins", {
-  id: int("id").autoincrement().primaryKey(),
-  username: varchar("username", { length: 255 }).notNull().unique(),
-  senha: varchar("senha", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).unique(),
-  role: mysqlEnum("role", ["xerife", "super_admin"]).default("xerife"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
-
-export type PmamAdmin = typeof pmamAdmins.$inferSelect;
-export type InsertPmamAdmin = typeof pmamAdmins.$inferInsert;
-
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -338,7 +325,6 @@ export const runtimeTables = {
   pmamStudents,
   pmamDisciplines,
   pmamStudentGrades,
-  pmamAdmins,
 };
 
 /**
