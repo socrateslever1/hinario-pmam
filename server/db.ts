@@ -1362,7 +1362,11 @@ export async function toggleBlogLike(postId: number, visitorId: string): Promise
       ['blog', postId, visitorId]
     );
   } else {
-export async function deleteOfficialDocument(id: number) {
-  await ensureDocumentsSchema();
-  await query('DELETE FROM pmam_official_documents WHERE id = ?', [id]);
+    await query(
+      'INSERT INTO pmam_likes (target_type, target_id, visitor_id) VALUES (?, ?, ?)',
+      ['blog', postId, visitorId]
+    );
+  }
+  const count = await getBlogLikesCount(postId);
+  return { liked: existing.length === 0, count };
 }
