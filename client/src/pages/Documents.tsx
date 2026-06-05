@@ -26,8 +26,8 @@ import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
-const PMAM_HEADER_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
-const CFAP_HEADER_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/cfap-brasao_placeholder.png"; // Usando BRASAO_URL como fallback
+const PMAM_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
+const CFAP_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
 
 type DocType = "parte" | "requerimento" | "defesa" | "guia";
 
