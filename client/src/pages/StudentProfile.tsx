@@ -146,7 +146,7 @@ export default function StudentProfilePage() {
       // Salvar localmente no LocalStorage todos os dados (incluindo campos extras)
       saveStudentProfile(profile);
 
-      // Atualizar a sessão do Aluno na sessionStorage se nomeGuerra mudou
+      // Atualizar a sessão do Aluno no localStorage se nomeGuerra mudou
       if (updatedStudent.nomeGuerra !== session.nomeGuerra) {
         saveStudentSession({
           ...session,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, Edit2, LogOut, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Edit2, LogOut, Plus, Trash2, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,28 +209,61 @@ export default function Grades() {
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {rows.slice(0, 10).map((row) => (
-          <div
-            key={`${title}-${row.studentId}`}
-            className={`flex items-center gap-3 rounded-md border p-3 ${
-              row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "bg-white"
-            }`}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1a3a2a] text-sm font-bold text-white">
-              {row.position}
+        {rows.slice(0, 10).map((row) => {
+          // Renderização do badge de posição (ouro, prata, bronze ou comum)
+          const renderPositionBadge = (pos: number) => {
+            if (pos === 1) {
+              return (
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ffd700] via-[#c5a01a] to-[#ffd700] font-bold text-[#1a3a2a] shadow-[0_0_8px_rgba(255,215,0,0.6)] border-2 border-[#fff7c2]">
+                  <Trophy className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-[#ffd700] drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] fill-[#ffd700]" />
+                  <span className="text-xs font-black">1</span>
+                </div>
+              );
+            }
+            if (pos === 2) {
+              return (
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e0e0e0] via-[#9e9e9e] to-[#e0e0e0] font-bold text-[#1a1a1a] shadow-[0_0_6px_rgba(158,158,158,0.4)] border-2 border-[#ffffff]">
+                  <Medal className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-[#d1d1d1] drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] fill-[#d1d1d1]" />
+                  <span className="text-xs font-black">2</span>
+                </div>
+              );
+            }
+            if (pos === 3) {
+              return (
+                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#cd7f32] via-[#8c531d] to-[#cd7f32] font-bold text-white shadow-[0_0_6px_rgba(140,83,29,0.4)] border-2 border-[#ffbc80]">
+                  <Medal className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-[#cd7f32] drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] fill-[#cd7f32]" />
+                  <span className="text-xs font-black">3</span>
+                </div>
+              );
+            }
+            return (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a] text-sm font-bold text-white">
+                {pos}
+              </div>
+            );
+          };
+
+          return (
+            <div
+              key={`${title}-${row.studentId}`}
+              className={`flex items-center gap-3 rounded-md border p-3 ${
+                row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "bg-white"
+              }`}
+            >
+              {renderPositionBadge(row.position)}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{row.nomeGuerra}</p>
+                <p className="text-xs text-muted-foreground">
+                  {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#1a3a2a]">{row.average.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{row.disciplineCount} notas</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{row.nomeGuerra}</p>
-              <p className="text-xs text-muted-foreground">
-                {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-[#1a3a2a]">{row.average.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">{row.disciplineCount} notas</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {rows.length === 0 && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
       </CardContent>
     </Card>
