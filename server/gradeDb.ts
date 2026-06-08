@@ -172,6 +172,11 @@ export async function createStudentGradeEntry(
   evaluationDate?: string,
   observation?: string
 ): Promise<StudentGradeEntry> {
+  // Validar nota (0-10)
+  if (grade !== undefined && (grade < 0 || grade > 10)) {
+    throw new Error("Nota deve estar entre 0 e 10");
+  }
+  
   // Verificar se já existe nota para este aluno nesta disciplina
   const existingRows = await query(
     `SELECT id FROM pmam_student_grades
@@ -231,6 +236,11 @@ export async function updateStudentGradeEntry(
   evaluationDate?: string | null,
   observation?: string | null
 ): Promise<void> {
+  // Validar nota (0-10)
+  if (grade !== undefined && grade !== null && (grade < 0 || grade > 10)) {
+    throw new Error("Nota deve estar entre 0 e 10");
+  }
+  
   const updates: string[] = [];
   const params: any[] = [];
 
