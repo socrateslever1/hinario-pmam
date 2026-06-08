@@ -458,7 +458,7 @@ export default function Grades() {
                       )}
                       <p className="mt-2 text-sm">
                         Nota:{" "}
-                        <span className={Number(entry.grade || 0) >= 70 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
+                        <span className={Number(entry.grade || 0) >= 7 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
                           {entry.grade ?? "-"}
                         </span>
                       </p>
