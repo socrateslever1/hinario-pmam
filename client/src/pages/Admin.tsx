@@ -773,10 +773,6 @@ function GradeAdminTab() {
                       {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-[#1a3a2a]">{row.average.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">{row.disciplineCount} notas</p>
-                  </div>
                 </div>
               ))}
               {!ranking?.length && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
