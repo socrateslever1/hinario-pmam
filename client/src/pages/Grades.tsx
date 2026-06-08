@@ -126,6 +126,13 @@ export default function Grades() {
     }
 
     const grade = formData.grade === "" ? undefined : Number(formData.grade);
+    
+    // Validar nota (0-100)
+    if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 100)) {
+      toast.error("Nota deve estar entre 0 e 100");
+      return;
+    }
+    
     const session = getStudentSession();
     if (!session) {
       setLocation("/entrar");
@@ -362,11 +369,14 @@ export default function Grades() {
                   <Label htmlFor="grade">Nota (0-100)</Label>
                   <Input
                     id="grade"
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    placeholder="Ex: 9.5 ou 9,5"
                     value={formData.grade}
-                    onChange={(event) => setFormData({ ...formData, grade: event.target.value })}
+                    onChange={(event) => {
+                      // Aceita vírgula e ponto, converte para ponto
+                      const value = event.target.value.replace(',', '.');
+                      setFormData({ ...formData, grade: value });
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
