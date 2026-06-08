@@ -35,6 +35,7 @@ interface RankingRow {
   companhia: number;
   peloton: number;
   average: number;
+  totalScore: number;
   disciplineCount: number;
 }
 
@@ -279,7 +280,10 @@ export default function Grades() {
                   {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
                 </p>
               </div>
-
+              <div className="flex flex-col items-end gap-1">
+                <p className="text-sm font-bold text-[#1a3a2a]">{row.totalScore.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">pontos</p>
+              </div>
             </div>
           );
         })}

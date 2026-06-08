@@ -194,3 +194,28 @@
 - [x] Limite de tamanho: 100MB por arquivo
 - [x] Upload para S3 com nome único (hymns/{id}-{nanoid}.{ext})
 - [x] Suporte a múltiplos formatos de áudio (7 formatos diferentes)cessar hino (via usePWA.cacheUrls)
+
+## Sistema de Notas e Ranking CFAP 2026
+
+- [x] Criar tabelas pmam_students, pmam_disciplines, pmam_student_grades no banco
+- [x] Implementar autenticação de aluno via ID numérico (1111-5252) + senha
+- [x] Extrair Companhia e Pelotão automaticamente do ID do aluno
+- [x] Criar procedures tRPC para CRUD de notas
+- [x] Validação de notas: 0-10 com suporte a decimais (9.5)
+- [x] Conversão automática: 70 → 7.0, 100 → 10.0
+- [x] Suporte a notas com vírgula (9,5) e ponto (9.5)
+- [x] Ranking baseado na SOMA dos pontos (não média)
+- [x] Exibição de "Média Geral" (AVG) para o aluno
+- [x] Exibição de "Total de Pontos" (SUM) no ranking
+- [x] Ranking Geral (todos os alunos)
+- [x] Ranking por Companhia
+- [x] Ranking por Pelotão
+- [x] Paginação "Mostrar Mais" nos rankings (mostra 3 primeiros)
+- [x] Badges de posição (ouro, prata, bronze)
+- [x] Botão "Editar" para atualizar nota com scroll automático
+- [x] Botão "Deletar" para remover nota
+- [x] Validação em 2 camadas (frontend + backend)
+- [x] Testes vitest para ranking (9 testes passando)
+- [x] Imagens funcionam em print/PDF (CloudFront URLs)
+- [x] Painel "Xerife" para gerenciar notas de todos os alunos
+- [x] Interface de aluno separada da interface de admin

@@ -50,6 +50,7 @@ export interface GradeRankingRow {
   companhia: number;
   peloton: number;
   average: number;
+  totalScore: number;
   disciplineCount: number;
 }
 
@@ -322,6 +323,7 @@ export async function getGradeRanking(filters?: {
       s.companhia,
       s.peloton,
       COALESCE(SUM(g.grade), 0) as total_score,
+      COALESCE(AVG(g.grade), 0) as avg_grade,
       COUNT(g.id) as discipline_count
     FROM pmam_students s
     LEFT JOIN pmam_student_grades g ON g.student_id = s.id AND g.grade IS NOT NULL
@@ -338,7 +340,8 @@ export async function getGradeRanking(filters?: {
     numerica: row.numerica,
     companhia: row.companhia,
     peloton: row.peloton,
-    average: Math.round(Number(row.total_score || 0) * 100) / 100,
+    average: Math.round(Number(row.avg_grade || 0) * 100) / 100,
+    totalScore: Math.round(Number(row.total_score || 0) * 100) / 100,
     disciplineCount: Number(row.discipline_count || 0),
   }));
 }
