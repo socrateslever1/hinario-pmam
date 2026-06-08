@@ -732,7 +732,7 @@ export const appRouter = router({
         sessionToken: z.string().min(16),
         disciplineId: z.number(),
         professorName: z.string().trim().max(255).optional(),
-        grade: z.number().int().min(0).max(100).optional(),
+        grade: z.number().min(0).max(10).optional(),
         evaluationDate: z.string().trim().optional(),
         observation: z.string().trim().max(2000).optional(),
       })
@@ -755,7 +755,7 @@ export const appRouter = router({
         sessionToken: z.string().min(16),
         disciplineId: z.number().optional(),
         professorName: z.string().trim().max(255).optional(),
-        grade: z.number().int().min(0).max(100).nullable().optional(),
+        grade: z.number().min(0).max(10).nullable().optional(),
         evaluationDate: z.string().trim().nullable().optional(),
         observation: z.string().trim().max(2000).nullable().optional(),
       })
