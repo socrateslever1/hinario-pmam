@@ -190,6 +190,10 @@ export default function Grades() {
     });
     setEditingId(entry.id);
     setShowForm(true);
+    toast.info("Atualize a nota");
+    setTimeout(() => {
+      document.getElementById("form-section")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
   };
 
   const handleDelete = async (id: number) => {
@@ -215,13 +219,19 @@ export default function Grades() {
     setLocation("/entrar");
   };
 
-  const RankingList = ({ title, rows }: { title: string; rows: RankingRow[] }) => (
+  const [expandedRankings, setExpandedRankings] = useState<Set<string>>(new Set());
+
+  const RankingList = ({ title, rows }: { title: string; rows: RankingRow[] }) => {
+    const isExpanded = expandedRankings.has(title);
+    const displayRows = isExpanded ? rows : rows.slice(0, 3);
+
+    return (
     <Card className="border-[#c4a84b]/30">
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {rows.slice(0, 10).map((row) => {
+        {displayRows.map((row) => {
           // Renderização do badge de posição (ouro, prata, bronze ou comum)
           const renderPositionBadge = (pos: number) => {
             if (pos === 1) {
@@ -274,9 +284,28 @@ export default function Grades() {
           );
         })}
         {rows.length === 0 && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
+        {rows.length > 3 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const newSet = new Set(expandedRankings);
+              if (newSet.has(title)) {
+                newSet.delete(title);
+              } else {
+                newSet.add(title);
+              }
+              setExpandedRankings(newSet);
+            }}
+            className="w-full mt-2"
+          >
+            {isExpanded ? "Mostrar Menos" : `Mostrar Mais (${rows.length - 3})`}
+          </Button>
+        )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -332,7 +361,7 @@ export default function Grades() {
         </div>
 
         {showForm ? (
-          <Card className="mb-8 border-[#c4a84b]/30">
+          <Card id="form-section" className="mb-8 border-[#c4a84b]/30">
             <CardHeader>
               <CardTitle>{editingId ? "Editar nota" : "Lançar nota"}</CardTitle>
             </CardHeader>
