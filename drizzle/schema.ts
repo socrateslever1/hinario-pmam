@@ -301,7 +301,7 @@ export const pmamStudentGrades = mysqlTable("pmam_student_grades", {
   studentId: int("student_id").notNull(),
   disciplineId: int("discipline_id").notNull(),
   professorName: varchar("professor_name", { length: 255 }),
-  grade: int("grade"), // 0-100
+  grade: decimal("grade", { precision: 3, scale: 1 }), // 0-10 com 1 casa decimal
   evaluationDate: date("evaluation_date"),
   observation: text("observation"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
