@@ -127,9 +127,9 @@ export default function Grades() {
 
     const grade = formData.grade === "" ? undefined : Number(formData.grade);
     
-    // Validar nota (0-100)
-    if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 100)) {
-      toast.error("Nota deve estar entre 0 e 100");
+    // Validar nota (0-10)
+    if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 10)) {
+      toast.error("Nota deve estar entre 0 e 10");
       return;
     }
     
@@ -366,7 +366,7 @@ export default function Grades() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grade">Nota (0-100)</Label>
+                  <Label htmlFor="grade">Nota (0-10)</Label>
                   <Input
                     id="grade"
                     type="text"
