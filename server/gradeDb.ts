@@ -321,13 +321,13 @@ export async function getGradeRanking(filters?: {
       s.numerica,
       s.companhia,
       s.peloton,
-      COALESCE(AVG(g.grade), 0) as average,
+      COALESCE(SUM(g.grade), 0) as total_score,
       COUNT(g.id) as discipline_count
     FROM pmam_students s
     LEFT JOIN pmam_student_grades g ON g.student_id = s.id AND g.grade IS NOT NULL
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY s.id, s.nome_guerra, s.numerica, s.companhia, s.peloton
-    ORDER BY average DESC, discipline_count DESC, s.numerica ASC`,
+    ORDER BY total_score DESC, discipline_count DESC, s.numerica ASC`,
     params
   );
 
@@ -338,7 +338,7 @@ export async function getGradeRanking(filters?: {
     numerica: row.numerica,
     companhia: row.companhia,
     peloton: row.peloton,
-    average: Math.round(Number(row.average || 0) * 100) / 100,
+    average: Math.round(Number(row.total_score || 0) * 100) / 100,
     disciplineCount: Number(row.discipline_count || 0),
   }));
 }
