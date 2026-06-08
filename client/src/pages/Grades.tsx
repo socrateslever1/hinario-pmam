@@ -125,7 +125,12 @@ export default function Grades() {
       return;
     }
 
-    const grade = formData.grade === "" ? undefined : Number(formData.grade);
+    let grade = formData.grade === "" ? undefined : Number(formData.grade);
+    
+    // Converter notas acima de 10 (ex: 70 -> 7.0, 100 -> 10.0)
+    if (grade !== undefined && grade > 10) {
+      grade = grade / 10;
+    }
     
     // Validar nota (0-10)
     if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 10)) {

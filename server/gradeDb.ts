@@ -172,6 +172,11 @@ export async function createStudentGradeEntry(
   evaluationDate?: string,
   observation?: string
 ): Promise<StudentGradeEntry> {
+  // Converter notas acima de 10 (ex: 70 -> 7.0, 100 -> 10.0)
+  if (grade !== undefined && grade > 10) {
+    grade = grade / 10;
+  }
+  
   // Validar nota (0-10)
   if (grade !== undefined && (grade < 0 || grade > 10)) {
     throw new Error("Nota deve estar entre 0 e 10");
@@ -236,6 +241,11 @@ export async function updateStudentGradeEntry(
   evaluationDate?: string | null,
   observation?: string | null
 ): Promise<void> {
+  // Converter notas acima de 10 (ex: 70 -> 7.0, 100 -> 10.0)
+  if (grade !== undefined && grade !== null && grade > 10) {
+    grade = grade / 10;
+  }
+  
   // Validar nota (0-10)
   if (grade !== undefined && grade !== null && (grade < 0 || grade > 10)) {
     throw new Error("Nota deve estar entre 0 e 10");
