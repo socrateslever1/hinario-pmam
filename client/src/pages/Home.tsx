@@ -4,58 +4,241 @@ import BlogFeed from "@/components/BlogFeed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Music, Target, BookOpen, Shield, ChevronRight, Star, Eye, Award, HeartHandshake } from "lucide-react";
+import {
+  Award,
+  Bell,
+  BookOpen,
+  ChevronRight,
+  Eye,
+  FileText,
+  HeartHandshake,
+  Medal,
+  MoreHorizontal,
+  Music,
+  Play,
+  Search,
+  Shield,
+  Star,
+  Target,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
 
 const categories = [
-  { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da pátria e do estado" },
-  { key: "militar", label: "Canções Militares", icon: Shield, count: 2, desc: "Canções do Exército Brasileiro" },
-  { key: "pmam", label: "Canções da PMAM", icon: Music, count: 10, desc: "Canções da corporação" },
-  { key: "arma", label: "Canções de Armas", icon: Target, count: 5, desc: "Infantaria, Cavalaria e mais" },
-  { key: "oracao", label: "Orações", icon: BookOpen, count: 4, desc: "Orações dos guerreiros" },
+  { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da patria e do estado" },
+  { key: "militar", label: "Cancoes Militares", icon: Shield, count: 2, desc: "Cancoes do Exercito Brasileiro" },
+  { key: "pmam", label: "Cancoes da PMAM", icon: Music, count: 10, desc: "Cancoes da corporacao" },
+  { key: "arma", label: "Cancoes de Armas", icon: Target, count: 5, desc: "Infantaria, Cavalaria e mais" },
+  { key: "oracao", label: "Oracoes", icon: BookOpen, count: 4, desc: "Oracoes dos guerreiros" },
 ];
+
+const quickAccessItems = [
+  { icon: Music, value: "24", label: "Hinos", desc: "Catálogo oficial", href: "/hinos" },
+  { icon: Target, value: "01", label: "Charlie Mike", desc: "Ritmo de treino", href: "/charlie-mike" },
+  { icon: FileText, value: "12", label: "Notas", desc: "Curso e ranking", href: "/notas-do-curso" },
+  { icon: BookOpen, value: "08", label: "Estudos", desc: "Módulos CFAP", href: "/estudos" },
+  { icon: Medal, value: "05", label: "Medalhas", desc: "Mérito e honra", href: "/sobre" },
+  { icon: Star, value: "03", label: "Favoritos", desc: "Itens salvos", href: "/hinos" },
+];
+
+const categoryLabels: Record<string, string> = {
+  nacional: "Hino Nacional",
+  militar: "Cancao Militar",
+  pmam: "Cancao PMAM",
+  arma: "Cancao de Arma",
+  oracao: "Oracao",
+};
+
+function MobileHomeHeader() {
+  return (
+    <header className="md:hidden sticky top-0 z-40 bg-[#062417]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-[#f8f7f0] backdrop-blur-xl">
+      <div className="flex items-center justify-between">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <img src={BRASAO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow-lg" />
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#f8f7f0]">
+              HINÁRIO PMAM
+            </p>
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+              Polícia Militar do Amazonas
+            </p>
+          </div>
+        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/hinos" aria-label="Buscar hinos">
+            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+              <Search className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/cfap-2026" aria-label="Notificacoes">
+            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+              <Bell className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MobileHero() {
+  return (
+    <section className="md:hidden mobile-military-bg px-4 pb-5 pt-2 text-[#f8f7f0]">
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[#0b3323]/72 p-5 shadow-[0_22px_60px_rgba(0,0,0,.35)]">
+        <div className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-[#145c3a]/60 blur-3xl" />
+        <div className="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-[#d6b64c]/15 blur-3xl" />
+        <div className="relative grid min-h-[290px] grid-cols-[1.05fr_.95fr] items-center gap-1">
+          <div className="z-10 py-3">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+              <Shield className="h-3.5 w-3.5 text-[#f0bd3a]" />
+              Desde 1837
+            </div>
+            <h1 className="text-[2.35rem] font-black leading-[0.98] tracking-normal text-white">
+              Hinos e Canções <span className="gold-gradient-text block">Militares</span>
+            </h1>
+            <p className="mt-4 max-w-[13rem] text-[13px] font-medium leading-relaxed text-white/72">
+              Preservando a tradição, a honra e os valores da Polícia Militar do Amazonas através dos hinos e canções que formam a identidade da corporação desde 1837.
+            </p>
+            <Link href="/hinos">
+              <Button className="mt-5 h-11 rounded-full bg-[#f0bd3a] px-5 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c]">
+                Explorar Hinos
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="relative flex h-full items-center justify-end">
+            <div className="absolute right-0 top-8 h-36 w-36 rounded-full bg-[#f0bd3a]/12 blur-2xl" />
+            <img
+              src={BRASAO_URL}
+              alt="Brasão PMAM"
+              className="relative -mr-4 h-44 w-44 object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,.42)]"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 flex justify-center gap-2">
+        <span className="h-2 w-6 rounded-full bg-[#f0bd3a]" />
+        <span className="h-2 w-2 rounded-full bg-white/30" />
+        <span className="h-2 w-2 rounded-full bg-white/30" />
+      </div>
+    </section>
+  );
+}
+
+function QuickAccess() {
+  return (
+    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-black tracking-normal">Acesso Rápido</h2>
+        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a]">
+          Ver todos
+        </Link>
+      </div>
+      <div className="-mx-4 overflow-x-auto px-4 pb-2">
+        <div className="flex min-w-min gap-3">
+          {quickAccessItems.map((item) => (
+            <Link key={item.label} href={item.href}>
+              <div className="glass-card h-36 w-36 shrink-0 rounded-[1.5rem] p-4">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#145c3a] text-[#f0bd3a] shadow-inner">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <p className="text-3xl font-black leading-none text-white">{item.value}</p>
+                <p className="mt-2 text-sm font-black text-[#f0bd3a]">{item.label}</p>
+                <p className="mt-1 text-xs leading-snug text-white/62">{item.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
+  const latest = hymns?.slice(0, 3) ?? [];
+
+  return (
+    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-black tracking-normal">Últimos Hinos</h2>
+        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a]">
+          Ver todos
+        </Link>
+      </div>
+      <div className="space-y-3">
+        {(latest.length > 0 ? latest : [
+          { id: 1, number: 1, title: "Hino Nacional Brasileiro", category: "nacional" },
+          { id: 8, number: 8, title: "Canção da PMAM", category: "pmam" },
+          { id: 13, number: 13, title: "Canção do CFAP", category: "militar" },
+        ]).map((hymn: any) => (
+          <Link key={hymn.id} href={`/hino/${hymn.id}`}>
+            <div className="flex items-center gap-3 rounded-[1.4rem] border border-white/10 bg-[#0b3323]/78 p-3 shadow-lg shadow-black/18">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#145c3a] to-[#062417] text-sm font-black text-[#f0bd3a]">
+                {String(hymn.number ?? "").padStart(2, "0")}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-sm font-black text-white">{hymn.title}</h3>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/55">
+                  {categoryLabels[hymn.category] ?? hymn.category ?? "Hino"}
+                </p>
+              </div>
+              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f0bd3a] text-[#062417]" aria-label="Reproduzir">
+                <Play className="h-4 w-4 fill-current" />
+              </button>
+              <Star className="h-4 w-4 shrink-0 text-[#f0bd3a]" />
+              <MoreHorizontal className="h-5 w-5 shrink-0 text-white/55" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-background md:bg-background">
+      <div className="hidden md:block">
+        <Navbar />
+      </div>
+      <MobileHomeHeader />
+      <MobileHero />
+      <QuickAccess />
 
-      {/* Hero Section */}
-      <section className="military-gradient relative overflow-hidden">
+      {/* Desktop Hero Section */}
+      <section className="military-gradient relative hidden overflow-hidden md:block">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#c4a84b] rounded-full blur-[150px]" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#2d5a27] rounded-full blur-[150px]" />
         </div>
         <div className="container relative py-12 md:py-16">
-          {/* Brasão no topo */}
           <div className="flex justify-center mb-8">
             <div className="relative">
               <div className="absolute inset-0 bg-[#c4a84b]/20 rounded-full blur-2xl" />
               <img
                 src={BRASAO_URL}
-                alt="Brasão da PMAM"
+                alt="Brasao da PMAM"
                 className="relative w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
               />
             </div>
           </div>
-          
+
           <div className="flex flex-col md:flex-row items-center gap-10">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
                 <Shield className="h-4 w-4 text-[#c4a84b]" />
-                <span className="text-sm text-white/80">Polícia Militar do Amazonas</span>
+                <span className="text-sm text-white/80">Policia Militar do Amazonas</span>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight" style={{ fontFamily: 'Merriweather, serif' }}>
-                Hinos e Canções{" "}
+                Hinos e Cancoes{" "}
                 <span className="gold-gradient-text">Militares</span>
               </h1>
               <p className="mt-6 text-lg text-white/70 max-w-xl leading-relaxed">
-                Preservando a tradição, a honra e os valores da Polícia Militar do Amazonas
-                através dos hinos e canções que formam a identidade da corporação desde 1837.
+                Preservando a tradicao, a honra e os valores da Policia Militar do Amazonas
+                atraves dos hinos e cancoes que formam a identidade da corporacao desde 1837.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link href="/hinos">
@@ -78,11 +261,11 @@ export default function Home() {
         <div className="checkerboard-pattern w-full" />
       </section>
 
-      {/* Blog Feed Section */}
       <BlogFeed />
+      <LatestHymns hymns={hymns as any[] | undefined} />
 
       {/* Institutional Guidelines Section */}
-      <section className="py-16 bg-background">
+      <section className="hidden py-16 bg-background md:block">
         <div className="container">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-muted rounded-full px-4 py-1.5 mb-6">
@@ -94,7 +277,7 @@ export default function Home() {
             </h2>
             <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-6 rounded-full" />
             <p className="mt-6 text-muted-foreground text-lg max-w-2xl mx-auto">
-              Princípios morais, éticos e o código de conduta que guiam as ações da Polícia Militar do Amazonas na sociedade.
+              Principios morais, eticos e o codigo de conduta que guiam as acoes da Policia Militar do Amazonas na sociedade.
             </p>
           </div>
 
@@ -106,10 +289,10 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
                     <Target className="h-5 w-5 text-[#c4a84b]" />
                   </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Missão</h3>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Missao</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  "Preservar a Ordem Pública e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelência."
+                  "Preservar a Ordem Publica e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelencia."
                 </p>
               </CardContent>
             </Card>
@@ -121,10 +304,10 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
                     <Eye className="h-5 w-5 text-[#c4a84b]" />
                   </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Visão</h3>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Visao</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Ser referência nacional como Instituição de preservação da Ordem Pública e do Meio Ambiente.
+                  Ser referencia nacional como Instituicao de preservacao da Ordem Publica e do Meio Ambiente.
                 </p>
               </CardContent>
             </Card>
@@ -136,10 +319,10 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
                     <Award className="h-5 w-5 text-[#c4a84b]" />
                   </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Princípios</h3>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Principios</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Hierarquia, Disciplina e Eficácia.
+                  Hierarquia, Disciplina e Eficacia.
                 </p>
               </CardContent>
             </Card>
@@ -154,70 +337,15 @@ export default function Home() {
                   <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Valores</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justiça, Aprimoramento, Verdade, Espírito de preservação do meio ambiente.
+                  Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justica, Aprimoramento, Verdade, Espirito de preservacao do meio ambiente.
                 </p>
               </CardContent>
-            </Card>
-          </div>
-
-          <div className="relative mx-auto flex flex-col items-center max-w-4xl">
-          <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 w-full shadow-sm bg-white">
-            <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-            <CardContent className="p-8 md:p-12 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white mb-6 shadow-md">
-                <Shield className="h-8 w-8 text-[#c4a84b]" />
-              </div>
-              
-              <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-[0.1em] text-foreground mb-1" style={{ fontFamily: "Merriweather, serif" }}>
-                Compromisso de Honra
-              </h2>
-              <p className="text-[#c4a84b] text-xs uppercase tracking-widest font-bold mb-10">Polícia Militar do Amazonas</p>
-              
-              <div className="grid md:grid-cols-2 gap-8 md:gap-16 w-full max-w-4xl text-left mt-6">
-                {/* Coluna 1 */}
-                <div className="flex flex-col text-[15px] sm:text-[16px] font-medium italic text-muted-foreground space-y-6">
-                  <div>
-                    <p className="text-lg sm:text-xl font-bold not-italic text-[#1a3a2a] mb-1">"Ao ingressar!</p>
-                    <p>na Polícia Militar do Amazonas!</p>
-                  </div>
-                  
-                  <div>
-                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">Prometo!</p>
-                    <p>regular a minha conduta!</p>
-                    <p>pelos preceitos da moral!</p>
-                  </div>
-                  
-                  <div>
-                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">Cumprir!</p>
-                    <p>rigorosamente as ordens!</p>
-                    <p>das autoridades!</p>
-                    <p>a que estiver subordinado!</p>
-                  </div>
-                </div>
-
-                {/* Coluna 2 */}
-                <div className="flex flex-col text-[15px] sm:text-[16px] font-medium italic text-muted-foreground space-y-6">
-                  <div>
-                    <p className="font-bold not-italic text-[#1a3a2a] mb-1">E dedicar-me!</p>
-                    <p>inteiramente ao serviço policial militar!</p>
-                    <p>à manutenção da ordem pública!</p>
-                    <p>e à segurança da comunidade!</p>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <p className="font-bold not-italic text-[#1a3a2a] text-lg mb-1">Mesmo!</p>
-                    <p className="text-xl sm:text-2xl font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-16 bg-muted/30">
+      <section className="hidden py-16 bg-muted/30 md:block">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -225,7 +353,7 @@ export default function Home() {
             </h2>
             <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-4 rounded-full" />
             <p className="mt-4 text-muted-foreground">
-              {hymns?.length ?? 26} hinos e canções organizados em 5 categorias
+              {hymns?.length ?? 26} hinos e cancoes organizados em 5 categorias
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -239,7 +367,7 @@ export default function Home() {
                     <h3 className="font-semibold text-foreground text-sm">{cat.label}</h3>
                     <p className="text-xs text-muted-foreground mt-1">{cat.desc}</p>
                     <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#c4a84b]">
-                      {cat.count} composições
+                      {cat.count} composicoes
                     </div>
                   </CardContent>
                 </Card>
@@ -249,8 +377,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Hymns */}
-      <section className="py-16 bg-background">
+      <section className="hidden py-16 bg-background md:block">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -261,8 +388,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { num: 1, title: "Hino Nacional Brasileiro", cat: "Hino Nacional" },
-              { num: 8, title: "Canção da PMAM", cat: "Canção da Corporação" },
-              { num: 13, title: "Canção do CFAP", cat: "Formação de Praças" },
+              { num: 8, title: "Cancao da PMAM", cat: "Cancao da Corporacao" },
+              { num: 13, title: "Cancao do CFAP", cat: "Formacao de Pracas" },
             ].map((item) => {
               const hymn = hymns?.find((h: any) => h.number === item.num);
               return (
@@ -302,16 +429,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CFAP Banner */}
-      <section className="military-gradient py-16">
+      <section className="military-gradient hidden py-16 md:block">
         <div className="container text-center">
           <Target className="h-12 w-12 text-[#c4a84b] mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
             CFAP 2026
           </h2>
           <p className="mt-4 text-white/70 max-w-2xl mx-auto">
-            Página exclusiva para alunos do Curso de Formação e Aperfeiçoamento de Praças.
-            Acompanhe missões, comunicados e orientações para o ano letivo de 2026.
+            Pagina exclusiva para alunos do Curso de Formacao e Aperfeicoamento de Pracas.
+            Acompanhe missoes, comunicados e orientacoes para o ano letivo de 2026.
           </p>
           <Link href="/cfap-2026">
             <Button size="lg" className="mt-8 bg-[#c4a84b] hover:bg-[#b39740] text-[#1a1a1a] font-semibold gap-2">
@@ -322,7 +448,9 @@ export default function Home() {
         </div>
       </section>
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }

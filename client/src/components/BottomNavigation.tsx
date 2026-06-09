@@ -1,14 +1,11 @@
-import { Music, Radio, FileText, User, Home, BookOpen, Settings, LogOut } from 'lucide-react';
-import { useLocation } from 'wouter';
-import { getStudentSession, clearStudentSession } from '@/lib/studentSession';
-import { useState, useEffect } from 'react';
-
-// Evento customizado para notificar mudanças de sessão
-const SESSION_CHANGE_EVENT = 'studentSessionChanged';
+import { BookOpen, FileText, Home, ListMusic, LogOut, MoreHorizontal, Music, User } from "lucide-react";
+import { useLocation } from "wouter";
+import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
+import { useEffect, useState } from "react";
 
 export const notifySessionChange = () => {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(SESSION_CHANGE_EVENT));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(STUDENT_SESSION_CHANGED));
   }
 };
 
@@ -16,80 +13,83 @@ export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [isStudent, setIsStudent] = useState(false);
 
-  // Verificar sessão ao montar e quando a localização muda (para reagir a login/logout)
   useEffect(() => {
     const session = getStudentSession();
     setIsStudent(!!session);
   }, [location]);
 
-  // Ouvir eventos de mudança de sessão
   useEffect(() => {
     const handleSessionChange = () => {
       const session = getStudentSession();
       setIsStudent(!!session);
     };
 
-    window.addEventListener(SESSION_CHANGE_EVENT, handleSessionChange);
-    return () => window.removeEventListener(SESSION_CHANGE_EVENT, handleSessionChange);
+    window.addEventListener(STUDENT_SESSION_CHANGED, handleSessionChange);
+    window.addEventListener("storage", handleSessionChange);
+    return () => {
+      window.removeEventListener(STUDENT_SESSION_CHANGED, handleSessionChange);
+      window.removeEventListener("storage", handleSessionChange);
+    };
   }, []);
 
   const navItems = [
-    { icon: Home, label: 'Início', path: '/' },
-    { icon: Music, label: 'Hinos', path: '/hinos' },
-    { icon: Radio, label: 'Charlie Mike', path: '/charlie-mike' },
-    { icon: BookOpen, label: 'Estudos', path: '/estudos' },
-    ...(isStudent ? [
-      { icon: FileText, label: 'Notas', path: '/lançar-notas' },
-      { icon: User, label: 'Perfil', path: '/perfil-aluno' },
-    ] : []),
-    { icon: Settings, label: 'Sobre', path: '/sobre' },
+    { icon: Home, label: "Início", path: "/" },
+    { icon: Music, label: "Hinos", path: "/hinos" },
+    { icon: ListMusic, label: "Charlie", path: "/charlie-mike" },
+    { icon: BookOpen, label: "Estudos", path: "/estudos" },
+    { icon: FileText, label: "Notas", path: isStudent ? "/lançar-notas" : "/entrar" },
+    { icon: User, label: "Perfil", path: isStudent ? "/perfil-aluno" : "/entrar" },
+    { icon: MoreHorizontal, label: "Mais", path: "/sobre" },
   ];
 
   const isActive = (path: string) => {
-    return location === path || location.startsWith(path + '/');
+    if (path === "/") return location === "/";
+    if (path === "/entrar") {
+      return location.startsWith("/entrar") || location.startsWith("/notas-do-curso") || location.startsWith("/perfil-aluno");
+    }
+    return location === path || location.startsWith(`${path}/`);
   };
 
   const handleLogout = () => {
     clearStudentSession();
     notifySessionChange();
-    setLocation('/entrar');
+    setLocation("/entrar");
   };
 
-  // Não renderizar em desktop
-  if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-    return null;
-  }
-
   return (
-    <nav className="fixed bottom-3 left-3 right-3 md:hidden z-50">
-      <div className="flex justify-between items-center gap-1.5 px-2 py-2 rounded-full bg-[#1a3a2a]/85 backdrop-blur-md shadow-2xl border border-white/10 overflow-x-auto">
+    <nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
+      <div className="bottom-nav-glass mx-auto flex max-w-md items-center gap-1 overflow-x-auto rounded-[2rem] px-2 py-2.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
           return (
             <button
-              key={item.path}
+              key={`${item.label}-${item.path}`}
               onClick={() => setLocation(item.path)}
-              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`flex min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[10px] font-black transition-all ${
                 active
-                  ? 'text-white scale-105'
-                  : 'text-white/60 hover:text-white/80'
+                  ? "bg-[#145c3a] text-[#f0bd3a] shadow-lg shadow-black/25"
+                  : "text-white/65 hover:bg-white/8 hover:text-white"
               }`}
               title={item.label}
             >
-              <Icon className="h-4 w-4" />
-              <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+              <span className={`flex h-7 w-7 items-center justify-center rounded-full ${active ? "bg-[#062417]/70" : ""}`}>
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="leading-none">{item.label}</span>
             </button>
           );
         })}
         {isStudent && (
           <button
             onClick={handleLogout}
-            className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-all text-red-400 hover:text-red-300 whitespace-nowrap flex-shrink-0"
+            className="flex min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[10px] font-black text-red-300 transition-all hover:bg-red-500/10"
             title="Sair"
           >
-            <LogOut className="h-4 w-4" />
-            <span className="text-[10px] font-medium leading-tight">Sair</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full">
+              <LogOut className="h-4 w-4" />
+            </span>
+            <span className="leading-none">Sair</span>
           </button>
         )}
       </div>

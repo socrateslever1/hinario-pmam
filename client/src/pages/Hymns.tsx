@@ -6,19 +6,19 @@ import { Link, useSearch } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Music, Search, Star, Shield, Target, BookOpen, Play, ListMusic } from "lucide-react";
-import { useState, useMemo } from "react";
+import { BookOpen, ListMusic, Music, Play, Search, Shield, Star, Target } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCachedHymnCatalog } from "@/hooks/useCachedHymn";
 import { usePWA } from "@/hooks/usePWA";
 
 const categoryConfig: Record<string, { label: string; icon: any; color: string; description: string }> = {
-  all: { label: "Todos", icon: Music, color: "#1a3a2a", description: "Todos os hinos, canções e orações disponíveis no sistema." },
-  nacional: { label: "Hinos Nacionais", icon: Star, color: "#c4a84b", description: "Patrimônio musical nacional para estudo e execução." },
-  militar: { label: "Canções Militares", icon: Shield, color: "#2d5a27", description: "Canções de marcha, fibra e tradição militar." },
-  pmam: { label: "Canções PMAM", icon: Music, color: "#1a3a2a", description: "Repertório institucional da PMAM." },
-  arma: { label: "Canções de Armas", icon: Target, color: "#8b4513", description: "Canções históricas e de especialidades militares." },
-  oracao: { label: "Orações", icon: BookOpen, color: "#1a2744", description: "Textos de formação, fé e inspiração." },
+  all: { label: "Todos", icon: Music, color: "#145c3a", description: "Todos os hinos, canções e orações disponíveis no sistema." },
+  nacional: { label: "Hinos Nacionais", icon: Star, color: "#d6b64c", description: "Patrimônio musical nacional para estudo e execução." },
+  militar: { label: "Canções Militares", icon: Shield, color: "#145c3a", description: "Canções de marcha, fibra e tradição militar." },
+  pmam: { label: "Canções PMAM", icon: Music, color: "#0b3323", description: "Repertório institucional da PMAM." },
+  arma: { label: "Canções de Armas", icon: Target, color: "#8b6f2d", description: "Canções históricas e de especialidades militares." },
+  oracao: { label: "Orações", icon: BookOpen, color: "#17436a", description: "Textos de formação, fé e inspiração." },
 };
 
 export default function Hymns() {
@@ -58,47 +58,55 @@ export default function Hymns() {
   const activeCategoryConfig = categoryConfig[activeCategory] || categoryConfig.all;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
-      <section className="military-gradient py-12">
-        <div className="container text-center">
-          <Music className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-3xl font-bold text-white md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+      <section className="mobile-military-bg px-4 pb-5 pt-6 text-[#f8f7f0] md:px-0 md:py-12">
+        <div className="container text-left md:text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3323] text-[#f0bd3a] shadow-lg shadow-black/20 md:bg-transparent md:shadow-none">
+            <Music className="h-7 w-7 md:h-10 md:w-10" />
+          </div>
+          <h1 className="text-3xl font-black tracking-normal text-white md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Catálogo de Hinos
           </h1>
-          <p className="mt-3 text-white/60">
+          <p className="mt-2 text-sm font-medium text-white/64 md:mt-3">
             {hymns?.length ?? 0} hinos, canções e orações militares
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-background py-8">
-        <div className="container space-y-8">
-          <div className="relative mx-auto max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <section className="bg-[#062417] px-4 pb-8 pt-2 md:bg-background md:px-0 md:py-8">
+        <div className="container space-y-6 md:space-y-8">
+          <div className="relative mx-auto max-w-md rounded-[1.4rem] border border-white/10 bg-[#0b3323]/78 p-2 shadow-lg shadow-black/18 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+            <Search className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55 md:left-3 md:text-muted-foreground" />
             <Input
               placeholder="Buscar hino por nome, subtítulo ou autor..."
-              className="pl-10"
+              className="h-11 rounded-2xl border-white/10 bg-white/8 pl-10 text-white placeholder:text-white/45 focus-visible:ring-[#f0bd3a] md:border-input md:bg-background md:text-foreground md:placeholder:text-muted-foreground"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            {Object.entries(categoryConfig).map(([key, cfg]) => (
-              <Button
-                key={key}
-                variant={activeCategory === key ? "default" : "outline"}
-                size="sm"
-                className={`gap-2 ${activeCategory === key ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
-                onClick={() => setActiveCategory(key)}
-              >
-                <cfg.icon className="h-4 w-4" />
-                {cfg.label}
-              </Button>
-            ))}
+          <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+            <div className="flex min-w-min gap-2 md:flex-wrap md:justify-center">
+              {Object.entries(categoryConfig).map(([key, cfg]) => (
+                <Button
+                  key={key}
+                  variant="outline"
+                  size="sm"
+                  className={`shrink-0 rounded-full border-white/10 px-4 font-black md:gap-2 ${
+                    activeCategory === key
+                      ? "bg-[#f0bd3a] text-[#062417] hover:bg-[#d6b64c] md:bg-[#1a3a2a] md:text-white md:hover:bg-[#1a3a2a]/90"
+                      : "bg-[#0b3323]/78 text-white/72 hover:bg-[#145c3a] hover:text-white md:border-border md:bg-transparent md:text-foreground"
+                  }`}
+                  onClick={() => setActiveCategory(key)}
+                >
+                  <cfg.icon className="mr-2 h-4 w-4" />
+                  {cfg.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           <PlaylistPlayer
@@ -108,15 +116,15 @@ export default function Hymns() {
             accentColor={activeCategoryConfig.color}
           />
 
-          <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-white/90 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-[1.4rem] border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-lg shadow-black/18 sm:flex-row sm:items-center sm:justify-between md:rounded-2xl md:border-border/60 md:bg-white/90 md:text-foreground md:shadow-sm">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Seleção atual</p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">{activeCategoryConfig.label}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/50 md:text-muted-foreground">Seleção atual</p>
+              <h2 className="mt-1 text-2xl font-black tracking-normal text-white md:text-foreground">{activeCategoryConfig.label}</h2>
+              <p className="mt-1 text-sm text-white/60 md:text-muted-foreground">
                 {filteredHymns.length} item(ns) prontos para ouvir individualmente ou em sequência.
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-[#1a3a2a]/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a]">
+            <div className="flex w-fit items-center gap-2 rounded-full bg-[#145c3a] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#f0bd3a] md:bg-[#1a3a2a]/6 md:text-[#1a3a2a]">
               <ListMusic className="h-4 w-4" />
               Player em lista
             </div>
@@ -125,27 +133,27 @@ export default function Hymns() {
           {isLoading && isLoadingCache && filteredHymns.length === 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-36 rounded-2xl" />
+                <Skeleton key={index} className="h-36 rounded-2xl bg-white/10 md:bg-muted" />
               ))}
             </div>
           ) : filteredHymns.length === 0 ? (
             <div className="py-16 text-center">
-              <Music className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhum hino encontrado com os filtros selecionados.</p>
+              <Music className="mx-auto mb-4 h-12 w-12 text-white/45 md:text-muted-foreground" />
+              <p className="text-white/60 md:text-muted-foreground">Nenhum hino encontrado com os filtros selecionados.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
               {filteredHymns.map((hymn: any) => {
                 const cfg = categoryConfig[hymn.category] || categoryConfig.all;
                 return (
                   <Link key={hymn.id} href={`/hino/${hymn.id}`}>
-                    <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden border-border/50 bg-white hover:border-[#c4a84b]/50">
+                    <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden rounded-[1.4rem] border-white/10 bg-[#0b3323]/78 shadow-lg shadow-black/18 hover:border-[#c4a84b]/50 md:rounded-lg md:border-border/50 md:bg-white">
                       <CardContent className="p-0">
-                        <div className="h-1 w-full" style={{ backgroundColor: cfg.color }} />
-                        <div className="p-5">
-                          <div className="flex items-start gap-4">
+                        <div className="hidden h-1 w-full md:block" style={{ backgroundColor: cfg.color }} />
+                        <div className="p-4 md:p-5">
+                          <div className="flex items-center gap-4 md:items-start">
                             <div
-                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm"
+                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-sm md:rounded-xl"
                               style={{ backgroundColor: cfg.color }}
                             >
                               {String(hymn.number).padStart(2, "0")}
@@ -154,18 +162,16 @@ export default function Hymns() {
                               <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: cfg.color }}>
                                 {cfg.label}
                               </p>
-                              <h3 className="text-base font-bold leading-tight text-foreground">
+                              <h3 className="truncate text-base font-bold leading-tight text-white md:text-foreground">
                                 {hymn.title}
                               </h3>
                               {hymn.subtitle && (
-                                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{hymn.subtitle}</p>
+                                <p className="mt-1 line-clamp-1 text-sm text-white/58 md:line-clamp-2 md:text-muted-foreground">{hymn.subtitle}</p>
                               )}
-                              {hymn.author && <p className="mt-2 text-xs text-muted-foreground">{hymn.author}</p>}
+                              {hymn.author && <p className="mt-2 hidden text-xs text-muted-foreground md:block">{hymn.author}</p>}
                             </div>
-                            <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
-                                <Play className="h-4 w-4 fill-white text-white" />
-                              </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f0bd3a] text-[#062417] shadow-md md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+                              <Play className="h-4 w-4 fill-current" />
                             </div>
                           </div>
                         </div>
@@ -179,7 +185,9 @@ export default function Hymns() {
         </div>
       </section>
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }
