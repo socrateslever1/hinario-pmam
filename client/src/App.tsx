@@ -23,6 +23,7 @@ import Drill from "./pages/Drill";
 import DrillDetail from "./pages/DrillDetail";
 import BlogDetail from "./pages/BlogDetail";
 import GradesLogin from "./pages/GradesLogin";
+import Grades from "./pages/Grades";
 import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
       <Route path="/entrar" component={GradesLogin} />
+      <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/documentos" component={Documents} />
