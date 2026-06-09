@@ -233,3 +233,13 @@
 - [x] Testes vitest para BottomNavigation e GradesManagement
 - [x] Testar responsividade em mobile (iPhone, Android)
 - [x] Testar responsividade em desktop (sem quebras de layout)
+
+
+## Sincronização de Notas (TiDB ↔ MySQL Local)
+
+- [x] Criar script syncGrades.ts para sincronizar dados
+- [x] Adicionar scripts ao package.json:
+  - `pnpm sync:tidb-to-local` - Sincronizar TiDB → MySQL local
+  - `pnpm sync:local-to-tidb` - Sincronizar MySQL local → TiDB
+- [ ] Configurar sincronização automática em webhook (opcional)
+- [ ] Testar sincronização bidirecional
