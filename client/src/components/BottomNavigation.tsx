@@ -44,10 +44,6 @@ export default function BottomNavigation() {
   ];
 
   const isActive = (path: string) => {
-    // Para notas, considerar ambas as rotas como ativas
-    if (path === '/lançar-notas') {
-      return location === '/lançar-notas' || location === '/notas-do-curso' || location.startsWith('/lançar-notas/');
-    }
     return location === path || location.startsWith(path + '/');
   };
 
@@ -57,8 +53,8 @@ export default function BottomNavigation() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50 shadow-lg">
-      <div className="flex justify-around items-center h-20">
+    <nav className="fixed bottom-4 left-4 right-4 md:hidden z-50">
+      <div className="flex justify-around items-end gap-2 px-4 py-3 rounded-full bg-[#1a3a2a]/85 backdrop-blur-md shadow-2xl border border-white/10">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -66,15 +62,15 @@ export default function BottomNavigation() {
             <button
               key={item.path}
               onClick={() => setLocation(item.path)}
-              className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all ${
                 active
-                  ? 'text-[#1a3a2a] bg-[#c4a84b]/10 border-t-2 border-[#1a3a2a]'
-                  : 'text-gray-600 hover:text-[#1a3a2a] hover:bg-gray-50'
+                  ? 'text-white scale-110'
+                  : 'text-white/60 hover:text-white/80'
               }`}
               title={item.label}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className="h-6 w-6" />
+              <span className="text-xs font-medium leading-tight">{item.label}</span>
             </button>
           );
         })}

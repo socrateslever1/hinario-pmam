@@ -23,7 +23,6 @@ import Drill from "./pages/Drill";
 import DrillDetail from "./pages/DrillDetail";
 import BlogDetail from "./pages/BlogDetail";
 import GradesLogin from "./pages/GradesLogin";
-import Grades from "./pages/Grades";
 import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
@@ -47,11 +46,8 @@ function Router() {
       <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
       <Route path="/entrar" component={GradesLogin} />
-      <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
-      <Route path="/grades-login" component={GradesLogin} />
-      <Route path="/grades" component={Grades} />
       <Route path="/documentos" component={Documents} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
@@ -97,7 +93,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <div className="pb-20 md:pb-0">
+          <div>
             <Router />
           </div>
           <BottomNavigation />
