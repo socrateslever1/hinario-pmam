@@ -219,3 +219,17 @@
 - [x] Imagens funcionam em print/PDF (CloudFront URLs)
 - [x] Painel "Xerife" para gerenciar notas de todos os alunos
 - [x] Interface de aluno separada da interface de admin
+
+
+## Melhorias Mobile - Notas e Navegação
+
+- [x] Criar componente BottomNavigation para mobile (Hinos, Charlie Mike, Notas, Perfil)
+- [x] Criar página dedicada GradesManagement.tsx para lançamento/edição de notas
+- [x] Implementar lista de disciplinas com campos de nota (lado a lado desktop, empilhado mobile)
+- [x] Adicionar indicador visual (verde) para disciplinas com notas já lançadas
+- [x] Integrar BottomNavigation com roteamento para GradesManagement
+- [x] Botão "Lançar Nota" redireciona para GradesManagement
+- [x] Botão "Editar" redireciona para GradesManagement com scroll para disciplina
+- [x] Testes vitest para BottomNavigation e GradesManagement
+- [x] Testar responsividade em mobile (iPhone, Android)
+- [x] Testar responsividade em desktop (sem quebras de layout)

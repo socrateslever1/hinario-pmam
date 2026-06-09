@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { getCompanhiaLabel, getPelotonLabel, validateNumerica } from "@shared/studentValidation";
 import Navbar from "@/components/Navbar";
-import { saveStudentSession } from "@/lib/studentSession";
+import { saveStudentSession, clearStudentSession } from "@/lib/studentSession";
+import { notifySessionChange } from "@/components/BottomNavigation";
 
 function cleanNumerica(value: string) {
   return value.replace(/\D/g, "").slice(0, 4);
@@ -43,6 +44,7 @@ export default function GradesLogin() {
     try {
       const student = await loginMutation.mutateAsync(loginData);
       saveStudentSession(student);
+      notifySessionChange();
       toast.success("Login realizado com sucesso");
       setLocation("/notas-do-curso");
     } catch (err: any) {
@@ -57,6 +59,7 @@ export default function GradesLogin() {
     try {
       const student = await registerMutation.mutateAsync(registerData);
       saveStudentSession(student);
+      notifySessionChange();
       toast.success("Conta criada com sucesso");
       setLocation("/notas-do-curso");
     } catch (err: any) {

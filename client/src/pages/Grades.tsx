@@ -337,10 +337,16 @@ export default function Grades() {
               {studentName || "Aluno"} - {studentNumber}
             </p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2 self-start sm:self-auto">
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
+          <div className="flex gap-2 self-start sm:self-auto">
+            <Button onClick={() => setLocation('/lançar-notas')} className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620]">
+              <Plus className="h-4 w-4" />
+              Lançar Notas
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-3">

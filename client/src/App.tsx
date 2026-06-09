@@ -24,8 +24,10 @@ import DrillDetail from "./pages/DrillDetail";
 import BlogDetail from "./pages/BlogDetail";
 import GradesLogin from "./pages/GradesLogin";
 import Grades from "./pages/Grades";
+import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
+import BottomNavigation from "./components/BottomNavigation";
 
 function Router() {
   return (
@@ -46,6 +48,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/entrar" component={GradesLogin} />
       <Route path="/notas-do-curso" component={Grades} />
+      <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/grades-login" component={GradesLogin} />
       <Route path="/grades" component={Grades} />
@@ -94,7 +97,10 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <div className="pb-20 md:pb-0">
+            <Router />
+          </div>
+          <BottomNavigation />
           <OfflineIndicator />
         </TooltipProvider>
       </ThemeProvider>
