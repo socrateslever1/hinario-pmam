@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { AlertCircle, Edit2, LogOut, Plus, Trash2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // Mantido para outros usos
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -265,31 +265,27 @@ export default function GradesManagement() {
                         <h3 className="font-semibold text-[#1a3a2a]">{discipline.name}</h3>
                         {hasGrade && (
                           <p className="text-sm text-green-700">
-                            ✓ Nota: {existingGrade.grade?.toFixed(1)} {existingGrade.professorName && `- Prof. ${existingGrade.professorName}`}
+                            ✓ Nota: {typeof existingGrade.grade === 'number' ? existingGrade.grade.toFixed(1) : Number(existingGrade.grade || 0).toFixed(1)} {existingGrade.professorName && `- Prof. ${existingGrade.professorName}`}
                           </p>
                         )}
                       </div>
                       {hasGrade && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => handleEditGrade(existingGrade)}
-                          className="gap-1"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#1a3a2a] hover:bg-[#1a3a2a]/5 rounded-md transition-colors"
                         >
                           <Edit2 className="h-4 w-4" />
-                          Editar
-                        </Button>
+                          <span>Editar</span>
+                        </button>
                       )}
                       {!hasGrade && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => handleAddGrade(discipline.id)}
-                          className="gap-1"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#c4a84b] hover:bg-[#c4a84b]/10 rounded-md transition-colors"
                         >
                           <Plus className="h-4 w-4" />
-                          Adicionar
-                        </Button>
+                          <span>Adicionar</span>
+                        </button>
                       )}
                     </div>
                   )}
@@ -344,27 +340,33 @@ export default function GradesManagement() {
                         />
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button type="submit" className="flex-1 bg-[#1a3a2a] hover:bg-[#0f2620]">
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="submit"
+                          className="flex-1 px-4 py-2 bg-[#1a3a2a] text-white font-medium rounded-md hover:bg-[#0f2620] transition-colors"
+                        >
                           Salvar
-                        </Button>
+                        </button>
                         {existingGrade && (
-                          <Button
+                          <button
                             type="button"
-                            variant="destructive"
-                            size="sm"
                             onClick={() => {
                               if (confirm('Tem certeza que deseja deletar esta nota?')) {
                                 handleDeleteGrade(existingGrade.id);
                               }
                             }}
+                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </button>
                         )}
-                        <Button type="button" variant="outline" onClick={handleCancel}>
+                        <button
+                          type="button"
+                          onClick={handleCancel}
+                          className="px-4 py-2 text-[#1a3a2a] hover:bg-[#1a3a2a]/5 rounded-md transition-colors font-medium"
+                        >
                           Cancelar
-                        </Button>
+                        </button>
                       </div>
                     </form>
                   )}
