@@ -479,46 +479,40 @@ export default function Home() {
                     <h3 className="font-semibold text-foreground uppercase tracking-wider text-base">Compromisso de Honra</h3>
                   </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-6 md:gap-8 text-sm md:text-base font-medium italic text-muted-foreground">
-                  {/* Coluna 1 */}
-                  <div className="flex flex-col space-y-6">
-                    {/* Estrofe 1 */}
-                    <div className="space-y-1">
-                      <p className="font-bold not-italic text-[#1a3a2a] text-base md:text-lg">"Ao ingressar!</p>
-                      <p className="pl-4">na Polícia Militar do Amazonas!</p>
-                    </div>
-                    
-                    {/* Estrofe 2 */}
-                    <div className="space-y-1">
-                      <p className="font-bold not-italic text-[#1a3a2a] text-base md:text-lg">Prometo!</p>
-                      <p className="pl-4">regular a minha conduta!</p>
-                      <p className="pl-4">pelos preceitos da moral!</p>
-                    </div>
-                    
-                    {/* Estrofe 3 */}
-                    <div className="space-y-1">
-                      <p className="font-bold not-italic text-[#1a3a2a] text-base md:text-lg">Cumprir!</p>
-                      <p className="pl-4">rigorosamente as ordens!</p>
-                      <p className="pl-4">das autoridades!</p>
-                      <p className="pl-4">a que estiver subordinado!</p>
-                    </div>
+                <div className="pl-4 md:pl-8 flex flex-col text-sm sm:text-base font-medium italic text-muted-foreground space-y-8">
+                  {/* Estrofe 1 */}
+                  <div className="space-y-2">
+                    <p className="text-lg sm:text-xl font-bold not-italic text-[#1a3a2a]">"Ao ingressar!</p>
+                    <p className="pl-4">na Polícia Militar do Amazonas!</p>
                   </div>
                   
-                  {/* Coluna 2 */}
-                  <div className="flex flex-col space-y-6">
-                    {/* Estrofe 4 */}
-                    <div className="space-y-1">
-                      <p className="font-bold not-italic text-[#1a3a2a] text-base md:text-lg">E dedicar-me!</p>
-                      <p className="pl-4">inteiramente ao serviço policial militar!</p>
-                      <p className="pl-4">à manutenção da ordem pública!</p>
-                      <p className="pl-4">e à segurança da comunidade!</p>
-                    </div>
-                    
-                    {/* Estrofe 5 */}
-                    <div className="space-y-2 pt-2 md:pt-0">
-                      <p className="font-bold not-italic text-[#1a3a2a] text-base md:text-lg">Mesmo!</p>
-                      <p className="pl-4 text-base md:text-lg font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
-                    </div>
+                  {/* Estrofe 2 */}
+                  <div className="space-y-2">
+                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">Prometo!</p>
+                    <p className="pl-4">regular a minha conduta!</p>
+                    <p className="pl-4">pelos preceitos da moral!</p>
+                  </div>
+                  
+                  {/* Estrofe 3 */}
+                  <div className="space-y-2">
+                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">Cumprir!</p>
+                    <p className="pl-4">rigorosamente as ordens!</p>
+                    <p className="pl-4">das autoridades!</p>
+                    <p className="pl-4">a que estiver subordinado!</p>
+                  </div>
+                  
+                  {/* Estrofe 4 */}
+                  <div className="space-y-2">
+                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">E dedicar-me!</p>
+                    <p className="pl-4">inteiramente ao serviço policial militar!</p>
+                    <p className="pl-4">à manutenção da ordem pública!</p>
+                    <p className="pl-4">e à segurança da comunidade!</p>
+                  </div>
+                  
+                  {/* Estrofe 5 */}
+                  <div className="space-y-2">
+                    <p className="font-bold not-italic text-[#1a3a2a] text-lg sm:text-xl">Mesmo!</p>
+                    <p className="pl-4 text-lg sm:text-2xl font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
                   </div>
                 </div>
               </CardContent>
