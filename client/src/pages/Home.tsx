@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "/manus-storage/Imagem1_7fb3b528.jpg";
+const BRASAO_URL = "/manus-storage/IMG_7727_e58fe5d9.PNG";
 
 const categories = [
   { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da patria e do estado" },
