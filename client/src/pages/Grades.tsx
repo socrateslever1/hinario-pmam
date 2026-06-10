@@ -42,10 +42,64 @@ interface RankingRow {
 const emptyForm = {
   disciplineId: "",
   professorName: "",
-  grade: "",
+  grade1: "",
+  grade2: "",
   evaluationDate: "",
   observation: "",
 };
+
+const gradePartsPrefix = "[[GRADE_PARTS:";
+
+function normalizeGradeInput(value: string) {
+  const trimmed = value.trim().replace(",", ".");
+  if (!trimmed) return undefined;
+  let grade = Number(trimmed);
+  if (grade > 10) grade = grade / 10;
+  return grade;
+}
+
+function calculateEffectiveGrade(grade1?: number, grade2?: number) {
+  const grades = [grade1, grade2].filter((grade): grade is number => grade !== undefined);
+  if (grades.length === 0) return undefined;
+  const total = grades.reduce((sum, grade) => sum + grade, 0);
+  return Math.round((total / grades.length) * 100) / 100;
+}
+
+function validateGradeValue(grade: number | undefined) {
+  return grade === undefined || (!Number.isNaN(grade) && grade >= 0 && grade <= 10);
+}
+
+function parseGradeObservation(observation?: string | null, fallbackGrade?: number) {
+  if (!observation?.startsWith(gradePartsPrefix)) {
+    return {
+      grade1: fallbackGrade === undefined || fallbackGrade === null ? "" : String(fallbackGrade),
+      grade2: "",
+      observation: observation || "",
+    };
+  }
+
+  const endIndex = observation.indexOf("]]");
+  if (endIndex === -1) {
+    return { grade1: fallbackGrade === undefined || fallbackGrade === null ? "" : String(fallbackGrade), grade2: "", observation };
+  }
+
+  try {
+    const data = JSON.parse(observation.slice(gradePartsPrefix.length, endIndex));
+    return {
+      grade1: data.grade1 === undefined || data.grade1 === null ? "" : String(data.grade1),
+      grade2: data.grade2 === undefined || data.grade2 === null ? "" : String(data.grade2),
+      observation: observation.slice(endIndex + 2).replace(/^\n/, ""),
+    };
+  } catch {
+    return { grade1: fallbackGrade === undefined || fallbackGrade === null ? "" : String(fallbackGrade), grade2: "", observation };
+  }
+}
+
+function buildGradeObservation(grade1: number | undefined, grade2: number | undefined, observation: string) {
+  const meta = JSON.stringify({ grade1: grade1 ?? null, grade2: grade2 ?? null });
+  const cleanObservation = observation.trim();
+  return `${gradePartsPrefix}${meta}]]${cleanObservation ? `\n${cleanObservation}` : ""}`;
+}
 
 export default function Grades() {
   const [, setLocation] = useLocation();
@@ -126,18 +180,21 @@ export default function Grades() {
       return;
     }
 
-    let grade = formData.grade === "" ? undefined : Number(formData.grade);
-    
-    // Converter notas acima de 10 (ex: 70 -> 7.0, 100 -> 10.0)
-    if (grade !== undefined && grade > 10) {
-      grade = grade / 10;
-    }
-    
-    // Validar nota (0-10)
-    if (grade !== undefined && (isNaN(grade) || grade < 0 || grade > 10)) {
-      toast.error("Nota deve estar entre 0 e 10");
+    const grade1 = normalizeGradeInput(formData.grade1);
+    const grade2 = normalizeGradeInput(formData.grade2);
+
+    if (!validateGradeValue(grade1) || !validateGradeValue(grade2)) {
+      toast.error("Notas devem estar entre 0 e 10");
       return;
     }
+
+    if (grade1 === undefined && grade2 !== undefined) {
+      toast.error("Preencha a 1ª nota antes da 2ª");
+      return;
+    }
+
+    const grade = calculateEffectiveGrade(grade1, grade2);
+    const observation = buildGradeObservation(grade1, grade2, formData.observation);
     
     const session = getStudentSession();
     if (!session) {
@@ -156,7 +213,7 @@ export default function Grades() {
           professorName: formData.professorName || undefined,
           grade,
           evaluationDate: formData.evaluationDate || null,
-          observation: formData.observation || null,
+          observation,
         });
         toast.success("Nota atualizada");
       } else {
@@ -167,7 +224,7 @@ export default function Grades() {
           professorName: formData.professorName || undefined,
           grade,
           evaluationDate: formData.evaluationDate || undefined,
-          observation: formData.observation || undefined,
+          observation,
         });
         toast.success("Nota lançada");
       }
@@ -182,12 +239,14 @@ export default function Grades() {
   };
 
   const handleEdit = (entry: StudentGradeEntry) => {
+    const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
     setFormData({
       disciplineId: String(entry.disciplineId),
       professorName: entry.professorName || "",
-      grade: entry.grade === undefined || entry.grade === null ? "" : String(entry.grade),
+      grade1: parsedObservation.grade1,
+      grade2: parsedObservation.grade2,
       evaluationDate: entry.evaluationDate ? String(entry.evaluationDate).slice(0, 10) : "",
-      observation: entry.observation || "",
+      observation: parsedObservation.observation,
     });
     setEditingId(entry.id);
     setShowForm(true);
@@ -407,18 +466,35 @@ export default function Grades() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grade">Nota (0-10)</Label>
+                  <Label htmlFor="grade1">1ª nota (0-10)</Label>
                   <Input
-                    id="grade"
+                    id="grade1"
                     type="text"
+                    inputMode="decimal"
                     placeholder="Ex: 9.5 ou 9,5"
-                    value={formData.grade}
+                    value={formData.grade1}
                     onChange={(event) => {
-                      // Aceita vírgula e ponto, converte para ponto
                       const value = event.target.value.replace(',', '.');
-                      setFormData({ ...formData, grade: value });
+                      setFormData({ ...formData, grade1: value });
                     }}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grade2">2ª nota (opcional)</Label>
+                  <Input
+                    id="grade2"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Use se houver 2ª prova"
+                    value={formData.grade2}
+                    onChange={(event) => {
+                      const value = event.target.value.replace(',', '.');
+                      setFormData({ ...formData, grade2: value });
+                    }}
+                  />
+                  <p className="text-xs text-white/60 md:text-muted-foreground">
+                    Com duas notas, vale a média da disciplina. Com uma, vale a nota lançada.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date">Data</Label>
@@ -496,17 +572,28 @@ export default function Grades() {
                         <p className="text-sm text-white/65 md:text-muted-foreground">Professor: {entry.professorName}</p>
                       )}
                       <p className="mt-2 text-sm">
-                        Nota:{" "}
+                        Nota da disciplina:{" "}
                         <span className={Number(entry.grade || 0) >= 7 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
                           {entry.grade ?? "-"}
                         </span>
                       </p>
+                      {(() => {
+                        const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
+                        return parsedObservation.grade2 ? (
+                          <p className="text-sm text-white/65 md:text-muted-foreground">
+                            Provas: {parsedObservation.grade1 || "-"} e {parsedObservation.grade2}
+                          </p>
+                        ) : null;
+                      })()}
                       {entry.evaluationDate && (
                         <p className="text-sm text-muted-foreground">
                           Data: {String(entry.evaluationDate).slice(0, 10)}
                         </p>
                       )}
-                      {entry.observation && <p className="mt-2 text-sm">{entry.observation}</p>}
+                      {(() => {
+                        const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
+                        return parsedObservation.observation ? <p className="mt-2 text-sm">{parsedObservation.observation}</p> : null;
+                      })()}
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(entry)} className="gap-1">

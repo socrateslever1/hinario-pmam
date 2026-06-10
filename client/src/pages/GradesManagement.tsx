@@ -38,10 +38,72 @@ export default function GradesManagement() {
   const [editingDisciplineId, setEditingDisciplineId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     professorName: '',
-    grade: '',
+    grade1: '',
+    grade2: '',
     evaluationDate: '',
     observation: '',
   });
+
+  const gradePartsPrefix = '[[GRADE_PARTS:';
+
+  const normalizeGradeInput = (value: string) => {
+    const trimmed = value.trim().replace(',', '.');
+    if (!trimmed) return undefined;
+    let grade = Number(trimmed);
+    if (grade > 10) grade = grade / 10;
+    return grade;
+  };
+
+  const validateGradeValue = (grade: number | undefined) => {
+    return grade === undefined || (!Number.isNaN(grade) && grade >= 0 && grade <= 10);
+  };
+
+  const calculateEffectiveGrade = (grade1?: number, grade2?: number) => {
+    const grades = [grade1, grade2].filter((grade): grade is number => grade !== undefined);
+    if (grades.length === 0) return undefined;
+    const total = grades.reduce((sum, grade) => sum + grade, 0);
+    return Math.round((total / grades.length) * 100) / 100;
+  };
+
+  const parseGradeObservation = (observation?: string | null, fallbackGrade?: number) => {
+    if (!observation?.startsWith(gradePartsPrefix)) {
+      return {
+        grade1: fallbackGrade === undefined || fallbackGrade === null ? '' : String(fallbackGrade),
+        grade2: '',
+        observation: observation || '',
+      };
+    }
+
+    const endIndex = observation.indexOf(']]');
+    if (endIndex === -1) {
+      return {
+        grade1: fallbackGrade === undefined || fallbackGrade === null ? '' : String(fallbackGrade),
+        grade2: '',
+        observation,
+      };
+    }
+
+    try {
+      const data = JSON.parse(observation.slice(gradePartsPrefix.length, endIndex));
+      return {
+        grade1: data.grade1 === undefined || data.grade1 === null ? '' : String(data.grade1),
+        grade2: data.grade2 === undefined || data.grade2 === null ? '' : String(data.grade2),
+        observation: observation.slice(endIndex + 2).replace(/^\n/, ''),
+      };
+    } catch {
+      return {
+        grade1: fallbackGrade === undefined || fallbackGrade === null ? '' : String(fallbackGrade),
+        grade2: '',
+        observation,
+      };
+    }
+  };
+
+  const buildGradeObservation = (grade1: number | undefined, grade2: number | undefined, observation: string) => {
+    const meta = JSON.stringify({ grade1: grade1 ?? null, grade2: grade2 ?? null });
+    const cleanObservation = observation.trim();
+    return `${gradePartsPrefix}${meta}]]${cleanObservation ? `\n${cleanObservation}` : ''}`;
+  };
 
   const utils = trpc.useUtils();
   const createGradeMutation = trpc.grades.createStudentGrade.useMutation();
@@ -92,20 +154,23 @@ export default function GradesManagement() {
     setEditingId(null);
     setFormData({
       professorName: '',
-      grade: '',
+      grade1: '',
+      grade2: '',
       evaluationDate: '',
       observation: '',
     });
   };
 
   const handleEditGrade = (grade: StudentGradeEntry) => {
+    const parsedObservation = parseGradeObservation(grade.observation, grade.grade);
     setEditingId(grade.id);
     setEditingDisciplineId(grade.disciplineId);
     setFormData({
       professorName: grade.professorName || '',
-      grade: grade.grade?.toString() || '',
+      grade1: parsedObservation.grade1,
+      grade2: parsedObservation.grade2,
       evaluationDate: grade.evaluationDate || '',
-      observation: grade.observation || '',
+      observation: parsedObservation.observation,
     });
 
     // Scroll para a disciplina
@@ -126,19 +191,21 @@ export default function GradesManagement() {
     }
 
     try {
-      let gradeValue = formData.grade ? parseFloat(formData.grade) : undefined;
+      const grade1 = normalizeGradeInput(formData.grade1);
+      const grade2 = normalizeGradeInput(formData.grade2);
 
-      // Validar nota
-      if (gradeValue !== undefined) {
-        if (isNaN(gradeValue)) {
-          toast.error('Nota deve ser um número válido');
-          return;
-        }
-        if (gradeValue < 0 || gradeValue > 10) {
-          toast.error('Nota deve estar entre 0 e 10');
-          return;
-        }
+      if (!validateGradeValue(grade1) || !validateGradeValue(grade2)) {
+        toast.error('Notas devem estar entre 0 e 10');
+        return;
       }
+
+      if (grade1 === undefined && grade2 !== undefined) {
+        toast.error('Preencha a 1ª nota antes da 2ª');
+        return;
+      }
+
+      const gradeValue = calculateEffectiveGrade(grade1, grade2);
+      const observation = buildGradeObservation(grade1, grade2, formData.observation);
 
       if (editingId) {
         // Atualizar nota existente
@@ -148,7 +215,7 @@ export default function GradesManagement() {
           grade: gradeValue,
           professorName: formData.professorName || undefined,
           evaluationDate: formData.evaluationDate || undefined,
-          observation: formData.observation || undefined,
+          observation,
           sessionToken: session.sessionToken,
         });
         toast.success('Nota atualizada com sucesso');
@@ -160,7 +227,7 @@ export default function GradesManagement() {
           grade: gradeValue,
           professorName: formData.professorName || undefined,
           evaluationDate: formData.evaluationDate || undefined,
-          observation: formData.observation || undefined,
+          observation,
           sessionToken: session.sessionToken,
         });
         toast.success('Nota lançada com sucesso');
@@ -197,7 +264,8 @@ export default function GradesManagement() {
     setEditingDisciplineId(null);
     setFormData({
       professorName: '',
-      grade: '',
+      grade1: '',
+      grade2: '',
       evaluationDate: '',
       observation: '',
     });
@@ -268,6 +336,14 @@ export default function GradesManagement() {
                             ✓ Nota: {typeof existingGrade.grade === 'number' ? existingGrade.grade.toFixed(1) : Number(existingGrade.grade || 0).toFixed(1)} {existingGrade.professorName && `- Prof. ${existingGrade.professorName}`}
                           </p>
                         )}
+                        {hasGrade && (() => {
+                          const parsedObservation = parseGradeObservation(existingGrade.observation, existingGrade.grade);
+                          return parsedObservation.grade2 ? (
+                            <p className="text-xs text-green-700/80">
+                              Provas: {parsedObservation.grade1 || '-'} e {parsedObservation.grade2}
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
                       {hasGrade && (
                         <button
@@ -293,18 +369,27 @@ export default function GradesManagement() {
                   {/* Formulário de Edição */}
                   {isEditing && (
                     <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t pt-4">
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-3">
                         <div>
-                          <Label htmlFor={`grade-${discipline.id}`}>Nota (0-10)</Label>
+                          <Label htmlFor={`grade1-${discipline.id}`}>1ª nota (0-10)</Label>
                           <Input
-                            id={`grade-${discipline.id}`}
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="10"
-                            placeholder="Ex: 9.5"
-                            value={formData.grade}
-                            onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                            id={`grade1-${discipline.id}`}
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="Ex: 9.5 ou 9,5"
+                            value={formData.grade1}
+                            onChange={(e) => setFormData({ ...formData, grade1: e.target.value.replace(',', '.') })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`grade2-${discipline.id}`}>2ª nota (opcional)</Label>
+                          <Input
+                            id={`grade2-${discipline.id}`}
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="Se houver 2ª prova"
+                            value={formData.grade2}
+                            onChange={(e) => setFormData({ ...formData, grade2: e.target.value.replace(',', '.') })}
                           />
                         </div>
                         <div>
@@ -317,6 +402,9 @@ export default function GradesManagement() {
                           />
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Se lançar duas notas, a disciplina usa a média delas. Se lançar só uma, ela vale integralmente.
+                      </p>
 
                       <div>
                         <Label htmlFor={`date-${discipline.id}`}>Data da Avaliação</Label>
