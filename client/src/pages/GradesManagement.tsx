@@ -371,59 +371,67 @@ export default function GradesManagement() {
                     <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t pt-4">
                       <div className="grid gap-3 sm:grid-cols-3">
                         <div>
-                          <Label htmlFor={`grade1-${discipline.id}`}>1ª nota (0-10)</Label>
+                          <Label htmlFor={`grade1-${discipline.id}`} className="text-white md:text-foreground">1ª nota (0-10)</Label>
                           <Input
                             id={`grade1-${discipline.id}`}
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="Ex: 9.5 ou 9,5"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="10"
+                            placeholder="Ex: 9.5"
                             value={formData.grade1}
-                            onChange={(e) => setFormData({ ...formData, grade1: e.target.value.replace(',', '.') })}
+                            onChange={(e) => setFormData({ ...formData, grade1: e.target.value })}
+                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`grade2-${discipline.id}`}>2ª nota (opcional)</Label>
+                          <Label htmlFor={`grade2-${discipline.id}`} className="text-white md:text-foreground">2ª nota (opcional)</Label>
                           <Input
                             id={`grade2-${discipline.id}`}
-                            type="text"
-                            inputMode="decimal"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="10"
                             placeholder="Se houver 2ª prova"
                             value={formData.grade2}
-                            onChange={(e) => setFormData({ ...formData, grade2: e.target.value.replace(',', '.') })}
+                            onChange={(e) => setFormData({ ...formData, grade2: e.target.value })}
+                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`professor-${discipline.id}`}>Professor</Label>
+                          <Label htmlFor={`professor-${discipline.id}`} className="text-white md:text-foreground">Professor</Label>
                           <Input
                             id={`professor-${discipline.id}`}
                             placeholder="Nome do professor"
                             value={formData.professorName}
                             onChange={(e) => setFormData({ ...formData, professorName: e.target.value })}
+                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/70 md:text-muted-foreground">
                         Se lançar duas notas, a disciplina usa a média delas. Se lançar só uma, ela vale integralmente.
                       </p>
 
                       <div>
-                        <Label htmlFor={`date-${discipline.id}`}>Data da Avaliação</Label>
+                        <Label htmlFor={`date-${discipline.id}`} className="text-white md:text-foreground">Data da Avaliação</Label>
                         <Input
                           id={`date-${discipline.id}`}
                           type="date"
                           value={formData.evaluationDate}
                           onChange={(e) => setFormData({ ...formData, evaluationDate: e.target.value })}
+                          className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor={`observation-${discipline.id}`}>Observações</Label>
+                        <Label htmlFor={`observation-${discipline.id}`} className="text-white md:text-foreground">Observações</Label>
                         <Textarea
                           id={`observation-${discipline.id}`}
                           placeholder="Adicione observações sobre a nota"
                           value={formData.observation}
                           onChange={(e) => setFormData({ ...formData, observation: e.target.value })}
-                          className="resize-none"
+                          className="resize-none text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           rows={2}
                         />
                       </div>
