@@ -2,9 +2,13 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as studentDb from "./studentDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 
+function generateRandomNumerica() {
+  return Math.floor(Math.random() * 9000) + 1000;
+}
+
 describe("Student Authentication System", () => {
-  const testNumerica = "1234";
-  const testNomeGuerra = "Soldado Teste";
+  const testNumerica = generateRandomNumerica().toString();
+  const testNomeGuerra = "Soldado Teste " + Math.random().toString(36).substring(7);
   const testSenha = "senha123";
 
   beforeAll(async () => {

@@ -1,37 +1,59 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as gradeDb from './gradeDb';
 
+function generateRandomNumber() {
+  return Math.floor(Math.random() * 1000000).toString().padStart(4, '0');
+}
+
+function generateRandomCPF() {
+  const parts = [
+    Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+    Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+    Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+    Math.floor(Math.random() * 100).toString().padStart(2, '0'),
+  ];
+  return parts.join('.');
+}
+
 describe('Grade Management System', () => {
   let studentId: number;
   let disciplineId: number;
+  const testStudentNumber = generateRandomNumber();
+  const testCPF = generateRandomCPF();
 
   beforeAll(async () => {
-    // Criar um aluno de teste
-    const student = await gradeDb.createGradeStudent('1234', '123.456.789-10', 'João Silva');
+    // Criar um aluno de teste com número aleatório
+    const student = await gradeDb.createGradeStudent(testStudentNumber, testCPF, 'João Silva');
     studentId = student.id;
   });
 
   afterAll(async () => {
     // Limpar dados de teste
     if (disciplineId) {
-      await gradeDb.deleteDiscipline(disciplineId);
+      try {
+        await gradeDb.deleteDiscipline(disciplineId);
+      } catch (e) {
+        // Ignorar erro se já foi deletado
+      }
     }
   });
 
   describe('Student Management', () => {
     it('should create a new grade student', async () => {
-      const student = await gradeDb.createGradeStudent('2345', '234.567.890-11', 'Maria Santos');
+      const newNumber = generateRandomNumber();
+      const newCPF = generateRandomCPF();
+      const student = await gradeDb.createGradeStudent(newNumber, newCPF, 'Maria Santos');
       expect(student).toBeDefined();
-      expect(student.studentNumber).toBe('2345');
-      expect(student.cpf).toBe('234.567.890-11');
+      expect(student.studentNumber).toBe(newNumber);
+      expect(student.cpf).toBe(newCPF);
       expect(student.fullName).toBe('Maria Santos');
     });
 
     it('should retrieve student by number and CPF', async () => {
-      const student = await gradeDb.getGradeStudentByNumberAndCpf('1234', '123.456.789-10');
+      const student = await gradeDb.getGradeStudentByNumberAndCpf(testStudentNumber, testCPF);
       expect(student).toBeDefined();
-      expect(student?.studentNumber).toBe('1234');
-      expect(student?.cpf).toBe('123.456.789-10');
+      expect(student?.studentNumber).toBe(testStudentNumber);
+      expect(student?.cpf).toBe(testCPF);
     });
 
     it('should return null for non-existent student', async () => {
@@ -114,7 +136,9 @@ describe('Grade Management System', () => {
     });
 
     it('should handle empty grades', async () => {
-      const newStudent = await gradeDb.createGradeStudent('5555', '555.555.555-55');
+      const newNumber = generateRandomNumber();
+      const newCPF = generateRandomCPF();
+      const newStudent = await gradeDb.createGradeStudent(newNumber, newCPF);
       const total = await gradeDb.calculateTotalGrade(newStudent.id);
       expect(total).toBe(0);
     });
