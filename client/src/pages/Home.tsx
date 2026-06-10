@@ -467,18 +467,51 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white md:col-span-2">
               <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
                     <Shield className="h-5 w-5 text-[#c4a84b]" />
                   </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Compromisso de Honra</h3>
+                  <div>
+                    <p className="text-xs uppercase tracking-widest font-bold text-[#c4a84b] mb-1">Polícia Militar do Amazonas</p>
+                    <h3 className="font-semibold text-foreground uppercase tracking-wider text-base">Compromisso de Honra</h3>
+                  </div>
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-                  {institutionalGuidelines.find((item) => item.title === "Compromisso de Honra")?.text}
-                </p>
+                <div className="grid md:grid-cols-2 gap-8 md:gap-16 w-full text-left">
+                  {/* Coluna 1 */}
+                  <div className="flex flex-col text-sm sm:text-base font-medium italic text-muted-foreground space-y-6">
+                    <div>
+                      <p className="text-lg sm:text-xl font-bold not-italic text-[#1a3a2a] mb-1">"Ao ingressar!</p>
+                      <p>na Polícia Militar do Amazonas!</p>
+                    </div>
+                    <div>
+                      <p className="font-bold not-italic text-[#1a3a2a] mb-1">Prometo!</p>
+                      <p>regular a minha conduta!</p>
+                      <p>pelos preceitos da moral!</p>
+                    </div>
+                    <div>
+                      <p className="font-bold not-italic text-[#1a3a2a] mb-1">Cumprir!</p>
+                      <p>rigorosamente as ordens!</p>
+                      <p>das autoridades!</p>
+                      <p>a que estiver subordinado!</p>
+                    </div>
+                  </div>
+                  {/* Coluna 2 */}
+                  <div className="flex flex-col text-sm sm:text-base font-medium italic text-muted-foreground space-y-6">
+                    <div>
+                      <p className="font-bold not-italic text-[#1a3a2a] mb-1">E dedicar-me!</p>
+                      <p>inteiramente ao serviço policial militar!</p>
+                      <p>à manutenção da ordem pública!</p>
+                      <p>e à segurança da comunidade!</p>
+                    </div>
+                    <div className="pt-2">
+                      <p className="font-bold not-italic text-[#1a3a2a] text-lg mb-1">Mesmo!</p>
+                      <p className="text-xl sm:text-2xl font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
