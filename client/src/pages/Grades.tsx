@@ -528,16 +528,7 @@ export default function Grades() {
               </form>
             </CardContent>
           </Card>
-        ) : (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="mb-8 gap-2 bg-[#1a3a2a] hover:bg-[#214936]"
-            disabled={disciplines.length === 0}
-          >
-            <Plus className="h-4 w-4" />
-            Lançar nota
-          </Button>
-        )}
+        ) : null}
 
         {disciplines.length === 0 && (
           <Card className="mb-6 border-amber-200 bg-amber-50">
@@ -573,7 +564,12 @@ export default function Grades() {
                       )}
                       <p className="mt-2 text-sm">
                         Nota da disciplina:{" "}
-                        <span className={Number(entry.grade || 0) >= 7 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
+                        <span className={(() => {
+                          const grade = Number(entry.grade || 0);
+                          if (grade < 6) return "font-semibold text-red-600 md:text-red-700";
+                          if (grade <= 8) return "font-semibold text-green-600 md:text-green-700";
+                          return "font-semibold text-blue-600 md:text-blue-700";
+                        })()}>
                           {entry.grade ?? "-"}
                         </span>
                       </p>
