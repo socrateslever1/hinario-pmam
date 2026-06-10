@@ -23,7 +23,7 @@ import {
   type StudentSession,
 } from "@/lib/studentSession";
 
-const LOGO_URL = "/logo/pmam-logo.png";
+const LOGO_URL = "/manus-storage/IMG_7727_e58fe5d9.PNG";
 
 const navLinks = [
   { href: "/", label: "Página Inicial", icon: Shield },
