@@ -3,817 +3,40 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
-  Star, Music, Target, BarChart3, Plus, Pencil, Trash2,
-  LogIn, ArrowLeft, Upload, Youtube, Save, Users, Settings,
-  Phone, Mail, MapPin, Instagram, Facebook, FileText, Shield, LogOut,
-  Clock, Search, Loader2, KeyRound, GraduationCap
+  Star, Music, Target, Plus, Pencil, Trash2,
+  LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
+  Clock, Search, Users, GraduationCap, Settings
 } from "lucide-react";
-import LyricsMarker from "@/components/LyricsMarker";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
 import { BlogManagementPanel } from "@/components/BlogManagementPanel";
 
-const categoryOptions = [
-  { value: "nacional", label: "Hino Nacional" },
-  { value: "militar", label: "Canção Militar" },
-  { value: "pmam", label: "Canção PMAM" },
-  { value: "arma", label: "Canção de Arma" },
-  { value: "oracao", label: "Oração" },
-];
-
-const priorityOptions = [
-  { value: "normal", label: "Normal" },
-  { value: "urgente", label: "Urgente" },
-  { value: "critica", label: "Crítica" },
-];
-
-const difficultyOptions = [
-  { value: "basico", label: "Básico" },
-  { value: "intermediario", label: "Intermediário" },
-  { value: "avancado", label: "Avançado" },
-];
-
-function getDefaultDrillFormState(drill?: any) {
-  return {
-    title: drill?.title ?? "",
-    subtitle: drill?.subtitle ?? "",
-    description: drill?.description ?? "",
-    category: drill?.category ?? "",
-    difficulty: drill?.difficulty ?? "intermediario",
-    duration: drill?.duration ?? 0,
-    videoUrl: drill?.videoUrl ?? "",
-    pdfUrl: drill?.pdfUrl ?? "",
-    imageUrl: drill?.imageUrl ?? "",
-    youtubeUrl: drill?.youtubeUrl ?? "",
-    cornettaAudioUrl: drill?.cornettaAudioUrl ?? "",
-    content: drill?.content ?? "",
-    instructor: drill?.instructor ?? "",
-    prerequisites: drill?.prerequisites ?? "",
-    learningOutcomes: drill?.learningOutcomes ?? "",
-  };
-}
-
-function DrillForm({ drill, onSuccess }: { drill?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState(() => getDefaultDrillFormState(drill));
-
-  const utils = trpc.useUtils();
-  const createMut = trpc.drill.create.useMutation({
-    onSuccess: () => { toast.success("Ordem Unida criada!"); utils.drill.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const updateMut = trpc.drill.update.useMutation({
-    onSuccess: () => { toast.success("Ordem Unida atualizada!"); utils.drill.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  useEffect(() => {
-    setForm(getDefaultDrillFormState(drill));
-  }, [drill]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title) { toast.error("Título é obrigatório"); return; }
-    const data = {
-      ...form,
-      duration: form.duration ? Number(form.duration) : undefined,
-      subtitle: form.subtitle || undefined,
-      description: form.description || undefined,
-      category: form.category || undefined,
-      videoUrl: form.videoUrl || undefined,
-      pdfUrl: form.pdfUrl || undefined,
-      imageUrl: form.imageUrl || undefined,
-      youtubeUrl: form.youtubeUrl || undefined,
-      cornettaAudioUrl: form.cornettaAudioUrl || undefined,
-      content: form.content || undefined,
-      instructor: form.instructor || undefined,
-      prerequisites: form.prerequisites || undefined,
-      learningOutcomes: form.learningOutcomes || undefined,
-    };
-    if (drill) { updateMut.mutate({ id: drill.id, ...data }); }
-    else { createMut.mutate(data); }
-  };
-
-  const saving = createMut.isPending || updateMut.isPending;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
-      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
-      <div><Label>Subtítulo</Label><Input value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} /></div>
-      <div><Label>Categoria</Label><Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Ex: Formação, Disciplina" /></div>
-      <div><Label>Dificuldade</Label>
-        <Select value={form.difficulty} onValueChange={v => setForm(f => ({ ...f, difficulty: v }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{difficultyOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      <div><Label>Duração (minutos)</Label><Input type="number" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: Number(e.target.value) }))} /></div>
-      <div><Label>Instrutor</Label><Input value={form.instructor} onChange={e => setForm(f => ({ ...f, instructor: e.target.value }))} /></div>
-      <div><Label>URL do Vídeo</Label><Input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://youtube.com/..." /></div>
-      <div><Label>URL do YouTube (Execução do Movimento)</Label><Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
-      <div><Label>URL de Áudio da Corneta</Label><Input value={form.cornettaAudioUrl} onChange={e => setForm(f => ({ ...f, cornettaAudioUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>URL do PDF</Label><Input value={form.pdfUrl} onChange={e => setForm(f => ({ ...f, pdfUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>URL da Imagem</Label><Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://..." /></div>
-      <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
-      <div><Label>Conteúdo/Texto</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} /></div>
-      <div><Label>Pré-requisitos</Label><Textarea value={form.prerequisites} onChange={e => setForm(f => ({ ...f, prerequisites: e.target.value }))} rows={2} /></div>
-      <div><Label>Resultados de Aprendizado</Label><Textarea value={form.learningOutcomes} onChange={e => setForm(f => ({ ...f, learningOutcomes: e.target.value }))} rows={2} /></div>
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
-        <Save className="h-4 w-4" />{saving ? "Salvando..." : drill ? "Atualizar Ordem Unida" : "Criar Ordem Unida"}
-      </Button>
-    </form>
-  );
-}
-
-function getDefaultHymnFormState(hymn?: any) {
-  return {
-    number: hymn?.number ?? 0,
-    title: hymn?.title ?? "",
-    subtitle: hymn?.subtitle ?? "",
-    author: hymn?.author ?? "",
-    composer: hymn?.composer ?? "",
-    category: hymn?.category ?? "pmam",
-    collection: hymn?.collection ?? null,
-    lyrics: hymn?.lyrics ?? "",
-    description: hymn?.description ?? "",
-    youtubeUrl: hymn?.youtubeUrl ?? "",
-    instrumentalYoutubeUrl: hymn?.instrumentalYoutubeUrl ?? "",
-    audioUrl: hymn?.audioUrl ?? "",
-    instrumentalAudioUrl: hymn?.instrumentalAudioUrl ?? "",
-  };
-}
-
-function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState(() => getDefaultHymnFormState(hymn));
-  const [uploading, setUploading] = useState(false);
-  const [uploadingInstrumental, setUploadingInstrumental] = useState(false);
-  const utils = trpc.useUtils();;
-  const createMut = trpc.hymns.create.useMutation({
-    onSuccess: async () => {
-      toast.success("Hino criado!");
-      await Promise.all([
-        utils.hymns.list.invalidate(),
-        utils.hymns.listAll.invalidate(),
-      ]);
-      onSuccess();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  const updateMut = trpc.hymns.update.useMutation({
-    onSuccess: async (_data, variables) => {
-      toast.success("Hino atualizado!");
-      await Promise.all([
-        utils.hymns.list.invalidate(),
-        utils.hymns.listAll.invalidate(),
-        utils.hymns.getById.invalidate({ id: variables.id }),
-        utils.hymns.getByNumber.invalidate({ number: variables.number }),
-      ]);
-      onSuccess();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-  const uploadAudioMut = trpc.hymns.uploadAudio.useMutation({
-    onSuccess: (data, variables) => {
-      setForm(f => variables.variant === "instrumental"
-        ? ({ ...f, instrumentalAudioUrl: data.url })
-        : ({ ...f, audioUrl: data.url }));
-      toast.success("Áudio enviado com sucesso!");
-      setUploading(false);
-      setUploadingInstrumental(false);
-    },
-    onError: (e) => {
-      toast.error(`Erro ao enviar áudio: ${e.message}`);
-      setUploading(false);
-      setUploadingInstrumental(false);
-    },
-  });
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>, variant: "voice" | "instrumental" = "voice") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Arquivo muito grande (máx 50MB)");
-      return;
-    }
-    if (!hymn?.id) {
-      toast.error("Salve o hino primeiro antes de fazer upload de áudio");
-      return;
-    }
-    if (variant === "instrumental") setUploadingInstrumental(true);
-    else setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const base64 = (evt.target?.result as string)?.split(',')[1];
-      if (!base64) return;
-      uploadAudioMut.mutate({
-        id: hymn.id,
-        fileName: file.name,
-        fileData: base64,
-        variant,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  useEffect(() => {
-    setForm(getDefaultHymnFormState(hymn));
-  }, [hymn]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title || !form.lyrics) { toast.error("Título e letra são obrigatórios"); return; }
-    const data = {
-      ...form,
-      subtitle: form.subtitle || undefined,
-      author: form.author || undefined,
-      composer: form.composer || undefined,
-      description: form.description || undefined,
-      youtubeUrl: form.youtubeUrl.trim() || undefined,
-      instrumentalYoutubeUrl: form.instrumentalYoutubeUrl.trim() || undefined,
-      audioUrl: form.audioUrl.trim() || undefined,
-      instrumentalAudioUrl: form.instrumentalAudioUrl.trim() || undefined,
-      category: form.category as any,
-    };
-    if (hymn) { updateMut.mutate({ id: hymn.id, ...data }); }
-    else { createMut.mutate(data); }
-  };
-
-  const saving = createMut.isPending || updateMut.isPending;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-10rem))] overflow-y-auto pr-1">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div><Label>Número</Label><Input type="number" value={form.number} onChange={e => setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))} /></div>
-        <div><Label>Categoria</Label>
-          <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{categoryOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div><Label>Coleção</Label>
-          <Select value={form.collection || "hymnal"} onValueChange={v => setForm(f => ({ ...f, collection: v === "hymnal" ? null : v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="hymnal">Hinário Principal</SelectItem>
-              <SelectItem value="tfm">Charlie Mike (TFM)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
-      <div><Label>Subtítulo</Label><Input value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} /></div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div><Label>Autor / Letrista</Label><Input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} /></div>
-        <div><Label>Compositor</Label><Input value={form.composer} onChange={e => setForm(f => ({ ...f, composer: e.target.value }))} /></div>
-      </div>
-      <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
-      <div><Label>Letra *</Label><Textarea value={form.lyrics} onChange={e => setForm(f => ({ ...f, lyrics: e.target.value }))} rows={10} required className="font-mono text-sm" /></div>
-      <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube</Label>
-        <Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
-      <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube Instrumental</Label>
-        <Input value={form.instrumentalYoutubeUrl} onChange={e => setForm(f => ({ ...f, instrumentalYoutubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
-      <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Áudio (MP3)</Label>
-        <div className="flex gap-2">
-          <Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
-          <Button type="button" variant="outline" disabled={uploading || !hymn?.id} className="gap-2" onClick={() => document.getElementById('audio-upload')?.click()}>
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {uploading ? "Enviando..." : "Upload MP3"}
-          </Button>
-          <input id="audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={handleAudioUpload} className="hidden" />
-        </div>
-        {form.audioUrl && <p className="text-xs text-green-600 mt-1">✓ Áudio salvo</p>}
-      </div>
-      <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Instrumental (MP3)</Label>
-        <div className="flex gap-2">
-          <Input value={form.instrumentalAudioUrl} onChange={e => setForm(f => ({ ...f, instrumentalAudioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
-          <Button type="button" variant="outline" disabled={uploadingInstrumental || !hymn?.id} className="gap-2" onClick={() => document.getElementById('instrumental-audio-upload')?.click()}>
-            {uploadingInstrumental ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {uploadingInstrumental ? "Enviando..." : "Upload Instrumental"}
-          </Button>
-          <input id="instrumental-audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={(event) => handleAudioUpload(event, "instrumental")} className="hidden" />
-        </div>
-        {form.instrumentalAudioUrl && <p className="text-xs text-green-600 mt-1">Instrumental salvo</p>}
-      </div>
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
-        <Save className="h-4 w-4" />{saving ? "Salvando..." : hymn ? "Atualizar Hino" : "Criar Hino"}
-      </Button>
-    </form>
-  );
-}
-
-function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: () => void }) {
-  const [form, setForm] = useState({
-    title: mission?.title ?? "",
-    content: mission?.content ?? "",
-    priority: mission?.priority ?? "normal",
-  });
-
-  const utils = trpc.useUtils();
-  const createMut = trpc.missions.create.useMutation({
-    onSuccess: () => { toast.success("Missão publicada!"); utils.missions.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const updateMut = trpc.missions.update.useMutation({
-    onSuccess: () => { toast.success("Missão atualizada!"); utils.missions.invalidate(); onSuccess(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title || !form.content) { toast.error("Título e conteúdo são obrigatórios"); return; }
-    if (mission) { updateMut.mutate({ id: mission.id, ...form, priority: form.priority as any }); }
-    else { createMut.mutate({ ...form, priority: form.priority as any }); }
-  };
-
-  const saving = createMut.isPending || updateMut.isPending;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
-      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
-      <div><Label>Prioridade</Label>
-        <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{priorityOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      <div><Label>Conteúdo *</Label><Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} required /></div>
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
-        <Save className="h-4 w-4" />{saving ? "Salvando..." : mission ? "Atualizar Missão" : "Publicar Missão"}
-      </Button>
-    </form>
-  );
-}
-
-function SettingsTab() {
-  const { data: settings } = trpc.settings.getAll.useQuery();
-  const [form, setForm] = useState({
-    footer_phone: "",
-    footer_email: "",
-    footer_address: "",
-    footer_text: "",
-    footer_instagram: "",
-    footer_facebook: "",
-  });
-
-  useEffect(() => {
-    if (settings) {
-      setForm({
-        footer_phone: settings.footer_phone || "",
-        footer_email: settings.footer_email || "",
-        footer_address: settings.footer_address || "",
-        footer_text: settings.footer_text || "",
-        footer_instagram: settings.footer_instagram || "",
-        footer_facebook: settings.footer_facebook || "",
-      });
-    }
-  }, [settings]);
-
-  const utils = trpc.useUtils();
-  const updateBatch = trpc.settings.updateBatch.useMutation({
-    onSuccess: () => { toast.success("Configurações salvas!"); utils.settings.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const handleSave = () => {
-    const settingsArr = Object.entries(form).map(([key, value]) => ({ key, value: value || "" }));
-    updateBatch.mutate({ settings: settingsArr });
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card className="border-border/50">
-        <CardContent className="p-6">
-          <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-[#c4a84b]" /> Informações do Rodapé
-          </h3>
-          <div className="space-y-4">
-            <div><Label className="flex items-center gap-2"><FileText className="h-3 w-3" /> Texto do Rodapé</Label>
-              <Input value={form.footer_text} onChange={e => setForm(f => ({ ...f, footer_text: e.target.value }))} placeholder="Hinos e Canções Militares da PMAM" /></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label className="flex items-center gap-2"><Phone className="h-3 w-3" /> Telefone</Label>
-                <Input value={form.footer_phone} onChange={e => setForm(f => ({ ...f, footer_phone: e.target.value }))} placeholder="(92) 3XXX-XXXX" /></div>
-              <div><Label className="flex items-center gap-2"><Mail className="h-3 w-3" /> Email</Label>
-                <Input value={form.footer_email} onChange={e => setForm(f => ({ ...f, footer_email: e.target.value }))} placeholder="contato@pmam.am.gov.br" /></div>
-            </div>
-            <div><Label className="flex items-center gap-2"><MapPin className="h-3 w-3" /> Endereço</Label>
-              <Input value={form.footer_address} onChange={e => setForm(f => ({ ...f, footer_address: e.target.value }))} placeholder="Manaus - AM" /></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label className="flex items-center gap-2"><Instagram className="h-3 w-3" /> Instagram (URL)</Label>
-                <Input value={form.footer_instagram} onChange={e => setForm(f => ({ ...f, footer_instagram: e.target.value }))} placeholder="https://instagram.com/..." /></div>
-              <div><Label className="flex items-center gap-2"><Facebook className="h-3 w-3" /> Facebook (URL)</Label>
-                <Input value={form.footer_facebook} onChange={e => setForm(f => ({ ...f, footer_facebook: e.target.value }))} placeholder="https://facebook.com/..." /></div>
-            </div>
-          </div>
-          <Button onClick={handleSave} className="mt-6 bg-[#1a3a2a] text-white gap-2" disabled={updateBatch.isPending}>
-            <Save className="h-4 w-4" />{updateBatch.isPending ? "Salvando..." : "Salvar Configurações"}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function UsersTab() {
-  const { data: usersList } = trpc.users.list.useQuery();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "admin" as "user" | "admin" });
-  const [passwordByUser, setPasswordByUser] = useState<Record<number, string>>({});
-
-  const utils = trpc.useUtils();
-  const createUser = trpc.users.create.useMutation({
-    onSuccess: () => { toast.success("Usuário criado!"); utils.users.invalidate(); setDialogOpen(false); setNewUser({ name: "", email: "", password: "", role: "admin" }); },
-    onError: (e) => toast.error(e.message),
-  });
-  const deleteUserMut = trpc.users.delete.useMutation({
-    onSuccess: () => { toast.success("Usuário removido!"); utils.users.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const updateRole = trpc.users.updateRole.useMutation({
-    onSuccess: () => { toast.success("Papel atualizado!"); utils.users.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const resetPassword = trpc.users.resetPassword.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Senha alterada!");
-      setPasswordByUser((current) => ({ ...current, [variables.id]: "" }));
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-bold text-foreground">Gerenciar Usuários</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#c4a84b] text-[#1a1a1a] gap-2"><Plus className="h-4 w-4" /> Novo Usuário</Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:max-w-lg sm:p-6">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
-              <DialogDescription>Preencha os dados abaixo para cadastrar um novo administrador ou usuário no sistema.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); createUser.mutate(newUser); }} className="space-y-4">
-              <div><Label>Nome *</Label><Input value={newUser.name} onChange={e => setNewUser(f => ({ ...f, name: e.target.value }))} required /></div>
-              <div><Label>Email *</Label><Input type="email" value={newUser.email} onChange={e => setNewUser(f => ({ ...f, email: e.target.value }))} required /></div>
-              <div><Label>Senha *</Label><Input type="password" value={newUser.password} onChange={e => setNewUser(f => ({ ...f, password: e.target.value }))} required minLength={4} /></div>
-              <div><Label>Papel</Label>
-                <Select value={newUser.role} onValueChange={v => setNewUser(f => ({ ...f, role: v as any }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="user">Usuário</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={createUser.isPending}>
-                <Save className="h-4 w-4" />{createUser.isPending ? "Criando..." : "Criar Usuário"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="space-y-2">
-        {usersList?.map((u: any) => (
-          <Card key={u.id} className="border-border/50">
-            <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {(u.name || "?").charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground text-sm truncate">{u.name || "Sem nome"}</p>
-                <p className="text-xs text-muted-foreground">{u.email}</p>
-              </div>
-              <Badge className={u.role === "master" ? "bg-[#c4a84b] text-[#1a1a1a]" : u.role === "admin" ? "bg-[#1a3a2a] text-white" : "bg-gray-200 text-gray-700"}>
-                {u.role === "master" ? "Xerife Master" : u.role === "admin" ? "Administrador" : "Usuário"}
-              </Badge>
-              {u.role !== "master" && (
-                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
-                  <Select value={u.role} onValueChange={v => updateRole.mutate({ id: u.id, role: v as any })}>
-                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="user">Usuário</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="password"
-                    placeholder="Nova senha"
-                    className="h-8 w-36 text-xs"
-                    value={passwordByUser[u.id] || ""}
-                    onChange={(event) =>
-                      setPasswordByUser((current) => ({ ...current, [u.id]: event.target.value }))
-                    }
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1 text-xs"
-                    disabled={!passwordByUser[u.id] || resetPassword.isPending}
-                    onClick={() => resetPassword.mutate({ id: u.id, password: passwordByUser[u.id] })}
-                  >
-                    <KeyRound className="h-3 w-3" />
-                    Senha
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive h-8 w-8"
-                    onClick={() => { if (confirm("Remover este usuário?")) deleteUserMut.mutate({ id: u.id }); }}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function GradeAdminTab() {
-  const utils = trpc.useUtils();
-  const { data: disciplines } = trpc.grades.availableDisciplines.useQuery();
-  const { data: students } = trpc.gradeAdmin.students.useQuery();
-  const { data: allGrades } = trpc.gradeAdmin.allGrades.useQuery();
-  const { data: ranking } = trpc.gradeAdmin.ranking.useQuery({});
-  const [disciplineForm, setDisciplineForm] = useState({ name: "", description: "" });
-  const [studentForm, setStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
-  const [passwordByStudent, setPasswordByStudent] = useState<Record<number, string>>({});
-
-  const createDiscipline = trpc.gradeAdmin.createDiscipline.useMutation({
-    onSuccess: () => {
-      toast.success("Disciplina criada");
-      setDisciplineForm({ name: "", description: "" });
-      utils.grades.availableDisciplines.invalidate();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const createStudent = trpc.gradeAdmin.createStudent.useMutation({
-    onSuccess: () => {
-      toast.success("Aluno criado");
-      setStudentForm({ numerica: "", nomeGuerra: "", senha: "" });
-      utils.gradeAdmin.students.invalidate();
-      utils.gradeAdmin.ranking.invalidate();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const resetStudentPassword = trpc.gradeAdmin.resetStudentPassword.useMutation({
-    onSuccess: (_data, variables) => {
-      toast.success("Senha do aluno alterada");
-      setPasswordByStudent((current) => ({ ...current, [variables.studentId]: "" }));
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const deleteStudent = trpc.gradeAdmin.deleteStudent.useMutation({
-    onSuccess: () => {
-      toast.success("Aluno removido");
-      utils.gradeAdmin.students.invalidate();
-      utils.gradeAdmin.allGrades.invalidate();
-      utils.gradeAdmin.ranking.invalidate();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const cleanNumerica = (value: string) => value.replace(/\D/g, "").slice(0, 4);
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground">Alunos</p>
-            <p className="text-3xl font-bold text-[#1a3a2a]">{students?.length ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground">Disciplinas</p>
-            <p className="text-3xl font-bold text-[#1a3a2a]">{disciplines?.length ?? 0}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground">Notas lançadas</p>
-            <p className="text-3xl font-bold text-[#1a3a2a]">{allGrades?.length ?? 0}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Criar disciplina</h2>
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                createDiscipline.mutate({
-                  name: disciplineForm.name,
-                  description: disciplineForm.description || undefined,
-                });
-              }}
-            >
-              <div>
-                <Label>Nome *</Label>
-                <Input
-                  value={disciplineForm.name}
-                  onChange={(event) => setDisciplineForm((form) => ({ ...form, name: event.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={disciplineForm.description}
-                  onChange={(event) => setDisciplineForm((form) => ({ ...form, description: event.target.value }))}
-                  rows={3}
-                />
-              </div>
-              <Button type="submit" className="bg-[#1a3a2a] text-white gap-2" disabled={createDiscipline.isPending}>
-                <Save className="h-4 w-4" />
-                {createDiscipline.isPending ? "Salvando..." : "Criar disciplina"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Criar conta de aluno</h2>
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                createStudent.mutate(studentForm);
-              }}
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Numérica *</Label>
-                  <Input
-                    inputMode="numeric"
-                    value={studentForm.numerica}
-                    onChange={(event) => setStudentForm((form) => ({ ...form, numerica: cleanNumerica(event.target.value) }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Senha inicial *</Label>
-                  <Input
-                    type="password"
-                    value={studentForm.senha}
-                    onChange={(event) => setStudentForm((form) => ({ ...form, senha: event.target.value }))}
-                    minLength={6}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Nome de guerra *</Label>
-                <Input
-                  value={studentForm.nomeGuerra}
-                  onChange={(event) => setStudentForm((form) => ({ ...form, nomeGuerra: event.target.value }))}
-                  required
-                />
-              </div>
-              <Button type="submit" className="bg-[#1a3a2a] text-white gap-2" disabled={createStudent.isPending}>
-                <Plus className="h-4 w-4" />
-                {createStudent.isPending ? "Criando..." : "Criar aluno"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-border/50">
-        <CardContent className="p-5">
-          <h2 className="mb-4 text-lg font-bold text-foreground">Alunos e suporte</h2>
-          <div className="space-y-2">
-            {students?.map((student: any) => (
-              <div key={student.id} className="flex flex-col gap-3 rounded-md border p-3 lg:flex-row lg:items-center">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{student.nomeGuerra}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {student.numerica} - {student.companhia}ª Companhia / {student.peloton}º Pelotão
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input
-                    type="password"
-                    placeholder="Nova senha"
-                    className="h-9 sm:w-40"
-                    value={passwordByStudent[student.id] || ""}
-                    onChange={(event) =>
-                      setPasswordByStudent((current) => ({ ...current, [student.id]: event.target.value }))
-                    }
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    disabled={!passwordByStudent[student.id] || resetStudentPassword.isPending}
-                    onClick={() =>
-                      resetStudentPassword.mutate({
-                        studentId: student.id,
-                        senha: passwordByStudent[student.id],
-                      })
-                    }
-                  >
-                    <KeyRound className="h-4 w-4" />
-                    Trocar senha
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => {
-                      if (confirm("Remover este aluno e suas notas?")) {
-                        deleteStudent.mutate({ studentId: student.id });
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {!students?.length && <p className="text-sm text-muted-foreground">Nenhum aluno cadastrado.</p>}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Ranking geral</h2>
-            <div className="space-y-2">
-              {ranking?.map((row: any) => (
-                <div key={row.studentId} className="flex items-center gap-3 rounded-md border p-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1a3a2a] text-sm font-bold text-white">
-                    {row.position}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{row.nomeGuerra}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {!ranking?.length && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50">
-          <CardContent className="p-5">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Notas lançadas</h2>
-            <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
-              {allGrades?.map((entry: any) => (
-                <div key={entry.id} className="rounded-md border p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{entry.studentName} - {entry.numerica}</p>
-                      <p className="text-xs text-muted-foreground">{entry.disciplineName}</p>
-                    </div>
-                    <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{entry.grade ?? "-"}</Badge>
-                  </div>
-                  {entry.professorName && <p className="mt-2 text-xs text-muted-foreground">Professor: {entry.professorName}</p>}
-                </div>
-              ))}
-              {!allGrades?.length && <p className="text-sm text-muted-foreground">Nenhuma nota lançada.</p>}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
+// Importando os subcomponentes modulares
+import { DrillForm } from "@/components/admin/DrillForm";
+import { HymnForm } from "@/components/admin/HymnForm";
+import { MissionForm } from "@/components/admin/MissionForm";
+import { SettingsTab } from "@/components/admin/SettingsTab";
+import { UsersTab } from "@/components/admin/UsersTab";
+import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
 
 export default function Admin() {
   const isMobile = useIsMobile();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [, navigate] = useLocation();
+  
   const [hymnDialogOpen, setHymnDialogOpen] = useState(false);
-  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [missionDialogOpen, setMissionDialogOpen] = useState(false);
   const [editingHymn, setEditingHymn] = useState<any>(null);
-  const [syncingHymn, setSyncingHymn] = useState<any>(null);
   const [editingMission, setEditingMission] = useState<any>(null);
   const [editingDrill, setEditingDrill] = useState<any>(null);
   const [drillDialogOpen, setDrillDialogOpen] = useState(false);
@@ -943,7 +166,7 @@ export default function Admin() {
         <div className="container">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-[#1a3cb4] md:shadow-none">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center">
                   <Music className="h-6 w-6 text-[#1a3a2a]" />
@@ -954,7 +177,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
                   <Shield className="h-6 w-6 text-[#c4a84b]" />
@@ -965,7 +188,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-[#c4a84b]" />
@@ -976,7 +199,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#1a2744]/10 flex items-center justify-center">
                   <Users className="h-6 w-6 text-[#1a2744]" />
@@ -1104,7 +327,7 @@ export default function Admin() {
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
                 <Input
-                  placeholder="Buscar canção por título, número ou letrista..."
+                  placeholder="Buscar canção por título, número ou autor..."
                   className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
                   value={hymnSearchTerm}
                   onChange={(e) => setHymnSearchTerm(e.target.value)}
@@ -1124,38 +347,38 @@ export default function Admin() {
                     );
                   })
                   ?.map((hymn: any) => (
-                    <Card key={hymn.id} className="border-border/50">
-                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <div className="w-10 h-10 rounded-lg bg-[#2d5a27] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          {String(hymn.number).padStart(2, "0")}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
-                          <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
-                        </div>
-                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                          {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
-                          {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
-                          {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
-                            <Target className="h-4 w-4 text-[#c4a84b]" />
-                          )}
-                          <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+                  <Card key={hymn.id} className="border-border/50">
+                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="w-10 h-10 rounded-lg bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {String(hymn.number).padStart(2, "0")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
+                        <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
+                      </div>
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                        {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
+                        {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
+                        {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
+                          <Target className="h-4 w-4 text-[#c4a84b]" />
+                        )}
+                        <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+                        
+                        <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
+                          <Clock className="h-4 w-4" />
+                        </Button>
 
-                          <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
-                            <Clock className="h-4 w-4" />
-                          </Button>
-
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive"
-                            onClick={() => { if (confirm("Remover esta canção?")) deleteHymn.mutate({ id: hymn.id }); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive"
+                          onClick={() => { if (confirm("Remover esta canção?")) deleteHymn.mutate({ id: hymn.id }); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </TabsContent>
 
@@ -1165,91 +388,76 @@ export default function Admin() {
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Missões CFAP</h2>
                 <Dialog open={missionDialogOpen} onOpenChange={(o) => { setMissionDialogOpen(o); if (!o) setEditingMission(null); }}>
                   <DialogTrigger asChild>
-                    <Button className="w-full bg-[#c4a84b] text-[#1a1a1a] gap-2 sm:w-auto" onClick={() => setEditingMission(null)}>
+                    <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingMission(null)}>
                       <Plus className="h-4 w-4" /> Nova Missão
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader>
-                      <DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão CFAP"}</DialogTitle>
-                      <DialogDescription>Publique orientações, avisos ou missões para os alunos do CFAP.</DialogDescription>
+                      <DialogTitle>{editingMission ? "Editar Missão" : "Nova Missão"}</DialogTitle>
+                      <DialogDescription>Crie instruções ou avisos urgentes sobre missões do curso.</DialogDescription>
                     </DialogHeader>
                     <MissionForm mission={editingMission} onSuccess={() => setMissionDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
               </div>
-              {!missions || missions.length === 0 ? (
-                <Card className="border-border/50">
-                  <CardContent className="p-12 text-center">
-                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Nenhuma missão publicada ainda.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {missions.map((mission: any) => (
-                    <Card key={mission.id} className="border-border/50">
-                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-foreground text-sm truncate">{mission.title}</p>
-                            <Badge variant={mission.priority === "critica" ? "destructive" : "secondary"} className="text-xs">{mission.priority}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">{mission.content.substring(0, 100)}...</p>
-                        </div>
-                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                          <Switch checked={mission.isActive} onCheckedChange={(checked) => toggleMission.mutate({ id: mission.id, isActive: checked })} />
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingMission(mission); setMissionDialogOpen(true); }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive"
-                            onClick={() => { if (confirm("Remover esta missão?")) deleteMission.mutate({ id: mission.id }); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+
+              <div className="space-y-2">
+                {missions?.map((mission: any) => (
+                  <Card key={mission.id} className="border-border/50">
+                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground text-sm truncate">{mission.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">Prioridade: {mission.priority}</p>
+                      </div>
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                        <Switch checked={mission.isActive} onCheckedChange={(checked) => toggleMission.mutate({ id: mission.id, isActive: checked })} />
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingMission(mission); setMissionDialogOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive"
+                          onClick={() => { if (confirm("Remover esta missão?")) deleteMission.mutate({ id: mission.id }); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </TabsContent>
 
-            {/* DRILL TAB */}
+            {/* DRILL (ORDEM UNIDA) TAB */}
             <TabsContent value="drill">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Ordem Unida</h2>
                 <Dialog open={drillDialogOpen} onOpenChange={(o) => { setDrillDialogOpen(o); if (!o) setEditingDrill(null); }}>
                   <DialogTrigger asChild>
                     <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingDrill(null)}>
-                      <Plus className="h-4 w-4" /> Nova Ordem Unida
+                      <Plus className="h-4 w-4" /> Novo Movimento
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader>
-                      <DialogTitle>{editingDrill ? "Editar Ordem Unida" : "Nova Ordem Unida"}</DialogTitle>
-                      <DialogDescription>Insira as informações da ordem unida com vídeos, PDFs, imagens e conteúdo.</DialogDescription>
+                      <DialogTitle>{editingDrill ? "Editar Ordem Unida" : "Nova Instrução de Ordem Unida"}</DialogTitle>
+                      <DialogDescription>Crie instruções contendo títulos, categorias, instrutores e recursos de mídia.</DialogDescription>
                     </DialogHeader>
                     <DrillForm key={editingDrill?.id ?? "new"} drill={editingDrill} onSuccess={() => setDrillDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
               </div>
+
+              {/* Search Filter for Admin */}
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
                 <Input
-                  placeholder="Buscar por título, categoria ou instrutor..."
+                  placeholder="Buscar ordem unida por título, categoria ou instrutor..."
                   className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
                   value={drillSearchTerm}
-                  onChange={(e) => setDrillSearchTerm(e.target.value)}
+                  onChange={(e) => setOriginalDrillSearchTerm(e)}
                 />
               </div>
-              {!drills || drills.length === 0 ? (
-                <Card className="border-border/50">
-                  <CardContent className="p-12 text-center">
-                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Nenhuma ordem unida publicada ainda.</p>
-                  </CardContent>
-                </Card>
-              ) : (
+
+              {drills && (
                 <div className="space-y-2">
                   {drills
                     .filter((drill: any) => {
@@ -1315,4 +523,8 @@ export default function Admin() {
       <Footer />
     </div>
   );
+
+  function setOriginalDrillSearchTerm(e: React.ChangeEvent<HTMLInputElement>) {
+    setDrillSearchTerm(e.target.value);
+  }
 }

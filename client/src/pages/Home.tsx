@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "/manus-storage/IMG_7727_e58fe5d9.PNG";
+const BRASAO_URL = "/IMG_7727.webp";
 
 const categories = [
   { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da patria e do estado" },
@@ -83,7 +83,7 @@ const heroSlides = [
 
 
 
-function MobileHero() {
+function HeroSection() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const slide = heroSlides[activeSlide];
@@ -103,53 +103,69 @@ function MobileHero() {
   };
 
   return (
-    <section className="md:hidden mobile-military-bg px-4 pb-5 pt-2 text-[#f8f7f0]">
-      <div
-        className="relative overflow-hidden rounded-xl border border-white/12 bg-[#0b3323]/72 p-5 shadow-[0_22px_60px_rgba(0,0,0,.35)]"
-        onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
-        onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
-      >
-        <div className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-[#145c3a]/60 blur-3xl" />
-        <div className="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-[#d6b64c]/15 blur-3xl" />
-        <div className="relative grid min-h-[290px] grid-cols-[1.05fr_.95fr] items-center gap-1">
-          <div className="z-10 py-3">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-              <SlideIcon className="h-3.5 w-3.5 text-[#f0bd3a]" />
-              {slide.badge}
+    <section className="px-4 py-6 md:py-8 text-[#f8f7f0]">
+      <div className="mx-auto max-w-6xl">
+        <div
+          className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#092719]/95 p-6 md:p-10 shadow-[0_22px_60px_rgba(0,0,0,.35)] min-h-[340px] md:min-h-[400px] flex flex-col justify-between"
+          onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
+          onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
+        >
+          {/* Background Decorative Blurs */}
+          <div className="absolute -right-10 -top-12 h-64 w-64 rounded-full bg-[#145c3a]/40 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 left-8 h-60 w-60 rounded-full bg-[#d6b64c]/10 blur-3xl pointer-events-none" />
+
+          {/* Main Content Layout */}
+          <div className="relative grid grid-cols-1 md:grid-cols-[1.25fr_0.75fr] items-center gap-6 z-10 flex-1">
+            <div className="py-2 md:py-4 flex flex-col justify-center items-start">
+              {/* Badge */}
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70">
+                <SlideIcon className="h-3.5 w-3.5 text-[#f0bd3a]" />
+                {slide.badge}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl md:text-5xl font-extrabold leading-[1.05] tracking-tight text-white max-w-xl font-serif" style={{ fontFamily: 'Merriweather, serif' }}>
+                {slide.title} <span className="text-[#f0bd3a] block mt-1">{slide.highlight}</span>
+              </h1>
+
+              {/* Description */}
+              <p className="mt-4 text-xs md:text-sm font-normal leading-relaxed text-white/70 max-w-md md:max-w-lg">
+                {slide.text}
+              </p>
+
+              {/* Action Button */}
+              <Link href={slide.href}>
+                <Button className="mt-6 h-11 md:h-12 rounded-xl bg-[#f0bd3a] px-6 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c] transition-all flex items-center gap-2">
+                  <Music className="h-4 w-4" />
+                  {slide.action}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <h1 className="text-[2.35rem] font-black leading-[0.98] tracking-normal text-white">
-              {slide.title} <span className="gold-gradient-text block">{slide.highlight}</span>
-            </h1>
-            <p className="mt-4 max-w-[13rem] text-[13px] font-medium leading-relaxed text-white/72">
-              {slide.text}
-            </p>
-            <Link href={slide.href}>
-              <Button className="mt-5 h-11 rounded-lg bg-[#f0bd3a] px-5 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c]">
-                {slide.action}
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
+
+            {/* Shield Logo container */}
+            <div className="absolute right-[-20px] md:right-0 top-1/2 -translate-y-1/2 md:relative md:top-auto md:translate-y-0 flex items-center justify-end pointer-events-none select-none">
+              <img
+                src={BRASAO_URL}
+                alt="Brasão PMAM"
+                className="w-48 h-48 md:w-[24rem] md:h-[24rem] object-contain opacity-[0.22] md:opacity-[0.25] drop-shadow-[0_24px_32px_rgba(0,0,0,.42)]"
+              />
+            </div>
           </div>
-          <div className="relative flex h-full items-center justify-end">
-            <div className="absolute right-0 top-8 h-36 w-36 rounded-full bg-[#f0bd3a]/12 blur-2xl" />
-            <img
-              src={BRASAO_URL}
-              alt="Brasão PMAM"
-              className="relative -mr-4 h-44 w-44 object-contain drop-shadow-[0_24px_32px_rgba(0,0,0,.42)]"
-            />
+
+          {/* Dots Indicator */}
+          <div className="mt-4 flex justify-center gap-2 z-10">
+            {heroSlides.map((item, index) => (
+              <button
+                key={item.badge}
+                type="button"
+                aria-label={`Ir para destaque ${index + 1}`}
+                onClick={() => goToSlide(index)}
+                className={`h-2 rounded-full transition-all ${activeSlide === index ? "w-6 bg-[#f0bd3a]" : "w-2 bg-white/30"}`}
+              />
+            ))}
           </div>
         </div>
-      </div>
-      <div className="mt-4 flex justify-center gap-2">
-        {heroSlides.map((item, index) => (
-          <button
-            key={item.badge}
-            type="button"
-            aria-label={`Ir para destaque ${index + 1}`}
-            onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all ${activeSlide === index ? "w-6 bg-[#f0bd3a]" : "w-2 bg-white/30"}`}
-          />
-        ))}
       </div>
     </section>
   );
@@ -322,67 +338,14 @@ export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
       <Navbar />
-      <MobileHero />
+      <HeroSection />
       <div className="md:hidden">
         <BlogFeed />
       </div>
       <QuickAccess />
       <MobileInstitutionalGuidelines />
-
-      {/* Desktop Hero Section */}
-      <section className="military-gradient relative hidden overflow-hidden md:block">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#c4a84b] rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#2d5a27] rounded-full blur-[150px]" />
-        </div>
-        <div className="container relative py-12 md:py-16">
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#c4a84b]/20 rounded-full blur-2xl" />
-              <img
-                src={BRASAO_URL}
-                alt="Brasao da PMAM"
-                className="relative w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center gap-10">
-            <div className="flex-1 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-6">
-                <Shield className="h-4 w-4 text-[#c4a84b]" />
-                <span className="text-sm text-white/80">Policia Militar do Amazonas</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight" style={{ fontFamily: 'Merriweather, serif' }}>
-                Hinos e Cancoes{" "}
-                <span className="gold-gradient-text">Militares</span>
-              </h1>
-              <p className="mt-6 text-lg text-white/70 max-w-xl leading-relaxed">
-                Preservando a tradicao, a honra e os valores da Policia Militar do Amazonas
-                atraves dos hinos e cancoes que formam a identidade da corporacao desde 1837.
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <Link href="/hinos">
-                  <Button size="lg" className="bg-[#c4a84b] hover:bg-[#b39740] text-[#1a1a1a] font-semibold gap-2 w-full sm:w-auto">
-                    <Music className="h-5 w-5" />
-                    Explorar Hinos
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/cfap-2026">
-                  <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 gap-2 w-full sm:w-auto bg-transparent">
-                    <Target className="h-5 w-5" />
-                    CFAP 2026
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="checkerboard-pattern w-full" />
-      </section>
 
       <div className="hidden md:block">
         <BlogFeed />

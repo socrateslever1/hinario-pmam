@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AlertCircle, Edit2, LogOut, Plus, Trash2, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
@@ -113,14 +113,7 @@ export default function Grades() {
   const [platoonRanking, setPlatoonRanking] = useState<RankingRow[]>([]);
   const [average, setAverage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState(emptyForm);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const utils = trpc.useUtils();
-  const createGradeMutation = trpc.grades.createStudentGrade.useMutation();
-  const updateGradeMutation = trpc.grades.updateStudentGrade.useMutation();
   const deleteGradeMutation = trpc.grades.deleteStudentGrade.useMutation();
 
   useEffect(() => {
@@ -164,97 +157,7 @@ export default function Grades() {
     }
   };
 
-  const resetForm = () => {
-    setFormData(emptyForm);
-    setEditingId(null);
-    setShowForm(false);
-  };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!studentId || isSubmitting) return;
-
-    const disciplineId = Number(formData.disciplineId);
-    if (!disciplineId) {
-      toast.error("Selecione uma disciplina");
-      return;
-    }
-
-    const grade1 = normalizeGradeInput(formData.grade1);
-    const grade2 = normalizeGradeInput(formData.grade2);
-
-    if (!validateGradeValue(grade1) || !validateGradeValue(grade2)) {
-      toast.error("Notas devem estar entre 0 e 10");
-      return;
-    }
-
-    if (grade1 === undefined && grade2 !== undefined) {
-      toast.error("Preencha a 1ª nota antes da 2ª");
-      return;
-    }
-
-    const grade = calculateEffectiveGrade(grade1, grade2);
-    const observation = buildGradeObservation(grade1, grade2, formData.observation);
-    
-    const session = getStudentSession();
-    if (!session) {
-      setLocation("/entrar");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      if (editingId) {
-        await updateGradeMutation.mutateAsync({
-          id: editingId,
-          studentId,
-          sessionToken: session.sessionToken,
-          disciplineId,
-          professorName: formData.professorName || undefined,
-          grade,
-          evaluationDate: formData.evaluationDate || null,
-          observation,
-        });
-        toast.success("Nota atualizada");
-      } else {
-        await createGradeMutation.mutateAsync({
-          studentId,
-          sessionToken: session.sessionToken,
-          disciplineId,
-          professorName: formData.professorName || undefined,
-          grade,
-          evaluationDate: formData.evaluationDate || undefined,
-          observation,
-        });
-        toast.success("Nota lançada");
-      }
-
-      resetForm();
-      await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar nota");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEdit = (entry: StudentGradeEntry) => {
-    const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
-    setFormData({
-      disciplineId: String(entry.disciplineId),
-      professorName: entry.professorName || "",
-      grade1: parsedObservation.grade1,
-      grade2: parsedObservation.grade2,
-      evaluationDate: entry.evaluationDate ? String(entry.evaluationDate).slice(0, 10) : "",
-      observation: parsedObservation.observation,
-    });
-    setEditingId(entry.id);
-    setShowForm(true);
-    toast.info("Atualize a nota");
-    setTimeout(() => {
-      document.getElementById("form-section")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
 
   const handleDelete = async (id: number) => {
     if (!studentId || !confirm("Tem certeza que deseja deletar esta nota?")) return;
@@ -385,7 +288,7 @@ export default function Grades() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
       <Navbar />
       <main className="px-4 py-6 md:p-8">
       <div className="mx-auto max-w-6xl">
@@ -429,106 +332,7 @@ export default function Grades() {
           </Card>
         </div>
 
-        {showForm ? (
-          <Card id="form-section" className="mb-8 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
-            <CardHeader>
-              <CardTitle>{editingId ? "Editar nota" : "Lançar nota"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="discipline">Disciplina</Label>
-                  <select
-                    id="discipline"
-                    value={formData.disciplineId}
-                    onChange={(event) =>
-                      setFormData({ ...formData, disciplineId: event.target.value })
-                    }
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    required
-                  >
-                    <option value="">Selecione uma disciplina</option>
-                    {disciplines.map((discipline) => (
-                      <option key={discipline.id} value={discipline.id}>
-                        {discipline.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="professor">Professor</Label>
-                  <Input
-                    id="professor"
-                    value={formData.professorName}
-                    onChange={(event) =>
-                      setFormData({ ...formData, professorName: event.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="grade1">1ª nota (0-10)</Label>
-                  <Input
-                    id="grade1"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Ex: 9.5 ou 9,5"
-                    value={formData.grade1}
-                    onChange={(event) => {
-                      const value = event.target.value.replace(',', '.');
-                      setFormData({ ...formData, grade1: value });
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="grade2">2ª nota (opcional)</Label>
-                  <Input
-                    id="grade2"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Use se houver 2ª prova"
-                    value={formData.grade2}
-                    onChange={(event) => {
-                      const value = event.target.value.replace(',', '.');
-                      setFormData({ ...formData, grade2: value });
-                    }}
-                  />
-                  <p className="text-xs text-white/60 md:text-muted-foreground">
-                    Com duas notas, vale a média da disciplina. Com uma, vale a nota lançada.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Data</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.evaluationDate}
-                    onChange={(event) =>
-                      setFormData({ ...formData, evaluationDate: event.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="observation">Observação</Label>
-                  <Textarea
-                    id="observation"
-                    value={formData.observation}
-                    onChange={(event) =>
-                      setFormData({ ...formData, observation: event.target.value })
-                    }
-                  />
-                </div>
-                <div className="flex gap-2 md:col-span-2">
-                  <Button type="submit" className="bg-[#1a3a2a] hover:bg-[#214936]" disabled={isSubmitting}>
-                    {isSubmitting ? (editingId ? "Atualizando..." : "Salvando...") : (editingId ? "Atualizar" : "Salvar")}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        ) : null}
+
 
         {disciplines.length === 0 && (
           <Card className="mb-6 border-amber-200 bg-amber-50">
@@ -591,8 +395,8 @@ export default function Grades() {
                         return parsedObservation.observation ? <p className="mt-2 text-sm">{parsedObservation.observation}</p> : null;
                       })()}
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(entry)} className="gap-1">
+                     <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setLocation('/lançar-notas')} className="gap-1">
                         <Edit2 className="h-4 w-4" />
                         Editar
                       </Button>

@@ -17,7 +17,9 @@ async function getPool() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      ssl: {} as any,
+      ssl: {
+        rejectUnauthorized: true,
+      },
     });
   }
   return connectionPool;

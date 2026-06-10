@@ -213,7 +213,7 @@ export default function GradesManagement() {
           id: editingId,
           studentId,
           grade: gradeValue,
-          professorName: formData.professorName || undefined,
+          professorName: formData.professorName,
           evaluationDate: formData.evaluationDate || undefined,
           observation,
           sessionToken: session.sessionToken,
@@ -225,7 +225,7 @@ export default function GradesManagement() {
           studentId,
           disciplineId: editingDisciplineId,
           grade: gradeValue,
-          professorName: formData.professorName || undefined,
+          professorName: formData.professorName,
           evaluationDate: formData.evaluationDate || undefined,
           observation,
           sessionToken: session.sessionToken,
@@ -291,7 +291,7 @@ export default function GradesManagement() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
       <Navbar />
       <main className="px-4 py-6 md:p-8 md:pb-8">
         <div className="mx-auto max-w-4xl">
@@ -374,13 +374,11 @@ export default function GradesManagement() {
                           <Label htmlFor={`grade1-${discipline.id}`} className="text-white md:text-foreground">1ª nota (0-10)</Label>
                           <Input
                             id={`grade1-${discipline.id}`}
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="10"
-                            placeholder="Ex: 9.5"
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="Ex: 9.5 ou 9,5"
                             value={formData.grade1}
-                            onChange={(e) => setFormData({ ...formData, grade1: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, grade1: e.target.value.replace(',', '.') })}
                             className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           />
                         </div>
@@ -388,13 +386,11 @@ export default function GradesManagement() {
                           <Label htmlFor={`grade2-${discipline.id}`} className="text-white md:text-foreground">2ª nota (opcional)</Label>
                           <Input
                             id={`grade2-${discipline.id}`}
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="10"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Se houver 2ª prova"
                             value={formData.grade2}
-                            onChange={(e) => setFormData({ ...formData, grade2: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, grade2: e.target.value.replace(',', '.') })}
                             className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
                           />
                         </div>
