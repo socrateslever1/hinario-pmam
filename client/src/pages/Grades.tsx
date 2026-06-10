@@ -364,25 +364,25 @@ export default function Grades() {
                     <div>
                       <h3 className="text-lg font-bold text-white md:text-[#1a3a2a]">{entry.disciplineName}</h3>
                       {entry.professorName && (
-                        <p className="text-sm text-white/65 md:text-muted-foreground">Professor: {entry.professorName}</p>
+                        <p className="text-sm text-white/85 font-semibold md:text-muted-foreground">Professor: {entry.professorName}</p>
                       )}
                       <p className="mt-2 text-sm">
-                        Nota da disciplina:{" "}
-                        <span className={(() => {
-                          const grade = Number(entry.grade || 0);
-                          if (grade < 6) return "font-semibold text-red-600 md:text-red-700";
-                          if (grade <= 8) return "font-semibold text-green-600 md:text-green-700";
-                          return "font-semibold text-blue-600 md:text-blue-700";
-                        })()}>
-                          {entry.grade ?? "-"}
-                        </span>
+                       Nota da disciplina:{" "}
+                         <span className={(() => {
+                           const grade = Number(entry.grade || 0);
+                           if (grade < 6) return "font-bold text-red-500 md:text-red-700";
+                           if (grade <= 8) return "font-bold text-green-500 md:text-green-700";
+                           return "font-bold text-blue-500 md:text-blue-700";
+                         })()}>
+                           {entry.grade ?? "-"}
+                         </span>
                       </p>
                       {(() => {
                         const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
                         return parsedObservation.grade2 ? (
-                          <p className="text-sm text-white/65 md:text-muted-foreground">
-                            Provas: {parsedObservation.grade1 || "-"} e {parsedObservation.grade2}
-                          </p>
+                         <p className="text-sm text-white/85 font-semibold md:text-muted-foreground">
+                             Provas: {parsedObservation.grade1 || "-"} e {parsedObservation.grade2}
+                           </p>
                         ) : null;
                       })()}
                       {entry.evaluationDate && (
