@@ -97,10 +97,10 @@ export default function DrillDetail() {
   const youtubeExecutionId = extractYouTubeId(drill.youtubeUrl);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
-      <section className="military-gradient py-12">
+      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
             {drill.category && <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{drill.category}</Badge>}
@@ -137,13 +137,13 @@ export default function DrillDetail() {
             </Link>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="py-10">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-border/60">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
               <CardContent className="flex items-center gap-4 p-5">
                 <PlayCircle className="h-10 w-10 text-[#1a3a2a]" />
                 <div>

@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
+const BRASAO_URL = "/logo/pmam-logo.png";
 const PMAM_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
 const CFAP_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
 
@@ -344,11 +344,11 @@ export default function Documents() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="military-gradient py-8 md:py-12 relative overflow-hidden print:hidden">
+      <section className="mobile-military-bg relative overflow-hidden px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#c4a84b] rounded-full blur-[100px]" />
         </div>
@@ -367,12 +367,12 @@ export default function Documents() {
       </section>
 
       {/* Main Panel */}
-      <main className="flex-1 container py-8 print:p-0 print:m-0">
+      <main className="container flex-1 px-4 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
           
           {/* Form Side */}
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
-            <Card className="border-border/50 shadow-md bg-white">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a]">Tipo de Documento</label>
@@ -414,7 +414,7 @@ export default function Documents() {
             </Card>
 
             {/* Downloads Section */}
-            <Card className="border-border/50 shadow-md bg-white">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-2 border-b pb-3">
                   <Download className="h-5 w-5 text-[#c4a84b]" />
@@ -484,7 +484,7 @@ export default function Documents() {
             </Card>
 
             {/* Inputs Editor */}
-            <Card className="border-border/50 shadow-md bg-white flex-1">
+            <Card className="flex-1 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
               <CardContent className="p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b pb-3">
                   <h3 className="font-bold text-[#1a3a2a] text-base" style={{ fontFamily: "Inter, sans-serif" }}>

@@ -48,7 +48,7 @@ export default function BlogFeed() {
           <div className="flex min-w-min gap-3 md:gap-6">
             {posts.map((post) => (
               <div key={post.id} className="w-[21rem] flex-shrink-0 md:w-80">
-                <Card className="h-full overflow-hidden rounded-[1.4rem] border-white/10 bg-[#0b3323]/78 shadow-lg shadow-black/18 transition-all duration-300 hover:border-[#c4a84b]/50 hover:shadow-md md:rounded-lg md:border-border/50 md:bg-white md:shadow-sm">
+                <Card className="h-full overflow-hidden rounded-lg border-white/10 bg-[#0b3323]/78 shadow-lg shadow-black/18 transition-all duration-300 hover:border-[#c4a84b]/50 hover:shadow-md md:rounded-lg md:border-border/50 md:bg-white md:shadow-sm">
                   <div className="flex md:block">
                     <div className="h-auto w-28 shrink-0 overflow-hidden bg-[#145c3a] md:h-48 md:w-full">
                       {post.imageUrl ? (
@@ -87,7 +87,7 @@ export default function BlogFeed() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 rounded-full border-[#c4a84b]/30 bg-transparent px-3 text-xs font-black text-[#f0bd3a] hover:bg-[#c4a84b]/10 md:h-9 md:w-full md:text-[#c4a84b]"
+                          className="h-8 rounded-lg border-[#c4a84b]/30 bg-transparent px-3 text-xs font-black text-[#f0bd3a] hover:bg-[#c4a84b]/10 md:h-9 md:w-full md:text-[#c4a84b]"
                         >
                           Ler Mais
                           <ChevronRight className="ml-1 h-3.5 w-3.5 md:h-4 md:w-4" />

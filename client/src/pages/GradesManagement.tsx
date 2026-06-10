@@ -210,9 +210,9 @@ export default function GradesManagement() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f2e8]">
+      <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
         <Navbar />
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-white md:text-foreground">
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#1a3a2a]" />
             <p>Carregando disciplinas...</p>
@@ -223,14 +223,14 @@ export default function GradesManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
       <Navbar />
-      <main className="p-4 md:p-8 pb-24 md:pb-8">
+      <main className="px-4 py-6 md:p-8 md:pb-8">
         <div className="mx-auto max-w-4xl">
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-6 flex flex-col gap-4 rounded-[1.75rem] border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-xl shadow-black/15 sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none">
             <div>
-              <h1 className="text-3xl font-bold text-[#1a3a2a]">Lançar Notas</h1>
-              <p className="text-sm text-muted-foreground">{studentName}</p>
+              <h1 className="text-3xl font-bold text-white md:text-[#1a3a2a]">Lançar Notas</h1>
+              <p className="text-sm text-white/70 md:text-muted-foreground">{studentName}</p>
             </div>
             <Button variant="outline" onClick={handleLogout} className="gap-2 self-start sm:self-auto">
               <LogOut className="h-4 w-4" />
@@ -376,7 +376,7 @@ export default function GradesManagement() {
           </div>
 
           {disciplines.length === 0 && (
-            <Card className="border-[#c4a84b]/30">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">Nenhuma disciplina disponível</p>
               </CardContent>

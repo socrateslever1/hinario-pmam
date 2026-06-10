@@ -3,17 +3,18 @@ import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, BookOpen, Music, Target, Star, Award } from "lucide-react";
 
-const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
+const BRASAO_URL = "/logo/pmam-logo.png";
 
 export default function About() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
       {/* Header */}
-      <section className="military-gradient py-12">
+      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
-          <BookOpen className="h-10 w-10 text-[#c4a84b] mx-auto mb-3" />
+          <img src={BRASAO_URL} alt="Brasão PMAM" className="mx-auto mb-3 h-16 w-16 object-contain drop-shadow-xl md:h-20 md:w-20" />
+          <BookOpen className="h-10 w-10 text-[#c4a84b] mx-auto mb-3 hidden md:block" />
           <h1 className="text-3xl md:text-4xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
             Sobre o Hinário
           </h1>
@@ -21,32 +22,32 @@ export default function About() {
             Conheça a história e a importância dos hinos e canções da Polícia Militar do Amazonas
           </p>
         </div>
-        <div className="checkerboard-pattern w-full mt-8" />
+        <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="py-12 bg-background">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-12">
         <div className="container max-w-4xl">
           {/* Main Content */}
-          <div className="flex flex-col md:flex-row gap-8 items-start mb-12">
+          <div className="glass-card flex flex-col gap-6 rounded-[1.75rem] p-5 text-white md:mb-12 md:flex-row md:items-start md:gap-8 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none md:backdrop-blur-0">
             <div className="flex-shrink-0 mx-auto md:mx-0">
               <img src={BRASAO_URL} alt="Brasão PMAM" className="w-40 h-40 object-contain" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-4" style={{ fontFamily: 'Merriweather, serif' }}>
+              <h2 className="text-2xl font-bold text-white md:text-foreground mb-4" style={{ fontFamily: 'Merriweather, serif' }}>
                 Hinário da PMAM — CFAP e APM
               </h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-white/72 md:text-muted-foreground leading-relaxed mb-4">
                 O Hinário da Polícia Militar do Amazonas é uma coletânea que reúne os hinos nacionais,
                 canções militares, canções da corporação, canções de armas e orações que fazem parte
                 da formação e do cotidiano dos Alunos Soldados e Alunos Oficiais.
               </p>
-              <p className="text-muted-foreground leading-relaxed mb-4">
+              <p className="text-white/72 md:text-muted-foreground leading-relaxed mb-4">
                 Cada composição presente neste hinário carrega consigo valores fundamentais como
                 honra, disciplina, patriotismo, coragem e comprometimento com a defesa da sociedade.
                 A entoação destes hinos fortalece a identidade militar e o senso de pertencimento
                 à corporação.
               </p>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-white/72 md:text-muted-foreground leading-relaxed">
                 Este material foi desenvolvido para uso no Centro de Formação e Aperfeiçoamento
                 de Praças (CFAP) e na Academia de Polícia Militar (APM) Neper Alencar, servindo
                 como instrumento de formação e preservação das tradições militares.

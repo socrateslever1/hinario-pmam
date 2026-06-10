@@ -105,11 +105,11 @@ export default function HymnDetail() {
   const youtubeId = hymn.youtubeUrl ? extractYouTubeId(hymn.youtubeUrl) : null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
       {/* Header */}
-      <section className="military-gradient py-10">
+      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-10">
         <div className="container">
           <Link href={catalogHref}>
             <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 gap-2 mb-4">
@@ -148,10 +148,10 @@ export default function HymnDetail() {
             </div>
           </div>
         </div>
-        <div className="checkerboard-pattern w-full mt-8" />
+        <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="py-10 bg-background">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content - Lyrics & Player */}

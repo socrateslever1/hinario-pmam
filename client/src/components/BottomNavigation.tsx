@@ -1,6 +1,19 @@
-import { BookOpen, FileText, Home, ListMusic, LogOut, MoreHorizontal, Music, User } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  Home,
+  Info,
+  ListMusic,
+  LogOut,
+  MoreHorizontal,
+  Music,
+  Shield,
+  User,
+  Target,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 
 export const notifySessionChange = () => {
@@ -12,6 +25,7 @@ export const notifySessionChange = () => {
 export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [isStudent, setIsStudent] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const session = getStudentSession();
@@ -35,14 +49,25 @@ export default function BottomNavigation() {
   const navItems = [
     { icon: Home, label: "Início", path: "/" },
     { icon: Music, label: "Hinos", path: "/hinos" },
-    { icon: ListMusic, label: "Charlie", path: "/charlie-mike" },
     { icon: BookOpen, label: "Estudos", path: "/estudos" },
-    { icon: FileText, label: "Notas", path: isStudent ? "/lançar-notas" : "/entrar" },
-    { icon: User, label: "Perfil", path: isStudent ? "/perfil-aluno" : "/entrar" },
-    { icon: MoreHorizontal, label: "Mais", path: "/sobre" },
+    { icon: FileText, label: "Notas", path: isStudent ? "/notas-do-curso" : "/entrar" },
+    { icon: MoreHorizontal, label: "Mais", path: "__more" },
+  ];
+
+  const moreItems = [
+    { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
+    { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
+    { icon: Target, label: "Ordem Unida", path: "/drill" },
+    { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
+    { icon: FileText, label: "Documentos", path: "/documentos" },
+    { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
+    { icon: Shield, label: "Área do Xerife", path: "/xerife" },
   ];
 
   const isActive = (path: string) => {
+    if (path === "__more") {
+      return moreItems.some((item) => location === item.path || location.startsWith(`${item.path}/`));
+    }
     if (path === "/") return location === "/";
     if (path === "/entrar") {
       return location.startsWith("/entrar") || location.startsWith("/notas-do-curso") || location.startsWith("/perfil-aluno");
@@ -50,49 +75,88 @@ export default function BottomNavigation() {
     return location === path || location.startsWith(`${path}/`);
   };
 
+  const goTo = (path: string) => {
+    setLocation(path);
+    setMoreOpen(false);
+  };
+
   const handleLogout = () => {
     clearStudentSession();
     notifySessionChange();
+    setMoreOpen(false);
     setLocation("/entrar");
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
-      <div className="bottom-nav-glass mx-auto flex max-w-md items-center gap-1 overflow-x-auto rounded-[2rem] px-2 py-2.5">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          return (
-            <button
-              key={`${item.label}-${item.path}`}
-              onClick={() => setLocation(item.path)}
-              className={`flex min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[10px] font-black transition-all ${
-                active
-                  ? "bg-[#145c3a] text-[#f0bd3a] shadow-lg shadow-black/25"
-                  : "text-white/65 hover:bg-white/8 hover:text-white"
-              }`}
-              title={item.label}
-            >
-              <span className={`flex h-7 w-7 items-center justify-center rounded-full ${active ? "bg-[#062417]/70" : ""}`}>
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="leading-none">{item.label}</span>
-            </button>
-          );
-        })}
-        {isStudent && (
-          <button
-            onClick={handleLogout}
-            className="flex min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[10px] font-black text-red-300 transition-all hover:bg-red-500/10"
-            title="Sair"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full">
-              <LogOut className="h-4 w-4" />
-            </span>
-            <span className="leading-none">Sair</span>
-          </button>
-        )}
-      </div>
-    </nav>
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
+        <div className="bottom-nav-glass mx-auto flex max-w-md items-center justify-around gap-1 rounded-2xl px-2 py-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <button
+                key={`${item.label}-${item.path}`}
+                onClick={() => (item.path === "__more" ? setMoreOpen(true) : goTo(item.path))}
+                className={`relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[9px] font-black transition-all duration-300 ${
+                  active
+                    ? "text-[#f0bd3a] scale-105"
+                    : "text-white/60 hover:text-white"
+                }`}
+                title={item.label}
+              >
+                <Icon className={`h-5 w-5 transition-transform duration-300 ${active ? "stroke-[2.5]" : "stroke-[2]"}`} />
+                <span className="leading-none mt-0.5">{item.label}</span>
+                {active && (
+                  <span className="absolute -bottom-0.5 h-1 w-1.5 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-w-md rounded-t-2xl border-white/10 bg-[#062417]/85 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 text-white backdrop-blur-xl md:hidden animate-in fade-in-50 slide-in-from-bottom-10 duration-300"
+        >
+          <SheetHeader className="px-1 pb-2 pt-2 text-left border-b border-white/5">
+            <SheetTitle className="text-white font-black text-lg">Mais Opções</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-2 gap-2.5 py-4 max-h-[60vh] overflow-y-auto pr-1">
+            {moreItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => goTo(item.path)}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-center text-xs font-bold transition-all duration-300 ${
+                    active
+                      ? "border-[#f0bd3a]/40 bg-[#145c3a]/50 text-[#f0bd3a] shadow-lg shadow-[#145c3a]/20"
+                      : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#0b3323] text-[#f0bd3a]" : "bg-white/5 text-white/70"}`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="leading-tight">{item.label}</span>
+                </button>
+              );
+            })}
+            {isStudent && (
+              <button
+                onClick={handleLogout}
+                className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-3.5 text-center text-xs font-bold text-red-200 hover:bg-red-500/20 transition-all duration-300 mt-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair da sessão do aluno
+              </button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

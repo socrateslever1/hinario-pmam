@@ -36,10 +36,10 @@ export default function EducationCenter() {
 
   return (
     <StudyAuthGuard>
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
         <Navbar />
 
-      <section className="military-gradient relative overflow-hidden py-12 md:py-16">
+      <section className="mobile-military-bg relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-16">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />
@@ -92,23 +92,23 @@ export default function EducationCenter() {
             </Card>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="py-10 md:py-12">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-12">
         <div className="container space-y-6">
-          <Card className="border-border/60">
+          <Card className="glass-card rounded-[1.75rem] text-white md:rounded-xl md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
             <CardContent className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_320px] md:items-center">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55 md:text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Buscar por nome do documento, tema ou arquivo"
-                  className="pl-9"
+                  className="border-white/10 bg-white/10 pl-9 text-white placeholder:text-white/45 md:bg-background md:text-foreground md:placeholder:text-muted-foreground"
                 />
               </div>
-              <div className="rounded-2xl border bg-[#1a3a2a]/5 px-4 py-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm text-white/68 md:bg-[#1a3a2a]/5 md:text-muted-foreground">
                 <p className="font-semibold text-[#1a3a2a]">Biblioteca dinâmica</p>
                 <p className="mt-1">
                   A base agora está preparada para receber mais leis, apostilas e regulamentos com PDF, imagem de capa e links complementares.
@@ -121,7 +121,7 @@ export default function EducationCenter() {
             <div className="space-y-10">
               {/* Seção de Manuais */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b pb-2">
+                <div className="flex items-center gap-2 border-b border-white/10 pb-2 text-white md:border-border md:text-foreground">
                   <ShieldCheck className="h-5 w-5 text-[#c4a84b]" />
                   <h2 className="text-xl font-bold" style={{ fontFamily: "Merriweather, serif" }}>Manuais de Formação</h2>
                 </div>
@@ -130,7 +130,7 @@ export default function EducationCenter() {
                     <p className="text-sm text-muted-foreground italic">Nenhum manual encontrado.</p>
                   ) : (
                     filteredMaterials.filter(m => m.category === "manual").map((item) => (
-                      <Card key={item.slug} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
+                      <Card key={item.slug} className="h-full border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 transition-colors hover:border-[#c4a84b]/50 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
                         <CardHeader className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className="bg-[#1a3a2a] text-white">{item.shortTitle}</Badge>
@@ -138,10 +138,10 @@ export default function EducationCenter() {
                             <Badge variant="outline">{difficultyLabel(item.difficulty)}</Badge>
                           </div>
                           <div>
-                            <CardTitle className="text-xl text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                            <CardTitle className="text-xl text-white md:text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
                               {item.title}
                             </CardTitle>
-                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">{item.description}</p>
+                            <p className="mt-2 text-sm leading-relaxed text-white/65 line-clamp-2 md:text-muted-foreground">{item.description}</p>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -162,7 +162,7 @@ export default function EducationCenter() {
 
               {/* Seção de Regulamentos */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b pb-2">
+                <div className="flex items-center gap-2 border-b border-white/10 pb-2 text-white md:border-border md:text-foreground">
                   <BookOpenCheck className="h-5 w-5 text-[#c4a84b]" />
                   <h2 className="text-xl font-bold" style={{ fontFamily: "Merriweather, serif" }}>Leis e Regulamentos</h2>
                 </div>
@@ -171,7 +171,7 @@ export default function EducationCenter() {
                     <p className="text-sm text-muted-foreground italic">Nenhum regulamento encontrado.</p>
                   ) : (
                     filteredMaterials.filter(m => m.category === "regulamento").map((item) => (
-                      <Card key={item.slug} className="h-full border-border/60 transition-colors hover:border-[#c4a84b]/50">
+                      <Card key={item.slug} className="h-full border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 transition-colors hover:border-[#c4a84b]/50 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
                         <CardHeader className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className="bg-slate-700 text-white">{item.shortTitle}</Badge>
@@ -179,10 +179,10 @@ export default function EducationCenter() {
                             <Badge variant="outline">{difficultyLabel(item.difficulty)}</Badge>
                           </div>
                           <div>
-                            <CardTitle className="text-xl text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+                            <CardTitle className="text-xl text-white md:text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
                               {item.title}
                             </CardTitle>
-                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">{item.description}</p>
+                            <p className="mt-2 text-sm leading-relaxed text-white/65 line-clamp-2 md:text-muted-foreground">{item.description}</p>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -202,14 +202,14 @@ export default function EducationCenter() {
               </div>
             </div>
 
-            <Card className="h-fit border-[#c4a84b]/40 bg-[#c4a84b]/5">
+            <Card className="h-fit border-[#c4a84b]/40 bg-[#c4a84b]/10 text-white md:bg-[#c4a84b]/5 md:text-foreground">
               <CardHeader>
-                <div className="flex items-center gap-2 text-[#1a3a2a]">
+                <div className="flex items-center gap-2 text-[#f0bd3a] md:text-[#1a3a2a]">
                   <UploadCloud className="h-5 w-5" />
                   <CardTitle style={{ fontFamily: "Merriweather, serif" }}>Estrutura pronta para upload</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <CardContent className="space-y-4 text-sm text-white/70 md:text-muted-foreground">
                 <p>
                   A área foi preparada para funcionar como acervo. O próximo lote pode receber leis, normas internas, apostilas e PDFs extras.
                 </p>

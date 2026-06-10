@@ -868,7 +868,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -882,10 +882,10 @@ export default function Admin() {
 
   if (!isAdminOrMaster) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4">
+          <Card className="max-w-md w-full mx-4 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:bg-white md:text-foreground">
             <CardContent className="p-8 text-center">
               <Star className="h-16 w-16 text-[#c4a84b] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -916,10 +916,10 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
-      <section className="military-gradient py-8">
+      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -936,14 +936,14 @@ export default function Admin() {
             </Button>
           </div>
         </div>
-        <div className="checkerboard-pattern w-full mt-6" />
+        <div className="checkerboard-pattern w-full mt-6 hidden md:block" />
       </section>
 
-      <section className="py-8 bg-background">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-            <Card className="border-border/50 text-[#1a3cb4]">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-[#1a3cb4] md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center">
                   <Music className="h-6 w-6 text-[#1a3a2a]" />
@@ -954,7 +954,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
                   <Shield className="h-6 w-6 text-[#c4a84b]" />
@@ -965,7 +965,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-[#c4a84b]" />
@@ -976,7 +976,7 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50">
+            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-none">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#1a2744]/10 flex items-center justify-center">
                   <Users className="h-6 w-6 text-[#1a2744]" />

@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import BlogFeed from "@/components/BlogFeed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Link } from "wouter";
 import {
   Award,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
+const BRASAO_URL = "/logo/pmam-logo.png";
 
 const categories = [
   { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da patria e do estado" },
@@ -50,59 +51,81 @@ const categoryLabels: Record<string, string> = {
   oracao: "Oracao",
 };
 
-function MobileHomeHeader() {
-  return (
-    <header className="md:hidden sticky top-0 z-40 bg-[#062417]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-[#f8f7f0] backdrop-blur-xl">
-      <div className="flex items-center justify-between">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
-          <img src={BRASAO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow-lg" />
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#f8f7f0]">
-              HINÁRIO PMAM
-            </p>
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
-              Polícia Militar do Amazonas
-            </p>
-          </div>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link href="/hinos" aria-label="Buscar hinos">
-            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
-              <Search className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/cfap-2026" aria-label="Notificacoes">
-            <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
-              <Bell className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
+const heroSlides = [
+  {
+    badge: "Desde 1837",
+    title: "Hinos e Canções",
+    highlight: "Militares",
+    text: "Preservando a tradição, a honra e os valores da Polícia Militar do Amazonas através dos hinos e canções que formam a identidade da corporação desde 1837.",
+    href: "/hinos",
+    action: "Explorar Hinos",
+    icon: Shield,
+  },
+  {
+    badge: "Formação CFAP",
+    title: "Tradição que",
+    highlight: "Forma",
+    text: "Conteúdos, comunicados e orientações para fortalecer a disciplina, o pertencimento e a rotina dos alunos em formação.",
+    href: "/cfap-2026",
+    action: "Ver Comunicados",
+    icon: Target,
+  },
+  {
+    badge: "Estudo e Mérito",
+    title: "Canções, Notas",
+    highlight: "e Estudos",
+    text: "Acesse hinos, Charlie Mike, biblioteca de estudos, notas do curso e materiais de consulta em uma experiência mobile unificada.",
+    href: "/estudos",
+    action: "Abrir Estudos",
+    icon: BookOpen,
+  },
+];
+
+
 
 function MobileHero() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const slide = heroSlides[activeSlide];
+  const SlideIcon = slide.icon;
+
+  const goToSlide = (index: number) => {
+    setActiveSlide((index + heroSlides.length) % heroSlides.length);
+  };
+
+  const handleTouchEnd = (clientX: number) => {
+    if (touchStartX === null) return;
+    const delta = touchStartX - clientX;
+    if (Math.abs(delta) > 42) {
+      goToSlide(activeSlide + (delta > 0 ? 1 : -1));
+    }
+    setTouchStartX(null);
+  };
+
   return (
     <section className="md:hidden mobile-military-bg px-4 pb-5 pt-2 text-[#f8f7f0]">
-      <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[#0b3323]/72 p-5 shadow-[0_22px_60px_rgba(0,0,0,.35)]">
+      <div
+        className="relative overflow-hidden rounded-xl border border-white/12 bg-[#0b3323]/72 p-5 shadow-[0_22px_60px_rgba(0,0,0,.35)]"
+        onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
+        onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
+      >
         <div className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-[#145c3a]/60 blur-3xl" />
         <div className="absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-[#d6b64c]/15 blur-3xl" />
         <div className="relative grid min-h-[290px] grid-cols-[1.05fr_.95fr] items-center gap-1">
           <div className="z-10 py-3">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-              <Shield className="h-3.5 w-3.5 text-[#f0bd3a]" />
-              Desde 1837
+              <SlideIcon className="h-3.5 w-3.5 text-[#f0bd3a]" />
+              {slide.badge}
             </div>
             <h1 className="text-[2.35rem] font-black leading-[0.98] tracking-normal text-white">
-              Hinos e Canções <span className="gold-gradient-text block">Militares</span>
+              {slide.title} <span className="gold-gradient-text block">{slide.highlight}</span>
             </h1>
             <p className="mt-4 max-w-[13rem] text-[13px] font-medium leading-relaxed text-white/72">
-              Preservando a tradição, a honra e os valores da Polícia Militar do Amazonas através dos hinos e canções que formam a identidade da corporação desde 1837.
+              {slide.text}
             </p>
-            <Link href="/hinos">
-              <Button className="mt-5 h-11 rounded-full bg-[#f0bd3a] px-5 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c]">
-                Explorar Hinos
+            <Link href={slide.href}>
+              <Button className="mt-5 h-11 rounded-lg bg-[#f0bd3a] px-5 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c]">
+                {slide.action}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
@@ -118,9 +141,15 @@ function MobileHero() {
         </div>
       </div>
       <div className="mt-4 flex justify-center gap-2">
-        <span className="h-2 w-6 rounded-full bg-[#f0bd3a]" />
-        <span className="h-2 w-2 rounded-full bg-white/30" />
-        <span className="h-2 w-2 rounded-full bg-white/30" />
+        {heroSlides.map((item, index) => (
+          <button
+            key={item.badge}
+            type="button"
+            aria-label={`Ir para destaque ${index + 1}`}
+            onClick={() => goToSlide(index)}
+            className={`h-2 rounded-full transition-all ${activeSlide === index ? "w-6 bg-[#f0bd3a]" : "w-2 bg-white/30"}`}
+          />
+        ))}
       </div>
     </section>
   );
@@ -139,8 +168,8 @@ function QuickAccess() {
         <div className="flex min-w-min gap-3">
           {quickAccessItems.map((item) => (
             <Link key={item.label} href={item.href}>
-              <div className="glass-card h-36 w-36 shrink-0 rounded-[1.5rem] p-4">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#145c3a] text-[#f0bd3a] shadow-inner">
+              <div className="glass-card h-36 w-36 shrink-0 rounded-lg p-4">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#145c3a] text-[#f0bd3a] shadow-inner">
                   <item.icon className="h-5 w-5" />
                 </div>
                 <p className="text-3xl font-black leading-none text-white">{item.value}</p>
@@ -150,6 +179,99 @@ function QuickAccess() {
             </Link>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+const institutionalGuidelines = [
+  {
+    icon: Target,
+    title: "Missão",
+    text: "Preservar a Ordem Pública e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelência.",
+  },
+  {
+    icon: Eye,
+    title: "Visão",
+    text: "Ser referência nacional como Instituição de preservação da Ordem Pública e do Meio Ambiente.",
+  },
+  {
+    icon: Award,
+    title: "Princípios",
+    text: "Hierarquia, Disciplina e Eficácia.",
+  },
+  {
+    icon: HeartHandshake,
+    title: "Valores",
+    text: "Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justiça, Aprimoramento, Verdade e Espírito de preservação do meio ambiente.",
+  },
+  {
+    icon: Shield,
+    title: "Compromisso de Honra",
+    text: `Ao ingressar!
+na Polícia Militar do Amazonas!
+Prometo!
+regular a minha conduta!
+pelos preceitos da moral!
+Cumprir!
+rigorosamente as ordens!
+das autoridades!
+a que estiver subordinado!
+E dedicar-me!
+inteiramente ao serviço policial militar!
+à manutenção da ordem pública!
+e à segurança da comunidade!
+Mesmo!
+com o risco da própria vida!`,
+  },
+];
+
+function MobileInstitutionalGuidelines() {
+  const oath = institutionalGuidelines.find((item) => item.title === "Compromisso de Honra");
+  const guidelines = institutionalGuidelines.filter((item) => item.title !== "Compromisso de Honra");
+
+  return (
+    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
+      <div className="mb-3">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/62">
+          <Star className="h-3.5 w-3.5 text-[#f0bd3a]" />
+          Identidade PMAM
+        </div>
+        <h2 className="mt-3 text-xl font-black tracking-normal">Valores da Corporação</h2>
+      </div>
+
+      {oath && (
+        <article className="rounded-xl border border-[#f0bd3a]/25 bg-[#0b3323]/82 p-4 shadow-[0_18px_40px_rgba(0,0,0,.22)]">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f0bd3a] text-[#062417]">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/52">Polícia Militar do Amazonas</p>
+              <h3 className="text-base font-black text-[#f0bd3a]">Compromisso de Honra</h3>
+            </div>
+          </div>
+          <p className="whitespace-pre-line text-center text-[13px] font-semibold leading-[1.55] text-white/78">
+            &quot;{oath.text}&quot;
+          </p>
+        </article>
+      )}
+
+      <div className="mt-3 divide-y divide-white/10 rounded-xl border border-white/10 bg-white/[0.045]">
+        {guidelines.map((item) => {
+          const Icon = item.icon;
+          return (
+            <article key={item.title} className="flex gap-3 p-4">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#145c3a] text-[#f0bd3a]">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[#f0bd3a]">{item.title}</h3>
+                <p className="mt-1 text-[13px] font-medium leading-relaxed text-white/68">{item.text}</p>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -173,8 +295,8 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
           { id: 13, number: 13, title: "Canção do CFAP", category: "militar" },
         ]).map((hymn: any) => (
           <Link key={hymn.id} href={`/hino/${hymn.id}`}>
-            <div className="flex items-center gap-3 rounded-[1.4rem] border border-white/10 bg-[#0b3323]/78 p-3 shadow-lg shadow-black/18">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#145c3a] to-[#062417] text-sm font-black text-[#f0bd3a]">
+            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-[#0b3323]/78 p-3 shadow-lg shadow-black/18">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#145c3a] to-[#062417] text-sm font-black text-[#f0bd3a]">
                 {String(hymn.number ?? "").padStart(2, "0")}
               </div>
               <div className="min-w-0 flex-1">
@@ -183,7 +305,7 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
                   {categoryLabels[hymn.category] ?? hymn.category ?? "Hino"}
                 </p>
               </div>
-              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f0bd3a] text-[#062417]" aria-label="Reproduzir">
+              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0bd3a] text-[#062417]" aria-label="Reproduzir">
                 <Play className="h-4 w-4 fill-current" />
               </button>
               <Star className="h-4 w-4 shrink-0 text-[#f0bd3a]" />
@@ -200,13 +322,14 @@ export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-background md:bg-background">
-      <div className="hidden md:block">
-        <Navbar />
-      </div>
-      <MobileHomeHeader />
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+      <Navbar />
       <MobileHero />
+      <div className="md:hidden">
+        <BlogFeed />
+      </div>
       <QuickAccess />
+      <MobileInstitutionalGuidelines />
 
       {/* Desktop Hero Section */}
       <section className="military-gradient relative hidden overflow-hidden md:block">
@@ -261,7 +384,9 @@ export default function Home() {
         <div className="checkerboard-pattern w-full" />
       </section>
 
-      <BlogFeed />
+      <div className="hidden md:block">
+        <BlogFeed />
+      </div>
       <LatestHymns hymns={hymns as any[] | undefined} />
 
       {/* Institutional Guidelines Section */}
@@ -281,7 +406,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-10">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 mb-10">
             <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
               <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
               <CardContent className="p-6">
@@ -341,6 +466,21 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
+
+            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
+              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
+                    <Shield className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Compromisso de Honra</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                  {institutionalGuidelines.find((item) => item.title === "Compromisso de Honra")?.text}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -353,7 +493,7 @@ export default function Home() {
             </h2>
             <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-4 rounded-full" />
             <p className="mt-4 text-muted-foreground">
-              {hymns?.length ?? 26} hinos e cancoes organizados em 5 categorias
+              {hymns?.length ?? 26} hinos e canções organizados em 5 categorias
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

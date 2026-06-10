@@ -70,7 +70,7 @@ export default function GradesLogin() {
   const isBusy = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
       <Navbar />
       <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md border-[#c4a84b]/30">

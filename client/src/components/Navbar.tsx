@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
+  Bell,
   BookOpenCheck,
   FileText,
   GraduationCap,
@@ -10,6 +11,7 @@ import {
   ListMusic,
   Menu,
   Music,
+  Search,
   Shield,
   Star,
   Target,
@@ -21,8 +23,7 @@ import {
   type StudentSession,
 } from "@/lib/studentSession";
 
-const LOGO_URL =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
+const LOGO_URL = "/logo/pmam-logo.png";
 
 const navLinks = [
   { href: "/", label: "Página Inicial", icon: Shield },
@@ -66,7 +67,38 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <>
+      {/* Mobile Header (Dark Green, Translucent) */}
+      <header className="md:hidden sticky top-0 z-40 bg-[#062417]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-[#f8f7f0] backdrop-blur-xl">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
+            <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow-lg" />
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#f8f7f0]">
+                HINÁRIO PMAM
+              </p>
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                Polícia Militar do Amazonas
+              </p>
+            </div>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/hinos" aria-label="Buscar hinos">
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+                <Search className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/cfap-2026" aria-label="Notificações">
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+                <Bell className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop/Tablet Header (White) */}
+      <header className="hidden md:block sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="checkerboard-pattern w-full" />
       
       {/* Top Row: Logo & Student Auth Actions */}
@@ -258,5 +290,6 @@ export default function Navbar() {
         </nav>
       </div>
     </header>
+    </>
   );
 }

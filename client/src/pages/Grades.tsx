@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { AlertCircle, Edit2, LogOut, Plus, Trash2, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
@@ -227,7 +227,7 @@ export default function Grades() {
     const displayRows = isExpanded ? rows : rows.slice(0, 3);
 
     return (
-    <Card className="border-[#c4a84b]/30">
+    <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -270,24 +270,24 @@ export default function Grades() {
             <div
               key={`${title}-${row.studentId}`}
               className={`flex items-center gap-3 rounded-md border p-3 ${
-                row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "bg-white"
+                row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "border-white/10 bg-white/6 md:bg-white"
               }`}
             >
               {renderPositionBadge(row.position)}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{row.nomeGuerra}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-white/60 md:text-muted-foreground">
                   {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <p className="text-sm font-bold text-[#1a3a2a]">{row.totalScore.toFixed(1)}</p>
-                <p className="text-xs text-muted-foreground">pontos</p>
+                <p className="text-sm font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{row.totalScore.toFixed(1)}</p>
+                <p className="text-xs text-white/60 md:text-muted-foreground">pontos</p>
               </div>
             </div>
           );
         })}
-        {rows.length === 0 && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
+        {rows.length === 0 && <p className="text-sm text-white/60 md:text-muted-foreground">Ranking vazio.</p>}
         {rows.length > 3 && (
           <Button
             variant="outline"
@@ -313,9 +313,9 @@ export default function Grades() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f2e8]">
+      <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
         <Navbar />
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-white md:text-foreground">
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#1a3a2a]" />
             <p>Carregando notas...</p>
@@ -326,14 +326,14 @@ export default function Grades() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
       <Navbar />
-      <main className="p-4 md:p-8">
+      <main className="px-4 py-6 md:p-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-xl border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-xl shadow-black/15 sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none">
           <div>
-            <h1 className="text-3xl font-bold text-[#1a3a2a]">Notas do Curso</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-3xl font-bold text-white md:text-[#1a3a2a]">Notas do Curso</h1>
+            <p className="text-sm text-white/70 md:text-muted-foreground">
               {studentName || "Aluno"} - {studentNumber}
             </p>
           </div>
@@ -350,28 +350,28 @@ export default function Grades() {
         </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <Card className="border-[#c4a84b]/30">
+          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Média geral</p>
-              <p className="text-4xl font-bold text-[#1a3a2a]">{average.toFixed(2)}</p>
+              <p className="text-sm text-white/65 md:text-muted-foreground">Média geral</p>
+              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{average.toFixed(2)}</p>
             </CardContent>
           </Card>
-          <Card className="border-[#c4a84b]/30">
+          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Notas lançadas</p>
-              <p className="text-4xl font-bold text-[#1a3a2a]">{grades.length}</p>
+              <p className="text-sm text-white/65 md:text-muted-foreground">Notas lançadas</p>
+              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{grades.length}</p>
             </CardContent>
           </Card>
-          <Card className="border-[#c4a84b]/30">
+          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Disciplinas disponíveis</p>
-              <p className="text-4xl font-bold text-[#1a3a2a]">{disciplines.length}</p>
+              <p className="text-sm text-white/65 md:text-muted-foreground">Disciplinas disponíveis</p>
+              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{disciplines.length}</p>
             </CardContent>
           </Card>
         </div>
 
         {showForm ? (
-          <Card id="form-section" className="mb-8 border-[#c4a84b]/30">
+          <Card id="form-section" className="mb-8 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
             <CardHeader>
               <CardTitle>{editingId ? "Editar nota" : "Lançar nota"}</CardTitle>
             </CardHeader>
@@ -481,19 +481,19 @@ export default function Grades() {
         <div className="space-y-4">
           {grades.length === 0 ? (
             <Card>
-              <CardContent className="py-10 text-center text-muted-foreground">
+              <CardContent className="py-10 text-center text-white/65 md:text-muted-foreground">
                 Nenhuma nota lançada ainda.
               </CardContent>
             </Card>
           ) : (
             grades.map((entry) => (
-              <Card key={entry.id} className="border-[#c4a84b]/30">
+              <Card key={entry.id} className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
                 <CardContent className="pt-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-[#1a3a2a]">{entry.disciplineName}</h3>
+                      <h3 className="text-lg font-bold text-white md:text-[#1a3a2a]">{entry.disciplineName}</h3>
                       {entry.professorName && (
-                        <p className="text-sm text-muted-foreground">Professor: {entry.professorName}</p>
+                        <p className="text-sm text-white/65 md:text-muted-foreground">Professor: {entry.professorName}</p>
                       )}
                       <p className="mt-2 text-sm">
                         Nota:{" "}

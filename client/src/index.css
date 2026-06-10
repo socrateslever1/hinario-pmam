@@ -202,10 +202,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .bottom-nav-glass {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(6, 36, 23, 0.86);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 36, 23, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .mobile-safe-bottom {

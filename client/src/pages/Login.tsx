@@ -9,7 +9,7 @@ import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
 
-const BRASAO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/pmam-brasao_d5ee8977.png";
+const BRASAO_URL = "/logo/pmam-logo.png";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       {/* Header bar */}
       <div className="checkerboard-pattern w-full" />
       <div className="military-gradient py-6">

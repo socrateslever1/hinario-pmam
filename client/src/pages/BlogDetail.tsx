@@ -143,7 +143,7 @@ export default function BlogDetail() {
   const likesCount = likesData?.count ?? 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] text-white md:bg-background md:text-foreground">
       <Navbar />
 
       {/* Hero com imagem de capa — altura fixa, nunca empurra conteúdo */}
@@ -159,14 +159,14 @@ export default function BlogDetail() {
       )}
 
       {/* Conteúdo principal — largura máxima 3xl, padding lateral consistente */}
-      <main className="flex-1 py-10">
+      <main className="flex-1 px-4 py-6 md:px-0 md:py-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
 
           {/* Botão Voltar */}
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
-            className="mb-6 gap-2 text-muted-foreground hover:text-foreground"
+            className="mb-6 gap-2 text-white/70 hover:text-white md:text-muted-foreground md:hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar para Home
@@ -175,14 +175,14 @@ export default function BlogDetail() {
           <article>
             {/* Título */}
             <h1
-              className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight"
+              className="text-3xl md:text-4xl font-bold text-white md:text-foreground mb-4 leading-tight"
               style={{ fontFamily: "Merriweather, serif" }}
             >
               {post.title}
             </h1>
 
             {/* Meta */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6 pb-6 border-b border-border">
+            <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-white/10 pb-6 text-sm text-white/65 md:border-border md:text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-[#c4a84b]" />
                 <time dateTime={post.createdAt.toISOString()}>
@@ -203,7 +203,7 @@ export default function BlogDetail() {
 
             {/* Corpo do post — overflow controlado, imagens limitadas ao container */}
             <div
-              className="prose prose-sm md:prose-base max-w-none text-foreground overflow-hidden"
+              className="prose prose-sm md:prose-base max-w-none overflow-hidden text-white prose-headings:text-white prose-p:text-white/78 prose-strong:text-white prose-a:text-[#f0bd3a] md:text-foreground md:prose-headings:text-foreground md:prose-p:text-muted-foreground md:prose-strong:text-foreground"
               style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />

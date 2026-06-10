@@ -275,10 +275,10 @@ export default function Cfap2026() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
       <Navbar />
 
-      <section className="military-gradient py-12">
+      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#c4a84b]/20 px-4 py-1.5">
             <Shield className="h-4 w-4 text-[#c4a84b]" />
@@ -295,12 +295,12 @@ export default function Cfap2026() {
             para os alunos do curso de formação da Polícia Militar do Amazonas.
           </p>
         </div>
-        <div className="checkerboard-pattern w-full mt-8" />
+        <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="bg-background py-10">
+      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container max-w-4xl">
-          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/5">
+          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-white md:bg-[#c4a84b]/5 md:text-foreground">
             <CardContent className="flex items-start gap-4 p-6">
               <Shield className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
               <div className="space-y-2">
