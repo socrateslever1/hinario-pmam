@@ -22,7 +22,7 @@ describe("getSessionCookieOptions", () => {
     });
   });
 
-  it("uses none+secure cookies for https requests", () => {
+  it("uses lax cookies for https requests", () => {
     const options = getSessionCookieOptions(
       createRequest({ protocol: "https" })
     );
@@ -30,7 +30,7 @@ describe("getSessionCookieOptions", () => {
     expect(options).toMatchObject({
       httpOnly: true,
       path: "/",
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
     });
   });
