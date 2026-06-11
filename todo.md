@@ -61,12 +61,12 @@
 - [x] Adicionar campos de mídia ao schema (imagens, PDFs, vídeos, áudio)
 - [x] Criar procedures tRPC para upload de mídia
 - [x] UI para upload de múltiplos arquivos em missões
-- [ ] Visualizador de imagens com preview
-- [ ] Visualizador de vídeos
-- [ ] Visualizador de áudio
-- [ ] Leitor de PDF integrado
-- [ ] Download de arquivos
-- [ ] Testes de upload e visualização
+- [x] Visualizador de imagens com preview
+- [x] Visualizador de vídeos
+- [x] Visualizador de áudio
+- [x] Leitor de PDF integrado
+- [x] Download de arquivos
+- [x] Testes de upload e visualização
 
 
 ## Painel de Controle Profissional

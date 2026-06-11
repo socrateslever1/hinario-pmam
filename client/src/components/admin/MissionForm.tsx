@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Save, FileText } from "lucide-react";
 import { MissionMediaUpload } from "./MissionMediaUpload";
+import { MediaViewer } from "../MediaViewer";
 
 const priorityOptions = [
   { value: "normal", label: "Normal" },
@@ -66,8 +67,27 @@ export function MissionForm({ mission, onSuccess }: { mission?: any; onSuccess: 
         </form>
       </TabsContent>
 
-      <TabsContent value="media" className="max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1">
-        {mission && <MissionMediaUpload missionId={mission.id} onMediaUploaded={() => {}} />}
+      <TabsContent value="media" className="max-h-[min(72vh,calc(100vh-12rem))] overflow-y-auto pr-1 space-y-4">
+        {mission && (
+          <>
+            <MissionMediaUpload missionId={mission.id} onMediaUploaded={() => {}} />
+            {mission.media && mission.media.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3">Mídia Carregada</h3>
+                <MediaViewer
+                  media={mission.media.map((m: any) => ({
+                    id: m.id,
+                    url: m.url,
+                    type: m.type,
+                    title: m.fileName,
+                    mimeType: m.mimeType,
+                  }))}
+                  readOnly
+                />
+              </div>
+            )}
+          </>
+        )}
       </TabsContent>
     </Tabs>
   );
