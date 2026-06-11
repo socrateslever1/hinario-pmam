@@ -82,7 +82,8 @@ function mapMission(m: any) {
     commentsCount: Number(m.comments_count || 0),
     visitorReacted: Boolean(m.visitor_reacted),
     createdAt: m.created_at,
-    updatedAt: m.updated_at
+    updatedAt: m.updated_at,
+    media: m.media || []
   };
 }
 

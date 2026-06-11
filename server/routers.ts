@@ -407,6 +407,72 @@ export const appRouter = router({
       await db.deleteMission(input.id);
       return { success: true };
     }),
+    uploadMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      type: z.enum(["image", "video", "audio", "pdf", "document"]),
+      fileName: z.string(),
+      mimeType: z.string(),
+      base64Data: z.string(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      duration: z.number().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+      
+      const suffix = nanoid(10);
+      const ext = input.fileName.split('.').pop() || 'bin';
+      const fileKey = `mission-media/${input.missionId}-${input.type}-${suffix}.${ext}`;
+      const buffer = Buffer.from(input.base64Data, 'base64');
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      
+      const mediaId = await db.createMissionMedia(input.missionId, {
+        type: input.type,
+        title: input.title,
+        description: input.description,
+        url,
+        fileSize: buffer.length,
+        mimeType: input.mimeType,
+        duration: input.duration,
+        uploadedBy: ctx.user.id,
+      });
+      
+      return { mediaId, url, fileKey };
+    }),
+    getMedia: publicProcedure.input(z.object({
+      missionId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getMissionMedia(input.missionId);
+    }),
+    updateMedia: adminProcedure.input(z.object({
+      mediaId: z.number(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const media = await db.getMediaById(input.mediaId);
+      if (!media) throw new TRPCError({ code: "NOT_FOUND", message: "Mídia não encontrada" });
+      
+      const { mediaId, ...data } = input;
+      await db.updateMissionMedia(mediaId, data);
+      return { success: true };
+    }),
+    deleteMedia: adminProcedure.input(z.object({
+      mediaId: z.number(),
+    })).mutation(async ({ input }) => {
+      const media = await db.getMediaById(input.mediaId);
+      if (!media) throw new TRPCError({ code: "NOT_FOUND", message: "Mídia não encontrada" });
+      
+      await db.deleteMissionMedia(input.mediaId);
+      return { success: true };
+    }),
+    reorderMedia: adminProcedure.input(z.object({
+      missionId: z.number(),
+      mediaIds: z.array(z.number()),
+    })).mutation(async ({ input }) => {
+      await db.reorderMissionMedia(input.missionId, input.mediaIds);
+      return { success: true };
+    }),
   }),
 
   admin: router({
