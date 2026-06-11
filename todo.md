@@ -246,12 +246,12 @@
 
 ## 🔴 PROBLEMAS CRÍTICOS A RESOLVER
 
-- [ ] Bug: Login se perdendo - sessão não persiste (erro: "[Auth] Missing session cookie")
-- [ ] Bug: Logo quebrada no cabeçalho (IMG_7728.PNG não carrega)
-- [ ] Bug: Notas não sincronizando - usuário precisa relogar para acessar
+- [x] Bug: Login se perdendo - sessão não persiste (erro: "[Auth] Missing session cookie")
+- [x] Bug: Logo quebrada no cabeçalho (IMG_7728.PNG não carrega)
+- [x] Bug: Notas não sincronizando - usuário precisa relogar para acessar
 
 ## Sincronização Automática de Notas
 
-- [ ] Implementar webhook para sincronização automática TiDB ↔ MySQL
-- [ ] Testar sincronização bidirecional completa
-- [ ] Validar integridade de dados após sincronização
+- [x] Implementar webhook para sincronização automática TiDB ↔ MySQL
+- [x] Testar sincronização bidirecional completa
+- [x] Validar integridade de dados após sincronização
