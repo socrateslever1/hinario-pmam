@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, Edit2, LogOut, Plus, Trash2, Trophy, Medal } from "lucide-react";
+import { AlertCircle, Edit2, LogOut, Plus, Trash2, Trophy, Medal, Youtube, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/components/Navbar";
 import { clearStudentSession, getStudentSession } from "@/lib/studentSession";
@@ -14,6 +15,13 @@ import { clearStudentSession, getStudentSession } from "@/lib/studentSession";
 interface DisciplineCatalogItem {
   id: number;
   name: string;
+  description?: string;
+  startDate?: string | Date | null;
+  examDate?: string | Date | null;
+  status?: string;
+  studyMaterialUrl?: string | null;
+  studyMaterialName?: string | null;
+  gaivotasLinks?: string | null;
 }
 
 interface StudentGradeEntry {
@@ -126,6 +134,26 @@ export default function Grades() {
     setStudentId(session.id);
     setStudentName(session.nomeGuerra);
     setStudentNumber(session.numerica);
+
+    // Carregar dados salvos em cache para visualização instantânea offline
+    try {
+      const cachedDisciplines = localStorage.getItem(`pmam-grades-disciplines-${session.id}`);
+      const cachedGrades = localStorage.getItem(`pmam-grades-grades-${session.id}`);
+      const cachedAverage = localStorage.getItem(`pmam-grades-average-${session.id}`);
+      const cachedGeneralRanking = localStorage.getItem(`pmam-grades-generalRanking-${session.id}`);
+      const cachedCompanyRanking = localStorage.getItem(`pmam-grades-companyRanking-${session.id}`);
+      const cachedPlatoonRanking = localStorage.getItem(`pmam-grades-platoonRanking-${session.id}`);
+
+      if (cachedDisciplines) setDisciplines(JSON.parse(cachedDisciplines));
+      if (cachedGrades) setGrades(JSON.parse(cachedGrades));
+      if (cachedAverage) setAverage(Number(cachedAverage));
+      if (cachedGeneralRanking) setGeneralRanking(JSON.parse(cachedGeneralRanking));
+      if (cachedCompanyRanking) setCompanyRanking(JSON.parse(cachedCompanyRanking));
+      if (cachedPlatoonRanking) setPlatoonRanking(JSON.parse(cachedPlatoonRanking));
+    } catch (e) {
+      console.warn("Erro ao ler cache offline:", e);
+    }
+
     void loadPageData(session.id, session.companhia, session.peloton, session.sessionToken);
   }, [setLocation]);
 
@@ -150,8 +178,21 @@ export default function Grades() {
       setGeneralRanking(generalRows);
       setCompanyRanking(companyRows);
       setPlatoonRanking(platoonRows);
+
+      // Salvar em cache local para funcionamento offline
+      try {
+        localStorage.setItem(`pmam-grades-disciplines-${id}`, JSON.stringify(disciplineList));
+        localStorage.setItem(`pmam-grades-grades-${id}`, JSON.stringify(gradeResult.grades));
+        localStorage.setItem(`pmam-grades-average-${id}`, String(gradeResult.average));
+        localStorage.setItem(`pmam-grades-generalRanking-${id}`, JSON.stringify(generalRows));
+        localStorage.setItem(`pmam-grades-companyRanking-${id}`, JSON.stringify(companyRows));
+        localStorage.setItem(`pmam-grades-platoonRanking-${id}`, JSON.stringify(platoonRows));
+      } catch (e) {
+        console.warn("Erro ao salvar cache offline:", e);
+      }
     } catch (err) {
-      toast.error("Erro ao carregar notas");
+      // Se falhar a conexão (offline), exibimos aviso mas mantemos os dados carregados do cache
+      toast.error("Sem conexão com o servidor. Exibindo dados salvos localmente.");
     } finally {
       setIsLoading(false);
     }
@@ -178,6 +219,18 @@ export default function Grades() {
   };
 
   const handleLogout = () => {
+    if (studentId) {
+      try {
+        localStorage.removeItem(`pmam-grades-disciplines-${studentId}`);
+        localStorage.removeItem(`pmam-grades-grades-${studentId}`);
+        localStorage.removeItem(`pmam-grades-average-${studentId}`);
+        localStorage.removeItem(`pmam-grades-generalRanking-${studentId}`);
+        localStorage.removeItem(`pmam-grades-companyRanking-${studentId}`);
+        localStorage.removeItem(`pmam-grades-platoonRanking-${studentId}`);
+      } catch (e) {
+        console.warn("Erro ao limpar cache local:", e);
+      }
+    }
     clearStudentSession();
     setLocation("/entrar");
   };
@@ -357,44 +410,142 @@ export default function Grades() {
               </CardContent>
             </Card>
           ) : (
-            grades.map((entry) => (
-              <Card key={entry.id} className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-white md:text-[#1a3a2a]">{entry.disciplineName}</h3>
-                      {entry.professorName && (
-                        <p className="text-sm text-white/85 font-semibold md:text-muted-foreground">Professor: {entry.professorName}</p>
-                      )}
-                      <p className="mt-2 text-sm">
-                       Nota da disciplina:{" "}
-                         <span className={(() => {
-                           const grade = Number(entry.grade || 0);
-                           if (grade < 6) return "font-bold text-red-500 md:text-red-700";
-                           if (grade <= 8) return "font-bold text-green-500 md:text-green-700";
-                           return "font-bold text-blue-500 md:text-blue-700";
-                         })()}>
-                           {entry.grade ?? "-"}
-                         </span>
-                      </p>
-                      {(() => {
-                        const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
-                        return parsedObservation.grade2 ? (
-                         <p className="text-sm text-white/85 font-semibold md:text-muted-foreground">
-                             Provas: {parsedObservation.grade1 || "-"} e {parsedObservation.grade2}
-                           </p>
-                        ) : null;
-                      })()}
-                      {entry.evaluationDate && (
-                        <p className="text-sm text-muted-foreground">
-                          Data: {String(entry.evaluationDate).slice(0, 10)}
+            grades.map((entry) => {
+              const grade = Number(entry.grade || 0);
+              let cardBg = "border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none";
+              let titleColor = "text-white md:text-[#1a3a2a]";
+              let subtitleColor = "text-white/85 md:text-muted-foreground";
+              let gradeColor = "text-muted-foreground font-black";
+
+              if (grade < 6) {
+                cardBg = "border-red-500/30 bg-red-950/80 text-red-50 shadow-xl shadow-black/15 md:border-red-200 md:bg-red-50/50 md:text-red-950 md:shadow-none";
+                titleColor = "text-red-200 md:text-red-950";
+                subtitleColor = "text-red-300/85 md:text-red-800";
+                gradeColor = "text-red-400 md:text-red-600 font-bold";
+              } else if (grade < 9) {
+                cardBg = "border-green-500/30 bg-green-950/80 text-green-50 shadow-xl shadow-black/15 md:border-green-200 md:bg-green-50/50 md:text-green-950 md:shadow-none";
+                titleColor = "text-green-200 md:text-green-950";
+                subtitleColor = "text-green-300/85 md:text-green-800";
+                gradeColor = "text-green-400 md:text-green-600 font-bold";
+              } else {
+                cardBg = "border-blue-500/30 bg-blue-950/80 text-blue-50 shadow-xl shadow-black/15 md:border-blue-200 md:bg-blue-50/50 md:text-blue-950 md:shadow-none";
+                titleColor = "text-blue-200 md:text-blue-950";
+                subtitleColor = "text-blue-300/85 md:text-blue-800";
+                gradeColor = "text-blue-400 md:text-blue-600 font-bold";
+              }
+
+              const disciplineInfo = disciplines.find((d) => d.id === entry.disciplineId);
+
+              return (
+                <Card key={entry.id} className={`shadow-sm transition-all hover:shadow-md ${cardBg}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className={`text-lg font-bold ${titleColor}`}>{entry.disciplineName}</h3>
+                          {disciplineInfo?.status === "em_andamento" && (
+                            <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-[10px]">Em Andamento</Badge>
+                          )}
+                          {disciplineInfo?.status === "finalizado" && (
+                            <Badge variant="secondary" className="text-[10px]">Finalizado</Badge>
+                          )}
+                          {(!disciplineInfo?.status || disciplineInfo?.status === "em_breve") && (
+                            <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-[10px]">Em Breve</Badge>
+                          )}
+                        </div>
+
+                        {entry.professorName && (
+                          <p className={`text-sm font-semibold ${subtitleColor}`}>Professor: {entry.professorName}</p>
+                        )}
+                        
+                        <div className="mt-2 flex gap-4 flex-wrap text-xs opacity-80">
+                          {disciplineInfo?.startDate && (
+                            <span>
+                              📅 Início: {new Date(disciplineInfo.startDate).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                          {disciplineInfo?.examDate && (
+                            <span>
+                              📝 Prova: {new Date(disciplineInfo.examDate).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-2 text-sm">
+                          Nota da disciplina:{" "}
+                          <span className={gradeColor}>
+                            {entry.grade ?? "-"}
+                          </span>
                         </p>
-                      )}
-                      {(() => {
-                        const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
-                        return parsedObservation.observation ? <p className="mt-2 text-sm">{parsedObservation.observation}</p> : null;
-                      })()}
-                    </div>
+
+                        {(() => {
+                          const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
+                          return parsedObservation.grade2 ? (
+                            <p className={`text-sm font-semibold ${subtitleColor}`}>
+                              Provas: {parsedObservation.grade1 || "-"} e {parsedObservation.grade2}
+                            </p>
+                          ) : null;
+                        })()}
+                        {entry.evaluationDate && (
+                          <p className="text-xs opacity-75 mt-1">
+                            Lançado em: {String(entry.evaluationDate).slice(0, 10)}
+                          </p>
+                        )}
+                        {(() => {
+                          const parsedObservation = parseGradeObservation(entry.observation, entry.grade);
+                          return parsedObservation.observation ? <p className="mt-2 text-sm">{parsedObservation.observation}</p> : null;
+                        })()}
+
+                        {/* Material de Estudos */}
+                        {disciplineInfo?.studyMaterialUrl && (
+                          <div className="mt-3">
+                            <a
+                              href={disciplineInfo.studyMaterialUrl}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-bold border p-2 rounded-lg bg-black/10 hover:bg-black/20 border-white/10 md:bg-muted/30 md:border-border/50"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Material: {disciplineInfo.studyMaterialName || "Download PDF/Doc"}
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Vídeos Gaivotas */}
+                        {(() => {
+                          let parsedVideos: any[] = [];
+                          if (disciplineInfo?.gaivotasLinks) {
+                            try {
+                              parsedVideos = JSON.parse(disciplineInfo.gaivotasLinks);
+                            } catch {
+                              parsedVideos = [];
+                            }
+                          }
+                          if (parsedVideos.length === 0) return null;
+                          return (
+                            <div className="mt-3 p-2.5 rounded-lg border border-dashed max-w-lg bg-black/10 border-white/10 md:bg-muted/20 md:border-border/50">
+                              <p className="text-xs font-bold mb-1.5 flex items-center gap-1">
+                                <Youtube className="h-3.5 w-3.5 text-red-500" />
+                                Aulas (Gaivotas):
+                              </p>
+                              <div className="flex gap-2 flex-wrap">
+                                {parsedVideos.map((vid: any, i: number) => (
+                                  <a
+                                    key={i}
+                                    href={vid.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-blue-300 hover:text-blue-100 bg-blue-950/40 px-2 py-1 rounded border border-blue-800/40 font-medium md:text-blue-600 md:hover:text-blue-800 md:bg-blue-50 md:border-blue-100"
+                                  >
+                                    🎥 {vid.title}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                      <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => setLocation('/lançar-notas')} className="gap-1">
                         <Edit2 className="h-4 w-4" />
@@ -408,7 +559,8 @@ export default function Grades() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            );
+          })
           )}
         </div>
       </div>

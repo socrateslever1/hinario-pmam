@@ -18,16 +18,6 @@ export function getStudentSession(): StudentSession | null {
   const companhia = Number(window.localStorage.getItem("gradeStudentCompany") || "0");
   const peloton = Number(window.localStorage.getItem("gradeStudentPeloton") || "0");
   const sessionToken = window.localStorage.getItem("gradeStudentToken") || "";
-  const sessionExpiry = window.localStorage.getItem("gradeStudentExpiry") || "";
-
-  // Verificar se sessão expirou (24 horas)
-  if (sessionExpiry) {
-    const expiryTime = Number(sessionExpiry);
-    if (Date.now() > expiryTime) {
-      clearStudentSession();
-      return null;
-    }
-  }
 
   if (!id || !numerica || !nomeGuerra || !companhia || !peloton || !sessionToken) return null;
 
@@ -44,16 +34,12 @@ export function getStudentSession(): StudentSession | null {
 export function saveStudentSession(student: StudentSession) {
   if (typeof window === "undefined") return;
 
-  // Expiração em 24 horas
-  const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
-
   window.localStorage.setItem("gradeStudentId", String(student.id));
   window.localStorage.setItem("gradeStudentNumber", student.numerica);
   window.localStorage.setItem("gradeStudentName", student.nomeGuerra);
   window.localStorage.setItem("gradeStudentCompany", String(student.companhia));
   window.localStorage.setItem("gradeStudentPeloton", String(student.peloton));
   window.localStorage.setItem("gradeStudentToken", student.sessionToken);
-  window.localStorage.setItem("gradeStudentExpiry", String(expiryTime));
   window.dispatchEvent(new Event(STUDENT_SESSION_CHANGED));
 }
 

@@ -96,17 +96,17 @@ export default function EducationModule({ params }: EducationModuleProps) {
 
   return (
     <StudyAuthGuard>
-      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
         <Navbar />
 
-      <section className="mobile-military-bg relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-14">
+      <section className="bg-white border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-14">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />
         </div>
         <div className="container relative space-y-6">
           <Link href="/estudos">
-            <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+            <Button variant="outline" className="border-border text-foreground hover:bg-[#1a3a2a]/5">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para a biblioteca
             </Button>
@@ -116,49 +116,49 @@ export default function EducationModule({ params }: EducationModuleProps) {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{libraryItem.shortTitle}</Badge>
-                <Badge variant="outline" className="border-white/20 text-white/80">
+                <Badge variant="outline" className="border-border text-muted-foreground">
                   {categoryLabel(libraryItem.category)}
                 </Badge>
-                <Badge variant="outline" className="border-white/20 text-white/80">
+                <Badge variant="outline" className="border-border text-muted-foreground">
                   {libraryItem.pages} páginas
                 </Badge>
-                <Badge variant="outline" className="border-white/20 text-white/80">
+                <Badge variant="outline" className="border-border text-muted-foreground">
                   {difficultyLabel(libraryItem.difficulty)}
                 </Badge>
               </div>
 
               <div>
                 <h1
-                  className="text-3xl font-bold text-white md:text-4xl"
+                  className="text-3xl font-bold text-[#1a3a2a] md:text-4xl"
                   style={{ fontFamily: "Merriweather, serif" }}
                 >
                   {libraryItem.title}
                 </h1>
-                <p className="mt-3 max-w-3xl text-base leading-relaxed text-white/70 md:text-lg">
+                <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
                   {libraryItem.description}
                 </p>
-                <p className="mt-3 text-sm text-white/55">
+                <p className="mt-3 text-sm text-muted-foreground">
                   Fonte: {libraryItem.sourceTitle} | arquivo {libraryItem.sourceFileName}
                 </p>
               </div>
             </div>
 
-            <Card className="border-white/10 bg-white/10 text-white backdrop-blur">
+            <Card className="border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm">
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-center gap-3">
                   <Library className="h-9 w-9 text-[#c4a84b]" />
                   <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/55">Modo consulta</p>
-                    <p className="text-sm text-white/80">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Modo consulta</p>
+                    <p className="text-sm text-muted-foreground">
                       Esta página foi simplificada para biblioteca. Aqui você abre o PDF oficial e consulta o texto.
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm text-white/75">
-                  <p><strong className="text-white">Tema:</strong> {libraryItem.theme}</p>
-                  <p><strong className="text-white">Categoria:</strong> {categoryLabel(libraryItem.category)}</p>
-                  <p><strong className="text-white">Base:</strong> pronta para receber novos materiais por upload.</p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p><strong className="text-foreground">Tema:</strong> {libraryItem.theme}</p>
+                  <p><strong className="text-foreground">Categoria:</strong> {categoryLabel(libraryItem.category)}</p>
+                  <p><strong className="text-foreground">Base:</strong> pronta para receber novos materiais por upload.</p>
                 </div>
               </CardContent>
             </Card>
@@ -167,7 +167,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
           <div className="flex justify-center mb-8">
             <div className="inline-flex p-1 bg-muted rounded-xl border border-border/40 shadow-sm">
@@ -201,7 +201,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+                <Card className="border-border/50 bg-white text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <FileText className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -211,7 +211,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+                <Card className="border-border/50 bg-white text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <BookOpenCheck className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -221,7 +221,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+                <Card className="border-border/50 bg-white text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <UploadCloud className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -257,7 +257,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
               </Card>
 
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <Card className="overflow-hidden border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+                <Card className="overflow-hidden border-border/50 bg-white text-foreground shadow-sm">
                   <CardHeader>
                     <CardTitle style={{ fontFamily: "Merriweather, serif" }}>PDF para abrir e visualizar</CardTitle>
                     <p className="text-sm text-muted-foreground">
@@ -312,7 +312,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                 </div>
               </div>
 
-              <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
                 <CardHeader>
                   <CardTitle style={{ fontFamily: "Merriweather, serif" }}>Texto limpo para consulta</CardTitle>
                   <p className="text-sm text-muted-foreground">

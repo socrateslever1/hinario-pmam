@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, Save, KeyRound } from "lucide-react";
+import { Plus, Trash2, Save, KeyRound, Pencil, Youtube } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function GradeAdminTab() {
   const utils = trpc.useUtils();
@@ -15,15 +16,98 @@ export function GradeAdminTab() {
   const { data: students } = trpc.gradeAdmin.students.useQuery();
   const { data: allGrades } = trpc.gradeAdmin.allGrades.useQuery();
   const { data: ranking } = trpc.gradeAdmin.ranking.useQuery({});
-  const [disciplineForm, setDisciplineForm] = useState({ name: "", description: "" });
+  const [disciplineForm, setDisciplineForm] = useState({
+    name: "",
+    description: "",
+    startDate: "",
+    examDate: "",
+    status: "em_breve",
+    studyMaterialUrl: "",
+    studyMaterialName: "",
+  });
+  const [gaivotasLinks, setGaivotasLinks] = useState<{ title: string; url: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [editingDiscipline, setEditingDiscipline] = useState<any | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [studentForm, setStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
   const [passwordByStudent, setPasswordByStudent] = useState<Record<number, string>>({});
+
+  const resetDisciplineForm = () => {
+    setDisciplineForm({
+      name: "",
+      description: "",
+      startDate: "",
+      examDate: "",
+      status: "em_breve",
+      studyMaterialUrl: "",
+      studyMaterialName: "",
+    });
+    setGaivotasLinks([]);
+    setEditingDiscipline(null);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      if (!response.ok) throw new Error("Erro ao enviar arquivo");
+
+      const data = await response.json();
+      setDisciplineForm(prev => ({
+        ...prev,
+        studyMaterialUrl: data.url,
+        studyMaterialName: file.name
+      }));
+      toast.success("Material enviado com sucesso!");
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      toast.error("Erro ao fazer upload do material");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const createDiscipline = trpc.gradeAdmin.createDiscipline.useMutation({
     onSuccess: () => {
       toast.success("Disciplina criada");
-      setDisciplineForm({ name: "", description: "" });
+      resetDisciplineForm();
+      setIsFormOpen(false);
       utils.grades.availableDisciplines.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateDiscipline = trpc.gradeAdmin.updateDiscipline.useMutation({
+    onSuccess: () => {
+      toast.success("Disciplina atualizada");
+      resetDisciplineForm();
+      setIsFormOpen(false);
+      utils.grades.availableDisciplines.invalidate();
+      utils.gradeAdmin.allGrades.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteDiscipline = trpc.gradeAdmin.deleteDiscipline.useMutation({
+    onSuccess: () => {
+      toast.success("Disciplina excluída do catálogo");
+      utils.grades.availableDisciplines.invalidate();
+      utils.gradeAdmin.allGrades.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -84,38 +168,90 @@ export function GradeAdminTab() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/50">
           <CardContent className="p-5">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Criar disciplina</h2>
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                createDiscipline.mutate({
-                  name: disciplineForm.name,
-                  description: disciplineForm.description || undefined,
-                });
-              }}
-            >
-              <div>
-                <Label>Nome *</Label>
-                <Input
-                  value={disciplineForm.name}
-                  onChange={(event) => setDisciplineForm((form) => ({ ...form, name: event.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={disciplineForm.description}
-                  onChange={(event) => setDisciplineForm((form) => ({ ...form, description: event.target.value }))}
-                  rows={3}
-                />
-              </div>
-              <Button type="submit" className="bg-[#1a3a2a] text-white gap-2" disabled={createDiscipline.isPending}>
-                <Save className="h-4 w-4" />
-                {createDiscipline.isPending ? "Salvando..." : "Criar disciplina"}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">Disciplinas cadastradas</h2>
+              <Button
+                size="sm"
+                className="bg-[#1a3a2a] text-white gap-2"
+                onClick={() => {
+                  resetDisciplineForm();
+                  setIsFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> Nova disciplina
               </Button>
-            </form>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {disciplines?.map((disc: any) => (
+                <div key={disc.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{disc.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      {disc.status === "em_andamento" && <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px]">Em Andamento</Badge>}
+                      {disc.status === "finalizado" && <Badge variant="secondary" className="text-[10px]">Finalizado</Badge>}
+                      {(!disc.status || disc.status === "em_breve") && <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-[10px]">Em Breve</Badge>}
+                      {disc.startDate && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Início: {new Date(disc.startDate).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-[#c4a84b] hover:text-[#c4a84b] hover:bg-[#c4a84b]/10"
+                      onClick={() => {
+                        setEditingDiscipline(disc);
+                        const getFormattedDate = (val: any) => {
+                          if (!val) return "";
+                          const d = new Date(val);
+                          if (isNaN(d.getTime())) return "";
+                          return d.toISOString().split("T")[0];
+                        };
+                        let parsedGaivotas: any[] = [];
+                        if (disc.gaivotasLinks) {
+                          try {
+                            parsedGaivotas = JSON.parse(disc.gaivotasLinks);
+                          } catch {
+                            parsedGaivotas = [];
+                          }
+                        }
+                        setDisciplineForm({
+                          name: disc.name,
+                          description: disc.description || "",
+                          startDate: getFormattedDate(disc.startDate),
+                          examDate: getFormattedDate(disc.examDate),
+                          status: disc.status || "em_breve",
+                          studyMaterialUrl: disc.studyMaterialUrl || "",
+                          studyMaterialName: disc.studyMaterialName || "",
+                        });
+                        setGaivotasLinks(parsedGaivotas);
+                        setIsFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm(`Remover a disciplina "${disc.name}" do catálogo? As notas existentes continuarão salvas, mas ela não estará disponível para novos lançamentos.`)) {
+                          deleteDiscipline.mutate({ id: disc.id });
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {!disciplines?.length && (
+                <p className="text-sm text-muted-foreground">Nenhuma disciplina cadastrada.</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -268,6 +404,206 @@ export function GradeAdminTab() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        setIsFormOpen(open);
+        if (!open) resetDisciplineForm();
+      }}>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6 bg-white text-foreground">
+          <DialogHeader>
+            <DialogTitle>
+              {editingDiscipline ? "Editar disciplina" : "Criar disciplina"}
+            </DialogTitle>
+            <DialogDescription>
+              Insira as informações básicas, cronograma, materiais de estudo e links adicionais da disciplina.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const payload = {
+                name: disciplineForm.name,
+                description: disciplineForm.description || undefined,
+                startDate: disciplineForm.startDate || null,
+                examDate: disciplineForm.examDate || null,
+                status: disciplineForm.status,
+                studyMaterialUrl: disciplineForm.studyMaterialUrl || null,
+                studyMaterialName: disciplineForm.studyMaterialName || null,
+                gaivotasLinks: gaivotasLinks.length > 0 ? JSON.stringify(gaivotasLinks) : null,
+              };
+              if (editingDiscipline) {
+                updateDiscipline.mutate({
+                  id: editingDiscipline.id,
+                  ...payload,
+                });
+              } else {
+                createDiscipline.mutate(payload);
+              }
+            }}
+          >
+            <div>
+              <Label>Nome *</Label>
+              <Input
+                value={disciplineForm.name}
+                onChange={(event) => setDisciplineForm((form) => ({ ...form, name: event.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea
+                value={disciplineForm.description}
+                onChange={(event) => setDisciplineForm((form) => ({ ...form, description: event.target.value }))}
+                rows={2}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Data de Início</Label>
+                <Input
+                  type="date"
+                  value={disciplineForm.startDate}
+                  onChange={(event) => setDisciplineForm((form) => ({ ...form, startDate: event.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Data da Prova</Label>
+                <Input
+                  type="date"
+                  value={disciplineForm.examDate}
+                  onChange={(event) => setDisciplineForm((form) => ({ ...form, examDate: event.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                value={disciplineForm.status}
+                onChange={(event) => setDisciplineForm((form) => ({ ...form, status: event.target.value }))}
+              >
+                <option value="em_breve">Em Breve</option>
+                <option value="em_andamento">Em Andamento</option>
+                <option value="finalizado">Finalizado</option>
+              </select>
+            </div>
+            <div>
+              <Label>Material de Estudos (opcional)</Label>
+              {disciplineForm.studyMaterialUrl ? (
+                <div className="mt-1 flex items-center justify-between rounded-md border border-dashed p-2 bg-muted/20">
+                  <span className="text-xs font-medium truncate max-w-[200px]" title={disciplineForm.studyMaterialName || "Material"}>
+                    📎 {disciplineForm.studyMaterialName || "Material de Estudos"}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setDisciplineForm(prev => ({ ...prev, studyMaterialUrl: "", studyMaterialName: "" }))}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-1 flex gap-2">
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                    disabled={isUploading}
+                    onChange={handleFileUpload}
+                    className="text-xs"
+                  />
+                  {isUploading && <span className="text-xs text-muted-foreground flex items-center">Enviando...</span>}
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Youtube className="h-4 w-4 text-red-500" />
+                Vídeos (Gaivotas)
+              </Label>
+              
+              {gaivotasLinks.length > 0 && (
+                <div className="space-y-1.5 rounded-md border p-2 bg-muted/10 max-h-40 overflow-y-auto">
+                  {gaivotasLinks.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between gap-2 text-xs bg-white p-1.5 rounded border">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-foreground block truncate">{item.title}</span>
+                        <span className="text-muted-foreground block truncate">{item.url}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setGaivotasLinks(current => current.filter((_, i) => i !== index));
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid gap-2 sm:grid-cols-2 bg-muted/20 p-2.5 rounded-md border border-dashed">
+                <div>
+                  <Input
+                    placeholder="Título do vídeo"
+                    className="h-8 text-xs"
+                    id="new-gaivota-title"
+                  />
+                </div>
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="URL do vídeo"
+                    className="h-8 text-xs flex-1"
+                    id="new-gaivota-url"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 px-3"
+                    onClick={() => {
+                      const titleInput = document.getElementById("new-gaivota-title") as HTMLInputElement;
+                      const urlInput = document.getElementById("new-gaivota-url") as HTMLInputElement;
+                      const title = titleInput?.value?.trim();
+                      const url = urlInput?.value?.trim();
+                      if (!title || !url) {
+                        toast.error("Preencha título e URL");
+                        return;
+                      }
+                      setGaivotasLinks(current => [...current, { title, url }]);
+                      if (titleInput) titleInput.value = "";
+                      if (urlInput) urlInput.value = "";
+                    }}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  resetDisciplineForm();
+                  setIsFormOpen(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-[#1a3a2a] text-white gap-2" disabled={createDiscipline.isPending || updateDiscipline.isPending}>
+                <Save className="h-4 w-4" />
+                {createDiscipline.isPending || updateDiscipline.isPending ? "Salvando..." : editingDiscipline ? "Salvar alterações" : "Criar disciplina"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

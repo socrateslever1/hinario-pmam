@@ -56,7 +56,7 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const cachedUser = useMemo(() => readCachedUser(), [meQuery.data]);
-  const resolvedUser = meQuery.data ?? ((meQuery.isLoading || meQuery.isFetching) ? cachedUser : null);
+  const resolvedUser = meQuery.isSuccess ? meQuery.data : cachedUser;
 
   const state = useMemo(() => {
     return {

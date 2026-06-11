@@ -91,7 +91,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -105,10 +105,10 @@ export default function Admin() {
 
   if (!isAdminOrMaster) {
     return (
-      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:bg-white md:text-foreground">
+          <Card className="max-w-md w-full mx-4 border-border/50 bg-white text-foreground shadow-md">
             <CardContent className="p-8 text-center">
               <Star className="h-16 w-16 text-[#c4a84b] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -139,22 +139,22 @@ export default function Admin() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       <Navbar />
 
-      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Star className="h-8 w-8 text-[#c4a84b]" />
               <div>
-                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
+                <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
                   Área do Xerife
                 </h1>
-                <p className="text-white/60 text-sm">Bem-vindo, {user?.name || "Xerife"} {isMaster && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Master</Badge>}</p>
+                <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Xerife"} {isMaster && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Master</Badge>}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full text-white/70 hover:text-white hover:bg-white/10 gap-2 sm:w-auto" onClick={handleLogout}>
+            <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-foreground gap-2 sm:w-auto" onClick={handleLogout}>
               <LogOut className="h-4 w-4" /> Sair
             </Button>
           </div>
@@ -162,50 +162,50 @@ export default function Admin() {
         <div className="checkerboard-pattern w-full mt-6 hidden md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center">
-                  <Music className="h-6 w-6 text-[#1a3a2a]" />
+          <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 md:h-12 md:w-12">
+                  <Music className="h-5 w-5 shrink-0 text-[#1a3a2a] md:h-6 md:w-6" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stats?.totalHymns ?? 0}</p>
-                  <p className="text-sm text-muted-foreground">Hinos</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-[#c4a84b]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stats?.totalCharlieMike ?? 0}</p>
-                  <p className="text-sm text-muted-foreground">Charlie Mike</p>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalHymns ?? 0}</p>
+                  <p className="truncate text-xs text-muted-foreground md:text-sm">Hinos</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
-                  <Target className="h-6 w-6 text-[#c4a84b]" />
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
+                  <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stats?.totalMissions ?? 0}</p>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalCharlieMike ?? 0}</p>
+                  <p className="truncate text-xs text-muted-foreground md:text-sm">Charlie Mike</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
+                  <Target className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalMissions ?? 0}</p>
                   <p className="text-sm text-muted-foreground">Missões CFAP</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:shadow-none">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#1a2744]/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-[#1a2744]" />
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a2744]/10 md:h-12 md:w-12">
+                  <Users className="h-5 w-5 shrink-0 text-[#1a2744] md:h-6 md:w-6" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stats?.totalUsers ?? 0}</p>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalUsers ?? 0}</p>
                   <p className="text-sm text-muted-foreground">Usuários</p>
                 </div>
               </CardContent>

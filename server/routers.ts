@@ -872,10 +872,63 @@ export const appRouter = router({
       z.object({
         name: z.string().trim().min(2).max(255),
         description: z.string().trim().max(2000).optional(),
+        startDate: z.string().trim().nullable().optional(),
+        examDate: z.string().trim().nullable().optional(),
+        status: z.string().trim().optional(),
+        studyMaterialUrl: z.string().trim().nullable().optional(),
+        studyMaterialName: z.string().trim().nullable().optional(),
+        gaivotasLinks: z.string().trim().nullable().optional(),
       })
     ).mutation(async ({ input, ctx }) => {
-      return gradeDb.createCatalogDiscipline(input.name, input.description, ctx.user.id);
+      return gradeDb.createCatalogDiscipline(
+        input.name,
+        input.description,
+        ctx.user.id,
+        input.startDate,
+        input.examDate,
+        input.status,
+        input.studyMaterialUrl,
+        input.studyMaterialName,
+        input.gaivotasLinks
+      );
     }),
+
+    updateDiscipline: adminProcedure.input(
+      z.object({
+        id: z.number(),
+        name: z.string().trim().min(2).max(255),
+        description: z.string().trim().max(2000).optional(),
+        startDate: z.string().trim().nullable().optional(),
+        examDate: z.string().trim().nullable().optional(),
+        status: z.string().trim().optional(),
+        studyMaterialUrl: z.string().trim().nullable().optional(),
+        studyMaterialName: z.string().trim().nullable().optional(),
+        gaivotasLinks: z.string().trim().nullable().optional(),
+      })
+    ).mutation(async ({ input }) => {
+      await gradeDb.updateCatalogDiscipline(
+        input.id,
+        input.name,
+        input.description,
+        input.startDate,
+        input.examDate,
+        input.status,
+        input.studyMaterialUrl,
+        input.studyMaterialName,
+        input.gaivotasLinks
+      );
+      return { success: true };
+    }),
+
+    deleteDiscipline: adminProcedure.input(
+      z.object({
+        id: z.number(),
+      })
+    ).mutation(async ({ input }) => {
+      await gradeDb.deleteCatalogDiscipline(input.id);
+      return { success: true };
+    }),
+
 
     createStudent: adminProcedure.input(
       z.object({

@@ -2,7 +2,7 @@
 import { Shield, Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
-const LOGO_URL = "/logo/pmam-logo.png";
+const LOGO_URL = "/logo/IMG_7728.PNG";
 
 export default function Footer() {
   const { data: settings } = trpc.settings.getAll.useQuery();

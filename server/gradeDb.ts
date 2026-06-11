@@ -25,6 +25,12 @@ export interface DisciplineCatalogItem {
   description?: string;
   createdBy: number;
   isActive: boolean;
+  startDate?: Date | string | null;
+  examDate?: Date | string | null;
+  status: string;
+  studyMaterialUrl?: string | null;
+  studyMaterialName?: string | null;
+  gaivotasLinks?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +100,12 @@ function mapDisciplineCatalogItem(row: any): DisciplineCatalogItem | null {
     description: row.description,
     createdBy: row.created_by,
     isActive: Boolean(row.is_active),
+    startDate: row.start_date,
+    examDate: row.exam_date,
+    status: row.status || "em_breve",
+    studyMaterialUrl: row.study_material_url,
+    studyMaterialName: row.study_material_name,
+    gaivotasLinks: row.gaivotas_links,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -127,11 +139,29 @@ export async function getActiveDisciplineCatalog(): Promise<DisciplineCatalogIte
 export async function createCatalogDiscipline(
   name: string,
   description: string | undefined,
-  createdBy: number
+  createdBy: number,
+  startDate?: string | null,
+  examDate?: string | null,
+  status?: string,
+  studyMaterialUrl?: string | null,
+  studyMaterialName?: string | null,
+  gaivotasLinks?: string | null
 ): Promise<DisciplineCatalogItem> {
   const result = await query(
-    "INSERT INTO pmam_disciplines (name, description, created_by) VALUES (?, ?, ?)",
-    [name, description || null, createdBy]
+    `INSERT INTO pmam_disciplines 
+      (name, description, created_by, start_date, exam_date, status, study_material_url, study_material_name, gaivotas_links) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      name,
+      description || null,
+      createdBy,
+      startDate || null,
+      examDate || null,
+      status || 'em_breve',
+      studyMaterialUrl || null,
+      studyMaterialName || null,
+      gaivotasLinks || null
+    ]
   );
 
   const rows = await query(
@@ -142,6 +172,51 @@ export async function createCatalogDiscipline(
   if (!discipline) throw new Error("Failed to create discipline");
   return discipline;
 }
+
+export async function updateCatalogDiscipline(
+  id: number,
+  name: string,
+  description?: string,
+  startDate?: string | null,
+  examDate?: string | null,
+  status?: string,
+  studyMaterialUrl?: string | null,
+  studyMaterialName?: string | null,
+  gaivotasLinks?: string | null
+): Promise<void> {
+  await query(
+    `UPDATE pmam_disciplines SET 
+      name = ?, 
+      description = ?, 
+      start_date = ?, 
+      exam_date = ?, 
+      status = ?, 
+      study_material_url = ?, 
+      study_material_name = ?, 
+      gaivotas_links = ?, 
+      updated_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`,
+    [
+      name,
+      description || null,
+      startDate || null,
+      examDate || null,
+      status || 'em_breve',
+      studyMaterialUrl || null,
+      studyMaterialName || null,
+      gaivotasLinks || null,
+      id
+    ]
+  );
+}
+
+export async function deleteCatalogDiscipline(id: number): Promise<void> {
+  await query(
+    "UPDATE pmam_disciplines SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [id]
+  );
+}
+
 
 export async function getStudentGradeEntries(studentId: number): Promise<StudentGradeEntry[]> {
   const rows = await query(

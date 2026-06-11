@@ -202,15 +202,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .bottom-nav-glass {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(6, 36, 23, 0.45);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(196, 168, 75, 0.22);
+  background: rgba(6, 36, 23, 0.88);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
 }
 
 .mobile-safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 6.5rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 5.25rem);
 }
 
 @media (min-width: 768px) {
@@ -255,4 +255,30 @@ h1, h2, h3, h4, h5, h6 {
     #1e3a5f 12px, #1e3a5f 24px
   );
   height: 8px;
+}
+
+/* Global Dark Mode Helper Overrides */
+.dark .bg-\[\#f5f2e8\] {
+  background-color: var(--background) !important;
+}
+.dark .bg-white {
+  background-color: var(--card) !important;
+}
+.dark .text-\[\#1a3a2a\] {
+  color: var(--primary) !important;
+}
+.dark .text-foreground {
+  color: var(--foreground) !important;
+}
+.dark .border-border\/40 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark .bg-\[\#f5f2e8\]\/50 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+.dark .bg-white\/95 {
+  background-color: rgba(20, 20, 25, 0.95) !important;
+}
+.dark .bg-\[\#f5f2e8\] {
+  background-color: var(--background) !important;
 }

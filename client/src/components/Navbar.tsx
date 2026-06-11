@@ -15,6 +15,8 @@ import {
   Shield,
   Star,
   Target,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   clearStudentSession,
@@ -22,8 +24,9 @@ import {
   STUDENT_SESSION_CHANGED,
   type StudentSession,
 } from "@/lib/studentSession";
+import { useTheme } from "@/contexts/ThemeContext";
 
-const LOGO_URL = "/manus-storage/IMG_7727_e58fe5d9.PNG";
+const LOGO_URL = "/logo/IMG_7728.PNG";
 
 const navLinks = [
   { href: "/", label: "Página Inicial", icon: Shield },
@@ -48,6 +51,7 @@ export default function Navbar() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<StudentSession | null>(() => getStudentSession());
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const syncStudent = () => setStudent(getStudentSession());
@@ -68,28 +72,42 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Mobile Header (Dark Green, Translucent) */}
-      <header className="md:hidden sticky top-0 z-40 bg-[#062417]/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-[#f8f7f0] backdrop-blur-xl">
+      {/* Mobile Header (White, Translucent) */}
+      <header className="md:hidden sticky top-0 z-40 bg-white/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground border-b border-border/40 backdrop-blur-xl dark:bg-[#0c0c0e]/95 dark:text-foreground">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow-lg" />
+            <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow" />
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#f8f7f0]">
+              <p 
+                className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#1a3a2a] dark:text-[#c4a84b]"
+                style={{ fontFamily: "Merriweather, serif" }}
+              >
                 HINÁRIO PMAM
               </p>
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Polícia Militar do Amazonas
               </p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
+            {toggleTheme && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                onClick={toggleTheme}
+                aria-label="Alternar tema"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4 text-yellow-500" /> : <Moon className="h-4 w-4 text-slate-700" />}
+              </Button>
+            )}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
                 <Search className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/cfap-2026" aria-label="Notificações">
-              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-white/10 bg-white/8 text-white hover:bg-white/15">
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
                 <Bell className="h-4 w-4" />
               </Button>
             </Link>
@@ -98,7 +116,7 @@ export default function Navbar() {
       </header>
 
       {/* Desktop/Tablet Header (White) */}
-      <header className="hidden md:block sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <header className="hidden md:block sticky top-0 z-50 w-full border-b border-border/40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-[#0c0c0e]/95">
       <div className="checkerboard-pattern w-full" />
       
       {/* Top Row: Logo & Student Auth Actions */}
@@ -111,7 +129,7 @@ export default function Navbar() {
           />
           <div className="flex min-w-0 max-w-[10rem] flex-col sm:max-w-[13rem]">
             <span
-              className="truncate text-sm font-bold leading-tight text-[#1a3a2a]"
+              className="truncate text-sm font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b]"
               style={{ fontFamily: "Merriweather, serif" }}
             >
               HINÁRIO PMAM
@@ -124,6 +142,18 @@ export default function Navbar() {
 
         {/* Right side controls (Student Info/Sair & Xerife) & Mobile menu trigger */}
         <div className="flex items-center gap-2">
+          {toggleTheme && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+              onClick={toggleTheme}
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4 text-yellow-500" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            </Button>
+          )}
+          
           {/* Desktop-only Auth controls */}
           <div className="hidden xl:flex items-center gap-2">
             {student ? (
@@ -143,7 +173,7 @@ export default function Navbar() {
                   </Button>
                 </Link>
                 <Link href="/perfil-aluno">
-                  <Button variant="ghost" size="sm" className="max-w-40 truncate text-[#1a3a2a] font-bold">
+                  <Button variant="ghost" size="sm" className="max-w-40 truncate text-[#1a3a2a] dark:text-primary font-bold">
                     {student.nomeGuerra}
                   </Button>
                 </Link>
@@ -191,14 +221,14 @@ export default function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 bg-white">
+            <SheetContent side="right" className="w-72 bg-white dark:bg-[#15151a] dark:text-foreground">
               <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
               <div className="mt-8 flex flex-col gap-2">
                 <div className="mb-6 flex items-center gap-3 px-2">
                   <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain" />
                   <div className="min-w-0">
                     <p
-                      className="truncate font-bold text-[#1a3a2a]"
+                      className="truncate font-bold text-[#1a3a2a] dark:text-[#c4a84b]"
                       style={{ fontFamily: "Merriweather, serif" }}
                     >
                       HINÁRIO PMAM
@@ -206,6 +236,26 @@ export default function Navbar() {
                     <p className="truncate text-xs text-muted-foreground">Polícia Militar do Amazonas</p>
                   </div>
                 </div>
+
+                {toggleTheme && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 text-foreground dark:hover:bg-muted/10 mb-4"
+                    onClick={toggleTheme}
+                  >
+                    {theme === "dark" ? (
+                      <>
+                        <Sun className="h-4 w-4 text-yellow-500" />
+                        <span>Modo Claro</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="h-4 w-4 text-slate-700" />
+                        <span>Modo Escuro</span>
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {navLinks.map((link) => {
                   const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
@@ -231,7 +281,7 @@ export default function Navbar() {
                       </Button>
                     </Link>
                     <Link href="/perfil-aluno" onClick={() => setOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a]">
+                      <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-primary">
                         {student.nomeGuerra}
                       </Button>
                     </Link>
@@ -268,7 +318,7 @@ export default function Navbar() {
       </div>
 
       {/* Bottom Row: Navigation Menu Bar (Desktop Only) */}
-      <div className="hidden xl:flex justify-center border-t border-border/40 py-2 bg-muted/10 w-full">
+      <div className="hidden xl:flex justify-center border-t border-border/40 py-2 bg-muted/10 w-full dark:bg-[#1a1a24]/50">
         <nav className="flex items-center justify-center gap-1.5 w-full max-w-7xl overflow-x-auto px-4">
           {navLinks.map((link) => {
             const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));

@@ -97,40 +97,40 @@ export default function DrillDetail() {
   const youtubeExecutionId = extractYouTubeId(drill.youtubeUrl);
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
             {drill.category && <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{drill.category}</Badge>}
             {drill.difficulty && (
-              <Badge className={difficultyClasses[drill.difficulty] ?? "bg-white text-slate-900"}>
+              <Badge className={difficultyClasses[drill.difficulty] ?? "bg-slate-100 text-slate-900"}>
                 {difficultyLabels[drill.difficulty] ?? drill.difficulty}
               </Badge>
             )}
             {drill.duration && (
-              <Badge variant="outline" className="border-white/20 text-white/80">
+              <Badge variant="outline" className="border-border text-muted-foreground">
                 {drill.duration} min
               </Badge>
             )}
           </div>
-          <h1 className="text-3xl font-bold text-white md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             {drill.title}
           </h1>
           {drill.subtitle && (
-            <p className="mx-auto mt-3 max-w-2xl text-lg text-white/80">
+            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
               {drill.subtitle}
             </p>
           )}
           {drill.description && (
-            <p className="mx-auto mt-3 max-w-3xl text-sm text-white/60">
+            <p className="mx-auto mt-3 max-w-3xl text-sm text-muted-foreground">
               {drill.description}
             </p>
           )}
           <div className="mt-6 flex justify-center gap-4">
             <Link href="/drill">
-              <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+              <Button variant="outline" className="border-border text-foreground hover:bg-[#1a3a2a]/5">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar para Ordem Unida
               </Button>
@@ -140,10 +140,10 @@ export default function DrillDetail() {
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <PlayCircle className="h-10 w-10 text-[#1a3a2a]" />
                 <div>

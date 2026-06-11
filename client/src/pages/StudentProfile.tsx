@@ -167,20 +167,20 @@ export default function StudentProfilePage() {
   const isLoading = profileQuery.isLoading || updateMutation.isPending;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
       <Navbar />
       <main className="container max-w-5xl px-4 py-6 md:py-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 rounded-[1.75rem] border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-xl shadow-black/15 md:flex-row md:items-center md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none">
+        <div className="mb-6 flex flex-col justify-between gap-4 p-5 text-foreground md:flex-row md:items-center md:p-0">
           <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-white md:text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+            <h1 className="flex items-center gap-2 text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
               <Shield className="h-8 w-8 text-[#c4a84b]" />
               Ficha de Cadastro do Aluno
             </h1>
-            <p className="mt-1 text-sm text-white/70 md:text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Gerencie suas informações militares e dados pessoais.
             </p>
           </div>
-          <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#f0bd3a] shadow-sm backdrop-blur md:rounded-lg md:bg-white/80 md:text-[#1a3a2a]">
+          <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#1a3a2a] shadow-sm backdrop-blur md:rounded-lg md:bg-white/80">
             CFSD 2026 • {session.companhia}ª CIA • {session.peloton}º PEL • Numérica {session.numerica}
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function StudentProfilePage() {
           <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
             {/* Coluna Esquerda: Foto & Status */}
             <div className="flex flex-col gap-6">
-              <Card className="overflow-hidden border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-sm">
+              <Card className="overflow-hidden border-border/50 bg-white text-foreground shadow-sm">
                 <CardHeader className="pb-3 text-center border-b bg-muted/20">
                   <CardTitle className="text-sm font-bold text-[#1a3a2a]">Identidade Visual</CardTitle>
                   <CardDescription className="text-[10px]">Foto oficial 3x4 em fardamento</CardDescription>
@@ -241,7 +241,7 @@ export default function StudentProfilePage() {
               </Card>
 
               {/* Card Segurança / Senha */}
-              <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-sm">
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
                 <CardHeader className="pb-3 border-b bg-muted/20">
                   <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-2">
                     <KeyRound className="h-4 w-4 text-[#c4a84b]" />
@@ -274,7 +274,7 @@ export default function StudentProfilePage() {
             </div>
 
             {/* Coluna Direita: Informações Gerais */}
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-sm">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardHeader className="pb-3 border-b bg-muted/20">
                 <CardTitle className="text-base font-bold text-[#1a3a2a]">Dados Cadastrais Oficiais</CardTitle>
                 <CardDescription className="text-xs">Estes dados serão integrados na geração de documentos de expediente.</CardDescription>

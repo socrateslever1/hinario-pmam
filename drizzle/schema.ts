@@ -289,6 +289,12 @@ export const pmamDisciplines = mysqlTable("pmam_disciplines", {
   description: text("description"),
   createdBy: int("created_by").notNull(), // Admin ID
   isActive: boolean("is_active").default(true),
+  startDate: date("start_date"),
+  examDate: date("exam_date"),
+  status: varchar("status", { length: 50 }).default("em_breve"),
+  studyMaterialUrl: varchar("study_material_url", { length: 512 }),
+  studyMaterialName: varchar("study_material_name", { length: 255 }),
+  gaivotasLinks: text("gaivotas_links"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

@@ -275,22 +275,22 @@ export default function Cfap2026() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       <Navbar />
 
-      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#c4a84b]/20 px-4 py-1.5">
             <Shield className="h-4 w-4 text-[#c4a84b]" />
             <span className="text-sm font-medium text-[#c4a84b]">Área Exclusiva</span>
           </div>
           <h1
-            className="text-3xl font-bold text-white md:text-4xl"
+            className="text-3xl font-bold text-[#1a3a2a] md:text-4xl"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             CFAP 2026
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-white/60">
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
             Centro de Formação e Aperfeiçoamento de Praças — Missões, comunicados e orientações
             para os alunos do curso de formação da Polícia Militar do Amazonas.
           </p>
@@ -298,9 +298,9 @@ export default function Cfap2026() {
         <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container max-w-4xl">
-          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-white md:bg-[#c4a84b]/5 md:text-foreground">
+          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-foreground md:bg-[#c4a84b]/5">
             <CardContent className="flex items-start gap-4 p-6">
               <Shield className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
               <div className="space-y-2">

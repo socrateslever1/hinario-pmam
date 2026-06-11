@@ -105,14 +105,14 @@ export default function HymnDetail() {
   const youtubeId = hymn.youtubeUrl ? extractYouTubeId(hymn.youtubeUrl) : null;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
       {/* Header */}
-      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-10">
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-10">
         <div className="container">
           <Link href={catalogHref}>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 gap-2 mb-4">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-[#1a3a2a]/5 gap-2 mb-4">
               <ArrowLeft className="h-4 w-4" /> {catalogLabel}
             </Button>
           </Link>
@@ -127,13 +127,13 @@ export default function HymnDetail() {
               <p className="text-xs font-medium uppercase tracking-wider text-[#c4a84b] mb-1">
                 {categoryLabels[hymn.category] || hymn.category}
               </p>
-              <h1 className="text-2xl md:text-3xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
+              <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
                 {hymn.title}
               </h1>
               {hymn.subtitle && (
-                <p className="text-white/60 mt-1">{hymn.subtitle}</p>
+                <p className="text-muted-foreground mt-1">{hymn.subtitle}</p>
               )}
-              <div className="flex flex-wrap gap-4 mt-3 text-sm text-white/50">
+              <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
                 {hymn.author && (
                   <span className="flex items-center gap-1">
                     <Pen className="h-3 w-3" /> Letra: {hymn.author}
@@ -151,7 +151,7 @@ export default function HymnDetail() {
         <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content - Lyrics & Player */}

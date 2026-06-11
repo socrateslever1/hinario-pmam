@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "/logo/pmam-logo.png";
+const BRASAO_URL = "/logo/IMG_7728.PNG";
 const PMAM_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
 const CFAP_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
 
@@ -344,23 +344,23 @@ export default function Documents() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="mobile-military-bg relative overflow-hidden px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
+      <section className="bg-white border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#c4a84b] rounded-full blur-[100px]" />
         </div>
         <div className="container relative text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-4">
+          <div className="inline-flex items-center gap-2 bg-[#1a3a2a]/10 rounded-full px-4 py-1.5 mb-4">
             <Shield className="h-4 w-4 text-[#c4a84b]" />
-            <span className="text-sm text-white/80">Setor de Expediente CFAP</span>
+            <span className="text-sm text-[#1a3a2a] font-semibold">Setor de Expediente CFAP</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-white mb-3" style={{ fontFamily: 'Merriweather, serif' }}>
-            Gerador de <span className="gold-gradient-text">Documentos Militares</span>
+          <h1 className="text-3xl md:text-5xl font-bold text-[#1a3a2a] mb-3" style={{ fontFamily: 'Merriweather, serif' }}>
+            Gerador de <span className="text-[#c4a84b]">Documentos Militares</span>
           </h1>
-          <p className="text-white/70 max-w-2xl mx-auto text-sm md:text-base">
+          <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
@@ -372,7 +372,7 @@ export default function Documents() {
           
           {/* Form Side */}
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
+            <Card className="border-border/50 bg-white text-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a]">Tipo de Documento</label>
@@ -414,7 +414,7 @@ export default function Documents() {
             </Card>
 
             {/* Downloads Section */}
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
+            <Card className="border-border/50 bg-white text-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-2 border-b pb-3">
                   <Download className="h-5 w-5 text-[#c4a84b]" />
@@ -484,7 +484,7 @@ export default function Documents() {
             </Card>
 
             {/* Inputs Editor */}
-            <Card className="flex-1 border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/50 md:bg-white md:text-foreground md:shadow-md">
+            <Card className="flex-1 border-border/50 bg-white text-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b pb-3">
                   <h3 className="font-bold text-[#1a3a2a] text-base" style={{ fontFamily: "Inter, sans-serif" }}>

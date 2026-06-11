@@ -68,26 +68,26 @@ export default function Drill() {
   const mediaCount = filteredDrills.filter((item: any) => item.videoUrl || item.imageUrl || item.pdfUrl).length;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="mobile-military-bg px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <Target className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-3xl font-bold text-white md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Ordem Unida
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-white/60">
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
             Conteúdo organizado para instrução, consulta e demonstração, com espaço para vídeo, imagem e PDF em cada material.
           </p>
         </div>
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-[#062417] px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container space-y-8">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-muted/20 md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Target className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -97,7 +97,7 @@ export default function Drill() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-muted/20 md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Video className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -107,7 +107,7 @@ export default function Drill() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-muted/20 md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -119,9 +119,9 @@ export default function Drill() {
             </Card>
           </div>
 
-          <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/10 text-white md:bg-[#c4a84b]/5 md:text-foreground">
+          <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5 text-foreground shadow-sm">
             <CardContent className="flex items-start gap-4 p-6">
-              <ShieldCheck className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
+               <ShieldCheck className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
               <div className="space-y-2">
                 <h3 className="font-bold text-foreground">Referência no Manual do Aluno</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
@@ -136,7 +136,7 @@ export default function Drill() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card rounded-[1.75rem] text-white md:rounded-xl md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+          <Card className="border-border/50 bg-white text-foreground shadow-sm rounded-xl">
             <CardContent className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_330px]">
               <div className="space-y-4">
                 <div className="relative">
@@ -201,13 +201,13 @@ export default function Drill() {
           </Card>
 
           {isLoading ? (
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="p-12 text-center text-muted-foreground">
                 Carregando ordem unida...
               </CardContent>
             </Card>
           ) : filteredDrills.length === 0 ? (
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="p-12 text-center text-muted-foreground">
                 Nenhum material de ordem unida encontrado com esse filtro.
               </CardContent>
@@ -216,7 +216,7 @@ export default function Drill() {
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredDrills.map((item: any) => (
                 <Link key={item.id} href={`/drill/${item.id}`}>
-                  <Card className="h-full cursor-pointer overflow-hidden border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50 md:border-border/60 md:bg-white md:text-foreground md:shadow-none">
+                  <Card className="h-full cursor-pointer overflow-hidden border-border/50 bg-white text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50">
                     <div className="relative aspect-[16/9] overflow-hidden bg-[#0f1f18]">
                       {item.imageUrl ? (
                         <img

@@ -165,11 +165,26 @@ export default function GradesManagement() {
     const parsedObservation = parseGradeObservation(grade.observation, grade.grade);
     setEditingId(grade.id);
     setEditingDisciplineId(grade.disciplineId);
+    
+    // Tratamento robusto para evaluationDate que pode vir como Date (via superjson) ou String
+    let evalDateStr = '';
+    if (grade.evaluationDate) {
+      const dateObj = grade.evaluationDate as any;
+      if (dateObj instanceof Date) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        evalDateStr = `${year}-${month}-${day}`;
+      } else if (typeof grade.evaluationDate === 'string') {
+        evalDateStr = grade.evaluationDate.slice(0, 10);
+      }
+    }
+
     setFormData({
       professorName: grade.professorName || '',
       grade1: parsedObservation.grade1,
       grade2: parsedObservation.grade2,
-      evaluationDate: grade.evaluationDate || '',
+      evaluationDate: evalDateStr,
       observation: parsedObservation.observation,
     });
 
@@ -207,6 +222,11 @@ export default function GradesManagement() {
       const gradeValue = calculateEffectiveGrade(grade1, grade2);
       const observation = buildGradeObservation(grade1, grade2, formData.observation);
 
+      // Garantir que a data seja enviada como string formatada para o backend (evitando erros de Zod/Date)
+      const evalDateSend = formData.evaluationDate && typeof formData.evaluationDate === 'string'
+        ? (formData.evaluationDate.trim() || undefined)
+        : (formData.evaluationDate ? (formData.evaluationDate as any).toISOString?.().slice(0, 10) : undefined);
+
       if (editingId) {
         // Atualizar nota existente
         await updateGradeMutation.mutateAsync({
@@ -214,7 +234,7 @@ export default function GradesManagement() {
           studentId,
           grade: gradeValue,
           professorName: formData.professorName,
-          evaluationDate: formData.evaluationDate || undefined,
+          evaluationDate: evalDateSend,
           observation,
           sessionToken: session.sessionToken,
         });
@@ -226,7 +246,7 @@ export default function GradesManagement() {
           disciplineId: editingDisciplineId,
           grade: gradeValue,
           professorName: formData.professorName,
-          evaluationDate: formData.evaluationDate || undefined,
+          evaluationDate: evalDateSend,
           observation,
           sessionToken: session.sessionToken,
         });
@@ -278,9 +298,9 @@ export default function GradesManagement() {
 
   if (isLoading) {
     return (
-      <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
+      <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
         <Navbar />
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-white md:text-foreground">
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-foreground">
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#1a3a2a]" />
             <p>Carregando disciplinas...</p>
@@ -291,14 +311,14 @@ export default function GradesManagement() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
       <main className="px-4 py-6 md:p-8 md:pb-8">
         <div className="mx-auto max-w-4xl">
-          <div className="mb-6 flex flex-col gap-4 rounded-[1.75rem] border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-xl shadow-black/15 sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none">
+          <div className="mb-6 flex flex-col gap-4 rounded-[1.75rem] border border-border/50 bg-white p-5 text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
             <div>
-              <h1 className="text-3xl font-bold text-white md:text-[#1a3a2a]">Lançar Notas</h1>
-              <p className="text-sm text-white/70 md:text-muted-foreground">{studentName}</p>
+              <h1 className="text-3xl font-bold text-[#1a3a2a]">Lançar Notas</h1>
+              <p className="text-sm text-muted-foreground">{studentName}</p>
             </div>
             <Button variant="outline" onClick={handleLogout} className="gap-2 self-start sm:self-auto">
               <LogOut className="h-4 w-4" />
@@ -371,7 +391,7 @@ export default function GradesManagement() {
                     <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t pt-4">
                       <div className="grid gap-3 sm:grid-cols-3">
                         <div>
-                          <Label htmlFor={`grade1-${discipline.id}`} className="text-white md:text-foreground">1ª nota (0-10)</Label>
+                          <Label htmlFor={`grade1-${discipline.id}`} className="text-foreground">1ª nota (0-10)</Label>
                           <Input
                             id={`grade1-${discipline.id}`}
                             type="text"
@@ -379,11 +399,11 @@ export default function GradesManagement() {
                             placeholder="Ex: 9.5 ou 9,5"
                             value={formData.grade1}
                             onChange={(e) => setFormData({ ...formData, grade1: e.target.value.replace(',', '.') })}
-                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
+                            className="text-foreground bg-white border-border"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`grade2-${discipline.id}`} className="text-white md:text-foreground">2ª nota (opcional)</Label>
+                          <Label htmlFor={`grade2-${discipline.id}`} className="text-foreground">2ª nota (opcional)</Label>
                           <Input
                             id={`grade2-${discipline.id}`}
                             type="text"
@@ -391,43 +411,43 @@ export default function GradesManagement() {
                             placeholder="Se houver 2ª prova"
                             value={formData.grade2}
                             onChange={(e) => setFormData({ ...formData, grade2: e.target.value.replace(',', '.') })}
-                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
+                            className="text-foreground bg-white border-border"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`professor-${discipline.id}`} className="text-white md:text-foreground">Professor</Label>
+                          <Label htmlFor={`professor-${discipline.id}`} className="text-foreground">Professor</Label>
                           <Input
                             id={`professor-${discipline.id}`}
                             placeholder="Nome do professor"
                             value={formData.professorName}
                             onChange={(e) => setFormData({ ...formData, professorName: e.target.value })}
-                            className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
+                            className="text-foreground bg-white border-border"
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-white/70 md:text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Se lançar duas notas, a disciplina usa a média delas. Se lançar só uma, ela vale integralmente.
                       </p>
 
                       <div>
-                        <Label htmlFor={`date-${discipline.id}`} className="text-white md:text-foreground">Data da Avaliação</Label>
+                        <Label htmlFor={`date-${discipline.id}`} className="text-foreground">Data da Avaliação</Label>
                         <Input
                           id={`date-${discipline.id}`}
                           type="date"
                           value={formData.evaluationDate}
                           onChange={(e) => setFormData({ ...formData, evaluationDate: e.target.value })}
-                          className="text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
+                          className="text-foreground bg-white border-border"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor={`observation-${discipline.id}`} className="text-white md:text-foreground">Observações</Label>
+                        <Label htmlFor={`observation-${discipline.id}`} className="text-foreground">Observações</Label>
                         <Textarea
                           id={`observation-${discipline.id}`}
                           placeholder="Adicione observações sobre a nota"
                           value={formData.observation}
                           onChange={(e) => setFormData({ ...formData, observation: e.target.value })}
-                          className="resize-none text-white md:text-foreground bg-[#0b3323]/50 md:bg-white border-white/20 md:border-border"
+                          className="resize-none text-foreground bg-white border-border"
                           rows={2}
                         />
                       </div>
@@ -468,7 +488,7 @@ export default function GradesManagement() {
           </div>
 
           {disciplines.length === 0 && (
-            <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">Nenhuma disciplina disponível</p>
               </CardContent>

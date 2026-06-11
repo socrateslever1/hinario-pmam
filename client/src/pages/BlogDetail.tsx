@@ -143,7 +143,7 @@ export default function BlogDetail() {
   const likesCount = likesData?.count ?? 0;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] text-white md:bg-background md:text-foreground">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground md:bg-background">
       <Navbar />
 
       {/* Hero com imagem de capa — altura fixa, nunca empurra conteúdo */}
@@ -166,7 +166,7 @@ export default function BlogDetail() {
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
-            className="mb-6 gap-2 text-white/70 hover:text-white md:text-muted-foreground md:hover:text-foreground"
+            className="mb-6 gap-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar para Home
@@ -175,14 +175,14 @@ export default function BlogDetail() {
           <article>
             {/* Título */}
             <h1
-              className="text-3xl md:text-4xl font-bold text-white md:text-foreground mb-4 leading-tight"
+              className="text-3xl md:text-4xl font-bold text-[#1a3a2a] md:text-foreground mb-4 leading-tight"
               style={{ fontFamily: "Merriweather, serif" }}
             >
               {post.title}
             </h1>
 
             {/* Meta */}
-            <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-white/10 pb-6 text-sm text-white/65 md:border-border md:text-muted-foreground">
+            <div className="mb-6 flex flex-wrap items-center gap-4 border-b border-border pb-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-[#c4a84b]" />
                 <time dateTime={post.createdAt.toISOString()}>
@@ -203,7 +203,7 @@ export default function BlogDetail() {
 
             {/* Corpo do post — overflow controlado, imagens limitadas ao container */}
             <div
-              className="prose prose-sm md:prose-base max-w-none overflow-hidden text-white prose-headings:text-white prose-p:text-white/78 prose-strong:text-white prose-a:text-[#f0bd3a] md:text-foreground md:prose-headings:text-foreground md:prose-p:text-muted-foreground md:prose-strong:text-foreground"
+              className="prose prose-sm md:prose-base max-w-none overflow-hidden text-foreground prose-headings:text-[#1a3a2a] prose-p:text-muted-foreground prose-strong:text-foreground prose-a:text-[#f0bd3a]"
               style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />

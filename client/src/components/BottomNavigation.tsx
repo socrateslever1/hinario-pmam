@@ -89,8 +89,8 @@ export default function BottomNavigation() {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
-        <div className="bottom-nav-glass mx-auto flex max-w-md items-center justify-around gap-1 rounded-2xl px-2 py-2">
+      <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] md:hidden">
+        <div className="bottom-nav-glass mx-auto flex max-w-md items-center justify-around gap-1 rounded-2xl px-2 py-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -98,17 +98,21 @@ export default function BottomNavigation() {
               <button
                 key={`${item.label}-${item.path}`}
                 onClick={() => (item.path === "__more" ? setMoreOpen(true) : goTo(item.path))}
-                className={`relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[9px] font-black transition-all duration-300 ${
+                className={`relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[8.5px] font-black transition-all duration-300 ${
                   active
-                    ? "text-[#f0bd3a] scale-105"
+                    ? "text-[#f0bd3a]"
                     : "text-white/60 hover:text-white"
                 }`}
                 title={item.label}
               >
-                <Icon className={`h-5 w-5 transition-transform duration-300 ${active ? "stroke-[2.5]" : "stroke-[2]"}`} />
-                <span className="leading-none mt-0.5">{item.label}</span>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${
+                  active ? "bg-[#1a3a2a] text-[#f0bd3a] shadow-[0_0_0_1px_rgba(240,189,58,.22)]" : "bg-transparent"
+                }`}>
+                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[2.25]" />
+                </span>
+                <span className="leading-none">{item.label}</span>
                 {active && (
-                  <span className="absolute -bottom-0.5 h-1 w-1.5 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
+                  <span className="absolute -bottom-0.5 h-1 w-4 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
                 )}
               </button>
             );

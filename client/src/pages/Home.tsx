@@ -27,11 +27,11 @@ import { trpc } from "@/lib/trpc";
 const BRASAO_URL = "/IMG_7727.webp";
 
 const categories = [
-  { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da patria e do estado" },
-  { key: "militar", label: "Cancoes Militares", icon: Shield, count: 2, desc: "Cancoes do Exercito Brasileiro" },
-  { key: "pmam", label: "Cancoes da PMAM", icon: Music, count: 10, desc: "Cancoes da corporacao" },
-  { key: "arma", label: "Cancoes de Armas", icon: Target, count: 5, desc: "Infantaria, Cavalaria e mais" },
-  { key: "oracao", label: "Oracoes", icon: BookOpen, count: 4, desc: "Oracoes dos guerreiros" },
+  { key: "nacional", label: "Hinos Nacionais", icon: Star, count: 5, desc: "Hinos da pátria e do estado" },
+  { key: "militar", label: "Canções Militares", icon: Shield, count: 2, desc: "Canções do Exército Brasileiro" },
+  { key: "pmam", label: "Canções da PMAM", icon: Music, count: 10, desc: "Canções da corporação" },
+  { key: "arma", label: "Canções de Armas", icon: Target, count: 5, desc: "Infantaria, Cavalaria e mais" },
+  { key: "oracao", label: "Orações", icon: BookOpen, count: 4, desc: "Orações dos guerreiros" },
 ];
 
 const quickAccessItems = [
@@ -45,10 +45,10 @@ const quickAccessItems = [
 
 const categoryLabels: Record<string, string> = {
   nacional: "Hino Nacional",
-  militar: "Cancao Militar",
-  pmam: "Cancao PMAM",
-  arma: "Cancao de Arma",
-  oracao: "Oracao",
+  militar: "Canção Militar",
+  pmam: "Canção PMAM",
+  arma: "Canção de Arma",
+  oracao: "Oração",
 };
 
 const heroSlides = [
@@ -173,10 +173,10 @@ function HeroSection() {
 
 function QuickAccess() {
   return (
-    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
+    <section className="md:hidden bg-background px-4 py-5 text-foreground">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xl font-black tracking-normal">Acesso Rápido</h2>
-        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a]">
+        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#1a3a2a]">
           Ver todos
         </Link>
       </div>
@@ -184,13 +184,13 @@ function QuickAccess() {
         <div className="flex min-w-min gap-3">
           {quickAccessItems.map((item) => (
             <Link key={item.label} href={item.href}>
-              <div className="glass-card h-36 w-36 shrink-0 rounded-lg p-4">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#145c3a] text-[#f0bd3a] shadow-inner">
+              <div className="bg-white border border-border/50 shadow-sm h-36 w-36 shrink-0 rounded-lg p-4">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] shadow-inner">
                   <item.icon className="h-5 w-5" />
                 </div>
-                <p className="text-3xl font-black leading-none text-white">{item.value}</p>
-                <p className="mt-2 text-sm font-black text-[#f0bd3a]">{item.label}</p>
-                <p className="mt-1 text-xs leading-snug text-white/62">{item.desc}</p>
+                <p className="text-3xl font-black leading-none text-foreground">{item.value}</p>
+                <p className="mt-2 text-sm font-black text-[#1a3a2a]">{item.label}</p>
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">{item.desc}</p>
               </div>
             </Link>
           ))}
@@ -199,6 +199,14 @@ function QuickAccess() {
     </section>
   );
 }
+
+const institutionalCopy = {
+  eyebrow: "Identidade PMAM",
+  title: "Diretrizes Institucionais",
+  description: "Princípios morais, éticos e o código de conduta que guiam as ações da Polícia Militar do Amazonas na sociedade.",
+  organization: "Polícia Militar do Amazonas",
+  oathTitle: "Compromisso de Honra",
+};
 
 const institutionalGuidelines = [
   {
@@ -223,7 +231,7 @@ const institutionalGuidelines = [
   },
   {
     icon: Shield,
-    title: "Compromisso de Honra",
+    title: institutionalCopy.oathTitle,
     text: `Ao ingressar!
 na Polícia Militar do Amazonas!
 Prometo!
@@ -242,52 +250,66 @@ com o risco da própria vida!`,
   },
 ];
 
-function MobileInstitutionalGuidelines() {
-  const oath = institutionalGuidelines.find((item) => item.title === "Compromisso de Honra");
-  const guidelines = institutionalGuidelines.filter((item) => item.title !== "Compromisso de Honra");
+function InstitutionalGuidelines() {
+  const oath = institutionalGuidelines.find((item) => item.title === institutionalCopy.oathTitle);
+  const guidelines = institutionalGuidelines.filter((item) => item.title !== institutionalCopy.oathTitle);
 
   return (
-    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
-      <div className="mb-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/62">
-          <Star className="h-3.5 w-3.5 text-[#f0bd3a]" />
-          Identidade PMAM
-        </div>
-        <h2 className="mt-3 text-xl font-black tracking-normal">Valores da Corporação</h2>
-      </div>
-
-      {oath && (
-        <article className="rounded-xl border border-[#f0bd3a]/25 bg-[#0b3323]/82 p-4 shadow-[0_18px_40px_rgba(0,0,0,.22)]">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f0bd3a] text-[#062417]">
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/52">Polícia Militar do Amazonas</p>
-              <h3 className="text-base font-black text-[#f0bd3a]">Compromisso de Honra</h3>
-            </div>
+    <section className="bg-background py-10 md:py-16">
+      <div className="container">
+        <div className="mb-8 text-center md:mb-12">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 md:mb-6">
+            <Star className="h-4 w-4 text-[#c4a84b]" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#1a3a2a] md:text-sm">{institutionalCopy.eyebrow}</span>
           </div>
-          <p className="whitespace-pre-line text-center text-[13px] font-semibold leading-[1.55] text-white/78">
-            &quot;{oath.text}&quot;
+          <h2 className="text-2xl font-bold text-foreground md:text-4xl" style={{ fontFamily: 'Merriweather, serif' }}>
+            {institutionalCopy.title}
+          </h2>
+          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-[#c4a84b] md:mt-6 md:w-20" />
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-6 md:text-lg">
+            {institutionalCopy.description}
           </p>
-        </article>
-      )}
+        </div>
 
-      <div className="mt-3 divide-y divide-white/10 rounded-xl border border-white/10 bg-white/[0.045]">
-        {guidelines.map((item) => {
-          const Icon = item.icon;
-          return (
-            <article key={item.title} className="flex gap-3 p-4">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#145c3a] text-[#f0bd3a]">
-                <Icon className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-[0.16em] text-[#f0bd3a]">{item.title}</h3>
-                <p className="mt-1 text-[13px] font-medium leading-relaxed text-white/68">{item.text}</p>
-              </div>
-            </article>
-          );
-        })}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {guidelines.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50">
+                <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
+                <CardContent className="p-4 md:p-6">
+                  <div className="mb-3 flex items-center gap-3 md:mb-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-white">
+                      <Icon className="h-5 w-5 text-[#c4a84b]" />
+                    </div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground md:text-sm">{item.title}</h3>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {oath && (
+            <Card className="overflow-hidden border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50 sm:col-span-2 lg:col-span-4">
+              <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
+              <CardContent className="p-4 md:p-8">
+                <div className="mb-4 flex items-center gap-3 md:mb-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-white">
+                    <Shield className="h-5 w-5 text-[#c4a84b]" />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#c4a84b] md:text-xs">{institutionalCopy.organization}</p>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground md:text-base">{institutionalCopy.oathTitle}</h3>
+                  </div>
+                </div>
+                <p className="whitespace-pre-line rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-center text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75]">
+                  &quot;{oath.text}&quot;
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -297,10 +319,10 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
   const latest = hymns?.slice(0, 3) ?? [];
 
   return (
-    <section className="md:hidden bg-[#062417] px-4 py-5 text-[#f8f7f0]">
+    <section className="md:hidden bg-[#f5f2e8] px-4 py-5 text-foreground">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xl font-black tracking-normal">Últimos Hinos</h2>
-        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a]">
+        <Link href="/hinos" className="text-xs font-bold uppercase tracking-[0.14em] text-[#1a3a2a]">
           Ver todos
         </Link>
       </div>
@@ -311,21 +333,21 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
           { id: 13, number: 13, title: "Canção do CFAP", category: "militar" },
         ]).map((hymn: any) => (
           <Link key={hymn.id} href={`/hino/${hymn.id}`}>
-            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-[#0b3323]/78 p-3 shadow-lg shadow-black/18">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#145c3a] to-[#062417] text-sm font-black text-[#f0bd3a]">
+            <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#1a3a2a] to-[#2d5a27] text-sm font-black text-[#c4a84b]">
                 {String(hymn.number ?? "").padStart(2, "0")}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-black text-white">{hymn.title}</h3>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-white/55">
+                <h3 className="truncate text-sm font-black text-foreground">{hymn.title}</h3>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {categoryLabels[hymn.category] ?? hymn.category ?? "Hino"}
                 </p>
               </div>
-              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0bd3a] text-[#062417]" aria-label="Reproduzir">
+              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b] text-white hover:bg-[#b39740]" aria-label="Reproduzir">
                 <Play className="h-4 w-4 fill-current" />
               </button>
-              <Star className="h-4 w-4 shrink-0 text-[#f0bd3a]" />
-              <MoreHorizontal className="h-5 w-5 shrink-0 text-white/55" />
+              <Star className="h-4 w-4 shrink-0 text-[#c4a84b]" />
+              <MoreHorizontal className="h-5 w-5 shrink-0 text-muted-foreground" />
             </div>
           </Link>
         ))}
@@ -338,14 +360,13 @@ export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
       <HeroSection />
       <div className="md:hidden">
         <BlogFeed />
       </div>
       <QuickAccess />
-      <MobileInstitutionalGuidelines />
 
       <div className="hidden md:block">
         <BlogFeed />
@@ -353,138 +374,9 @@ export default function Home() {
       <LatestHymns hymns={hymns as any[] | undefined} />
 
       {/* Institutional Guidelines Section */}
-      <section className="hidden py-16 bg-background md:block">
-        <div className="container">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-muted rounded-full px-4 py-1.5 mb-6">
-              <Star className="h-4 w-4 text-[#c4a84b]" />
-              <span className="text-sm font-semibold uppercase tracking-widest text-[#1a3a2a]">Identidade PMAM</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
-              Diretrizes Institucionais
-            </h2>
-            <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-6 rounded-full" />
-            <p className="mt-6 text-muted-foreground text-lg max-w-2xl mx-auto">
-              Principios morais, eticos e o codigo de conduta que guiam as acoes da Policia Militar do Amazonas na sociedade.
-            </p>
-          </div>
+      <InstitutionalGuidelines />
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 mb-10">
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
-              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
-                    <Target className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Missao</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  "Preservar a Ordem Publica e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelencia."
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
-              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
-                    <Eye className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Visao</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Ser referencia nacional como Instituicao de preservacao da Ordem Publica e do Meio Ambiente.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
-              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
-                    <Award className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Principios</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Hierarquia, Disciplina e Eficacia.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white">
-              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
-                    <HeartHandshake className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <h3 className="font-semibold text-foreground uppercase tracking-wider text-sm">Valores</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justica, Aprimoramento, Verdade, Espirito de preservacao do meio ambiente.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full shadow-sm bg-white md:col-span-2">
-              <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white">
-                    <Shield className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-widest font-bold text-[#c4a84b] mb-1">Polícia Militar do Amazonas</p>
-                    <h3 className="font-semibold text-foreground uppercase tracking-wider text-base">Compromisso de Honra</h3>
-                  </div>
-                </div>
-                <div className="pl-4 md:pl-8 flex flex-col text-sm sm:text-base font-medium italic text-muted-foreground space-y-8">
-                  {/* Estrofe 1 */}
-                  <div className="space-y-2">
-                    <p className="text-lg sm:text-xl font-bold not-italic text-[#1a3a2a]">"Ao ingressar!</p>
-                    <p className="pl-4">na Polícia Militar do Amazonas!</p>
-                  </div>
-                  
-                  {/* Estrofe 2 */}
-                  <div className="space-y-2">
-                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">Prometo!</p>
-                    <p className="pl-4">regular a minha conduta!</p>
-                    <p className="pl-4">pelos preceitos da moral!</p>
-                  </div>
-                  
-                  {/* Estrofe 3 */}
-                  <div className="space-y-2">
-                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">Cumprir!</p>
-                    <p className="pl-4">rigorosamente as ordens!</p>
-                    <p className="pl-4">das autoridades!</p>
-                    <p className="pl-4">a que estiver subordinado!</p>
-                  </div>
-                  
-                  {/* Estrofe 4 */}
-                  <div className="space-y-2">
-                    <p className="font-bold not-italic text-[#1a3a2a] text-base sm:text-lg">E dedicar-me!</p>
-                    <p className="pl-4">inteiramente ao serviço policial militar!</p>
-                    <p className="pl-4">à manutenção da ordem pública!</p>
-                    <p className="pl-4">e à segurança da comunidade!</p>
-                  </div>
-                  
-                  {/* Estrofe 5 */}
-                  <div className="space-y-2">
-                    <p className="font-bold not-italic text-[#1a3a2a] text-lg sm:text-xl">Mesmo!</p>
-                    <p className="pl-4 text-lg sm:text-2xl font-bold not-italic text-[#c4a84b]">com o risco da própria vida!"</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="hidden py-16 bg-muted/30 md:block">
+      <section className="py-10 bg-muted/30 md:py-16">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -506,7 +398,7 @@ export default function Home() {
                     <h3 className="font-semibold text-foreground text-sm">{cat.label}</h3>
                     <p className="text-xs text-muted-foreground mt-1">{cat.desc}</p>
                     <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#c4a84b]">
-                      {cat.count} composicoes
+                      {cat.count} composições
                     </div>
                   </CardContent>
                 </Card>
@@ -516,7 +408,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="hidden py-16 bg-background md:block">
+      <section className="py-10 bg-background md:py-16">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -527,8 +419,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { num: 1, title: "Hino Nacional Brasileiro", cat: "Hino Nacional" },
-              { num: 8, title: "Cancao da PMAM", cat: "Cancao da Corporacao" },
-              { num: 13, title: "Cancao do CFAP", cat: "Formacao de Pracas" },
+              { num: 8, title: "Canção da PMAM", cat: "Canção da Corporação" },
+              { num: 13, title: "Canção do CFAP", cat: "Formação de Praças" },
             ].map((item) => {
               const hymn = hymns?.find((h: any) => h.number === item.num);
               return (
@@ -568,26 +460,33 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="military-gradient hidden py-16 md:block">
-        <div className="container text-center">
-          <Target className="h-12 w-12 text-[#c4a84b] mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
-            CFAP 2026
-          </h2>
-          <p className="mt-4 text-white/70 max-w-2xl mx-auto">
-            Pagina exclusiva para alunos do Curso de Formacao e Aperfeicoamento de Pracas.
-            Acompanhe missoes, comunicados e orientacoes para o ano letivo de 2026.
-          </p>
-          <Link href="/cfap-2026">
-            <Button size="lg" className="mt-8 bg-[#c4a84b] hover:bg-[#b39740] text-[#1a1a1a] font-semibold gap-2">
-              Acessar CFAP 2026
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </Link>
+      <section className="military-gradient py-6 md:py-16">
+        <div className="container">
+          <div className="flex flex-col gap-4 text-left md:items-center md:text-center">
+            <div className="flex items-center gap-3 md:flex-col md:gap-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c4a84b] md:mx-auto md:mb-4 md:h-12 md:w-12 md:bg-transparent">
+                <Target className="h-5 w-5 md:h-12 md:w-12" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
+                  CFAP 2026
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/70 md:mt-4">
+                  Comunicados, missões e orientações do Curso de Formação e Aperfeiçoamento de Praças.
+                </p>
+              </div>
+            </div>
+            <Link href="/cfap-2026">
+              <Button size="lg" className="h-10 w-full bg-[#c4a84b] text-sm font-semibold text-[#1a1a1a] hover:bg-[#b39740] md:mt-4 md:h-12 md:w-auto md:gap-2">
+                Acessar CFAP 2026
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      <div className="hidden md:block">
+      <div>
         <Footer />
       </div>
     </div>

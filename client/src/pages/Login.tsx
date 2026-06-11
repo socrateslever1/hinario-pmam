@@ -9,7 +9,7 @@ import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
 
-const BRASAO_URL = "/logo/pmam-logo.png";
+const BRASAO_URL = "/logo/IMG_7728.PNG";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -51,16 +51,16 @@ export default function Login() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#062417] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       {/* Header bar */}
       <div className="checkerboard-pattern w-full" />
-      <div className="military-gradient py-6">
+      <div className="bg-white border-b border-border/40 py-6">
         <div className="container text-center">
           <img src={BRASAO_URL} alt="Brasão PMAM" className="h-16 w-16 object-contain mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Merriweather, serif' }}>
+          <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
             Área do Xerife
           </h1>
-          <p className="text-white/60 text-sm mt-1">Painel de Gerenciamento — Hinário PMAM</p>
+          <p className="text-muted-foreground text-sm mt-1">Painel de Gerenciamento — Hinário PMAM</p>
         </div>
       </div>
 
