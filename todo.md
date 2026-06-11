@@ -91,11 +91,11 @@
 - [x] Corrigir erros de playerVars em componentes de video
 - [x] Criar tabela pmam_blog_post no banco de dados
 - [x] Escrever testes vitest para CRUD de posts
-- [ ] Criar interface de edicao de posts na Area do Xerife com RichTextEditor
-- [ ] Integrar MediaUploadManager para upload de imagens nos posts
-- [ ] Adicionar botao "Editar/Novo Post" visivel apenas para Xerife logado
-- [ ] Implementar sistema de publicacao/despublicacao de posts
-- [ ] Testar responsividade em mobile e desktop
+- [x] Criar interface de edicao de posts na Area do Xerife com RichTextEditor
+- [x] Integrar MediaUploadManager para upload de imagens nos posts
+- [x] Adicionar botao "Editar/Novo Post" visivel apenas para Xerife logado
+- [x] Implementar sistema de publicacao/despublicacao de posts
+- [x] Testar responsividade em mobile e desktop
 
 ## Correções de Erros
 
@@ -243,3 +243,15 @@
   - `pnpm sync:local-to-tidb` - Sincronizar MySQL local → TiDB
 - [ ] Configurar sincronização automática em webhook (opcional)
 - [ ] Testar sincronização bidirecional
+
+## 🔴 PROBLEMAS CRÍTICOS A RESOLVER
+
+- [ ] Bug: Login se perdendo - sessão não persiste (erro: "[Auth] Missing session cookie")
+- [ ] Bug: Logo quebrada no cabeçalho (IMG_7728.PNG não carrega)
+- [ ] Bug: Notas não sincronizando - usuário precisa relogar para acessar
+
+## Sincronização Automática de Notas
+
+- [ ] Implementar webhook para sincronização automática TiDB ↔ MySQL
+- [ ] Testar sincronização bidirecional completa
+- [ ] Validar integridade de dados após sincronização
