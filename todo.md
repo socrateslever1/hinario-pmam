@@ -54,7 +54,7 @@
 - [x] Cache de hinos e Ordem Unida
 - [x] Componente OfflineIndicator com status de conexão
 - [x] Hook usePWA para gerenciar instalação e atualizações
-- [ ] Testes de funcionalidade offline
+- [x] Testes de funcionalidade offline
 
 ## Mídia em Missões
 
@@ -71,14 +71,14 @@
 
 ## Painel de Controle Profissional
 
-- [ ] Criar painel de controle na Área do Xerife com editor visual
-- [ ] Implementar editor de texto rico (WYSIWYG) com TipTap ou similar
-- [ ] Adicionar gerenciador de mídia com upload drag-and-drop
-- [ ] Implementar edição inline na Home (quando logado como Xerife)
-- [ ] Adicionar agendamento de publicação
-- [ ] Implementar histórico de versões
-- [ ] Adicionar preview em tempo real
-- [ ] Criar sistema de publicar/despublicar
+- [x] Criar painel de controle na Área do Xerife com editor visual
+- [x] Implementar editor de texto rico (WYSIWYG) com TipTap ou similar
+- [x] Adicionar gerenciador de mídia com upload drag-and-drop
+- [x] Implementar edição inline na Home (quando logado como Xerife)
+- [x] Adicionar agendamento de publicação
+- [x] Implementar histórico de versões
+- [x] Adicionar preview em tempo real
+- [x] Criar sistema de publicar/despublicar
 
 ## Seção de Blog/Posts na Home
 
@@ -241,8 +241,8 @@
 - [x] Adicionar scripts ao package.json:
   - `pnpm sync:tidb-to-local` - Sincronizar TiDB → MySQL local
   - `pnpm sync:local-to-tidb` - Sincronizar MySQL local → TiDB
-- [ ] Configurar sincronização automática em webhook (opcional)
-- [ ] Testar sincronização bidirecional
+- [x] Configurar sincronização automática em webhook (opcional)
+- [x] Testar sincronização bidirecional
 
 ## 🔴 PROBLEMAS CRÍTICOS A RESOLVER
 
