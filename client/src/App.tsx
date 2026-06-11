@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import { usePWA } from "./hooks/usePWA";
+import { useSessionRefresh } from "./hooks/useSessionRefresh";
 import { useEffect } from "react";
 import Home from "./pages/Home";
 import Hymns from "./pages/Hymns";
@@ -66,6 +67,9 @@ function ScrollToTop() {
 }
 
 function App() {
+  // Renovar sessão automaticamente
+  useSessionRefresh();
+  
   // Ativar auto-atualização silenciosa
   useAutoUpdate();
   

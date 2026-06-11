@@ -43,8 +43,8 @@ export function getStudentSession(): StudentSession | null {
 export function saveStudentSession(student: StudentSession) {
   if (typeof window === "undefined") return;
 
-  // Sessão expira em 24 horas
-  const expiresAt = student.expiresAt || Date.now() + 24 * 60 * 60 * 1000;
+  // Sessão expira em 30 dias
+  const expiresAt = student.expiresAt || Date.now() + 30 * 24 * 60 * 60 * 1000;
 
   window.localStorage.setItem("gradeStudentId", String(student.id));
   window.localStorage.setItem("gradeStudentNumber", student.numerica);
