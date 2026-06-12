@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PeculioTab } from "./PeculioTab";
 import {
   Dialog,
   DialogContent,
@@ -286,28 +288,29 @@ export function ServiceScaleTab() {
 
   return (
     <div className="space-y-6">
+      {/* 1. Global Metrics */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-white">
           <CardContent className="p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Companhia</p>
             <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{selectedCompanhia}ª</p>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-white">
           <CardContent className="p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Pelotão</p>
             <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{selectedPeloton}º</p>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-white">
           <CardContent className="p-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Efetivo</p>
             <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{students.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-border/50">
+        <Card className="border-border/50 bg-white">
           <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Status</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Status da Escala</p>
             <Badge className={`mt-3 ${isPublished ? "bg-green-700 text-white" : "bg-[#c4a84b] text-[#1a1a1a]"}`}>
               {isPublished ? "Publicado" : "Rascunho"}
             </Badge>
@@ -315,10 +318,11 @@ export function ServiceScaleTab() {
         </Card>
       </div>
 
-      <Card className="border-border/50">
+      {/* 2. Global Selection Card */}
+      <Card className="border-border/50 bg-white print:hidden">
         <CardContent className="space-y-4 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
-            <div className="grid flex-1 gap-3 sm:grid-cols-4">
+            <div className="grid flex-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label>Companhia</Label>
                 <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeCompany}>
@@ -337,308 +341,342 @@ export function ServiceScaleTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Semana</Label>
-                <Input type="date" value={weekStart} onChange={(event) => {
-                  const val = event.target.value;
-                  if (val) {
-                    setWeekStart(getMonday(new Date(`${val}T00:00:00`)));
-                  }
-                }} />
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  type="button"
-                  className="w-full gap-2 border-[#c4a84b] text-[#c4a84b] hover:bg-[#c4a84b]/10 hover:text-[#c4a84b]"
-                  onClick={() => {
-                    setRotationStartDate(weekStart);
-                    setRotationDialogOpen(true);
-                  }}
-                >
-                  <CalendarDays className="h-4 w-4" />
-                  Gerar Escala Rotativa
-                </Button>
-              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <Card className="border-border/50">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-[#c4a84b]" />
-              <h2 className="text-lg font-bold text-foreground">Funções fixas</h2>
-            </div>
-            <div>
-              <Label>Homem-Hora</Label>
-              <Select value={homemHoraId || "none"} onValueChange={(value) => setHomemHoraId(value === "none" ? "" : value)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não definido</SelectItem>
-                  {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Aluno de Ligação</Label>
-              <Select value={alunoLigacaoId || "none"} onValueChange={(value) => setAlunoLigacaoId(value === "none" ? "" : value)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não definido</SelectItem>
-                  {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Aditamento / referência</Label>
-              <Input value={aditamento} onChange={(event) => setAditamento(event.target.value)} placeholder="Ex.: Aditamento nº 12/2026" />
-            </div>
-            <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveRoles} disabled={saveRoles.isPending}>
-              <Save className="h-4 w-4" />
-              Salvar funções fixas
-            </Button>
-          </CardContent>
-        </Card>
+      {/* 3. Nested Tabs */}
+      <Tabs defaultValue="peculio" className="w-full">
+        <TabsList className="mb-6 grid h-auto w-full grid-cols-3 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0 print:hidden">
+          <TabsTrigger value="peculio">Frequência (Pecúlio)</TabsTrigger>
+          <TabsTrigger value="efetivo">Efetivo do Pelotão</TabsTrigger>
+          <TabsTrigger value="scale">Escalas de Serviço</TabsTrigger>
+        </TabsList>
 
-        <Card className="border-border/50">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-[#c4a84b]" />
-              <h2 className="text-lg font-bold text-foreground">Escala da semana</h2>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <Label>Dia de Serviço (Opcional)</Label>
-                <Input type="date" value={dutyDate} onChange={(e) => setDutyDate(e.target.value)} />
-              </div>
-              <div>
-                <Label>Xerife</Label>
-                <Select value={xerifeId || "none"} onValueChange={(value) => setXerifeId(value === "none" ? "" : value)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Não definido</SelectItem>
-                    {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Sub-xerife</Label>
-                <Select value={subXerifeId || "none"} onValueChange={(value) => setSubXerifeId(value === "none" ? "" : value)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Não definido</SelectItem>
-                    {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        {/* SUB-TAB 1: FREQUÊNCIA (PECÚLIO) */}
+        <TabsContent value="peculio" className="space-y-6">
+          <PeculioTab
+            companhia={companhia}
+            setCompanhia={setCompanhia}
+            peloton={peloton}
+            setPeloton={setPeloton}
+          />
+        </TabsContent>
 
-            <div className="space-y-3">
-              {weekdays.map((day, index) => (
-                <div key={day.value} className="rounded-lg border border-border/60 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-[#1a3a2a]">{day.label}</p>
-                    <span className="text-xs text-muted-foreground">{new Date(`${addDays(weekStart, index)}T00:00:00`).toLocaleDateString("pt-BR")}</span>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {[0, 1].map((slot) => (
+        {/* SUB-TAB 2: EFETIVO DO PELOTÃO */}
+        <TabsContent value="efetivo" className="space-y-6">
+          <Card className="border-border/50">
+            <CardContent className="p-5 bg-white dark:bg-zinc-900 rounded-lg">
+              <div className="mb-3 flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#c4a84b]" />
+                <h2 className="text-lg font-bold text-foreground">Efetivo do Pelotão</h2>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {students.map((student: any) => (
+                  <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</p>
+                        <Badge className={`border text-[10px] font-semibold px-2 py-0.5 ${getConditionBadgeStyle(student.condition)}`}>
+                          {conditionLabels[student.condition || "pronto"]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Companhia / {student.peloton}º Pelotão</p>
+                    </div>
+                    <div className="mt-3">
+                      <Label className="text-[11px] text-muted-foreground">Alterar Condição</Label>
                       <Select
-                        key={slot}
-                        value={cleaningByDay[day.value]?.[slot] || "none"}
-                        onValueChange={(value) => updateCleaning(day.value, slot, value === "none" ? "" : value)}
+                        value={student.condition || "pronto"}
+                        onValueChange={(value) => handleConditionChange(student.id, value)}
+                        disabled={updateStudentCondition.isPending}
                       >
-                        <SelectTrigger><SelectValue placeholder={`Faxina ${slot + 1}`} /></SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Não definido</SelectItem>
-                          {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                          {Object.entries(conditionLabels).map(([val, lbl]) => (
+                            <SelectItem key={val} value={val} className="text-xs">
+                              {lbl}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                {!students.length && (
+                  <p className="text-sm text-muted-foreground">Nenhum aluno cadastrado para este Pelotão.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button variant="outline" className="gap-2" onClick={() => handleSaveWeek(false)} disabled={saveWeeklyScale.isPending}>
-                <Save className="h-4 w-4" />
-                Salvar rascunho
-              </Button>
-              <Button className="gap-2 bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" onClick={() => handleSaveWeek(true)} disabled={saveWeeklyScale.isPending}>
-                <Check className="h-4 w-4" />
-                Publicar quadro
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {access?.isMaster && (
-        <Card className="border-border/50">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-[#c4a84b]" />
-              <h2 className="text-lg font-bold text-foreground">Configurar Xerifes</h2>
-            </div>
-            <div className="grid gap-3 md:grid-cols-[1fr_160px_150px_150px_auto] md:items-end">
-              <div>
-                <Label>Usuário</Label>
-                <Select value={assignmentForm.userId} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, userId: value }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o usuário" /></SelectTrigger>
-                  <SelectContent>
-                    {(users ?? []).filter((user: any) => user.role !== "master").map((user: any) => (
-                      <SelectItem key={user.id} value={String(user.id)}>{user.name || user.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Nível</Label>
-                <Select value={assignmentForm.level} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, level: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="principal">Principal</SelectItem>
-                    <SelectItem value="companhia">Companhia</SelectItem>
-                    <SelectItem value="pelotao">Pelotão</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Companhia</Label>
-                <Select value={assignmentForm.companhia} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, companhia: value }))} disabled={assignmentForm.level === "principal"}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map((item) => <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Pelotão</Label>
-                <Select value={assignmentForm.peloton} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, peloton: value }))} disabled={assignmentForm.level !== "pelotao"}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2].map((item) => <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAssignment} disabled={saveAssignment.isPending}>
-                <Shield className="h-4 w-4" />
-                Salvar
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {(assignments ?? []).map((assignment: any) => (
-                <div key={assignment.id} className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
+        {/* SUB-TAB 3: ESCALAS DE SERVIÇO */}
+        <TabsContent value="scale" className="space-y-6">
+          <Card className="border-border/50">
+            <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+              <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                <div className="grid flex-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="text-sm font-bold text-foreground">{assignment.userName || assignment.userEmail}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {assignment.level === "principal" && "Xerife Principal"}
-                      {assignment.level === "companhia" && `${assignment.companhia}ª Companhia`}
-                      {assignment.level === "pelotao" && `${assignment.companhia}ª Companhia / ${assignment.peloton}º Pelotão`}
-                    </p>
+                    <Label>Semana</Label>
+                    <Input type="date" value={weekStart} onChange={(event) => {
+                      const val = event.target.value;
+                      if (val) {
+                        setWeekStart(getMonday(new Date(`${val}T00:00:00`)));
+                      }
+                    }} />
                   </div>
-                  <Button size="sm" variant="ghost" className="gap-1 text-destructive" onClick={() => deleteAssignment.mutate({ id: assignment.id })}>
-                    <Trash2 className="h-4 w-4" />
-                    Remover
-                  </Button>
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="w-full gap-2 border-[#c4a84b] text-[#c4a84b] hover:bg-[#c4a84b]/10 hover:text-[#c4a84b]"
+                      onClick={() => {
+                        setRotationStartDate(weekStart);
+                        setRotationDialogOpen(true);
+                      }}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      Gerar Escala Rotativa
+                    </Button>
+                  </div>
                 </div>
-              ))}
-              {!assignments?.length && (
-                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                  Nenhum xerife específico configurado. O master continua com acesso total.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card className="border-border/50">
-        <CardContent className="p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Users className="h-5 w-5 text-[#c4a84b]" />
-            <h2 className="text-lg font-bold text-foreground">Efetivo do Pelotão</h2>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {students.map((student: any) => (
-              <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</p>
-                    <Badge className={`border text-[10px] font-semibold px-2 py-0.5 ${getConditionBadgeStyle(student.condition)}`}>
-                      {conditionLabels[student.condition || "pronto"]}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Companhia / {student.peloton}º Pelotão</p>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <Card className="border-border/50">
+              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <UserCog className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-lg font-bold text-foreground">Funções fixas</h2>
                 </div>
-                <div className="mt-3">
-                  <Label className="text-[11px] text-muted-foreground">Alterar Condição</Label>
-                  <Select
-                    value={student.condition || "pronto"}
-                    onValueChange={(value) => handleConditionChange(student.id, value)}
-                    disabled={updateStudentCondition.isPending}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
+                <div>
+                  <Label>Homem-Hora</Label>
+                  <Select value={homemHoraId || "none"} onValueChange={(value) => setHomemHoraId(value === "none" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(conditionLabels).map(([val, lbl]) => (
-                        <SelectItem key={val} value={val} className="text-xs">
-                          {lbl}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="none">Não definido</SelectItem>
+                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            ))}
-            {!students.length && (
-              <p className="text-sm text-muted-foreground">Nenhum aluno cadastrado para este Pelotão.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                <div>
+                  <Label>Aluno de Ligação</Label>
+                  <Select value={alunoLigacaoId || "none"} onValueChange={(value) => setAlunoLigacaoId(value === "none" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não definido</SelectItem>
+                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Aditamento / referência</Label>
+                  <Input value={aditamento} onChange={(event) => setAditamento(event.target.value)} placeholder="Ex.: Aditamento nº 12/2026" />
+                </div>
+                <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveRoles} disabled={saveRoles.isPending}>
+                  <Save className="h-4 w-4" />
+                  Salvar funções fixas
+                </Button>
+              </CardContent>
+            </Card>
 
-      <Dialog open={rotationDialogOpen} onOpenChange={setRotationDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Gerar Escala Rotativa de 10 Dias</DialogTitle>
-            <DialogDescription>
-              Esta ação calculará automaticamente as datas de serviço para os próximos 10 dias úteis (segunda a sexta), iniciando a partir da data informada, sequenciando os 10 pelotões da 1ª à 5ª Companhia.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="rotation-date">Data de Início do Serviço</Label>
-              <Input
-                id="rotation-date"
-                type="date"
-                value={rotationStartDate}
-                onChange={(e) => setRotationStartDate(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                O pelotão atual ({selectedCompanhia}ª Cia / {selectedPeloton}º Pel) será escalado para esta data. Os outros pelotões serão escalados nos dias úteis subsequentes.
-              </p>
-            </div>
+            <Card className="border-border/50">
+              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-lg font-bold text-foreground">Escala da semana</h2>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <Label>Dia de Serviço (Opcional)</Label>
+                    <Input type="date" value={dutyDate} onChange={(e) => setDutyDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Xerife</Label>
+                    <Select value={xerifeId || "none"} onValueChange={(value) => setXerifeId(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não definido</SelectItem>
+                        {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Sub-xerife</Label>
+                    <Select value={subXerifeId || "none"} onValueChange={(value) => setSubXerifeId(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não definido</SelectItem>
+                        {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {weekdays.map((day, index) => (
+                    <div key={day.value} className="rounded-lg border border-border/60 p-3 bg-white dark:bg-zinc-900">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-[#1a3a2a] dark:text-green-400">{day.label}</p>
+                        <span className="text-xs text-muted-foreground">{new Date(`${addDays(weekStart, index)}T00:00:00`).toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {[0, 1].map((slot) => (
+                          <Select
+                            key={slot}
+                            value={cleaningByDay[day.value]?.[slot] || "none"}
+                            onValueChange={(value) => updateCleaning(day.value, slot, value === "none" ? "" : value)}
+                          >
+                            <SelectTrigger><SelectValue placeholder={`Faxina ${slot + 1}`} /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não definido</SelectItem>
+                              {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button variant="outline" className="gap-2" onClick={() => handleSaveWeek(false)} disabled={saveWeeklyScale.isPending}>
+                    <Save className="h-4 w-4" />
+                    Salvar rascunho
+                  </Button>
+                  <Button className="gap-2 bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" onClick={() => handleSaveWeek(true)} disabled={saveWeeklyScale.isPending}>
+                    <Check className="h-4 w-4" />
+                    Publicar quadro
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRotationDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
-              onClick={handleGenerateRotation}
-              disabled={generateRotation.isPending}
-            >
-              {generateRotation.isPending ? "Gerando..." : "Confirmar e Gerar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          {access?.isMaster && (
+            <Card className="border-border/50">
+              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-lg font-bold text-foreground">Configurar Xerifes</h2>
+                </div>
+                <div className="grid gap-3 md:grid-cols-[1fr_160px_150px_150px_auto] md:items-end">
+                  <div>
+                    <Label>Usuário</Label>
+                    <Select value={assignmentForm.userId} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, userId: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o usuário" /></SelectTrigger>
+                      <SelectContent>
+                        {(users ?? []).filter((user: any) => user.role !== "master").map((user: any) => (
+                          <SelectItem key={user.id} value={String(user.id)}>{user.name || user.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Nível</Label>
+                    <Select value={assignmentForm.level} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, level: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="principal">Principal</SelectItem>
+                        <SelectItem value="companhia">Companhia</SelectItem>
+                        <SelectItem value="pelotao">Pelotão</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Companhia</Label>
+                    <Select value={assignmentForm.companhia} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, companhia: value }))} disabled={assignmentForm.level === "principal"}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((item) => <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Pelotão</Label>
+                    <Select value={assignmentForm.peloton} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, peloton: value }))} disabled={assignmentForm.level !== "pelotao"}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2].map((item) => <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button className="gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAssignment} disabled={saveAssignment.isPending}>
+                    <Shield className="h-4 w-4" />
+                    Salvar
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {(assignments ?? []).map((assignment: any) => (
+                    <div key={assignment.id} className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{assignment.userName || assignment.userEmail}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {assignment.level === "principal" && "Xerife Principal"}
+                          {assignment.level === "companhia" && `${assignment.companhia}ª Companhia`}
+                          {assignment.level === "pelotao" && `${assignment.companhia}ª Companhia / ${assignment.peloton}º Pelotão`}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="ghost" className="gap-1 text-destructive" onClick={() => deleteAssignment.mutate({ id: assignment.id })}>
+                        <Trash2 className="h-4 w-4" />
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                  {!assignments?.length && (
+                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                      Nenhum xerife específico configurado. O master continua com acesso total.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Dialog open={rotationDialogOpen} onOpenChange={setRotationDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Gerar Escala Rotativa de 10 Dias</DialogTitle>
+                <DialogDescription>
+                  Esta ação calculará automaticamente as datas de serviço para os próximos 10 dias úteis (segunda a sexta), iniciando a partir da data informada, sequenciando os 10 pelotões da 1ª à 5ª Companhia.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="rotation-date">Data de Início do Serviço</Label>
+                  <Input
+                    id="rotation-date"
+                    type="date"
+                    value={rotationStartDate}
+                    onChange={(e) => setRotationStartDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O pelotão atual ({selectedCompanhia}ª Cia / {selectedPeloton}º Pel) será escalado para esta data. Os outros pelotões serão escalados nos dias úteis subsequentes.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRotationDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
+                  onClick={handleGenerateRotation}
+                  disabled={generateRotation.isPending}
+                >
+                  {generateRotation.isPending ? "Gerando..." : "Confirmar e Gerar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

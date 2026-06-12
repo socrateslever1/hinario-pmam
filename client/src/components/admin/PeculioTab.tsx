@@ -28,12 +28,41 @@ const legendDetails = [
   { abbr: "DA", name: "Dispensa Administrativa" },
 ];
 
-export function PeculioTab() {
+const conditionAbbrs: Record<string, string> = {
+  pronto: "PRONTO",
+  falta: "FT",
+  atraso: "AT",
+  diverso_destino: "DD",
+  destino_ignorado: "DI",
+  dispensa_medica: "DM",
+  dispensa_administrativa: "DA",
+};
+
+interface PeculioTabProps {
+  companhia?: string;
+  setCompanhia?: (val: string) => void;
+  peloton?: string;
+  setPeloton?: (val: string) => void;
+}
+
+export function PeculioTab({
+  companhia: propCompanhia,
+  setCompanhia: propSetCompanhia,
+  peloton: propPeloton,
+  setPeloton: propSetPeloton,
+}: PeculioTabProps = {}) {
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
 
-  const [companhia, setCompanhia] = useState("1");
-  const [peloton, setPeloton] = useState("1");
+  const [localCompanhia, localSetCompanhia] = useState("1");
+  const [localPeloton, localSetPeloton] = useState("1");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const companhia = propCompanhia ?? localCompanhia;
+  const setCompanhia = propSetCompanhia ?? localSetCompanhia;
+  const peloton = propPeloton ?? localPeloton;
+  const setPeloton = propSetPeloton ?? localSetPeloton;
+
+  const isPropsPassed = propCompanhia !== undefined && propPeloton !== undefined;
 
   // Instructions & Signatures
   const [instrucaoLocal, setInstrucaoLocal] = useState("");
@@ -50,10 +79,10 @@ export function PeculioTab() {
   const selectedPeloton = Number(peloton);
 
   useEffect(() => {
-    if (!access?.scope) return;
+    if (isPropsPassed || !access?.scope) return;
     if (access.scope.companhia) setCompanhia(String(access.scope.companhia));
     if (access.scope.peloton) setPeloton(String(access.scope.peloton));
-  }, [access?.scope]);
+  }, [access?.scope, isPropsPassed]);
 
   // Load students for platoon
   const studentsQuery = trpc.serviceScale.students.useQuery(
@@ -127,7 +156,7 @@ export function PeculioTab() {
       const entry = studentStatuses[student.id] || { status: "pronto", observacao: "" };
       return {
         studentId: student.id,
-        status: entry.status,
+        status: entry.status as any,
         observacao: entry.observacao || null,
       };
     });
@@ -161,37 +190,41 @@ export function PeculioTab() {
       <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden">
         <CardContent className="space-y-4 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
-            <div className="grid flex-1 gap-3 sm:grid-cols-4">
-              <div>
-                <Label>Companhia</Label>
-                <select
-                  value={companhia}
-                  onChange={(e) => setCompanhia(e.target.value)}
-                  disabled={!canChangeCompany}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {[1, 2, 3, 4, 5].map((item) => (
-                    <option key={item} value={String(item)}>
-                      {item}ª Companhia
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Pelotão</Label>
-                <select
-                  value={peloton}
-                  onChange={(e) => setPeloton(e.target.value)}
-                  disabled={!canChangeScope || Boolean(access?.scope?.peloton)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {[1, 2].map((item) => (
-                    <option key={item} value={String(item)}>
-                      {item}º Pelotão
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className={`grid flex-1 gap-3 ${isPropsPassed ? "sm:grid-cols-2" : "sm:grid-cols-4"}`}>
+              {!isPropsPassed && (
+                <>
+                  <div>
+                    <Label>Companhia</Label>
+                    <select
+                      value={companhia}
+                      onChange={(e) => setCompanhia(e.target.value)}
+                      disabled={!canChangeCompany}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {[1, 2, 3, 4, 5].map((item) => (
+                        <option key={item} value={String(item)}>
+                          {item}ª Companhia
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Pelotão</Label>
+                    <select
+                      value={peloton}
+                      onChange={(e) => setPeloton(e.target.value)}
+                      disabled={!canChangeScope || Boolean(access?.scope?.peloton)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {[1, 2].map((item) => (
+                        <option key={item} value={String(item)}>
+                          {item}º Pelotão
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
               <div>
                 <Label>Data do Pecúlio</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -440,7 +473,7 @@ export function PeculioTab() {
                 <tr key={student.id}>
                   <td>{idx + 1}</td>
                   <td>{student.numerica}</td>
-                  <td className="left-align font-semibold uppercase">{student.nomeCompleto || student.nomeGuerra}</td>
+                  <td className="left-align font-semibold uppercase">{student.nomeGuerra}</td>
                   <td>{entry.status === "pronto" ? "X" : ""}</td>
                   <td>{entry.status === "falta" ? "X" : ""}</td>
                   <td>{entry.status === "atraso" ? "X" : ""}</td>
@@ -486,15 +519,21 @@ export function PeculioTab() {
         <div className="page-break-before border border-black p-2 mt-4">
           <h5 className="font-bold uppercase border-b border-black pb-1 mb-2 text-center">Descrição das Alterações</h5>
           <div className="space-y-1">
-            {students.filter(s => (studentStatuses[s.id]?.status !== "pronto" || studentStatuses[s.id]?.observacao)).map((student, idx) => {
+            {students.filter(s => {
+              const entry = studentStatuses[s.id];
+              return entry && (entry.status !== "pronto" || entry.observacao);
+            }).map((student, idx) => {
               const entry = studentStatuses[student.id];
               return (
                 <div key={student.id} className="text-[10px] uppercase border-b border-dashed border-gray-300 pb-1">
-                  <strong>{idx + 1}. Nº {student.numerica} - {student.nomeGuerra}:</strong> {conditionAbbrs[entry.status]} {entry.observacao ? ` - ${entry.observacao}` : ""}
+                  <strong>{idx + 1}. Nº {student.numerica} - {student.nomeGuerra}:</strong> {conditionAbbrs[entry?.status || "pronto"]} {entry?.observacao ? ` - ${entry.observacao}` : ""}
                 </div>
               );
             })}
-            {!students.some(s => (studentStatuses[s.id]?.status !== "pronto" || studentStatuses[s.id]?.observacao)) && (
+            {!students.some(s => {
+              const entry = studentStatuses[s.id];
+              return entry && (entry.status !== "pronto" || entry.observacao);
+            }) && (
               <div className="text-center text-gray-500 italic p-4 text-[10px]">Sem alterações registradas.</div>
             )}
           </div>
