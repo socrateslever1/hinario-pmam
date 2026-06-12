@@ -28,6 +28,7 @@ import Grades from "./pages/Grades";
 import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
+import XerifeSystemDocs from "./pages/XerifeSystemDocs";
 import ServiceBoard from "./pages/ServiceBoard";
 import BottomNavigation from "./components/BottomNavigation";
 
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/quadro-de-servico" component={ServiceBoard} />
       <Route path="/documentos" component={Documents} />
+      <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
