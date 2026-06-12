@@ -133,7 +133,7 @@ export default function SyncedLyricsPanel({
 
   if (!lyrics.trim()) {
     return (
-      <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg ${className}`.trim()}>
+      <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white dark:bg-[#15151a] shadow-lg ${className}`.trim()}>
         <CardContent className="p-6 text-center text-sm text-muted-foreground">
           Nenhuma letra disponivel para a faixa atual.
         </CardContent>
@@ -142,22 +142,22 @@ export default function SyncedLyricsPanel({
   }
 
   return (
-    <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg ${className}`.trim()}>
+    <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white dark:bg-[#15151a] shadow-lg ${className}`.trim()}>
       <CardContent className="p-0">
-        <div className="border-b border-[#1a3a2a]/8 bg-[#f8faf8] px-4 py-3 sm:px-5 md:px-6">
+        <div className="border-b border-[#1a3a2a]/8 dark:border-white/10 bg-[#f8faf8] dark:bg-[#1a1a1f] px-4 py-3 sm:px-5 md:px-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h4 className="text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/72 md:text-sm">{titleLabel}</h4>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">{descriptionLabel}</p>
+              <h4 className="text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a] dark:text-white/90 md:text-sm">{titleLabel}</h4>
+              <p className="mt-1 text-xs leading-relaxed text-[#666] dark:text-white/70 md:text-sm">{descriptionLabel}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-[#1a3a2a]/6 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/75">
+              <span className="rounded-full bg-[#1a3a2a]/6 dark:bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a] dark:text-white/80">
                 {hasManualSync ? "Sync manual" : hasSync ? "Sync estimado" : "Leitura livre"}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a]/60">Auto-scroll</span>
-                <Switch checked={autoScroll} onCheckedChange={setAutoScroll} className="data-[state=checked]:bg-[#1a3a2a]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a] dark:text-white/70">Auto-scroll</span>
+                <Switch checked={autoScroll} onCheckedChange={setAutoScroll} className="data-[state=checked]:bg-[#1a3a2a] dark:data-[state=checked]:bg-white" />
               </div>
             </div>
           </div>
@@ -175,16 +175,16 @@ export default function SyncedLyricsPanel({
                   onClick={() => handleLineClick(line.time)}
                   className={`rounded-xl px-4 py-3 transition-all ${
                     isSection
-                      ? "cursor-default bg-[#f4f6f4] text-center text-xs font-black uppercase tracking-[0.18em] text-[#1a3a2a]/55"
+                      ? "cursor-default bg-[#f4f6f4] dark:bg-white/5 text-center text-xs font-black uppercase tracking-[0.18em] text-[#1a3a2a] dark:text-white/60"
                       : isActive
-                        ? "border border-[#c4a84b]/35 bg-[#fff6da] text-[#1a3a2a] shadow-sm"
+                        ? "border border-[#c4a84b]/35 bg-[#fff6da] dark:bg-[#c4a84b]/20 text-[#1a3a2a] dark:text-white shadow-sm"
                         : onSeek && line.time >= 0
-                          ? "cursor-pointer border border-transparent text-[#31443a] hover:border-[#1a3a2a]/8 hover:bg-[#f7faf8]"
-                          : "border border-transparent text-[#31443a]"
+                          ? "cursor-pointer border border-transparent text-[#31443a] dark:text-white/90 hover:border-[#1a3a2a]/8 dark:hover:border-white/10 hover:bg-[#f7faf8] dark:hover:bg-white/5"
+                          : "border border-transparent text-[#31443a] dark:text-white/90"
                   }`}
                 >
                   {!isSection && line.time >= 0 && (
-                    <div className={`mb-1 text-[10px] font-black uppercase tracking-[0.18em] ${isActive ? "text-[#8d6c0c]" : "text-[#1a3a2a]/35"}`}>
+                    <div className={`mb-1 text-[10px] font-black uppercase tracking-[0.18em] ${isActive ? "text-[#8d6c0c]" : "text-[#1a3a2a]/35 dark:text-white/40"}`}>
                       {formatTime(line.time)}
                     </div>
                   )}
