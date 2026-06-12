@@ -73,42 +73,42 @@ export default function Navbar() {
   return (
     <>
       {/* Mobile Header (White, Translucent) */}
-      <header className="md:hidden sticky top-0 z-40 bg-white/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground border-b border-border/40 backdrop-blur-xl dark:bg-[#0c0c0e]/95 dark:text-foreground">
+      <header className="md:hidden sticky top-0 z-40 bg-white/95 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground border-b border-border/40 backdrop-blur-xl dark:bg-[#0c0c0e]/95 dark:text-foreground">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <img src={LOGO_URL} alt="Brasão PMAM" className="h-10 w-10 shrink-0 object-contain drop-shadow" />
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <img src={LOGO_URL} alt="Brasão PMAM" className="h-9 w-9 shrink-0 object-contain drop-shadow" />
             <div className="min-w-0">
               <p 
-                className="truncate text-[13px] font-black uppercase tracking-[0.16em] text-[#1a3a2a] dark:text-[#c4a84b]"
+                className="truncate text-xs font-black uppercase tracking-[0.12em] text-[#1a3a2a] dark:text-[#c4a84b]"
                 style={{ fontFamily: "Merriweather, serif" }}
               >
                 HINÁRIO PMAM
               </p>
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Polícia Militar do Amazonas
+              <p className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Polícia Militar
               </p>
             </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {toggleTheme && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
                 onClick={toggleTheme}
                 aria-label="Alternar tema"
               >
-                {theme === "dark" ? <Sun className="h-4 w-4 text-yellow-500" /> : <Moon className="h-4 w-4 text-slate-700" />}
+                {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
               </Button>
             )}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-                <Search className="h-4 w-4" />
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+                <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
             <Link href="/cfap-2026" aria-label="Notificações">
-              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-                <Bell className="h-4 w-4" />
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+                <Bell className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
           </div>
@@ -120,40 +120,53 @@ export default function Navbar() {
       <div className="checkerboard-pattern w-full" />
       
       {/* Top Row: Logo & Student Auth Actions */}
-      <div className="container flex h-16 items-center justify-between gap-4 overflow-hidden pt-1">
-        <Link href="/" className="flex min-w-0 max-w-[calc(100vw-5rem)] items-center gap-2 overflow-hidden no-underline sm:gap-3">
+      <div className="container mx-auto px-4 flex h-16 items-center justify-between gap-6 overflow-hidden pt-1">
+        <Link href="/" className="flex min-w-0 items-center gap-3 overflow-hidden no-underline">
           <img
             src={LOGO_URL}
             alt="Brasão PMAM"
-            className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10"
+            className="h-10 w-10 shrink-0 object-contain"
           />
-          <div className="flex min-w-0 max-w-[10rem] flex-col sm:max-w-[13rem]">
+          <div className="flex min-w-0 flex-col">
             <span
               className="truncate text-sm font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b]"
               style={{ fontFamily: "Merriweather, serif" }}
             >
               HINÁRIO PMAM
             </span>
-            <span className="hidden truncate text-[10px] leading-tight text-muted-foreground sm:block">
+            <span className="truncate text-xs leading-tight text-muted-foreground">
               Polícia Militar do Amazonas
             </span>
           </div>
         </Link>
 
         {/* Right side controls (Student Info/Sair & Xerife) & Mobile menu trigger */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {toggleTheme && (
             <Button
               size="icon"
               variant="ghost"
               className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
               onClick={toggleTheme}
+              title="Alternar tema"
               aria-label="Alternar tema"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4 text-yellow-500" /> : <Moon className="h-4 w-4 text-slate-700" />}
+              {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
             </Button>
           )}
           
+          {/* Search and Notifications Icons */}
+          <Link href="/hinos" aria-label="Buscar hinos">
+            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Search className="h-4 w-4 text-[#c4a84b]" />
+            </Button>
+          </Link>
+          <Link href="/cfap-2026" aria-label="Notificações">
+            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Bell className="h-4 w-4 text-[#c4a84b]" />
+            </Button>
+          </Link>
+
           {/* Desktop-only Auth controls */}
           <div className="hidden xl:flex items-center gap-2">
             {student ? (
@@ -245,7 +258,7 @@ export default function Navbar() {
                   >
                     {theme === "dark" ? (
                       <>
-                        <Sun className="h-4 w-4 text-yellow-500" />
+                        <Sun className="h-4 w-4 text-[#c4a84b]" />
                         <span>Modo Claro</span>
                       </>
                     ) : (
