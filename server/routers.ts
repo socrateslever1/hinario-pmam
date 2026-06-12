@@ -14,6 +14,8 @@ import bcrypt from "bcryptjs";
 import { getStudyStudentNumberErrorMessage, isValidStudyStudentNumber } from "../shared/study";
 import * as gradeDb from "./gradeDb";
 import * as studentDb from "./studentDb";
+import * as serviceScaleDb from "./serviceScaleDb";
+import * as peculioDb from "./peculioDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -23,6 +25,7 @@ const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage()
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
+
 
 async function requireStudentSession(studentId: number, sessionToken: string) {
   const isValid = await studentDb.verifyStudentSession(studentId, sessionToken);
@@ -46,6 +49,30 @@ const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+// Allow master, admin, or any user with a xerife assignment
+const scaleManagerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.role === "master" || ctx.user.role === "admin") {
+    return next({ ctx });
+  }
+  const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+  if (assignment) {
+    return next({ ctx });
+  }
+  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores ou xerifes" });
+});
+
+async function requireServiceScaleAccess(
+  user: any,
+  companhia: number,
+  peloton?: number | null,
+) {
+  const assignment = await serviceScaleDb.getXerifeAssignment(user.id);
+  if (!serviceScaleDb.canAccessScope(user, assignment, companhia, peloton)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Sem acesso a este Pelotão" });
+  }
+  return assignment;
+}
 
 export const appRouter = router({
   system: router({
@@ -1068,6 +1095,248 @@ export const appRouter = router({
       }).optional()
     ).query(async ({ input }) => {
       return gradeDb.getGradeRanking(input);
+    }),
+  }),
+
+  serviceScale: router({
+    published: publicProcedure.input(
+      z.object({
+        weekStart: z.string().trim().optional(),
+      }).optional()
+    ).query(async ({ input }) => {
+      return serviceScaleDb.getPublishedServiceBoard(input?.weekStart);
+    }),
+
+    myAccess: protectedProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      return {
+        assignment,
+        scope: serviceScaleDb.getDefaultScope(ctx.user, assignment),
+        isMaster: ctx.user.role === "master",
+      };
+    }),
+
+    students: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const companhia = input?.companhia ?? scope.companhia;
+      const peloton = input?.peloton ?? scope.peloton;
+
+      if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      } else if (!scope.unrestricted) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem escopo configurado" });
+      }
+
+      return serviceScaleDb.listStudents({ companhia, peloton });
+    }),
+
+    getPlatoon: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        weekStart: z.string().trim().min(10).max(10),
+      })
+    ).query(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const [students, roles, week] = await Promise.all([
+        serviceScaleDb.listStudents({ companhia: input.companhia, peloton: input.peloton }),
+        serviceScaleDb.getPlatoonRoles(input.companhia, input.peloton),
+        serviceScaleDb.getWeeklyScale(input.companhia, input.peloton, input.weekStart),
+      ]);
+      return { students, roles, week };
+    }),
+
+    saveRoles: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        homemHoraId: z.number().int().nullable().optional(),
+        alunoLigacaoId: z.number().int().nullable().optional(),
+        aditamento: z.string().trim().max(255).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.upsertPlatoonRoles({
+        ...input,
+        updatedBy: ctx.user.id,
+      });
+      return { success: true };
+    }),
+
+    saveWeeklyScale: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        weekStart: z.string().trim().min(10).max(10),
+        dutyDate: z.string().trim().max(10).nullable().optional(),
+        xerifeId: z.number().int().nullable().optional(),
+        subXerifeId: z.number().int().nullable().optional(),
+        aditamento: z.string().trim().max(255).nullable().optional(),
+        isPublished: z.boolean().optional(),
+        cleaning: z.array(z.object({
+          weekday: z.number().int().min(1).max(5),
+          serviceDate: z.string().trim().max(10).nullable().optional(),
+          studentIds: z.array(z.number().int()),
+        })).optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const week = await serviceScaleDb.upsertWeeklyScale({
+        ...input,
+        updatedBy: ctx.user.id,
+      });
+      return week;
+    }),
+
+    updateStudentCondition: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        condition: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa"]),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      await studentDb.updateStudentCondition(input.studentId, input.condition);
+      return { success: true };
+    }),
+
+    generateRotation: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        startDate: z.string().trim().min(10).max(10),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const rotationPlatoons = [
+        { companhia: 1, peloton: 1 },
+        { companhia: 1, peloton: 2 },
+        { companhia: 2, peloton: 1 },
+        { companhia: 2, peloton: 2 },
+        { companhia: 3, peloton: 1 },
+        { companhia: 3, peloton: 2 },
+        { companhia: 4, peloton: 1 },
+        { companhia: 4, peloton: 2 },
+        { companhia: 5, peloton: 1 },
+        { companhia: 5, peloton: 2 },
+      ];
+
+      const startIndex = rotationPlatoons.findIndex(
+        (p) => p.companhia === input.companhia && p.peloton === input.peloton
+      );
+      if (startIndex === -1) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Pelotão inicial inválido" });
+      }
+
+      function addWeekdays(startDateStr: string, weekdaysToAdd: number): string {
+        const date = new Date(`${startDateStr}T00:00:00`);
+        let count = 0;
+        const direction = weekdaysToAdd >= 0 ? 1 : -1;
+        const absWeekdays = Math.abs(weekdaysToAdd);
+        while (count < absWeekdays) {
+          date.setDate(date.getDate() + direction);
+          const day = date.getDay();
+          if (day !== 0 && day !== 6) {
+            count++;
+          }
+        }
+        return date.toISOString().slice(0, 10);
+      }
+
+      function getMondayOfWeek(dateStr: string): string {
+        const date = new Date(`${dateStr}T00:00:00`);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        date.setDate(diff);
+        return date.toISOString().slice(0, 10);
+      }
+
+      for (let i = 0; i < 10; i++) {
+        const p = rotationPlatoons[i];
+        const offset = (i - startIndex + 10) % 10;
+        const dutyDate = addWeekdays(input.startDate, offset);
+        const weekStart = getMondayOfWeek(dutyDate);
+
+        await serviceScaleDb.upsertWeeklyScale({
+          companhia: p.companhia,
+          peloton: p.peloton,
+          weekStart,
+          dutyDate,
+          updatedBy: ctx.user.id,
+        });
+      }
+
+      return { success: true };
+    }),
+
+    assignments: masterProcedure.query(async () => {
+      return serviceScaleDb.listXerifeAssignments();
+    }),
+
+    saveAssignment: masterProcedure.input(
+      z.object({
+        userId: z.number().int(),
+        level: z.enum(["principal", "companhia", "pelotao"]),
+        companhia: z.number().int().min(1).max(5).nullable().optional(),
+        peloton: z.number().int().min(1).max(2).nullable().optional(),
+      })
+    ).mutation(async ({ input }) => {
+      await serviceScaleDb.upsertXerifeAssignment(input);
+      return { success: true };
+    }),
+
+    deleteAssignment: masterProcedure.input(
+      z.object({
+        id: z.number().int(),
+      })
+    ).mutation(async ({ input }) => {
+      await serviceScaleDb.deleteXerifeAssignment(input.id);
+      return { success: true };
+    }),
+  }),
+
+  peculio: router({
+    get: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        date: z.string().trim().min(10).max(10),
+      })
+    ).query(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return peculioDb.getPeculioReport(input.companhia, input.peloton, input.date);
+    }),
+
+    save: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        date: z.string().trim().min(10).max(10),
+        instrucaoLocal: z.string().trim().nullable().optional(),
+        instrucaoDisciplina: z.string().trim().nullable().optional(),
+        instrucaoExterna: z.boolean().optional(),
+        chefeTurma: z.string().trim().nullable().optional(),
+        subchefeTurma: z.string().trim().nullable().optional(),
+        cmtPel: z.string().trim().nullable().optional(),
+        statuses: z.array(
+          z.object({
+            studentId: z.number().int(),
+            status: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa"]),
+            observacao: z.string().trim().nullable().optional(),
+          })
+        ),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return peculioDb.savePeculioReport(input);
     }),
   }),
 

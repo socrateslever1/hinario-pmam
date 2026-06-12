@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BlogFeed from "@/components/BlogFeed";
+import { ServiceBoardPreview } from "@/components/ServiceBoardPreview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
@@ -371,6 +372,7 @@ export default function Home() {
       <div className="hidden md:block">
         <BlogFeed />
       </div>
+      <ServiceBoardPreview />
       <LatestHymns hymns={hymns as any[] | undefined} />
 
       {/* Institutional Guidelines Section */}

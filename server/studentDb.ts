@@ -41,6 +41,16 @@ async function ensureStudentSessionSchema() {
             "ALTER TABLE pmam_students ADD COLUMN session_token varchar(128)"
           );
         }
+
+        const [conditionRows] = await connection.execute(
+          "SHOW COLUMNS FROM pmam_students LIKE 'condition'"
+        );
+
+        if ((conditionRows as any[]).length === 0) {
+          await connection.execute(
+            "ALTER TABLE pmam_students ADD COLUMN `condition` varchar(32) NOT NULL DEFAULT 'pronto'"
+          );
+        }
       } finally {
         connection.release();
       }
@@ -66,6 +76,7 @@ export interface StudentData {
   nomeCompleto?: string;
   rg?: string;
   email?: string;
+  condition?: string;
 }
 
 export async function createStudent(
@@ -117,7 +128,7 @@ export async function getStudentByNumerica(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -171,7 +182,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE id = ?
       LIMIT 1
@@ -192,7 +203,7 @@ export async function getAllStudents(): Promise<StudentData[]> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       ORDER BY numerica ASC
     `;
@@ -328,6 +339,20 @@ export async function deleteStudent(id: number): Promise<void> {
   } catch (error) {
     await connection.rollback();
     throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateStudentCondition(id: number, condition: string): Promise<void> {
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.execute(
+      "UPDATE pmam_students SET `condition` = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [condition, id]
+    );
   } finally {
     connection.release();
   }

@@ -28,6 +28,7 @@ import Grades from "./pages/Grades";
 import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
+import ServiceBoard from "./pages/ServiceBoard";
 import BottomNavigation from "./components/BottomNavigation";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
+      <Route path="/quadro-de-servico" component={ServiceBoard} />
       <Route path="/documentos" component={Documents} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

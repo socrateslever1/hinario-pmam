@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -28,6 +28,7 @@ import { MissionForm } from "@/components/admin/MissionForm";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
+import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -45,6 +46,13 @@ export default function Admin() {
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
   const isMaster = isAuthenticated && user?.role === "master";
+
+  const { data: scaleAccess, isLoading: scaleAccessLoading } = trpc.serviceScale.myAccess.useQuery(undefined, {
+    enabled: isAuthenticated
+  });
+
+  const isXerife = Boolean(scaleAccess?.assignment);
+  const isAuthorized = isAdminOrMaster || isXerife;
 
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: isAdminOrMaster === true });
   const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
@@ -89,7 +97,7 @@ export default function Admin() {
     navigate("/login");
   };
 
-  if (loading) {
+  if (loading || (isAuthenticated && scaleAccessLoading)) {
     return (
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
         <Navbar />
@@ -103,7 +111,7 @@ export default function Admin() {
     );
   }
 
-  if (!isAdminOrMaster) {
+  if (!isAuthorized) {
     return (
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
         <Navbar />
@@ -165,62 +173,71 @@ export default function Admin() {
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
           {/* Stats */}
-          <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
-              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 md:h-12 md:w-12">
-                  <Music className="h-5 w-5 shrink-0 text-[#1a3a2a] md:h-6 md:w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalHymns ?? 0}</p>
-                  <p className="truncate text-xs text-muted-foreground md:text-sm">Hinos</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
-              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
-                  <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalCharlieMike ?? 0}</p>
-                  <p className="truncate text-xs text-muted-foreground md:text-sm">Charlie Mike</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
-              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
-                  <Target className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalMissions ?? 0}</p>
-                  <p className="text-sm text-muted-foreground">Missões CFAP</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
-              <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a2744]/10 md:h-12 md:w-12">
-                  <Users className="h-5 w-5 shrink-0 text-[#1a2744] md:h-6 md:w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalUsers ?? 0}</p>
-                  <p className="text-sm text-muted-foreground">Usuários</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {isAdminOrMaster && (
+            <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 md:h-12 md:w-12">
+                    <Music className="h-5 w-5 shrink-0 text-[#1a3a2a] md:h-6 md:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalHymns ?? 0}</p>
+                    <p className="truncate text-xs text-muted-foreground md:text-sm">Hinos</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
+                    <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalCharlieMike ?? 0}</p>
+                    <p className="truncate text-xs text-muted-foreground md:text-sm">Charlie Mike</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
+                    <Target className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalMissions ?? 0}</p>
+                    <p className="text-sm text-muted-foreground">Missões CFAP</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a2744]/10 md:h-12 md:w-12">
+                    <Users className="h-5 w-5 shrink-0 text-[#1a2744] md:h-6 md:w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalUsers ?? 0}</p>
+                    <p className="text-sm text-muted-foreground">Usuários</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-          <Tabs defaultValue="hymns">
+          <Tabs defaultValue={isAdminOrMaster ? "hymns" : "service_scale"}>
             <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0">
-              <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
-              <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
-              <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
-              <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
-              <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
-              <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
+              {isAdminOrMaster && (
+                <>
+                  <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
+                  <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
+                  <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
+                  <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
+                  <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
+                  <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
+                </>
+              )}
+              <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Efetivo</TabsTrigger>
+              {isAdminOrMaster && (
+                <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
+              )}
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
             </TabsList>
 
@@ -503,6 +520,11 @@ export default function Admin() {
             {/* GRADES TAB */}
             <TabsContent value="grades">
               <GradeAdminTab />
+            </TabsContent>
+
+            {/* SERVICE SCALE TAB */}
+            <TabsContent value="service_scale">
+              <ServiceScaleTab />
             </TabsContent>
 
             {/* SETTINGS TAB */}
