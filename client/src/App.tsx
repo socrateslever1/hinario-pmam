@@ -30,6 +30,7 @@ import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
 import XerifeSystemDocs from "./pages/XerifeSystemDocs";
 import ServiceBoard from "./pages/ServiceBoard";
+import ClassroomMap from "./pages/ClassroomMap";
 import BottomNavigation from "./components/BottomNavigation";
 
 function Router() {
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/quadro-de-servico" component={ServiceBoard} />
+      <Route path="/sala-de-aula" component={ClassroomMap} />
       <Route path="/documentos" component={Documents} />
       <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/404" component={NotFound} />

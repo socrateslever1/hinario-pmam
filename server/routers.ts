@@ -1158,6 +1158,7 @@ export const appRouter = router({
         peloton: z.number().int().min(1).max(2),
         homemHoraId: z.number().int().nullable().optional(),
         alunoLigacaoId: z.number().int().nullable().optional(),
+        p5FilmmakerId: z.number().int().nullable().optional(),
         aditamento: z.string().trim().max(255).nullable().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
@@ -1166,6 +1167,106 @@ export const appRouter = router({
         ...input,
         updatedBy: ctx.user.id,
       });
+      return { success: true };
+    }),
+
+    getClassroom: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).query(async ({ input }) => {
+      const students = await serviceScaleDb.listStudents({
+        companhia: input.companhia,
+        peloton: input.peloton,
+      });
+      return { students };
+    }),
+
+    getPlatoonCapacity: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).query(async ({ input }) => {
+      const key = `platoon_capacity_${input.companhia}_${input.peloton}`;
+      const val = await db.getSetting(key);
+      return { capacity: val ? parseInt(val, 10) : 51 };
+    }),
+
+    updatePlatoonCapacity: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        capacity: z.number().int().min(10).max(120),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const key = `platoon_capacity_${input.companhia}_${input.peloton}`;
+      await db.setSetting(key, String(input.capacity));
+      return { success: true };
+    }),
+
+    updateStudentDeskNumber: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        deskNumber: z.number().int().nullable(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      if (input.deskNumber !== null) {
+        await studentDb.clearStudentDesk(student.companhia, student.peloton, input.deskNumber);
+      }
+      await studentDb.updateStudentDeskNumber(input.studentId, input.deskNumber);
+      return { success: true };
+    }),
+
+    listAditamentos: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).query(async ({ input }) => {
+      return serviceScaleDb.listAditamentos(input.companhia, input.peloton);
+    }),
+
+    saveAditamento: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        titulo: z.string().trim().min(1).max(255),
+        conteudo: z.string().trim().nullable().optional(),
+        data: z.string().trim().min(10).max(10),
+        pdfUrl: z.string().trim().nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.createAditamento({
+        companhia: input.companhia,
+        peloton: input.peloton,
+        titulo: input.titulo,
+        conteudo: input.conteudo ?? null,
+        data: input.data,
+        pdfUrl: input.pdfUrl ?? null,
+      });
+      return { success: true };
+    }),
+
+    deleteAditamento: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const adit = await serviceScaleDb.getAditamento(input.id);
+      if (!adit) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aditamento não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, adit.companhia, adit.peloton);
+      await serviceScaleDb.deleteAditamento(input.id);
       return { success: true };
     }),
 

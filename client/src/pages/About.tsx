@@ -13,8 +13,7 @@ export default function About() {
       {/* Header */}
       <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
-          <img src={BRASAO_URL} alt="Brasão PMAM" className="mx-auto mb-3 h-16 w-16 object-contain drop-shadow-xl md:h-20 md:w-20" />
-          <BookOpen className="h-10 w-10 text-[#c4a84b] mx-auto mb-3 hidden md:block" />
+          <BookOpen className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
             Sobre o Hinário
           </h1>
@@ -26,7 +25,7 @@ export default function About() {
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-12">
-        <div className="container max-w-4xl">
+        <div className="container max-w-6xl">
           {/* Main Content */}
           <div className="flex flex-col gap-6 p-5 text-foreground md:mb-12 md:flex-row md:items-start md:gap-8 md:p-0">
             <div className="flex-shrink-0 mx-auto md:mx-0">

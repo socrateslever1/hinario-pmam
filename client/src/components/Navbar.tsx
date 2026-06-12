@@ -17,6 +17,7 @@ import {
   Target,
   Sun,
   Moon,
+  User,
 } from "lucide-react";
 import {
   clearStudentSession,
@@ -25,6 +26,8 @@ import {
   type StudentSession,
 } from "@/lib/studentSession";
 import { useTheme } from "@/contexts/ThemeContext";
+import { trpc } from "@/lib/trpc";
+
 
 const LOGO_URL = "/logo/IMG_7728.PNG";
 
@@ -52,6 +55,11 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<StudentSession | null>(() => getStudentSession());
   const { theme, toggleTheme } = useTheme();
+
+  const profileQuery = trpc.student.getProfile.useQuery(
+    { id: student?.id ?? 0, sessionToken: student?.sessionToken ?? "" },
+    { enabled: !!student }
+  );
 
   useEffect(() => {
     const syncStudent = () => setStudent(getStudentSession());
@@ -89,12 +97,12 @@ export default function Navbar() {
               </p>
             </div>
           </Link>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center bg-muted/60 dark:bg-zinc-800/40 border border-border/20 backdrop-blur-md rounded-full px-1.5 py-0.5 gap-0.5">
             {toggleTheme && (
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5"
                 onClick={toggleTheme}
                 aria-label="Alternar tema"
               >
@@ -102,12 +110,12 @@ export default function Navbar() {
               </Button>
             )}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
                 <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
             <Link href="/cfap-2026" aria-label="Notificações">
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
                 <Bell className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
@@ -134,7 +142,7 @@ export default function Navbar() {
             >
               HINÁRIO PMAM
             </span>
-            <span className="truncate text-xs leading-tight text-muted-foreground">
+            <span className="truncate text-xs leading-tight text-muted-foreground whitespace-nowrap">
               Polícia Militar do Amazonas
             </span>
           </div>
@@ -142,30 +150,32 @@ export default function Navbar() {
 
         {/* Right side controls (Student Info/Sair & Xerife) & Mobile menu trigger */}
         <div className="flex items-center gap-3">
-          {toggleTheme && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5"
-              onClick={toggleTheme}
-              title="Alternar tema"
-              aria-label="Alternar tema"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
-            </Button>
-          )}
-          
-          {/* Search and Notifications Icons */}
-          <Link href="/hinos" aria-label="Buscar hinos">
-            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-              <Search className="h-4 w-4 text-[#c4a84b]" />
-            </Button>
-          </Link>
-          <Link href="/cfap-2026" aria-label="Notificações">
-            <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full border border-border/10 text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-              <Bell className="h-4 w-4 text-[#c4a84b]" />
-            </Button>
-          </Link>
+          <div className="flex items-center bg-muted/60 dark:bg-zinc-800/40 border border-border/20 backdrop-blur-md rounded-full px-1.5 py-0.5 gap-0.5">
+            {toggleTheme && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                onClick={toggleTheme}
+                title="Alternar tema"
+                aria-label="Alternar tema"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
+              </Button>
+            )}
+            
+            {/* Search and Notifications Icons */}
+            <Link href="/hinos" aria-label="Buscar hinos">
+              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+                <Search className="h-4 w-4 text-[#c4a84b]" />
+              </Button>
+            </Link>
+            <Link href="/cfap-2026" aria-label="Notificações">
+              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+                <Bell className="h-4 w-4 text-[#c4a84b]" />
+              </Button>
+            </Link>
+          </div>
 
           {/* Desktop-only Auth controls */}
           <div className="hidden xl:flex items-center gap-2">
@@ -186,8 +196,19 @@ export default function Navbar() {
                   </Button>
                 </Link>
                 <Link href="/perfil-aluno">
-                  <Button variant="ghost" size="sm" className="max-w-40 truncate text-[#1a3a2a] dark:text-primary font-bold">
-                    {student.nomeGuerra}
+                  <Button variant="ghost" size="sm" className="gap-2 max-w-48 truncate text-[#1a3a2a] dark:text-primary font-bold">
+                    {profileQuery.data?.fotoUrl ? (
+                      <img
+                        src={profileQuery.data.fotoUrl}
+                        alt="Foto do Aluno"
+                        className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
+                      />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
+                        <User className="h-3 w-3 text-[#c4a84b]" />
+                      </div>
+                    )}
+                    <span>{student.nomeGuerra}</span>
                   </Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={handleStudentLogout}>
@@ -294,8 +315,19 @@ export default function Navbar() {
                       </Button>
                     </Link>
                     <Link href="/perfil-aluno" onClick={() => setOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-primary">
-                        {student.nomeGuerra}
+                      <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-primary font-bold">
+                        {profileQuery.data?.fotoUrl ? (
+                          <img
+                            src={profileQuery.data.fotoUrl}
+                            alt="Foto do Aluno"
+                            className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
+                          />
+                        ) : (
+                          <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
+                            <User className="h-3 w-3 text-[#c4a84b]" />
+                          </div>
+                        )}
+                        <span>{student.nomeGuerra}</span>
                       </Button>
                     </Link>
                     <Button

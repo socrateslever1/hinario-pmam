@@ -51,6 +51,19 @@ async function ensureStudentSessionSchema() {
             "ALTER TABLE pmam_students ADD COLUMN `condition` varchar(32) NOT NULL DEFAULT 'pronto'"
           );
         }
+
+        const [deskRows] = await connection.execute(
+          "SHOW COLUMNS FROM pmam_students LIKE 'desk_number'"
+        );
+
+        if ((deskRows as any[]).length === 0) {
+          await connection.execute(
+            "ALTER TABLE pmam_students ADD COLUMN desk_number INT NULL"
+          );
+          await connection.execute(
+            "UPDATE pmam_students SET desk_number = CAST(numerica AS SIGNED) WHERE desk_number IS NULL AND numerica REGEXP '^[0-9]+$'"
+          );
+        }
       } finally {
         connection.release();
       }
@@ -77,6 +90,7 @@ export interface StudentData {
   rg?: string;
   email?: string;
   condition?: string;
+  deskNumber?: number | null;
 }
 
 export async function createStudent(
@@ -94,9 +108,12 @@ export async function createStudent(
     const hashedPassword = await bcrypt.hash(senha, 10);
     const sessionToken = nanoid(64);
 
+    const defaultDesk = parseInt(numerica, 10);
+    const deskVal = isNaN(defaultDesk) ? null : defaultDesk;
+
     const query = `
-      INSERT INTO pmam_students (numerica, nome_guerra, senha, session_token, companhia, peloton)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO pmam_students (numerica, nome_guerra, senha, session_token, companhia, peloton, desk_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await connection.execute(query, [
@@ -106,6 +123,7 @@ export async function createStudent(
       sessionToken,
       companhia,
       peloton,
+      deskVal,
     ]);
 
     const insertResult = result as any;
@@ -128,7 +146,7 @@ export async function getStudentByNumerica(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -182,7 +200,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE id = ?
       LIMIT 1
@@ -203,13 +221,41 @@ export async function getAllStudents(): Promise<StudentData[]> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       ORDER BY numerica ASC
     `;
 
     const [rows] = await connection.execute(query);
     return (rows as any[]) || [];
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateStudentDeskNumber(studentId: number, deskNumber: number | null): Promise<void> {
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.execute(
+      "UPDATE pmam_students SET desk_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [deskNumber, studentId]
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function clearStudentDesk(companhia: number, peloton: number, deskNumber: number): Promise<void> {
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.execute(
+      "UPDATE pmam_students SET desk_number = NULL, updated_at = CURRENT_TIMESTAMP WHERE companhia = ? AND peloton = ? AND desk_number = ?",
+      [companhia, peloton, deskNumber]
+    );
   } finally {
     connection.release();
   }

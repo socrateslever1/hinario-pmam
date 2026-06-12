@@ -10,6 +10,7 @@ import {
   Shield,
   User,
   Target,
+  LayoutGrid,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
@@ -56,6 +57,7 @@ export default function BottomNavigation() {
 
   const moreItems = [
     { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
+    { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
     { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
     { icon: Target, label: "Ordem Unida", path: "/drill" },
     { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
@@ -136,14 +138,18 @@ export default function BottomNavigation() {
                 <button
                   key={item.path}
                   onClick={() => goTo(item.path)}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-center text-xs font-bold transition-all duration-300 ${
+                  className={`flex flex-col items-center justify-center gap-2.5 rounded-2xl border p-4 text-center text-xs font-bold transition-all duration-300 group ${
                     active
                       ? "border-[#f0bd3a]/40 bg-[#145c3a]/50 text-[#f0bd3a] shadow-lg shadow-[#145c3a]/20"
-                      : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:border-white/20"
+                      : "border-white/5 bg-white/5 text-white/80 hover:bg-white/10 hover:border-[#c4a84b]/20"
                   }`}
                 >
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#0b3323] text-[#f0bd3a]" : "bg-white/5 text-white/70"}`}>
-                    <Icon className="h-4 w-4" />
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${
+                    active 
+                      ? "bg-[#0b3323] text-[#f0bd3a] border border-[#f0bd3a]/30 shadow-[0_0_12px_rgba(240,189,58,0.2)]" 
+                      : "bg-[#c4a84b]/10 text-[#c4a84b] border border-[#c4a84b]/20 group-hover:text-[#f0bd3a] group-hover:border-[#f0bd3a]/40"
+                  }`}>
+                    <Icon className="h-5 w-5 stroke-[2]" />
                   </span>
                   <span className="leading-tight">{item.label}</span>
                 </button>

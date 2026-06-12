@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, Crown, Save, Shield, Trash2, UserCog, Users } from "lucide-react";
+import { CalendarDays, Check, Crown, FileText, Save, Shield, Trash2, UserCog, Users } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PeculioTab } from "./PeculioTab";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +109,7 @@ export function ServiceScaleTab() {
   const [weekStart, setWeekStart] = useState(getMonday());
   const [homemHoraId, setHomemHoraId] = useState("");
   const [alunoLigacaoId, setAlunoLigacaoId] = useState("");
+  const [p5FilmmakerId, setP5FilmmakerId] = useState("");
   const [xerifeId, setXerifeId] = useState("");
   const [subXerifeId, setSubXerifeId] = useState("");
   const [dutyDate, setDutyDate] = useState("");
@@ -115,6 +118,13 @@ export function ServiceScaleTab() {
   const [rotationDialogOpen, setRotationDialogOpen] = useState(false);
   const [rotationStartDate, setRotationStartDate] = useState("");
   const [cleaningByDay, setCleaningByDay] = useState<Record<number, string[]>>({});
+  
+  // Aditamentos State
+  const [aditTitulo, setAditTitulo] = useState("");
+  const [aditConteudo, setAditConteudo] = useState("");
+  const [aditData, setAditData] = useState(new Date().toISOString().slice(0, 10));
+  const [aditPdfUrl, setAditPdfUrl] = useState("");
+
   const [assignmentForm, setAssignmentForm] = useState({
     userId: "",
     level: "pelotao",
@@ -142,12 +152,18 @@ export function ServiceScaleTab() {
     label: studentLabel(student),
   })), [students]);
 
+  const aditamentosQuery = trpc.serviceScale.listAditamentos.useQuery(
+    { companhia: selectedCompanhia, peloton: selectedPeloton },
+    { enabled: Boolean(selectedCompanhia && selectedPeloton) }
+  );
+
   useEffect(() => {
     const roles = platoonQuery.data?.roles;
     const week = platoonQuery.data?.week;
 
     setHomemHoraId(roles?.homemHoraId ? String(roles.homemHoraId) : "");
     setAlunoLigacaoId(roles?.alunoLigacaoId ? String(roles.alunoLigacaoId) : "");
+    setP5FilmmakerId(roles?.p5FilmmakerId ? String(roles.p5FilmmakerId) : "");
     setAditamento(week?.aditamento || roles?.aditamento || "");
     setXerifeId(week?.xerifeId ? String(week.xerifeId) : "");
     setSubXerifeId(week?.subXerifeId ? String(week.subXerifeId) : "");
@@ -215,14 +231,35 @@ export function ServiceScaleTab() {
     onError: (error) => toast.error(error.message),
   });
 
+  const saveAditamento = trpc.serviceScale.saveAditamento.useMutation({
+    onSuccess: async () => {
+      toast.success("Aditamento publicado com sucesso!");
+      setAditTitulo("");
+      setAditConteudo("");
+      setAditPdfUrl("");
+      await aditamentosQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteAditamento = trpc.serviceScale.deleteAditamento.useMutation({
+    onSuccess: async () => {
+      toast.success("Aditamento excluído");
+      await aditamentosQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const canChangeScope = Boolean(access?.scope?.unrestricted || access?.assignment?.level === "companhia");
   const canChangeCompany = Boolean(access?.scope?.unrestricted);
 
-  const updateCleaning = (weekday: number, slot: number, value: string) => {
+  const toggleCleaningStudent = (weekday: number, studentId: string) => {
     setCleaningByDay((current) => {
-      const next = [...(current[weekday] ?? [])];
-      next[slot] = value;
-      return { ...current, [weekday]: next };
+      const currentIds = current[weekday] ?? [];
+      const nextIds = currentIds.includes(studentId)
+        ? currentIds.filter((id) => id !== studentId)
+        : [...currentIds, studentId];
+      return { ...current, [weekday]: nextIds };
     });
   };
 
@@ -251,7 +288,27 @@ export function ServiceScaleTab() {
       peloton: selectedPeloton,
       homemHoraId: homemHoraId ? Number(homemHoraId) : null,
       alunoLigacaoId: alunoLigacaoId ? Number(alunoLigacaoId) : null,
+      p5FilmmakerId: p5FilmmakerId ? Number(p5FilmmakerId) : null,
       aditamento: aditamento || null,
+    });
+  };
+
+  const handleSaveAditamento = () => {
+    if (!aditTitulo.trim()) {
+      toast.error("O título é obrigatório");
+      return;
+    }
+    if (!aditData) {
+      toast.error("A data é obrigatória");
+      return;
+    }
+    saveAditamento.mutate({
+      companhia: selectedCompanhia,
+      peloton: selectedPeloton,
+      titulo: aditTitulo,
+      conteudo: aditConteudo || null,
+      data: aditData,
+      pdfUrl: aditPdfUrl || null,
     });
   };
 
@@ -348,10 +405,11 @@ export function ServiceScaleTab() {
 
       {/* 3. Nested Tabs */}
       <Tabs defaultValue="peculio" className="w-full">
-        <TabsList className="mb-6 grid h-auto w-full grid-cols-3 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0 print:hidden">
+        <TabsList className="mb-6 grid h-auto w-full grid-cols-4 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0 print:hidden">
           <TabsTrigger value="peculio">Frequência (Pecúlio)</TabsTrigger>
           <TabsTrigger value="efetivo">Efetivo do Pelotão</TabsTrigger>
           <TabsTrigger value="scale">Escalas de Serviço</TabsTrigger>
+          <TabsTrigger value="aditamentos">Aditamentos</TabsTrigger>
         </TabsList>
 
         {/* SUB-TAB 1: FREQUÊNCIA (PECÚLIO) */}
@@ -465,6 +523,16 @@ export function ServiceScaleTab() {
                   </Select>
                 </div>
                 <div>
+                  <Label>P5 (Filmmaker)</Label>
+                  <Select value={p5FilmmakerId || "none"} onValueChange={(value) => setP5FilmmakerId(value === "none" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não definido</SelectItem>
+                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Aluno de Ligação</Label>
                   <Select value={alunoLigacaoId || "none"} onValueChange={(value) => setAlunoLigacaoId(value === "none" ? "" : value)}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -519,29 +587,73 @@ export function ServiceScaleTab() {
                 </div>
 
                 <div className="space-y-3">
-                  {weekdays.map((day, index) => (
-                    <div key={day.value} className="rounded-lg border border-border/60 p-3 bg-white dark:bg-zinc-900">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-[#1a3a2a] dark:text-green-400">{day.label}</p>
-                        <span className="text-xs text-muted-foreground">{new Date(`${addDays(weekStart, index)}T00:00:00`).toLocaleDateString("pt-BR")}</span>
+                  {weekdays.map((day, index) => {
+                    const selectedIds = cleaningByDay[day.value] ?? [];
+                    const selectedNames = students
+                      .filter((s: any) => selectedIds.includes(String(s.id)))
+                      .map((s: any) => s.nomeGuerra)
+                      .join(", ");
+
+                    return (
+                      <div key={day.value} className="rounded-lg border border-border/60 p-3 bg-white dark:bg-zinc-900">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-sm font-bold text-[#1a3a2a] dark:text-green-400">{day.label}</p>
+                          <span className="text-xs text-muted-foreground">{new Date(`${addDays(weekStart, index)}T00:00:00`).toLocaleDateString("pt-BR")}</span>
+                        </div>
+                        <div>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-between text-left font-normal text-xs h-9 overflow-hidden text-ellipsis bg-white dark:bg-zinc-900"
+                              >
+                                <span className="truncate">
+                                  {selectedIds.length > 0
+                                    ? `${selectedIds.length} selecionado(s): ${selectedNames}`
+                                    : "Selecionar alunos..."}
+                                </span>
+                                <span className="text-muted-foreground ml-2 text-[10px]">▼</span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto bg-white dark:bg-zinc-900 border border-border" align="start">
+                              <div className="space-y-2">
+                                <p className="text-xs font-bold text-foreground px-2 py-1 border-b">
+                                  Escalar Alunos (Faxina)
+                                </p>
+                                {students.map((student: any) => {
+                                  const studentIdStr = String(student.id);
+                                  const isChecked = selectedIds.includes(studentIdStr);
+                                  return (
+                                    <div
+                                      key={student.id}
+                                      className="flex items-center space-x-2 rounded px-2 py-1.5 hover:bg-muted/80 cursor-pointer"
+                                      onClick={() => toggleCleaningStudent(day.value, studentIdStr)}
+                                    >
+                                      <Checkbox
+                                        checked={isChecked}
+                                        onCheckedChange={() => {}}
+                                        id={`cleaning-${day.value}-${student.id}`}
+                                        className="border-[#c4a84b] data-[state=checked]:bg-[#c4a84b] data-[state=checked]:text-[#1a1a1a]"
+                                      />
+                                      <label
+                                        htmlFor={`cleaning-${day.value}-${student.id}`}
+                                        className="text-xs font-medium leading-none cursor-pointer flex-1"
+                                      >
+                                        {student.numerica} - {student.nomeGuerra}
+                                      </label>
+                                    </div>
+                                  );
+                                })}
+                                {students.length === 0 && (
+                                  <p className="text-xs text-muted-foreground p-2">Nenhum aluno neste pelotão.</p>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {[0, 1].map((slot) => (
-                          <Select
-                            key={slot}
-                            value={cleaningByDay[day.value]?.[slot] || "none"}
-                            onValueChange={(value) => updateCleaning(day.value, slot, value === "none" ? "" : value)}
-                          >
-                            <SelectTrigger><SelectValue placeholder={`Faxina ${slot + 1}`} /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Não definido</SelectItem>
-                              {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -675,6 +787,110 @@ export function ServiceScaleTab() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        {/* SUB-TAB 4: ADITAMENTOS */}
+        <TabsContent value="aditamentos" className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+            {/* Cadastrar Aditamento */}
+            <Card className="border-border/50">
+              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-lg font-bold text-foreground">Novo Aditamento</h2>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <Label>Data</Label>
+                    <Input type="date" value={aditData} onChange={(e) => setAditData(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Título</Label>
+                    <Input
+                      value={aditTitulo}
+                      onChange={(e) => setAditTitulo(e.target.value)}
+                      placeholder="Ex: Aditamento nº 025/2026"
+                    />
+                  </div>
+                  <div>
+                    <Label>Conteúdo / Resumo</Label>
+                    <textarea
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={aditConteudo}
+                      onChange={(e) => setAditConteudo(e.target.value)}
+                      placeholder="Ex: Instrução de tiro no estande externo..."
+                    />
+                  </div>
+                  <div>
+                    <Label>Link do PDF</Label>
+                    <Input
+                      value={aditPdfUrl}
+                      onChange={(e) => setAditPdfUrl(e.target.value)}
+                      placeholder="Ex: https://link-do-pdf-aditamento.pdf"
+                    />
+                  </div>
+                </div>
+                <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAditamento} disabled={saveAditamento.isPending}>
+                  <Save className="h-4 w-4" />
+                  Publicar Aditamento
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Listar Aditamentos */}
+            <Card className="border-border/50">
+              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-[#c4a84b]" />
+                  <h2 className="text-lg font-bold text-foreground">Banco de Aditamentos ({selectedCompanhia}ª Cia / {selectedPeloton}º Pel)</h2>
+                </div>
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {aditamentosQuery.data?.map((adit: any) => (
+                    <div key={adit.id} className="flex flex-col gap-2 rounded-lg border p-4 bg-white dark:bg-zinc-900">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{adit.titulo}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Data: {new Date(`${adit.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-destructive"
+                          onClick={() => deleteAditamento.mutate({ id: adit.id })}
+                          disabled={deleteAditamento.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
+                        </Button>
+                      </div>
+                      {adit.conteudo && (
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+                          {adit.conteudo}
+                        </p>
+                      )}
+                      {adit.pdfUrl && (
+                        <a
+                          href={adit.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-[#c4a84b] hover:underline flex items-center gap-1 mt-1 font-semibold"
+                        >
+                          Visualizar PDF original
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                  {(!aditamentosQuery.data || aditamentosQuery.data.length === 0) && (
+                    <p className="text-sm text-muted-foreground p-4 text-center">
+                      Nenhum aditamento publicado para este pelotão.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

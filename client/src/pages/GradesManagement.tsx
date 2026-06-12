@@ -313,14 +313,23 @@ export default function GradesManagement() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+        <div className="container text-center">
+          <Edit2 className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+            Lançar Notas
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+            {studentName} — Registrar e gerenciar notas de disciplinas do curso.
+          </p>
+        </div>
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+      </section>
+
       <main className="px-4 py-6 md:p-8 md:pb-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6 flex flex-col gap-4 rounded-[1.75rem] border border-border/50 bg-white p-5 text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
-            <div>
-              <h1 className="text-3xl font-bold text-[#1a3a2a]">Lançar Notas</h1>
-              <p className="text-sm text-muted-foreground">{studentName}</p>
-            </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 self-start sm:self-auto">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-6 flex justify-end">
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" />
               Sair
             </Button>

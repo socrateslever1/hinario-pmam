@@ -339,7 +339,7 @@ export default function Documents() {
   const handlePrint = () => {
     toast.info("Abrindo janela de impressão/salvamento PDF...");
     setTimeout(() => {
-      window.print();
+window.print();
     }, 300);
   };
 
@@ -348,22 +348,17 @@ export default function Documents() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="bg-white border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#c4a84b] rounded-full blur-[100px]" />
-        </div>
-        <div className="container relative text-center">
-          <div className="inline-flex items-center gap-2 bg-[#1a3a2a]/10 rounded-full px-4 py-1.5 mb-4">
-            <Shield className="h-4 w-4 text-[#c4a84b]" />
-            <span className="text-sm text-[#1a3a2a] font-semibold">Setor de Expediente CFAP</span>
-          </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-[#1a3a2a] mb-3" style={{ fontFamily: 'Merriweather, serif' }}>
-            Gerador de <span className="text-[#c4a84b]">Documentos Militares</span>
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
+        <div className="container text-center">
+          <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+            Gerador de Documentos Militares
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
       {/* Main Panel */}

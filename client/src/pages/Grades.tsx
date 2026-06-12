@@ -124,6 +124,13 @@ export default function Grades() {
   const utils = trpc.useUtils();
   const deleteGradeMutation = trpc.grades.deleteStudentGrade.useMutation();
 
+  const profileQuery = trpc.student.getProfile.useQuery(
+    { id: studentId ?? 0, sessionToken: getStudentSession()?.sessionToken ?? "" },
+    { enabled: !!studentId }
+  );
+  const studentPhotoUrl = profileQuery.data?.fotoUrl;
+
+
   useEffect(() => {
     const session = getStudentSession();
     if (!session) {
@@ -242,7 +249,7 @@ export default function Grades() {
     const displayRows = isExpanded ? rows : rows.slice(0, 3);
 
     return (
-    <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
+    <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -285,24 +292,24 @@ export default function Grades() {
             <div
               key={`${title}-${row.studentId}`}
               className={`flex items-center gap-3 rounded-md border p-3 ${
-                row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "border-white/10 bg-white/6 md:bg-white"
+                row.studentId === studentId ? "border-[#c4a84b] bg-[#c4a84b]/10" : "border-border bg-muted/20 dark:bg-zinc-800/20"
               }`}
             >
               {renderPositionBadge(row.position)}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{row.nomeGuerra}</p>
-                <p className="text-xs text-white/60 md:text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <p className="text-sm font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{row.totalScore.toFixed(1)}</p>
-                <p className="text-xs text-white/60 md:text-muted-foreground">pontos</p>
+                <p className="text-sm font-bold text-[#c4a84b] dark:text-[#c4a84b] md:text-[#1a3a2a]">{row.totalScore.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">pontos</p>
               </div>
             </div>
           );
         })}
-        {rows.length === 0 && <p className="text-sm text-white/60 md:text-muted-foreground">Ranking vazio.</p>}
+        {rows.length === 0 && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}
         {rows.length > 3 && (
           <Button
             variant="outline"
@@ -328,9 +335,9 @@ export default function Grades() {
 
   if (isLoading) {
     return (
-      <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8]">
+      <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
         <Navbar />
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-white md:text-foreground">
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-foreground">
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#1a3a2a]" />
             <p>Carregando notas...</p>
@@ -341,19 +348,34 @@ export default function Grades() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#062417] md:bg-[#f5f2e8] text-[#f8f7f0] md:text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
-      <main className="px-4 py-6 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-col gap-4 rounded-xl border border-white/10 bg-[#0b3323]/78 p-5 text-white shadow-xl shadow-black/15 sm:flex-row sm:items-center sm:justify-between md:mb-8 md:border-0 md:bg-transparent md:p-0 md:text-foreground md:shadow-none">
-          <div>
-            <h1 className="text-3xl font-bold text-white md:text-[#1a3a2a]">Notas do Curso</h1>
-            <p className="text-sm text-white/70 md:text-muted-foreground">
-              {studentName || "Aluno"} - {studentNumber}
-            </p>
-          </div>
-          <div className="flex gap-2 self-start sm:self-auto">
-            <Button onClick={() => setLocation('/lançar-notas')} className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620]">
+
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+        <div className="container text-center flex flex-col items-center">
+          {studentPhotoUrl ? (
+            <img
+              src={studentPhotoUrl}
+              alt="Foto do Aluno"
+              className="mx-auto mb-3 h-20 w-20 rounded-full object-cover border-2 border-[#c4a84b] shadow-md"
+            />
+          ) : (
+            <Trophy className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          )}
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+            Notas do Curso
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+            {studentName} (Nº {studentNumber}) — Acompanhe seu desempenho acadêmico, média geral e classificação.
+          </p>
+        </div>
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+      </section>
+
+      <main className="container flex-1 px-4 py-6 md:py-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-6 flex flex-wrap gap-2 justify-end">
+            <Button onClick={() => setLocation('/lançar-notas')} className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620] text-white">
               <Plus className="h-4 w-4" />
               Lançar Notas
             </Button>
@@ -362,28 +384,27 @@ export default function Grades() {
               Sair
             </Button>
           </div>
-        </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
-            <CardContent className="pt-6">
-              <p className="text-sm text-white/65 md:text-muted-foreground">Média geral</p>
-              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{average.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
-            <CardContent className="pt-6">
-              <p className="text-sm text-white/65 md:text-muted-foreground">Notas lançadas</p>
-              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{grades.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none">
-            <CardContent className="pt-6">
-              <p className="text-sm text-white/65 md:text-muted-foreground">Disciplinas disponíveis</p>
-              <p className="text-4xl font-bold text-[#f0bd3a] md:text-[#1a3a2a]">{disciplines.length}</p>
-            </CardContent>
-          </Card>
-        </div>
+          <div className="mb-8 grid gap-4 sm:grid-cols-3">
+            <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Média geral</p>
+                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{average.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Notas lançadas</p>
+                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{grades.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground">Disciplinas disponíveis</p>
+                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{disciplines.length}</p>
+              </CardContent>
+            </Card>
+          </div>
 
 
 
@@ -405,33 +426,33 @@ export default function Grades() {
         <div className="space-y-4">
           {grades.length === 0 ? (
             <Card>
-              <CardContent className="py-10 text-center text-white/65 md:text-muted-foreground">
+              <CardContent className="py-10 text-center text-muted-foreground">
                 Nenhuma nota lançada ainda.
               </CardContent>
             </Card>
           ) : (
             grades.map((entry) => {
               const grade = Number(entry.grade || 0);
-              let cardBg = "border-white/10 bg-[#0b3323]/82 text-white shadow-xl shadow-black/15 md:border-[#c4a84b]/30 md:bg-white md:text-foreground md:shadow-none";
-              let titleColor = "text-white md:text-[#1a3a2a]";
-              let subtitleColor = "text-white/85 md:text-muted-foreground";
+              let cardBg = "border-border bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground";
+              let titleColor = "text-[#1a3a2a] dark:text-foreground";
+              let subtitleColor = "text-muted-foreground dark:text-zinc-400";
               let gradeColor = "text-muted-foreground font-black";
 
               if (grade < 6) {
-                cardBg = "border-red-500/30 bg-red-950/80 text-red-50 shadow-xl shadow-black/15 md:border-red-200 md:bg-red-50/50 md:text-red-950 md:shadow-none";
-                titleColor = "text-red-200 md:text-red-950";
-                subtitleColor = "text-red-300/85 md:text-red-800";
-                gradeColor = "text-red-400 md:text-red-600 font-bold";
+                cardBg = "border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-900/50 text-red-950 dark:text-red-200";
+                titleColor = "text-red-950 dark:text-red-200";
+                subtitleColor = "text-red-800 dark:text-red-300/80";
+                gradeColor = "text-red-600 dark:text-red-400 font-bold";
               } else if (grade < 9) {
-                cardBg = "border-green-500/30 bg-green-950/80 text-green-50 shadow-xl shadow-black/15 md:border-green-200 md:bg-green-50/50 md:text-green-950 md:shadow-none";
-                titleColor = "text-green-200 md:text-green-950";
-                subtitleColor = "text-green-300/85 md:text-green-800";
-                gradeColor = "text-green-400 md:text-green-600 font-bold";
+                cardBg = "border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900/50 text-green-950 dark:text-green-200";
+                titleColor = "text-green-950 dark:text-green-200";
+                subtitleColor = "text-green-800 dark:text-green-300/80";
+                gradeColor = "text-green-600 dark:text-green-400 font-bold";
               } else {
-                cardBg = "border-blue-500/30 bg-blue-950/80 text-blue-50 shadow-xl shadow-black/15 md:border-blue-200 md:bg-blue-50/50 md:text-blue-950 md:shadow-none";
-                titleColor = "text-blue-200 md:text-blue-950";
-                subtitleColor = "text-blue-300/85 md:text-blue-800";
-                gradeColor = "text-blue-400 md:text-blue-600 font-bold";
+                cardBg = "border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-900/50 text-blue-950 dark:text-blue-200";
+                titleColor = "text-blue-950 dark:text-blue-200";
+                subtitleColor = "text-blue-800 dark:text-blue-300/80";
+                gradeColor = "text-blue-600 dark:text-blue-400 font-bold";
               }
 
               const disciplineInfo = disciplines.find((d) => d.id === entry.disciplineId);

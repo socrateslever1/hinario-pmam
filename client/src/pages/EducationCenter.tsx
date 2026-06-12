@@ -39,64 +39,54 @@ export default function EducationCenter() {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
         <Navbar />
 
-      <section className="bg-white border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-16">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
-          <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />
+      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+        <div className="container text-center">
+          <BookOpenCheck className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+            Estudos
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+            Biblioteca jurídica e de consulta. Aqui ficam os PDFs oficiais para abrir, visualizar e consultar, sem formato de aula.
+          </p>
         </div>
-        <div className="container relative">
-          <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#1a3a2a]/10 px-4 py-1.5 text-sm text-[#1a3a2a]">
-              <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
-              Biblioteca jurídica e de consulta
-            </div>
-            <h1 className="text-4xl font-bold text-[#1a3a2a] md:text-5xl" style={{ fontFamily: "Merriweather, serif" }}>
-              Estudos
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-              Esta área agora funciona como biblioteca. Aqui ficam os PDFs oficiais para abrir, visualizar e consultar,
-              sem formato de aula. A estrutura está pronta para receber mais leis, regulamentos e manuais de forma dinâmica.
-            </p>
-          </div>
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+      </section>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <Card className="border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm">
+      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
+        <div className="container space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Library className="h-10 w-10 text-[#c4a84b]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Materiais</p>
-                  <p className="text-2xl font-bold">{studyLibraryItems.length}</p>
+                  <p className="text-2xl font-bold text-[#1a3a2a]">{studyLibraryItems.length}</p>
                   <p className="text-sm text-muted-foreground">PDFs prontos para consulta</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <BookOpenCheck className="h-10 w-10 text-[#c4a84b]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Coleção</p>
-                  <p className="text-2xl font-bold">{regulationsCount}</p>
+                  <p className="text-2xl font-bold text-[#1a3a2a]">{regulationsCount}</p>
                   <p className="text-sm text-muted-foreground">Regulamentos e leis</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm">
+            <Card className="border-border/50 bg-white text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Manuais</p>
-                  <p className="text-2xl font-bold">{manualsCount}</p>
+                  <p className="text-2xl font-bold text-[#1a3a2a]">{manualsCount}</p>
                   <p className="text-sm text-muted-foreground">Base complementar de formação</p>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
-      </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-12">
-        <div className="container space-y-6">
           <Card className="border-border/50 bg-white text-foreground shadow-sm rounded-xl">
             <CardContent className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_320px] md:items-center">
               <div className="relative">
