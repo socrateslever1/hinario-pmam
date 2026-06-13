@@ -169,6 +169,34 @@ export async function ensureServiceScaleTables() {
         await query("ALTER TABLE pmam_users ADD COLUMN foto_url LONGTEXT NULL");
       }
 
+      try {
+        const blogCols = await query("SHOW COLUMNS FROM pmam_blog_post");
+        const hasBlogCia = blogCols.some((col: any) => col.Field === 'companhia');
+        const hasBlogPel = blogCols.some((col: any) => col.Field === 'peloton');
+        if (!hasBlogCia) {
+          await query("ALTER TABLE pmam_blog_post ADD COLUMN companhia INT NULL");
+        }
+        if (!hasBlogPel) {
+          await query("ALTER TABLE pmam_blog_post ADD COLUMN peloton INT NULL");
+        }
+      } catch (e) {
+        console.warn("[Database] Could not verify/alter pmam_blog_post table:", e);
+      }
+
+      try {
+        const missionCols = await query("SHOW COLUMNS FROM pmam_cfap_missions");
+        const hasMissionCia = missionCols.some((col: any) => col.Field === 'companhia');
+        const hasMissionPel = missionCols.some((col: any) => col.Field === 'peloton');
+        if (!hasMissionCia) {
+          await query("ALTER TABLE pmam_cfap_missions ADD COLUMN companhia INT NULL");
+        }
+        if (!hasMissionPel) {
+          await query("ALTER TABLE pmam_cfap_missions ADD COLUMN peloton INT NULL");
+        }
+      } catch (e) {
+        console.warn("[Database] Could not verify/alter pmam_cfap_missions table:", e);
+      }
+
       await query(`
         CREATE TABLE IF NOT EXISTS pmam_weekly_service_scales (
           id INT AUTO_INCREMENT PRIMARY KEY,

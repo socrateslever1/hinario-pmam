@@ -45,8 +45,18 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const headers = new Headers(init?.headers ?? {});
+        if (typeof window !== "undefined") {
+          const studentId = window.localStorage.getItem("gradeStudentId");
+          const token = window.localStorage.getItem("gradeStudentToken");
+          if (studentId && token) {
+            headers.set("x-student-id", studentId);
+            headers.set("x-student-token", token);
+          }
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
+          headers,
           credentials: "include",
         });
       },

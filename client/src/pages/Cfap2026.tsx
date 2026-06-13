@@ -396,9 +396,11 @@ export default function Cfap2026() {
   const selectedCompanhia = Number(companhia);
   const selectedPeloton = Number(peloton);
 
-  const { data: missions, isLoading } = trpc.missions.list.useQuery(
-    visitorId ? { visitorId } : undefined
-  );
+  const { data: missions, isLoading } = trpc.missions.list.useQuery({
+    visitorId: visitorId || undefined,
+    companhia: studentSession?.companhia || undefined,
+    peloton: studentSession?.peloton || undefined,
+  });
 
   const { data: aditamentos, isLoading: isLoadingAditamentos } = trpc.serviceScale.listAditamentos.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton }

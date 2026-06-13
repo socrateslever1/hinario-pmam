@@ -53,11 +53,13 @@ export default function Admin() {
 
   const isXerife = Boolean(scaleAccess?.assignment);
   const isAuthorized = isAdminOrMaster || isXerife;
+  const canManageGlobalContent = isMaster;
+  const canManagePlatoonContent = canManageGlobalContent || isXerife;
 
-  const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: isAdminOrMaster === true });
-  const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
-  const { data: missions } = trpc.missions.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
-  const { data: drills } = trpc.drill.listAll.useQuery(undefined, { enabled: isAdminOrMaster === true });
+  const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
+  const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: canManageGlobalContent === true });
+  const { data: missions } = trpc.missions.listAll.useQuery(undefined, { enabled: canManagePlatoonContent === true });
+  const { data: drills } = trpc.drill.listAll.useQuery(undefined, { enabled: canManageGlobalContent === true });
 
   const utils = trpc.useUtils();
   const deleteHymn = trpc.hymns.delete.useMutation({
@@ -173,7 +175,7 @@ export default function Admin() {
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
           {/* Stats */}
-          {isAdminOrMaster && (
+          {canManageGlobalContent && (
             <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
               <Card className="border-border/50 bg-white text-foreground shadow-sm">
                 <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
@@ -222,22 +224,24 @@ export default function Admin() {
             </div>
           )}
 
-          <Tabs defaultValue={isAdminOrMaster ? "hymns" : "service_scale"}>
+          <Tabs defaultValue={canManageGlobalContent ? "hymns" : "service_scale"}>
             <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0">
-              {isAdminOrMaster && (
+              {canManageGlobalContent && (
                 <>
                   <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
                   <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
-                  <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
+                  <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
+                </>
+              )}
+              {canManagePlatoonContent && (
+                <>
+                  <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
                   <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
                 </>
               )}
-              {(isAdminOrMaster || isXerife) && (
-                <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
-              )}
               <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Sala de Aula</TabsTrigger>
-              {isAdminOrMaster && (
+              {canManageGlobalContent && (
                 <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               )}
               {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
@@ -520,7 +524,7 @@ export default function Admin() {
             </TabsContent>
 
             {/* GRADES TAB */}
-            {(isAdminOrMaster || isXerife) && (
+            {canManageGlobalContent && (
               <TabsContent value="grades">
                 <GradeAdminTab />
               </TabsContent>

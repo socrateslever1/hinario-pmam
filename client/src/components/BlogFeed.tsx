@@ -6,8 +6,13 @@ import { Calendar, ChevronRight, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { getStudentSession } from "@/lib/studentSession";
+
 export default function BlogFeed() {
-  const { data: posts, isLoading } = trpc.blog.list.useQuery();
+  const student = getStudentSession();
+  const { data: posts, isLoading } = trpc.blog.list.useQuery(
+    student ? { companhia: student.companhia, peloton: student.peloton } : undefined
+  );
 
   if (isLoading) {
     return (

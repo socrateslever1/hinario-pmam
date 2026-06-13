@@ -81,6 +81,8 @@ function mapMission(m: any) {
     viewsCount: m.views_count,
     commentsCount: Number(m.comments_count || 0),
     visitorReacted: Boolean(m.visitor_reacted),
+    companhia: m.companhia,
+    peloton: m.peloton,
     createdAt: m.created_at,
     updatedAt: m.updated_at,
     media: m.media || []
@@ -460,8 +462,25 @@ export async function deleteHymn(id: number) {
 }
 
 // ===== MISSIONS =====
-function buildMissionSelectSql(activeOnly: boolean, includeVisitorReaction: boolean) {
-  const activeFilter = activeOnly ? "WHERE mission.is_active = 1" : "";
+function buildMissionSelectSql(
+  activeOnly: boolean,
+  includeVisitorReaction: boolean,
+  companhia?: number | null,
+  peloton?: number | null
+) {
+  const clauses: string[] = [];
+  if (activeOnly) {
+    clauses.push("mission.is_active = 1");
+  }
+  if (companhia !== undefined && companhia !== null) {
+    if (peloton !== undefined && peloton !== null) {
+      clauses.push("((mission.companhia IS NULL AND mission.peloton IS NULL) OR (mission.companhia = ? AND mission.peloton = ?))");
+    } else {
+      clauses.push("((mission.companhia IS NULL) OR (mission.companhia = ?))");
+    }
+  }
+
+  const activeFilter = clauses.length > 0 ? "WHERE " + clauses.join(" AND ") : "";
   const visitorReactionSelect = includeVisitorReaction ? `, EXISTS(
     SELECT 1
     FROM pmam_likes likes
@@ -486,18 +505,40 @@ function buildMissionSelectSql(activeOnly: boolean, includeVisitorReaction: bool
   `;
 }
 
-export async function getAllMissions(visitorId?: string | null) {
+export async function getAllMissions(visitorId?: string | null, companhia?: number | null, peloton?: number | null) {
+  const params: any[] = [];
+  if (visitorId) {
+    params.push(visitorId);
+  }
+  if (companhia !== undefined && companhia !== null) {
+    params.push(companhia);
+    if (peloton !== undefined && peloton !== null) {
+      params.push(peloton);
+    }
+  }
+
   const rows = await query(
-    buildMissionSelectSql(false, Boolean(visitorId)),
-    visitorId ? [visitorId] : []
+    buildMissionSelectSql(false, Boolean(visitorId), companhia, peloton),
+    params
   );
   return rows.map(mapMission);
 }
 
-export async function getActiveMissions(visitorId?: string | null) {
+export async function getActiveMissions(visitorId?: string | null, companhia?: number | null, peloton?: number | null) {
+  const params: any[] = [];
+  if (visitorId) {
+    params.push(visitorId);
+  }
+  if (companhia !== undefined && companhia !== null) {
+    params.push(companhia);
+    if (peloton !== undefined && peloton !== null) {
+      params.push(peloton);
+    }
+  }
+
   const rows = await query(
-    buildMissionSelectSql(true, Boolean(visitorId)),
-    visitorId ? [visitorId] : []
+    buildMissionSelectSql(true, Boolean(visitorId), companhia, peloton),
+    params
   );
   return rows.map(mapMission);
 }
@@ -530,8 +571,8 @@ export async function getMissionById(id: number, visitorId?: string | null) {
 export async function createMission(mission: any) {
   const sql = `
     INSERT INTO pmam_cfap_missions 
-    (title, content, priority, status, due_date, is_active, author_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (title, content, priority, status, due_date, is_active, author_id, companhia, peloton)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -541,7 +582,9 @@ export async function createMission(mission: any) {
     mission.status || 'ativa',
     mission.dueDate || null,
     mission.isActive ?? 1,
-    mission.authorId || null
+    mission.authorId || null,
+    mission.companhia ?? null,
+    mission.peloton ?? null
   ]);
 
   return result;
@@ -1187,6 +1230,8 @@ function mapBlogPost(p: any) {
     youtubeUrl: p.youtube_url,
     authorId: p.author_id,
     published: Boolean(p.published),
+    companhia: p.companhia,
+    peloton: p.peloton,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
@@ -1199,10 +1244,12 @@ export async function createBlogPost(post: {
   youtubeUrl?: string;
   authorId: number;
   published?: boolean;
+  companhia?: number | null;
+  peloton?: number | null;
 }) {
   const sql = `
-    INSERT INTO pmam_blog_post (title, content, image_url, youtube_url, author_id, published)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO pmam_blog_post (title, content, image_url, youtube_url, author_id, published, companhia, peloton)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const params = [
     post.title,
@@ -1211,6 +1258,8 @@ export async function createBlogPost(post: {
     post.youtubeUrl || null,
     post.authorId,
     post.published ? 1 : 0,
+    post.companhia ?? null,
+    post.peloton ?? null,
   ];
   const result = await query(sql, params) as any;
   return result?.insertId || null;
@@ -1224,13 +1273,28 @@ export async function getBlogPostById(id: number) {
   return result?.[0] ? mapBlogPost(result[0]) : null;
 }
 
-export async function listBlogPosts(published?: boolean) {
+export async function listBlogPosts(published?: boolean, companhia?: number | null, peloton?: number | null) {
   let sql = 'SELECT * FROM pmam_blog_post';
   const params: any[] = [];
+  const clauses: string[] = [];
   
   if (published !== undefined) {
-    sql += ' WHERE published = ?';
+    clauses.push('published = ?');
     params.push(published ? 1 : 0);
+  }
+  
+  if (companhia !== undefined && companhia !== null) {
+    if (peloton !== undefined && peloton !== null) {
+      clauses.push('((companhia IS NULL AND peloton IS NULL) OR (companhia = ? AND peloton = ?))');
+      params.push(companhia, peloton);
+    } else {
+      clauses.push('((companhia IS NULL) OR (companhia = ?))');
+      params.push(companhia);
+    }
+  }
+  
+  if (clauses.length > 0) {
+    sql += ' WHERE ' + clauses.join(' AND ');
   }
   
   sql += ' ORDER BY created_at DESC';

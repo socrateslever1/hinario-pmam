@@ -367,11 +367,24 @@ export const appRouter = router({
     list: publicProcedure.input(
       z.object({
         visitorId: z.string().trim().min(8).max(128).optional(),
+        companhia: z.number().int().optional(),
+        peloton: z.number().int().optional(),
       }).optional()
     ).query(async ({ input }) => {
-      return db.getActiveMissions(input?.visitorId);
+      return db.getActiveMissions(input?.visitorId, input?.companhia, input?.peloton);
     }),
-    listAll: adminProcedure.query(async () => {
+    listAll: scaleManagerProcedure.query(async ({ ctx }) => {
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (assignment) {
+          const missions = await db.getAllMissions(null, assignment.companhia, assignment.peloton);
+          return missions.filter((mission: any) =>
+            mission.companhia === assignment.companhia &&
+            mission.peloton === assignment.peloton
+          );
+        }
+      }
       return db.getAllMissions();
     }),
     getById: publicProcedure.input(z.object({
@@ -394,7 +407,7 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       const mission = await db.getMissionById(input.missionId);
       if (!mission || !mission.isActive) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado nÃ£o encontrado" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado não encontrado" });
       }
 
       await db.createMissionComment(input.missionId, input.authorName, input.content);
@@ -406,39 +419,72 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       const mission = await db.getMissionById(input.missionId);
       if (!mission || !mission.isActive) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado nÃ£o encontrado" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado não encontrado" });
       }
 
       return db.toggleMissionReaction(input.missionId, input.visitorId);
     }),
-    create: adminProcedure.input(z.object({
+    create: scaleManagerProcedure.input(z.object({
       title: z.string(),
       content: z.string(),
       priority: z.enum(["normal", "urgente", "critica"]).default("normal"),
     })).mutation(async ({ input, ctx }) => {
-      await db.createMission({ ...input, authorId: ctx.user.id });
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      let companhia = null;
+      let peloton = null;
+      
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment) throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem atribuição de pelotão" });
+        companhia = assignment.companhia;
+        peloton = assignment.peloton;
+      }
+
+      await db.createMission({ ...input, authorId: ctx.user.id, companhia, peloton });
       await notifyOwner({
         title: `Nova Missão CFAP: ${input.title}`,
         content: `Uma nova missão foi publicada na página CFAP 2026: ${input.title}`,
       });
       return { success: true };
     }),
-    update: adminProcedure.input(z.object({
+    update: scaleManagerProcedure.input(z.object({
       id: z.number(),
       title: z.string().optional(),
       content: z.string().optional(),
       priority: z.enum(["normal", "urgente", "critica"]).optional(),
       isActive: z.boolean().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.id);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para editar esta missão" });
+        }
+      }
+
       const { id, ...data } = input;
       await db.updateMission(id, data);
       return { success: true };
     }),
-    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: scaleManagerProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.id);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para excluir esta missão" });
+        }
+      }
+
       await db.deleteMission(input.id);
       return { success: true };
     }),
-    uploadMedia: adminProcedure.input(z.object({
+    uploadMedia: scaleManagerProcedure.input(z.object({
       missionId: z.number(),
       type: z.enum(["image", "video", "audio", "pdf", "document"]),
       fileName: z.string(),
@@ -451,6 +497,14 @@ export const appRouter = router({
       const mission = await db.getMissionById(input.missionId);
       if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
       
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para gerenciar mídias desta missão" });
+        }
+      }
+
       const suffix = nanoid(10);
       const ext = input.fileName.split('.').pop() || 'bin';
       const fileKey = `mission-media/${input.missionId}-${input.type}-${suffix}.${ext}`;
@@ -475,32 +529,61 @@ export const appRouter = router({
     })).query(async ({ input }) => {
       return db.getMissionMedia(input.missionId);
     }),
-    updateMedia: adminProcedure.input(z.object({
+    updateMedia: scaleManagerProcedure.input(z.object({
       mediaId: z.number(),
       title: z.string().optional(),
       description: z.string().optional(),
       isActive: z.boolean().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const media = await db.getMediaById(input.mediaId);
       if (!media) throw new TRPCError({ code: "NOT_FOUND", message: "Mídia não encontrada" });
       
+      const mission = await db.getMissionById(media.missionId);
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || !mission || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para alterar mídias desta missão" });
+        }
+      }
+
       const { mediaId, ...data } = input;
       await db.updateMissionMedia(mediaId, data);
       return { success: true };
     }),
-    deleteMedia: adminProcedure.input(z.object({
+    deleteMedia: scaleManagerProcedure.input(z.object({
       mediaId: z.number(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
       const media = await db.getMediaById(input.mediaId);
       if (!media) throw new TRPCError({ code: "NOT_FOUND", message: "Mídia não encontrada" });
       
+      const mission = await db.getMissionById(media.missionId);
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || !mission || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para remover mídias desta missão" });
+        }
+      }
+
       await db.deleteMissionMedia(input.mediaId);
       return { success: true };
     }),
-    reorderMedia: adminProcedure.input(z.object({
+    reorderMedia: scaleManagerProcedure.input(z.object({
       missionId: z.number(),
       mediaIds: z.array(z.number()),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
+      const mission = await db.getMissionById(input.missionId);
+      if (!mission) throw new TRPCError({ code: "NOT_FOUND", message: "Missão não encontrada" });
+
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || mission.companhia !== assignment.companhia || mission.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para reordenar mídias desta missão" });
+        }
+      }
+
       await db.reorderMissionMedia(input.missionId, input.mediaIds);
       return { success: true };
     }),
@@ -673,21 +756,66 @@ export const appRouter = router({
   }),
 
   blog: router({
-    list: publicProcedure.query(async () => {
-      return await db.listBlogPosts(true);
+    list: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().optional(),
+        peloton: z.number().int().optional(),
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      let companhia: number | null | undefined = input?.companhia;
+      let peloton: number | null | undefined = input?.peloton;
+
+      // If called within an admin context (ctx.user exists) and they are a Xerife, auto-scope
+      if (ctx.user) {
+        const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+        if (!isMasterOrAdmin) {
+          const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+          if (assignment) {
+            companhia = assignment.companhia;
+            peloton = assignment.peloton;
+          }
+        }
+      }
+
+      return await db.listBlogPosts(true, companhia, peloton);
+    }),
+    listAll: scaleManagerProcedure.query(async ({ ctx }) => {
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment) throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem atribuiÃ§Ã£o de pelotÃ£o" });
+        const posts = await db.listBlogPosts(undefined, assignment.companhia, assignment.peloton);
+        return posts.filter((post: any) =>
+          post.companhia === assignment.companhia &&
+          post.peloton === assignment.peloton
+        );
+      }
+
+      return await db.listBlogPosts();
     }),
     getById: publicProcedure.input(z.object({
       id: z.number(),
     })).query(async ({ input }) => {
       return await db.getBlogPostById(input.id);
     }),
-    create: adminProcedure.input(z.object({
+    create: scaleManagerProcedure.input(z.object({
       title: z.string().min(1).max(255),
       content: z.string().min(1),
       imageUrl: z.string().nullable().optional(),
       youtubeUrl: z.string().nullable().optional(),
       published: z.boolean().default(false),
     })).mutation(async ({ input, ctx }) => {
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      let companhia: number | null = null;
+      let peloton: number | null = null;
+      
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment) throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem atribuição de pelotão" });
+        companhia = assignment.companhia;
+        peloton = assignment.peloton;
+      }
+
       const id = await db.createBlogPost({
         title: input.title,
         content: input.content,
@@ -695,17 +823,30 @@ export const appRouter = router({
         youtubeUrl: input.youtubeUrl ?? undefined,
         authorId: ctx.user.id,
         published: input.published,
+        companhia,
+        peloton
       });
       return await db.getBlogPostById(id!);
     }),
-    update: adminProcedure.input(z.object({
+    update: scaleManagerProcedure.input(z.object({
       id: z.number(),
       title: z.string().min(1).max(255).optional(),
       content: z.string().min(1).optional(),
       imageUrl: z.string().nullable().optional(),
       youtubeUrl: z.string().nullable().optional(),
       published: z.boolean().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
+      const post = await db.getBlogPostById(input.id);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado não encontrado" });
+
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || post.companhia !== assignment.companhia || post.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para editar este comunicado" });
+        }
+      }
+
       await db.updateBlogPost(input.id, {
         title: input.title,
         content: input.content,
@@ -715,9 +856,20 @@ export const appRouter = router({
       });
       return await db.getBlogPostById(input.id);
     }),
-    delete: adminProcedure.input(z.object({
+    delete: scaleManagerProcedure.input(z.object({
       id: z.number(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ input, ctx }) => {
+      const post = await db.getBlogPostById(input.id);
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Comunicado não encontrado" });
+
+      const isMasterOrAdmin = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!isMasterOrAdmin) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment || post.companhia !== assignment.companhia || post.peloton !== assignment.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para excluir este comunicado" });
+        }
+      }
+
       await db.deleteBlogPost(input.id);
       return { success: true };
     }),
@@ -758,7 +910,7 @@ export const appRouter = router({
       await db.deleteBlogComment(input.commentId);
       return { success: true };
     }),
-    uploadImage: adminProcedure.input(z.object({
+    uploadImage: scaleManagerProcedure.input(z.object({
       fileName: z.string(),
       mimeType: z.string(),
       base64Data: z.string(),

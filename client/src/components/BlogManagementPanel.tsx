@@ -104,7 +104,7 @@ export function BlogManagementPanel() {
   }, [formData, isOpen, editingId]);
 
   // Queries
-  const { data: posts, isLoading, refetch } = trpc.blog.list.useQuery();
+  const { data: posts, isLoading, refetch } = trpc.blog.listAll.useQuery();
 
   // Mutations
   const createMutation = trpc.blog.create.useMutation({

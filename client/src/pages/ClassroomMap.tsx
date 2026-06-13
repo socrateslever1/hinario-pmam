@@ -313,10 +313,156 @@ export default function ClassroomMap() {
 
   // Classroom seat generation
   const startNumber = selectedCompanhia * 1000 + selectedPeloton * 100;
-  const seats = Array.from({ length: capacity }, (_, i) => startNumber + i + 1);
+  const col1 = Array.from({ length: 11 }, (_, i) => startNumber + i + 1); // 01 to 11
+  const col2 = Array.from({ length: 10 }, (_, i) => startNumber + i + 12); // 12 to 21
+  const col3 = Array.from({ length: 10 }, (_, i) => startNumber + i + 22); // 22 to 31
+  const col4 = Array.from({ length: 10 }, (_, i) => startNumber + i + 32); // 32 to 41
+  const col5RegularLength = Math.max(0, capacity - 41);
+  const col5Regular = Array.from({ length: col5RegularLength }, (_, i) => startNumber + i + 42); // 42 onwards
 
   // Lists definitions
-  const unassignedStudents = students.filter((s: any) => !s.deskNumber);
+  const unassignedStudents = students.filter((s: any) => !s.deskNumber && s.id !== activeRoles?.xerifeId && s.id !== activeRoles?.subXerifeId);
+
+  // Seat rendering helpers
+  const renderSeatCard = (seatNumber: number) => {
+    const occupant = students.find((s: any) => s.deskNumber === seatNumber && s.id !== activeRoles?.xerifeId && s.id !== activeRoles?.subXerifeId);
+    const isOccupied = !!occupant;
+    const cond = occupant?.condition || "pronto";
+    const isAbsent = cond !== "pronto";
+
+    return (
+      <div
+        key={seatNumber}
+        onClick={() => handleSeatClick(seatNumber)}
+        className={`relative flex flex-col items-center justify-between rounded-xl border p-2 text-center transition-all duration-200 ${
+          isOccupied
+            ? getSeatConditionStyle(cond)
+            : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
+        } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+        style={{ minHeight: "100px" }}
+      >
+        <div className="absolute top-1.5 left-1.5 flex items-center justify-center">
+          <span className="text-[8px] font-black text-muted-foreground/60">
+            {seatNumber}
+          </span>
+        </div>
+
+        {isOccupied ? (
+          <div className="flex flex-col items-center justify-center h-full w-full pt-3">
+            {occupant.fotoUrl ? (
+              <img
+                src={occupant.fotoUrl}
+                alt={occupant.nomeGuerra}
+                className={`h-9 w-9 rounded-full object-cover border-2 shadow-sm mb-1.5 ${
+                  isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
+                }`}
+              />
+            ) : (
+              <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 mb-1.5 font-bold text-[9px] ${
+                isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
+              }`}>
+                {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className={`text-[10px] font-bold truncate w-full px-1 ${
+              isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
+            }`}>
+              {occupant.nomeGuerra}
+            </span>
+            <span className="text-[8px] text-muted-foreground">
+              {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full w-full pt-3 text-muted-foreground/30">
+            <User className="h-5 w-5 stroke-[1.5] mb-1 opacity-20" />
+            <span className="text-[8px] font-semibold uppercase tracking-wider">Vazia</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderSpecialSeatCard = (role: 'xerife' | 'sub_xerife') => {
+    const studentId = role === 'xerife' ? activeRoles?.xerifeId : activeRoles?.subXerifeId;
+    const occupant = studentId ? students.find((s: any) => s.id === studentId) : null;
+    const isOccupied = !!occupant;
+    const cond = occupant?.condition || "pronto";
+    const isAbsent = cond !== "pronto";
+    
+    const roleTitle = role === 'xerife' ? "Xerife" : "Sub-Xerife";
+    const borderClass = role === 'xerife' 
+      ? "border-yellow-500 bg-yellow-500/5 dark:bg-yellow-950/10 shadow-sm" 
+      : "border-slate-400 bg-slate-400/5 dark:bg-slate-900/10 shadow-sm";
+
+    return (
+      <div
+        key={role}
+        onClick={() => {
+          if (isAdminOrXerifeAdmin) {
+            toast.info(`Para gerenciar o ${roleTitle}, vá para a sub-rota de Efetivo.`);
+            setLocation("/sala-de-aula/efetivo");
+          }
+        }}
+        className={`relative flex flex-col items-center justify-between rounded-xl border p-2 text-center transition-all duration-200 ${
+          isOccupied
+            ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
+            : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
+        } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+        style={{ minHeight: "100px" }}
+      >
+        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+          {role === 'xerife' ? (
+            <Crown className="h-3 w-3 text-yellow-500 fill-current animate-pulse" />
+          ) : (
+            <Shield className="h-3 w-3 text-slate-400" />
+          )}
+          <span className="text-[8px] font-black uppercase text-muted-foreground/80 tracking-wider">
+            {roleTitle}
+          </span>
+        </div>
+
+        {isOccupied ? (
+          <div className="flex flex-col items-center justify-center h-full w-full pt-3">
+            {occupant.fotoUrl ? (
+              <img
+                src={occupant.fotoUrl}
+                alt={occupant.nomeGuerra}
+                className={`h-9 w-9 rounded-full object-cover border-2 shadow-sm mb-1.5 ${
+                  isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
+                }`}
+              />
+            ) : (
+              <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 mb-1.5 font-bold text-[9px] ${
+                isAbsent 
+                  ? "bg-red-500/10 text-red-500 border-red-400" 
+                  : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500" : "bg-slate-500/10 text-slate-600 border-slate-400")
+              }`}>
+                {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className={`text-[10px] font-bold truncate w-full px-1 ${
+              isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
+            }`}>
+              {occupant.nomeGuerra}
+            </span>
+            <span className="text-[8px] text-muted-foreground">
+              {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full w-full pt-3 text-muted-foreground/30">
+            {role === 'xerife' ? (
+              <Crown className="h-5 w-5 stroke-[1.5] mb-1 opacity-30 text-yellow-500" />
+            ) : (
+              <Shield className="h-5 w-5 stroke-[1.5] mb-1 opacity-30 text-slate-400" />
+            )}
+            <span className="text-[8px] font-semibold uppercase tracking-wider">Vazia</span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Handlers
   const handleSeatClick = (seatNumber: number) => {
@@ -567,65 +713,48 @@ export default function ClassroomMap() {
 
                     {/* Seating map grid (exactly 5 columns, scrollable) */}
                     <div className="overflow-x-auto w-full pb-4">
-                      <div className="min-w-[650px] grid grid-cols-5 gap-3">
-                        {seats.map((seatNumber) => {
-                          const occupant = students.find((s: any) => s.deskNumber === seatNumber);
-                          const isOccupied = !!occupant;
-                          const cond = occupant?.condition || "pronto";
-                          const isAbsent = cond !== "pronto";
+                      <div className="min-w-[750px] grid grid-cols-5 gap-4">
+                        {/* Fileira 1 (01 a 11) */}
+                        <div className="flex flex-col gap-3">
+                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                            Fileira 1
+                          </div>
+                          {col1.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
 
-                          return (
-                            <div
-                              key={seatNumber}
-                              onClick={() => handleSeatClick(seatNumber)}
-                              className={`relative flex flex-col items-center justify-between rounded-xl border p-2 text-center transition-all duration-200 ${
-                                isOccupied
-                                  ? getSeatConditionStyle(cond)
-                                  : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-850"
-                              } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
-                              style={{ minHeight: "100px" }}
-                            >
-                              <div className="absolute top-1.5 left-1.5 flex items-center justify-center">
-                                <span className="text-[8px] font-black text-muted-foreground/60">
-                                  {seatNumber}
-                                </span>
-                              </div>
+                        {/* Fileira 2 (12 a 21) */}
+                        <div className="flex flex-col gap-3">
+                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                            Fileira 2
+                          </div>
+                          {col2.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
 
-                              {isOccupied ? (
-                                <div className="flex flex-col items-center justify-center h-full w-full pt-3">
-                                  {occupant.fotoUrl ? (
-                                    <img
-                                      src={occupant.fotoUrl}
-                                      alt={occupant.nomeGuerra}
-                                      className={`h-9 w-9 rounded-full object-cover border-2 shadow-sm mb-1.5 ${
-                                        isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
-                                      }`}
-                                    />
-                                  ) : (
-                                    <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 mb-1.5 font-bold text-[9px] ${
-                                      isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
-                                    }`}>
-                                      {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
-                                    </div>
-                                  )}
-                                  <span className={`text-[10px] font-bold truncate w-full px-1 ${
-                                    isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
-                                  }`}>
-                                    {occupant.nomeGuerra}
-                                  </span>
-                                  <span className="text-[8px] text-muted-foreground">
-                                    {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center h-full w-full pt-3 text-muted-foreground/30">
-                                  <User className="h-5 w-5 stroke-[1.5] mb-1 opacity-20" />
-                                  <span className="text-[8px] font-semibold uppercase tracking-wider">Vazia</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                        {/* Fileira 3 (22 a 31) */}
+                        <div className="flex flex-col gap-3">
+                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                            Fileira 3
+                          </div>
+                          {col3.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
+
+                        {/* Fileira 4 (32 a 41) */}
+                        <div className="flex flex-col gap-3">
+                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                            Fileira 4
+                          </div>
+                          {col4.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
+
+                        {/* Fileira 5 (Xerife, Sub-xerife, 42 a 51+) */}
+                        <div className="flex flex-col gap-3">
+                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                            Fileira 5
+                          </div>
+                          {renderSpecialSeatCard("xerife")}
+                          {renderSpecialSeatCard("sub_xerife")}
+                          {col5Regular.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
                       </div>
                     </div>
 
