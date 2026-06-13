@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, Crown, FileText, Save, Shield, Trash2, UserCog, Users } from "lucide-react";
+import { useState } from "react";
+import { Link } from "wouter";
+import { Crown, Shield, Trash2, LayoutGrid, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,116 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PeculioTab } from "./PeculioTab";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-const weekdays = [
-  { value: 1, label: "Segunda-feira" },
-  { value: 2, label: "Terça-feira" },
-  { value: 3, label: "Quarta-feira" },
-  { value: 4, label: "Quinta-feira" },
-  { value: 5, label: "Sexta-feira" },
-];
-
-const conditionLabels: Record<string, string> = {
-  pronto: "Pronto (PRONTO)",
-  falta: "Falta (FT)",
-  atraso: "Atraso (AT)",
-  diverso_destino: "Diverso Destino (DD)",
-  destino_ignorado: "Destino Ignorado (DI)",
-  dispensa_medica: "Dispensa Médica (DM)",
-  dispensa_administrativa: "Dispensa Administrativa (DA)",
-};
-
-const conditionAbbrs: Record<string, string> = {
-  pronto: "PRONTO",
-  falta: "FT",
-  atraso: "AT",
-  diverso_destino: "DD",
-  destino_ignorado: "DI",
-  dispensa_medica: "DM",
-  dispensa_administrativa: "DA",
-};
-
-const getConditionBadgeStyle = (cond = "pronto") => {
-  switch (cond) {
-    case "pronto":
-      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300";
-    case "falta":
-      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300";
-    case "atraso":
-      return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300";
-    case "diverso_destino":
-      return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300";
-    case "destino_ignorado":
-      return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
-    case "dispensa_medica":
-      return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300";
-    case "dispensa_administrativa":
-      return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
-  }
-};
-
-function getMonday(date = new Date()) {
-  const copy = new Date(date);
-  const day = copy.getDay();
-  const diff = copy.getDate() - day + (day === 0 ? -6 : 1);
-  copy.setDate(diff);
-  copy.setHours(0, 0, 0, 0);
-  return copy.toISOString().slice(0, 10);
-}
-
-function addDays(date: string, days: number) {
-  const value = new Date(`${date}T00:00:00`);
-  value.setDate(value.getDate() + days);
-  return value.toISOString().slice(0, 10);
-}
-
-function studentLabel(student: any) {
-  const suffix = student.condition && student.condition !== "pronto"
-    ? ` (${conditionAbbrs[student.condition] || student.condition.toUpperCase()})`
-    : "";
-  return `${student.numerica} - ${student.nomeGuerra}${suffix}`;
-}
 
 export function ServiceScaleTab() {
   const utils = trpc.useUtils();
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
   const { data: users } = trpc.users.list.useQuery(undefined, { enabled: access?.isMaster === true });
   const { data: assignments } = trpc.serviceScale.assignments.useQuery(undefined, { enabled: access?.isMaster === true });
-
-  const [companhia, setCompanhia] = useState("1");
-  const [peloton, setPeloton] = useState("1");
-  const [weekStart, setWeekStart] = useState(getMonday());
-  const [homemHoraId, setHomemHoraId] = useState("");
-  const [alunoLigacaoId, setAlunoLigacaoId] = useState("");
-  const [p5FilmmakerId, setP5FilmmakerId] = useState("");
-  const [xerifeId, setXerifeId] = useState("");
-  const [subXerifeId, setSubXerifeId] = useState("");
-  const [dutyDate, setDutyDate] = useState("");
-  const [aditamento, setAditamento] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
-  const [rotationDialogOpen, setRotationDialogOpen] = useState(false);
-  const [rotationStartDate, setRotationStartDate] = useState("");
-  const [cleaningByDay, setCleaningByDay] = useState<Record<number, string[]>>({});
-  
-  // Aditamentos State
-  const [aditTitulo, setAditTitulo] = useState("");
-  const [aditConteudo, setAditConteudo] = useState("");
-  const [aditData, setAditData] = useState(new Date().toISOString().slice(0, 10));
-  const [aditPdfUrl, setAditPdfUrl] = useState("");
 
   const [assignmentForm, setAssignmentForm] = useState({
     userId: "",
@@ -132,91 +27,9 @@ export function ServiceScaleTab() {
     peloton: "1",
   });
 
-  const selectedCompanhia = Number(companhia);
-  const selectedPeloton = Number(peloton);
-
-  useEffect(() => {
-    if (!access?.scope) return;
-    if (access.scope.companhia) setCompanhia(String(access.scope.companhia));
-    if (access.scope.peloton) setPeloton(String(access.scope.peloton));
-  }, [access?.scope]);
-
-  const platoonQuery = trpc.serviceScale.getPlatoon.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, weekStart },
-    { enabled: Boolean(selectedCompanhia && selectedPeloton) }
-  );
-
-  const students = platoonQuery.data?.students ?? [];
-  const roleOptions = useMemo(() => students.map((student: any) => ({
-    value: String(student.id),
-    label: studentLabel(student),
-  })), [students]);
-
-  const aditamentosQuery = trpc.serviceScale.listAditamentos.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton },
-    { enabled: Boolean(selectedCompanhia && selectedPeloton) }
-  );
-
-  useEffect(() => {
-    const roles = platoonQuery.data?.roles;
-    const week = platoonQuery.data?.week;
-
-    setHomemHoraId(roles?.homemHoraId ? String(roles.homemHoraId) : "");
-    setAlunoLigacaoId(roles?.alunoLigacaoId ? String(roles.alunoLigacaoId) : "");
-    setP5FilmmakerId(roles?.p5FilmmakerId ? String(roles.p5FilmmakerId) : "");
-    setAditamento(week?.aditamento || roles?.aditamento || "");
-    setXerifeId(week?.xerifeId ? String(week.xerifeId) : "");
-    setSubXerifeId(week?.subXerifeId ? String(week.subXerifeId) : "");
-    setDutyDate(week?.dutyDate || "");
-    setIsPublished(Boolean(week?.isPublished));
-
-    const nextCleaning: Record<number, string[]> = {};
-    for (const day of weekdays) {
-      const existing = week?.cleaning?.find((item: any) => item.weekday === day.value);
-      nextCleaning[day.value] = existing?.studentIds?.map((id: number) => String(id)) ?? [];
-    }
-    setCleaningByDay(nextCleaning);
-  }, [platoonQuery.data]);
-
-  const saveRoles = trpc.serviceScale.saveRoles.useMutation({
-    onSuccess: async () => {
-      toast.success("Funções fixas salvas");
-      await platoonQuery.refetch();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const saveWeeklyScale = trpc.serviceScale.saveWeeklyScale.useMutation({
-    onSuccess: async () => {
-      toast.success("Escala semanal salva");
-      await Promise.all([
-        platoonQuery.refetch(),
-        utils.serviceScale.published.invalidate(),
-      ]);
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const updateStudentCondition = trpc.serviceScale.updateStudentCondition.useMutation({
-    onSuccess: async () => {
-      toast.success("Condição do aluno atualizada");
-      await platoonQuery.refetch();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
-  const generateRotation = trpc.serviceScale.generateRotation.useMutation({
-    onSuccess: async () => {
-      toast.success("Escala rotativa de 10 dias gerada com sucesso!");
-      setRotationDialogOpen(false);
-      await platoonQuery.refetch();
-    },
-    onError: (error) => toast.error(error.message),
-  });
-
   const saveAssignment = trpc.serviceScale.saveAssignment.useMutation({
     onSuccess: async () => {
-      toast.success("Xerife configurado");
+      toast.success("Xerife configurado com sucesso!");
       setAssignmentForm({ userId: "", level: "pelotao", companhia: "1", peloton: "1" });
       await utils.serviceScale.assignments.invalidate();
     },
@@ -225,110 +38,11 @@ export function ServiceScaleTab() {
 
   const deleteAssignment = trpc.serviceScale.deleteAssignment.useMutation({
     onSuccess: async () => {
-      toast.success("Configuração removida");
+      toast.success("Configuração de acesso removida");
       await utils.serviceScale.assignments.invalidate();
     },
     onError: (error) => toast.error(error.message),
   });
-
-  const saveAditamento = trpc.serviceScale.saveAditamento.useMutation({
-    onSuccess: async () => {
-      toast.success("Aditamento publicado com sucesso!");
-      setAditTitulo("");
-      setAditConteudo("");
-      setAditPdfUrl("");
-      await aditamentosQuery.refetch();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const deleteAditamento = trpc.serviceScale.deleteAditamento.useMutation({
-    onSuccess: async () => {
-      toast.success("Aditamento excluído");
-      await aditamentosQuery.refetch();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const canChangeScope = Boolean(access?.scope?.unrestricted || access?.assignment?.level === "companhia");
-  const canChangeCompany = Boolean(access?.scope?.unrestricted);
-
-  const toggleCleaningStudent = (weekday: number, studentId: string) => {
-    setCleaningByDay((current) => {
-      const currentIds = current[weekday] ?? [];
-      const nextIds = currentIds.includes(studentId)
-        ? currentIds.filter((id) => id !== studentId)
-        : [...currentIds, studentId];
-      return { ...current, [weekday]: nextIds };
-    });
-  };
-
-  const handleConditionChange = (studentId: number, condition: string) => {
-    updateStudentCondition.mutate({
-      studentId,
-      condition: condition as any,
-    });
-  };
-
-  const handleGenerateRotation = () => {
-    if (!rotationStartDate) {
-      toast.error("Selecione uma data de início");
-      return;
-    }
-    generateRotation.mutate({
-      companhia: selectedCompanhia,
-      peloton: selectedPeloton,
-      startDate: rotationStartDate,
-    });
-  };
-
-  const handleSaveRoles = () => {
-    saveRoles.mutate({
-      companhia: selectedCompanhia,
-      peloton: selectedPeloton,
-      homemHoraId: homemHoraId ? Number(homemHoraId) : null,
-      alunoLigacaoId: alunoLigacaoId ? Number(alunoLigacaoId) : null,
-      p5FilmmakerId: p5FilmmakerId ? Number(p5FilmmakerId) : null,
-      aditamento: aditamento || null,
-    });
-  };
-
-  const handleSaveAditamento = () => {
-    if (!aditTitulo.trim()) {
-      toast.error("O título é obrigatório");
-      return;
-    }
-    if (!aditData) {
-      toast.error("A data é obrigatória");
-      return;
-    }
-    saveAditamento.mutate({
-      companhia: selectedCompanhia,
-      peloton: selectedPeloton,
-      titulo: aditTitulo,
-      conteudo: aditConteudo || null,
-      data: aditData,
-      pdfUrl: aditPdfUrl || null,
-    });
-  };
-
-  const handleSaveWeek = (publish = isPublished) => {
-    saveWeeklyScale.mutate({
-      companhia: selectedCompanhia,
-      peloton: selectedPeloton,
-      weekStart,
-      dutyDate: dutyDate || null,
-      xerifeId: xerifeId ? Number(xerifeId) : null,
-      subXerifeId: subXerifeId ? Number(subXerifeId) : null,
-      aditamento: aditamento || null,
-      isPublished: publish,
-      cleaning: weekdays.map((day, index) => ({
-        weekday: day.value,
-        serviceDate: addDays(weekStart, index),
-        studentIds: (cleaningByDay[day.value] ?? []).map(Number).filter(Boolean),
-      })),
-    });
-  };
 
   const handleSaveAssignment = () => {
     if (!assignmentForm.userId) {
@@ -345,554 +59,154 @@ export function ServiceScaleTab() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Global Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-border/50 bg-white">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Companhia</p>
-            <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{selectedCompanhia}ª</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-white">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Pelotão</p>
-            <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{selectedPeloton}º</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-white">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Efetivo</p>
-            <p className="mt-2 text-2xl font-bold text-[#1a3a2a]">{students.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-white">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Status da Escala</p>
-            <Badge className={`mt-3 ${isPublished ? "bg-green-700 text-white" : "bg-[#c4a84b] text-[#1a1a1a]"}`}>
-              {isPublished ? "Publicado" : "Rascunho"}
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
+      {/* 1. Sala de Aula Office Access Card */}
+      <Card className="border-border/50 bg-white dark:bg-zinc-900 shadow-md">
+        <CardHeader className="pb-3 border-b bg-gradient-to-r from-[#1a3a2a]/5 via-transparent to-transparent">
+          <CardTitle className="text-lg font-black uppercase tracking-wider text-[#1a3a2a] dark:text-[#c4a84b] flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-[#c4a84b]" />
+            Escritório de Trabalho da Sala de Aula
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Acesse o painel unificado e dinâmico da Sala de Aula para gerenciar todas as atividades do seu pelotão.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            As opções de <strong>Mapa de Assentos (5 Fileiras)</strong>, <strong>Frequência (Pecúlio)</strong>, 
+            <strong>Efetivo do Pelotão</strong>, <strong>Escalas de Faxina</strong>, <strong>Banco de Aditamentos</strong> 
+            e <strong>Histórico de Lideranças</strong> foram unificadas em uma experiência interativa e otimizada 
+            para dispositivos móveis.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Link href="/sala-de-aula">
+              <Button className="bg-[#1a3a2a] hover:bg-[#1a3a2a]/95 text-white gap-2 font-bold shadow-md hover:scale-[1.02] transition-transform duration-200">
+                Acessar Sala de Aula
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* 2. Global Selection Card */}
-      <Card className="border-border/50 bg-white print:hidden">
-        <CardContent className="space-y-4 p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end">
-            <div className="grid flex-1 gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Companhia</Label>
-                <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeCompany}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+      {/* 2. Master Permission Configuration (Configurar Xerifes) */}
+      {access?.isMaster && (
+        <Card className="border-border/50 bg-white dark:bg-zinc-900 shadow-md">
+          <CardHeader className="pb-3 border-b bg-gradient-to-r from-[#c4a84b]/5 via-transparent to-transparent">
+            <CardTitle className="text-lg font-black uppercase tracking-wider text-[#1a3a2a] dark:text-[#c4a84b] flex items-center gap-2">
+              <Crown className="h-5 w-5 text-[#c4a84b] fill-current" />
+              Configurar Atribuições de Xerife (Master)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Conceda ou revogue permissões de gerenciamento de Sala de Aula/Quadro de Serviço para usuários cadastrados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            {/* Form */}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5 md:items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="user-select" className="text-xs font-bold uppercase text-muted-foreground">Usuário</Label>
+                <Select value={assignmentForm.userId} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, userId: value }))}>
+                  <SelectTrigger id="user-select" className="bg-white dark:bg-zinc-800">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(users ?? []).filter((user: any) => user.role !== "master").map((user: any) => (
+                      <SelectItem key={user.id} value={String(user.id)}>{user.name || user.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="level-select" className="text-xs font-bold uppercase text-muted-foreground">Nível</Label>
+                <Select value={assignmentForm.level} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, level: value }))}>
+                  <SelectTrigger id="level-select" className="bg-white dark:bg-zinc-800">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="principal">Principal (Geral)</SelectItem>
+                    <SelectItem value="companhia">Companhia</SelectItem>
+                    <SelectItem value="pelotao">Pelotão</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="companhia-select" className="text-xs font-bold uppercase text-muted-foreground">Companhia</Label>
+                <Select 
+                  value={assignmentForm.companhia} 
+                  onValueChange={(value) => setAssignmentForm((form) => ({ ...form, companhia: value }))} 
+                  disabled={assignmentForm.level === "principal"}
+                >
+                  <SelectTrigger id="companhia-select" className="bg-white dark:bg-zinc-800">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5].map((item) => <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Pelotão</Label>
-                <Select value={peloton} onValueChange={setPeloton} disabled={!canChangeScope || Boolean(access?.scope?.peloton)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="pelotao-select" className="text-xs font-bold uppercase text-muted-foreground">Pelotão</Label>
+                <Select 
+                  value={assignmentForm.peloton} 
+                  onValueChange={(value) => setAssignmentForm((form) => ({ ...form, peloton: value }))} 
+                  disabled={assignmentForm.level !== "pelotao"}
+                >
+                  <SelectTrigger id="pelotao-select" className="bg-white dark:bg-zinc-800">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {[1, 2].map((item) => <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+
+              <Button 
+                className="bg-[#1a3a2a] hover:bg-[#1a3a2a]/95 text-white gap-2 font-bold w-full" 
+                onClick={handleSaveAssignment} 
+                disabled={saveAssignment.isPending}
+              >
+                <Shield className="h-4 w-4" />
+                Salvar
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* 3. Nested Tabs */}
-      <Tabs defaultValue="peculio" className="w-full">
-        <TabsList className="mb-6 grid h-auto w-full grid-cols-4 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0 print:hidden">
-          <TabsTrigger value="peculio">Frequência (Pecúlio)</TabsTrigger>
-          <TabsTrigger value="efetivo">Efetivo do Pelotão</TabsTrigger>
-          <TabsTrigger value="scale">Escalas de Serviço</TabsTrigger>
-          <TabsTrigger value="aditamentos">Aditamentos</TabsTrigger>
-        </TabsList>
-
-        {/* SUB-TAB 1: FREQUÊNCIA (PECÚLIO) */}
-        <TabsContent value="peculio" className="space-y-6">
-          <PeculioTab
-            companhia={companhia}
-            setCompanhia={setCompanhia}
-            peloton={peloton}
-            setPeloton={setPeloton}
-          />
-        </TabsContent>
-
-        {/* SUB-TAB 2: EFETIVO DO PELOTÃO */}
-        <TabsContent value="efetivo" className="space-y-6">
-          <Card className="border-border/50">
-            <CardContent className="p-5 bg-white dark:bg-zinc-900 rounded-lg">
-              <div className="mb-3 flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#c4a84b]" />
-                <h2 className="text-lg font-bold text-foreground">Efetivo do Pelotão</h2>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {students.map((student: any) => (
-                  <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</p>
-                        <Badge className={`border text-[10px] font-semibold px-2 py-0.5 ${getConditionBadgeStyle(student.condition)}`}>
-                          {conditionLabels[student.condition || "pronto"]}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Companhia / {student.peloton}º Pelotão</p>
-                    </div>
-                    <div className="mt-3">
-                      <Label className="text-[11px] text-muted-foreground">Alterar Condição</Label>
-                      <Select
-                        value={student.condition || "pronto"}
-                        onValueChange={(value) => handleConditionChange(student.id, value)}
-                        disabled={updateStudentCondition.isPending}
-                      >
-                        <SelectTrigger className="h-8 text-xs mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(conditionLabels).map(([val, lbl]) => (
-                            <SelectItem key={val} value={val} className="text-xs">
-                              {lbl}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ))}
-                {!students.length && (
-                  <p className="text-sm text-muted-foreground">Nenhum aluno cadastrado para este Pelotão.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SUB-TAB 3: ESCALAS DE SERVIÇO */}
-        <TabsContent value="scale" className="space-y-6">
-          <Card className="border-border/50">
-            <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                <div className="grid flex-1 gap-3 sm:grid-cols-2">
+            {/* List */}
+            <div className="space-y-3 pt-4 border-t dark:border-zinc-800">
+              <h3 className="text-sm font-bold text-foreground">Atribuições Ativas</h3>
+              {(assignments ?? []).map((assignment: any) => (
+                <div key={assignment.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between bg-muted/20 hover:bg-muted/30 transition-colors">
                   <div>
-                    <Label>Semana</Label>
-                    <Input type="date" value={weekStart} onChange={(event) => {
-                      const val = event.target.value;
-                      if (val) {
-                        setWeekStart(getMonday(new Date(`${val}T00:00:00`)));
-                      }
-                    }} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="w-full gap-2 border-[#c4a84b] text-[#c4a84b] hover:bg-[#c4a84b]/10 hover:text-[#c4a84b]"
-                      onClick={() => {
-                        setRotationStartDate(weekStart);
-                        setRotationDialogOpen(true);
-                      }}
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                      Gerar Escala Rotativa
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <Card className="border-border/50">
-              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-[#c4a84b]" />
-                  <h2 className="text-lg font-bold text-foreground">Funções fixas</h2>
-                </div>
-                <div>
-                  <Label>Homem-Hora</Label>
-                  <Select value={homemHoraId || "none"} onValueChange={(value) => setHomemHoraId(value === "none" ? "" : value)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Não definido</SelectItem>
-                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>P5 (Filmmaker)</Label>
-                  <Select value={p5FilmmakerId || "none"} onValueChange={(value) => setP5FilmmakerId(value === "none" ? "" : value)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Não definido</SelectItem>
-                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Aluno de Ligação</Label>
-                  <Select value={alunoLigacaoId || "none"} onValueChange={(value) => setAlunoLigacaoId(value === "none" ? "" : value)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Não definido</SelectItem>
-                      {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Aditamento / referência</Label>
-                  <Input value={aditamento} onChange={(event) => setAditamento(event.target.value)} placeholder="Ex.: Aditamento nº 12/2026" />
-                </div>
-                <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveRoles} disabled={saveRoles.isPending}>
-                  <Save className="h-4 w-4" />
-                  Salvar funções fixas
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5 text-[#c4a84b]" />
-                  <h2 className="text-lg font-bold text-foreground">Escala da semana</h2>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <Label>Dia de Serviço (Opcional)</Label>
-                    <Input type="date" value={dutyDate} onChange={(e) => setDutyDate(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Xerife</Label>
-                    <Select value={xerifeId || "none"} onValueChange={(value) => setXerifeId(value === "none" ? "" : value)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Não definido</SelectItem>
-                        {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Sub-xerife</Label>
-                    <Select value={subXerifeId || "none"} onValueChange={(value) => setSubXerifeId(value === "none" ? "" : value)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Não definido</SelectItem>
-                        {roleOptions.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {weekdays.map((day, index) => {
-                    const selectedIds = cleaningByDay[day.value] ?? [];
-                    const selectedNames = students
-                      .filter((s: any) => selectedIds.includes(String(s.id)))
-                      .map((s: any) => s.nomeGuerra)
-                      .join(", ");
-
-                    return (
-                      <div key={day.value} className="rounded-lg border border-border/60 p-3 bg-white dark:bg-zinc-900">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-[#1a3a2a] dark:text-green-400">{day.label}</p>
-                          <span className="text-xs text-muted-foreground">{new Date(`${addDays(weekStart, index)}T00:00:00`).toLocaleDateString("pt-BR")}</span>
-                        </div>
-                        <div>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full justify-between text-left font-normal text-xs h-9 overflow-hidden text-ellipsis bg-white dark:bg-zinc-900"
-                              >
-                                <span className="truncate">
-                                  {selectedIds.length > 0
-                                    ? `${selectedIds.length} selecionado(s): ${selectedNames}`
-                                    : "Selecionar alunos..."}
-                                </span>
-                                <span className="text-muted-foreground ml-2 text-[10px]">▼</span>
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto bg-white dark:bg-zinc-900 border border-border" align="start">
-                              <div className="space-y-2">
-                                <p className="text-xs font-bold text-foreground px-2 py-1 border-b">
-                                  Escalar Alunos (Faxina)
-                                </p>
-                                {students.map((student: any) => {
-                                  const studentIdStr = String(student.id);
-                                  const isChecked = selectedIds.includes(studentIdStr);
-                                  return (
-                                    <div
-                                      key={student.id}
-                                      className="flex items-center space-x-2 rounded px-2 py-1.5 hover:bg-muted/80 cursor-pointer"
-                                      onClick={() => toggleCleaningStudent(day.value, studentIdStr)}
-                                    >
-                                      <Checkbox
-                                        checked={isChecked}
-                                        onCheckedChange={() => {}}
-                                        id={`cleaning-${day.value}-${student.id}`}
-                                        className="border-[#c4a84b] data-[state=checked]:bg-[#c4a84b] data-[state=checked]:text-[#1a1a1a]"
-                                      />
-                                      <label
-                                        htmlFor={`cleaning-${day.value}-${student.id}`}
-                                        className="text-xs font-medium leading-none cursor-pointer flex-1"
-                                      >
-                                        {student.numerica} - {student.nomeGuerra}
-                                      </label>
-                                    </div>
-                                  );
-                                })}
-                                {students.length === 0 && (
-                                  <p className="text-xs text-muted-foreground p-2">Nenhum aluno neste pelotão.</p>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button variant="outline" className="gap-2" onClick={() => handleSaveWeek(false)} disabled={saveWeeklyScale.isPending}>
-                    <Save className="h-4 w-4" />
-                    Salvar rascunho
-                  </Button>
-                  <Button className="gap-2 bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b39740]" onClick={() => handleSaveWeek(true)} disabled={saveWeeklyScale.isPending}>
-                    <Check className="h-4 w-4" />
-                    Publicar quadro
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {access?.isMaster && (
-            <Card className="border-border/50">
-              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-[#c4a84b]" />
-                  <h2 className="text-lg font-bold text-foreground">Configurar Xerifes</h2>
-                </div>
-                <div className="grid gap-3 md:grid-cols-[1fr_160px_150px_150px_auto] md:items-end">
-                  <div>
-                    <Label>Usuário</Label>
-                    <Select value={assignmentForm.userId} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, userId: value }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o usuário" /></SelectTrigger>
-                      <SelectContent>
-                        {(users ?? []).filter((user: any) => user.role !== "master").map((user: any) => (
-                          <SelectItem key={user.id} value={String(user.id)}>{user.name || user.email}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Nível</Label>
-                    <Select value={assignmentForm.level} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, level: value }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="principal">Principal</SelectItem>
-                        <SelectItem value="companhia">Companhia</SelectItem>
-                        <SelectItem value="pelotao">Pelotão</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Companhia</Label>
-                    <Select value={assignmentForm.companhia} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, companhia: value }))} disabled={assignmentForm.level === "principal"}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5].map((item) => <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Pelotão</Label>
-                    <Select value={assignmentForm.peloton} onValueChange={(value) => setAssignmentForm((form) => ({ ...form, peloton: value }))} disabled={assignmentForm.level !== "pelotao"}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[1, 2].map((item) => <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button className="gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAssignment} disabled={saveAssignment.isPending}>
-                    <Shield className="h-4 w-4" />
-                    Salvar
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {(assignments ?? []).map((assignment: any) => (
-                    <div key={assignment.id} className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900">
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{assignment.userName || assignment.userEmail}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {assignment.level === "principal" && "Xerife Principal"}
-                          {assignment.level === "companhia" && `${assignment.companhia}ª Companhia`}
-                          {assignment.level === "pelotao" && `${assignment.companhia}ª Companhia / ${assignment.peloton}º Pelotão`}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="ghost" className="gap-1 text-destructive" onClick={() => deleteAssignment.mutate({ id: assignment.id })}>
-                        <Trash2 className="h-4 w-4" />
-                        Remover
-                      </Button>
-                    </div>
-                  ))}
-                  {!assignments?.length && (
-                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                      Nenhum xerife específico configurado. O master continua com acesso total.
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Dialog open={rotationDialogOpen} onOpenChange={setRotationDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Gerar Escala Rotativa de 10 Dias</DialogTitle>
-                <DialogDescription>
-                  Esta ação calculará automaticamente as datas de serviço para os próximos 10 dias úteis (segunda a sexta), iniciando a partir da data informada, sequenciando os 10 pelotões da 1ª à 5ª Companhia.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="rotation-date">Data de Início do Serviço</Label>
-                  <Input
-                    id="rotation-date"
-                    type="date"
-                    value={rotationStartDate}
-                    onChange={(e) => setRotationStartDate(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    O pelotão atual ({selectedCompanhia}ª Cia / {selectedPeloton}º Pel) será escalado para esta data. Os outros pelotões serão escalados nos dias úteis subsequentes.
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setRotationDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
-                  onClick={handleGenerateRotation}
-                  disabled={generateRotation.isPending}
-                >
-                  {generateRotation.isPending ? "Gerando..." : "Confirmar e Gerar"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        {/* SUB-TAB 4: ADITAMENTOS */}
-        <TabsContent value="aditamentos" className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-            {/* Cadastrar Aditamento */}
-            <Card className="border-border/50">
-              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-[#c4a84b]" />
-                  <h2 className="text-lg font-bold text-foreground">Novo Aditamento</h2>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <Label>Data</Label>
-                    <Input type="date" value={aditData} onChange={(e) => setAditData(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Título</Label>
-                    <Input
-                      value={aditTitulo}
-                      onChange={(e) => setAditTitulo(e.target.value)}
-                      placeholder="Ex: Aditamento nº 025/2026"
-                    />
-                  </div>
-                  <div>
-                    <Label>Conteúdo / Resumo</Label>
-                    <textarea
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      value={aditConteudo}
-                      onChange={(e) => setAditConteudo(e.target.value)}
-                      placeholder="Ex: Instrução de tiro no estande externo..."
-                    />
-                  </div>
-                  <div>
-                    <Label>Link do PDF</Label>
-                    <Input
-                      value={aditPdfUrl}
-                      onChange={(e) => setAditPdfUrl(e.target.value)}
-                      placeholder="Ex: https://link-do-pdf-aditamento.pdf"
-                    />
-                  </div>
-                </div>
-                <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAditamento} disabled={saveAditamento.isPending}>
-                  <Save className="h-4 w-4" />
-                  Publicar Aditamento
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Listar Aditamentos */}
-            <Card className="border-border/50">
-              <CardContent className="space-y-4 p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-[#c4a84b]" />
-                  <h2 className="text-lg font-bold text-foreground">Banco de Aditamentos ({selectedCompanhia}ª Cia / {selectedPeloton}º Pel)</h2>
-                </div>
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {aditamentosQuery.data?.map((adit: any) => (
-                    <div key={adit.id} className="flex flex-col gap-2 rounded-lg border p-4 bg-white dark:bg-zinc-900">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{adit.titulo}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Data: {new Date(`${adit.data}T00:00:00`).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="gap-1 text-destructive"
-                          onClick={() => deleteAditamento.mutate({ id: adit.id })}
-                          disabled={deleteAditamento.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Excluir
-                        </Button>
-                      </div>
-                      {adit.conteudo && (
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                          {adit.conteudo}
-                        </p>
-                      )}
-                      {adit.pdfUrl && (
-                        <a
-                          href={adit.pdfUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-[#c4a84b] hover:underline flex items-center gap-1 mt-1 font-semibold"
-                        >
-                          Visualizar PDF original
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                  {(!aditamentosQuery.data || aditamentosQuery.data.length === 0) && (
-                    <p className="text-sm text-muted-foreground p-4 text-center">
-                      Nenhum aditamento publicado para este pelotão.
+                    <p className="text-sm font-bold text-foreground">{assignment.userName || assignment.userEmail}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {assignment.level === "principal" && "Xerife Principal"}
+                      {assignment.level === "companhia" && `${assignment.companhia}ª Companhia`}
+                      {assignment.level === "pelotao" && `${assignment.companhia}ª Companhia / ${assignment.peloton}º Pelotão`}
                     </p>
-                  )}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="gap-1 text-destructive hover:bg-destructive/10 self-end sm:self-center" 
+                    onClick={() => deleteAssignment.mutate({ id: assignment.id })}
+                    disabled={deleteAssignment.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Remover
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+              ))}
+              {!assignments?.length && (
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Nenhum xerife ou administrador de pelotão configurado.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

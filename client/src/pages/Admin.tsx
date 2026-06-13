@@ -231,10 +231,12 @@ export default function Admin() {
                   <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
                   <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
-                  <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                 </>
               )}
-              <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Efetivo</TabsTrigger>
+              {(isAdminOrMaster || isXerife) && (
+                <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
+              )}
+              <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Sala de Aula</TabsTrigger>
               {isAdminOrMaster && (
                 <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               )}
@@ -518,9 +520,11 @@ export default function Admin() {
             </TabsContent>
 
             {/* GRADES TAB */}
-            <TabsContent value="grades">
-              <GradeAdminTab />
-            </TabsContent>
+            {(isAdminOrMaster || isXerife) && (
+              <TabsContent value="grades">
+                <GradeAdminTab />
+              </TabsContent>
+            )}
 
             {/* SERVICE SCALE TAB */}
             <TabsContent value="service_scale">

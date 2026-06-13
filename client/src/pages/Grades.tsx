@@ -173,7 +173,7 @@ export default function Grades() {
     try {
       setIsLoading(true);
       const [disciplineList, gradeResult, generalRows, companyRows, platoonRows] = await Promise.all([
-        utils.grades.availableDisciplines.fetch(),
+        utils.grades.availableDisciplines.fetch({ companhia, peloton }),
         utils.grades.getMyGrades.fetch({ studentId: id, sessionToken }),
         utils.grades.ranking.fetch({ studentId: id, sessionToken }),
         companhia ? utils.grades.ranking.fetch({ studentId: id, sessionToken, companhia }) : Promise.resolve([]),
@@ -464,15 +464,17 @@ export default function Grades() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h3 className={`text-lg font-bold ${titleColor}`}>{entry.disciplineName}</h3>
-                          {disciplineInfo?.status === "em_andamento" && (
-                            <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-[10px]">Em Andamento</Badge>
-                          )}
-                          {disciplineInfo?.status === "finalizado" && (
-                            <Badge variant="secondary" className="text-[10px]">Finalizado</Badge>
-                          )}
-                          {(!disciplineInfo?.status || disciplineInfo?.status === "em_breve") && (
-                            <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-[10px]">Em Breve</Badge>
-                          )}
+                          {(() => {
+                            const hasGrade = entry.grade !== null && entry.grade !== undefined;
+                            const status = hasGrade ? "finalizado" : (disciplineInfo?.status || "em_breve");
+                            if (status === "em_andamento") {
+                              return <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-[10px]">Em Andamento</Badge>;
+                            } else if (status === "finalizado") {
+                              return <Badge variant="secondary" className="text-[10px]">Finalizado</Badge>;
+                            } else {
+                              return <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-[10px]">Em Breve</Badge>;
+                            }
+                          })()}
                         </div>
 
                         {entry.professorName && (

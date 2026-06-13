@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,13 +9,37 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Save, KeyRound, Pencil, Youtube } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function GradeAdminTab() {
   const utils = trpc.useUtils();
-  const { data: disciplines } = trpc.grades.availableDisciplines.useQuery();
+  const [companhia, setCompanhia] = useState("1");
+  const [peloton, setPeloton] = useState("1");
+
+  const { data: scaleAccess } = trpc.serviceScale.myAccess.useQuery();
+  const { data: disciplines } = trpc.grades.availableDisciplines.useQuery({
+    companhia: Number(companhia),
+    peloton: Number(peloton),
+  });
   const { data: students } = trpc.gradeAdmin.students.useQuery();
   const { data: allGrades } = trpc.gradeAdmin.allGrades.useQuery();
-  const { data: ranking } = trpc.gradeAdmin.ranking.useQuery({});
+  const { data: ranking } = trpc.gradeAdmin.ranking.useQuery({
+    companhia: Number(companhia),
+    peloton: Number(peloton),
+  });
+
+  const isLocked = Boolean(
+    scaleAccess?.assignment &&
+    scaleAccess.assignment.level !== "principal" &&
+    !scaleAccess.isMaster
+  );
+
+  useEffect(() => {
+    if (scaleAccess?.assignment) {
+      if (scaleAccess.assignment.companhia) setCompanhia(String(scaleAccess.assignment.companhia));
+      if (scaleAccess.assignment.peloton) setPeloton(String(scaleAccess.assignment.peloton));
+    }
+  }, [scaleAccess]);
   const [disciplineForm, setDisciplineForm] = useState({
     name: "",
     description: "",
@@ -144,6 +168,40 @@ export function GradeAdminTab() {
 
   return (
     <div className="space-y-6">
+      {/* Selector Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-lg border border-border/50 shadow-sm">
+        <div>
+          <h2 className="text-sm font-bold text-foreground">Pelotão de Referência</h2>
+          <p className="text-xs text-muted-foreground">Configurando cronograma de aulas para o pelotão selecionado.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={companhia} onValueChange={setCompanhia} disabled={isLocked}>
+            <SelectTrigger className="w-[140px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5].map((item) => (
+                <SelectItem key={item} value={String(item)}>
+                  {item}ª Companhia
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={peloton} onValueChange={setPeloton} disabled={isLocked}>
+            <SelectTrigger className="w-[120px] bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2].map((item) => (
+                <SelectItem key={item} value={String(item)}>
+                  {item}º Pelotão
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-border/50">
           <CardContent className="p-5">
@@ -431,6 +489,8 @@ export function GradeAdminTab() {
                 studyMaterialUrl: disciplineForm.studyMaterialUrl || null,
                 studyMaterialName: disciplineForm.studyMaterialName || null,
                 gaivotasLinks: gaivotasLinks.length > 0 ? JSON.stringify(gaivotasLinks) : null,
+                companhia: Number(companhia),
+                peloton: Number(peloton),
               };
               if (editingDiscipline) {
                 updateDiscipline.mutate({

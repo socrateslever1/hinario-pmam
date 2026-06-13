@@ -129,12 +129,115 @@ function mapStudentGradeEntry(row: any): StudentGradeEntry | null {
 
 // ===== NEW STUDENT GRADE SYSTEM =====
 
-export async function getActiveDisciplineCatalog(): Promise<DisciplineCatalogItem[]> {
-  const rows = await query(
-    "SELECT * FROM pmam_disciplines WHERE is_active = true ORDER BY name ASC"
-  );
-  return rows.map(mapDisciplineCatalogItem).filter((d): d is DisciplineCatalogItem => d !== null);
+let platoonSchemaPromise: Promise<void> | null = null;
+
+export async function ensurePlatoonDisciplineTable() {
+  if (!platoonSchemaPromise) {
+    platoonSchemaPromise = (async () => {
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_platoon_disciplines (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          discipline_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          start_date DATE NULL,
+          exam_date DATE NULL,
+          status VARCHAR(50) DEFAULT 'em_breve',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_platoon_disciplines_scope (discipline_id, companhia, peloton),
+          FOREIGN KEY (discipline_id) REFERENCES pmam_disciplines(id) ON DELETE CASCADE
+        )
+      `);
+    })().catch((error) => {
+      platoonSchemaPromise = null;
+      throw error;
+    });
+  }
+  await platoonSchemaPromise;
 }
+
+export async function getActiveDisciplineCatalog(companhia?: number, peloton?: number): Promise<DisciplineCatalogItem[]> {
+  await ensurePlatoonDisciplineTable();
+  if (companhia !== undefined && peloton !== undefined) {
+    const rows = await query(
+      `SELECT 
+        d.id,
+        d.name,
+        d.description,
+        d.created_by,
+        d.is_active,
+        pd.start_date,
+        pd.exam_date,
+        pd.status,
+        d.study_material_url,
+        d.study_material_name,
+        d.gaivotas_links,
+        d.created_at,
+        d.updated_at,
+        d.start_date as global_start_date,
+        d.exam_date as global_exam_date,
+        d.status as global_status
+      FROM pmam_disciplines d
+      LEFT JOIN pmam_platoon_disciplines pd ON pd.discipline_id = d.id 
+        AND pd.companhia = ? 
+        AND pd.peloton = ?
+      WHERE d.is_active = true 
+      ORDER BY d.name ASC`,
+      [companhia, peloton]
+    );
+    return rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description || undefined,
+      createdBy: row.created_by,
+      isActive: Boolean(row.is_active),
+      startDate: row.start_date !== null ? row.start_date : row.global_start_date,
+      examDate: row.exam_date !== null ? row.exam_date : row.global_exam_date,
+      status: (row.status !== null && row.status !== undefined) ? row.status : (row.global_status || "em_breve"),
+      studyMaterialUrl: row.study_material_url || undefined,
+      studyMaterialName: row.study_material_name || undefined,
+      gaivotasLinks: row.gaivotas_links || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  } else {
+    const rows = await query(
+      "SELECT * FROM pmam_disciplines WHERE is_active = true ORDER BY name ASC"
+    );
+    return rows.map(mapDisciplineCatalogItem).filter((d): d is DisciplineCatalogItem => d !== null);
+  }
+}
+
+export async function upsertPlatoonDiscipline(
+  disciplineId: number,
+  companhia: number,
+  peloton: number,
+  startDate?: string | null,
+  examDate?: string | null,
+  status?: string
+): Promise<void> {
+  await ensurePlatoonDisciplineTable();
+  await query(
+    `INSERT INTO pmam_platoon_disciplines 
+      (discipline_id, companhia, peloton, start_date, exam_date, status) 
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE 
+      start_date = VALUES(start_date),
+      exam_date = VALUES(exam_date),
+      status = VALUES(status),
+      updated_at = CURRENT_TIMESTAMP`,
+    [
+      disciplineId,
+      companhia,
+      peloton,
+      startDate || null,
+      examDate || null,
+      status || 'em_breve'
+    ]
+  );
+}
+
 
 export async function createCatalogDiscipline(
   name: string,

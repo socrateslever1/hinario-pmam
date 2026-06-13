@@ -56,6 +56,7 @@ function Router() {
       <Route path="/perfil-aluno" component={StudentProfilePage} />
       <Route path="/quadro-de-servico" component={ServiceBoard} />
       <Route path="/sala-de-aula" component={ClassroomMap} />
+      <Route path="/sala-de-aula/:subview" component={ClassroomMap} />
       <Route path="/documentos" component={Documents} />
       <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/404" component={NotFound} />

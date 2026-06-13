@@ -346,6 +346,7 @@ export async function updateStudentProfile(
       updates.push("email = ?");
       params.push(data.email);
     }
+    let syncedPasswordHash: string | undefined;
     if (data.fotoUrl !== undefined) {
       updates.push("foto_url = ?");
       params.push(data.fotoUrl);
@@ -354,6 +355,7 @@ export async function updateStudentProfile(
       const hashedPassword = await bcrypt.hash(data.senha, 10);
       updates.push("senha = ?");
       params.push(hashedPassword);
+      syncedPasswordHash = hashedPassword;
     }
 
     if (updates.length === 0) return;
@@ -368,6 +370,33 @@ export async function updateStudentProfile(
     `;
 
     await connection.execute(query, params);
+
+    // Sync to pmam_users if they have a mirrored account
+    const userUpdates: string[] = [];
+    const userParams: any[] = [];
+    if (data.nomeGuerra !== undefined) {
+      userUpdates.push("name = ?");
+      userParams.push(data.nomeGuerra);
+    }
+    if (data.fotoUrl !== undefined) {
+      userUpdates.push("foto_url = ?");
+      userParams.push(data.fotoUrl);
+    }
+    if (syncedPasswordHash !== undefined) {
+      userUpdates.push("password = ?");
+      userParams.push(syncedPasswordHash);
+    }
+
+    if (userUpdates.length > 0) {
+      userUpdates.push("updated_at = CURRENT_TIMESTAMP");
+      userParams.push(id);
+      const userSyncQuery = `
+        UPDATE pmam_users
+        SET ${userUpdates.join(", ")}
+        WHERE student_id = ?
+      `;
+      await connection.execute(userSyncQuery, userParams);
+    }
   } finally {
     connection.release();
   }

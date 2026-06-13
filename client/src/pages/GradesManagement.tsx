@@ -121,10 +121,10 @@ export default function GradesManagement() {
 
     setStudentId(session.id);
     setStudentName(session.nomeGuerra);
-    void loadPageData(session.id, session.sessionToken);
+    void loadPageData(session.id, session.companhia, session.peloton, session.sessionToken);
   }, [setLocation]);
 
-  const loadPageData = async (id: number, sessionToken?: string) => {
+  const loadPageData = async (id: number, companhia?: number, peloton?: number, sessionToken?: string) => {
     if (!sessionToken) {
       setLocation('/entrar');
       return;
@@ -133,7 +133,7 @@ export default function GradesManagement() {
     try {
       setIsLoading(true);
       const [disciplineList, gradeResult] = await Promise.all([
-        utils.grades.availableDisciplines.fetch(),
+        utils.grades.availableDisciplines.fetch({ companhia, peloton }),
         utils.grades.getMyGrades.fetch({ studentId: id, sessionToken }),
       ]);
       setDisciplines(disciplineList);
@@ -255,7 +255,7 @@ export default function GradesManagement() {
 
       setEditingId(null);
       setEditingDisciplineId(null);
-      await loadPageData(studentId, session.sessionToken);
+      await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar nota');
     }
@@ -273,7 +273,7 @@ export default function GradesManagement() {
     try {
       await deleteGradeMutation.mutateAsync({ id, studentId, sessionToken: session.sessionToken });
       toast.success('Nota deletada');
-      await loadPageData(studentId, session.sessionToken);
+      await loadPageData(studentId, session.companhia, session.peloton, session.sessionToken);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao deletar nota');
     }

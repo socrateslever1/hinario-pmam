@@ -127,10 +127,14 @@ export const appRouter = router({
       return { success: true } as const;
     }),
     loginEmail: publicProcedure.input(z.object({
-      email: z.string().email(),
+      email: z.string(),
       password: z.string().min(1),
     })).mutation(async ({ input, ctx }) => {
-      const normalizedEmail = input.email.trim().toLowerCase();
+      let emailOrNumeric = input.email.trim();
+      let normalizedEmail = emailOrNumeric.toLowerCase();
+      if (/^\d{4}$/.test(emailOrNumeric)) {
+        normalizedEmail = `${emailOrNumeric}@pmam.com`;
+      }
       const masterEmails: string[] = [];
       let user = await db.getUserByEmail(normalizedEmail);
       
@@ -788,8 +792,13 @@ export const appRouter = router({
     }),
   }),
   grades: router({
-    availableDisciplines: publicProcedure.query(async () => {
-      return gradeDb.getActiveDisciplineCatalog();
+    availableDisciplines: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ input }) => {
+      return gradeDb.getActiveDisciplineCatalog(input?.companhia, input?.peloton);
     }),
 
     ranking: publicProcedure.input(
@@ -961,7 +970,7 @@ export const appRouter = router({
   }),
 
   gradeAdmin: router({
-    createDiscipline: adminProcedure.input(
+    createDiscipline: scaleManagerProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
         description: z.string().trim().max(2000).optional(),
@@ -971,9 +980,15 @@ export const appRouter = router({
         studyMaterialUrl: z.string().trim().nullable().optional(),
         studyMaterialName: z.string().trim().nullable().optional(),
         gaivotasLinks: z.string().trim().nullable().optional(),
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
       })
     ).mutation(async ({ input, ctx }) => {
-      return gradeDb.createCatalogDiscipline(
+      if (input.companhia !== undefined && input.peloton !== undefined) {
+        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      }
+
+      const disc = await gradeDb.createCatalogDiscipline(
         input.name,
         input.description,
         ctx.user.id,
@@ -984,9 +999,21 @@ export const appRouter = router({
         input.studyMaterialName,
         input.gaivotasLinks
       );
+
+      if (input.companhia !== undefined && input.peloton !== undefined) {
+        await gradeDb.upsertPlatoonDiscipline(
+          disc.id,
+          input.companhia,
+          input.peloton,
+          input.startDate,
+          input.examDate,
+          input.status
+        );
+      }
+      return disc;
     }),
 
-    updateDiscipline: adminProcedure.input(
+    updateDiscipline: scaleManagerProcedure.input(
       z.object({
         id: z.number(),
         name: z.string().trim().min(2).max(255),
@@ -997,8 +1024,14 @@ export const appRouter = router({
         studyMaterialUrl: z.string().trim().nullable().optional(),
         studyMaterialName: z.string().trim().nullable().optional(),
         gaivotasLinks: z.string().trim().nullable().optional(),
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
       })
-    ).mutation(async ({ input }) => {
+    ).mutation(async ({ input, ctx }) => {
+      if (input.companhia !== undefined && input.peloton !== undefined) {
+        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      }
+
       await gradeDb.updateCatalogDiscipline(
         input.id,
         input.name,
@@ -1010,6 +1043,17 @@ export const appRouter = router({
         input.studyMaterialName,
         input.gaivotasLinks
       );
+
+      if (input.companhia !== undefined && input.peloton !== undefined) {
+        await gradeDb.upsertPlatoonDiscipline(
+          input.id,
+          input.companhia,
+          input.peloton,
+          input.startDate,
+          input.examDate,
+          input.status
+        );
+      }
       return { success: true };
     }),
 
@@ -1080,21 +1124,40 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    students: adminProcedure.query(async () => {
-      return studentDb.getAllStudents();
+    students: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const all = await studentDb.getAllStudents();
+      if (ctx.user.role === "admin" || ctx.user.role === "master" || !scope.companhia) {
+        return all;
+      }
+      return all.filter(s => s.companhia === scope.companhia && (!scope.peloton || s.peloton === scope.peloton));
     }),
 
-    allGrades: adminProcedure.query(async () => {
-      return gradeDb.getAllStudentGradeEntries();
+    allGrades: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const all = await gradeDb.getAllStudentGradeEntries();
+      if (ctx.user.role === "admin" || ctx.user.role === "master" || !scope.companhia) {
+        return all;
+      }
+      return all.filter(g => g.companhia === scope.companhia && (!scope.peloton || g.peloton === scope.peloton));
     }),
 
-    ranking: adminProcedure.input(
+    ranking: scaleManagerProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
         peloton: z.number().int().min(1).max(2).optional(),
       }).optional()
-    ).query(async ({ input }) => {
-      return gradeDb.getGradeRanking(input);
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const companhia = input?.companhia ?? scope.companhia;
+      const peloton = input?.peloton ?? scope.peloton;
+      if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      return gradeDb.getGradeRanking({ companhia, peloton });
     }),
   }),
 
@@ -1181,6 +1244,21 @@ export const appRouter = router({
         peloton: input.peloton,
       });
       return { students };
+    }),
+
+    getPlatoonPublic: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        weekStart: z.string().trim().min(10).max(10),
+      })
+    ).query(async ({ input }) => {
+      const [students, roles, week] = await Promise.all([
+        serviceScaleDb.listStudents({ companhia: input.companhia, peloton: input.peloton }),
+        serviceScaleDb.getPlatoonRoles(input.companhia, input.peloton),
+        serviceScaleDb.getWeeklyScale(input.companhia, input.peloton, input.weekStart),
+      ]);
+      return { students, roles, week };
     }),
 
     getPlatoonCapacity: publicProcedure.input(
@@ -1401,6 +1479,38 @@ export const appRouter = router({
     ).mutation(async ({ input }) => {
       await serviceScaleDb.deleteXerifeAssignment(input.id);
       return { success: true };
+    }),
+
+    promoteStudent: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        role: z.enum(['xerife', 'sub_xerife']),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.promoteStudentToXerife(
+        input.studentId,
+        input.role,
+        input.companhia,
+        input.peloton,
+        ctx.user.id
+      );
+      return { success: true };
+    }),
+
+    getXerifeHistory: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).query(async ({ input }) => {
+      return serviceScaleDb.listXerifeHistory(input.companhia, input.peloton);
+    }),
+
+    getAllActiveXerifes: publicProcedure.query(async () => {
+      return serviceScaleDb.listAllActiveXerifes();
     }),
   }),
 
