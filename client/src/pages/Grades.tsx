@@ -197,7 +197,13 @@ export default function Grades() {
       } catch (e) {
         console.warn("Erro ao salvar cache offline:", e);
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Sessão inválida → redirecionar para login
+      if (err?.data?.code === "UNAUTHORIZED" || err?.message?.includes("Sessão inválida") || err?.message?.includes("expirada")) {
+        clearStudentSession();
+        setLocation("/entrar");
+        return;
+      }
       // Se falhar a conexão (offline), exibimos aviso mas mantemos os dados carregados do cache
       toast.error("Sem conexão com o servidor. Exibindo dados salvos localmente.");
     } finally {

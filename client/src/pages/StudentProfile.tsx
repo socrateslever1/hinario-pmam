@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getStudentSession, saveStudentSession } from "@/lib/studentSession";
+import { getStudentSession, saveStudentSession, clearStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 import {
   emptyStudentProfile,
@@ -32,6 +32,17 @@ export default function StudentProfilePage() {
   );
 
   const updateMutation = trpc.student.updateProfile.useMutation();
+
+  // Redirecionar para login se sessão inválida
+  useEffect(() => {
+    if (profileQuery.error) {
+      const err = profileQuery.error as any;
+      if (err?.data?.code === "UNAUTHORIZED" || err?.message?.includes("Sessão inválida") || err?.message?.includes("expirada")) {
+        clearStudentSession();
+        setLocation("/entrar");
+      }
+    }
+  }, [profileQuery.error]);
 
   useEffect(() => {
     if (!session) {
