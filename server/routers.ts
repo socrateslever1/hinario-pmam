@@ -266,7 +266,7 @@ export const appRouter = router({
     list: publicProcedure.query(async () => {
       return db.getActiveHymns();
     }),
-    listAll: adminProcedure.query(async () => {
+    listAll: masterProcedure.query(async () => {
       return db.getAllHymns();
     }),
     getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
@@ -285,7 +285,7 @@ export const appRouter = router({
     getByCollection: publicProcedure.input(z.object({ collection: z.string() })).query(async ({ input }) => {
       return db.getHymnsByCollection(input.collection);
     }),
-    create: adminProcedure.input(z.object({
+    create: masterProcedure.input(z.object({
       number: z.number(),
       title: z.string(),
       subtitle: z.string().optional(),
@@ -304,7 +304,7 @@ export const appRouter = router({
       await db.createHymn(input);
       return { success: true };
     }),
-    update: adminProcedure.input(z.object({
+    update: masterProcedure.input(z.object({
       id: z.number(),
       number: z.number().optional(),
       title: z.string().optional(),
@@ -326,11 +326,11 @@ export const appRouter = router({
       await db.updateHymn(id, data);
       return { success: true };
     }),
-    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteHymn(input.id);
       return { success: true };
     }),
-    uploadAudio: adminProcedure.input(z.object({
+    uploadAudio: masterProcedure.input(z.object({
       id: z.number(),
       fileData: z.string(),
       fileName: z.string(),
@@ -590,10 +590,10 @@ export const appRouter = router({
   }),
 
   admin: router({
-    stats: adminProcedure.query(async () => {
+    stats: masterProcedure.query(async () => {
       return db.getStats();
     }),
-    uploadAudio: adminProcedure.input(z.object({
+    uploadAudio: masterProcedure.input(z.object({
       hymnId: z.number(),
       fileName: z.string(),
       fileBase64: z.string(),
@@ -621,14 +621,14 @@ export const appRouter = router({
       }
       return results;
     }),
-    update: adminProcedure.input(z.object({
+    update: masterProcedure.input(z.object({
       key: z.string(),
       value: z.string(),
     })).mutation(async ({ input }) => {
       await db.setSetting(input.key, input.value);
       return { success: true };
     }),
-    updateBatch: adminProcedure.input(z.object({
+    updateBatch: masterProcedure.input(z.object({
       settings: z.array(z.object({ key: z.string(), value: z.string() })),
     })).mutation(async ({ input }) => {
       for (const s of input.settings) {
@@ -680,7 +680,7 @@ export const appRouter = router({
     list: publicProcedure.query(async () => {
       return db.getActiveDrill();
     }),
-    listAll: adminProcedure.query(async () => {
+    listAll: masterProcedure.query(async () => {
       return db.getAllDrill();
     }),
     getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
@@ -691,7 +691,7 @@ export const appRouter = router({
     getByCategory: publicProcedure.input(z.object({ category: z.string() })).query(async ({ input }) => {
       return db.getDrillByCategory(input.category);
     }),
-    create: adminProcedure.input(z.object({
+    create: masterProcedure.input(z.object({
       title: z.string(),
       subtitle: z.string().optional(),
       description: z.string().optional(),
@@ -709,7 +709,7 @@ export const appRouter = router({
       await db.createDrill({ ...input, authorId: ctx.user.id });
       return { success: true };
     }),
-    update: adminProcedure.input(z.object({
+    update: masterProcedure.input(z.object({
       id: z.number(),
       title: z.string().optional(),
       subtitle: z.string().optional(),
@@ -730,11 +730,11 @@ export const appRouter = router({
       await db.updateDrill(id, data);
       return { success: true };
     }),
-    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteDrill(input.id);
       return { success: true };
     }),
-    uploadFile: adminProcedure.input(z.object({
+    uploadFile: masterProcedure.input(z.object({
       drillId: z.number(),
       fileName: z.string(),
       fileBase64: z.string(),
@@ -904,7 +904,7 @@ export const appRouter = router({
       await db.createBlogComment(input.postId, input.authorName, input.content);
       return { success: true };
     }),
-    deleteComment: adminProcedure.input(z.object({
+    deleteComment: masterProcedure.input(z.object({
       commentId: z.number(),
     })).mutation(async ({ input }) => {
       await db.deleteBlogComment(input.commentId);
@@ -1122,7 +1122,7 @@ export const appRouter = router({
   }),
 
   gradeAdmin: router({
-    createDiscipline: scaleManagerProcedure.input(
+    createDiscipline: masterProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
         description: z.string().trim().max(2000).optional(),
@@ -1165,7 +1165,7 @@ export const appRouter = router({
       return disc;
     }),
 
-    updateDiscipline: scaleManagerProcedure.input(
+    updateDiscipline: masterProcedure.input(
       z.object({
         id: z.number(),
         name: z.string().trim().min(2).max(255),
@@ -1209,7 +1209,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    deleteDiscipline: adminProcedure.input(
+    deleteDiscipline: masterProcedure.input(
       z.object({
         id: z.number(),
       })
@@ -1219,7 +1219,7 @@ export const appRouter = router({
     }),
 
 
-    createStudent: adminProcedure.input(
+    createStudent: masterProcedure.input(
       z.object({
         numerica: z.string().trim().length(4),
         nomeGuerra: z.string().trim().min(2).max(255),
@@ -1257,7 +1257,7 @@ export const appRouter = router({
       return student;
     }),
 
-    resetStudentPassword: adminProcedure.input(
+    resetStudentPassword: masterProcedure.input(
       z.object({
         studentId: z.number(),
         senha: z.string().min(6),
@@ -1267,7 +1267,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    deleteStudent: adminProcedure.input(
+    deleteStudent: masterProcedure.input(
       z.object({
         studentId: z.number(),
       })
