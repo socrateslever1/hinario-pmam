@@ -1713,6 +1713,124 @@ export const appRouter = router({
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
       return peculioDb.savePeculioReport(input);
     }),
+
+
+  }),
+
+  // ===== CLASSROOM: CARGOS E TESOURARIA =====
+  classroom: router({
+    listCargos: publicProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).query(async ({ input }) => {
+      return serviceScaleDb.listCargos(input.companhia, input.peloton);
+    }),
+
+    createCargo: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        nome: z.string().trim().min(1).max(100),
+        descricao: z.string().trim().max(255).optional(),
+        icone: z.string().trim().max(50).optional(),
+        temTesouraria: z.boolean().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const id = await serviceScaleDb.createCargo({ ...input, createdBy: ctx.user.id });
+      return { id };
+    }),
+
+    updateCargo: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        nome: z.string().trim().min(1).max(100).optional(),
+        descricao: z.string().trim().max(255).optional(),
+        icone: z.string().trim().max(50).optional(),
+        temTesouraria: z.boolean().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.updateCargo(input.id, input);
+      return { success: true };
+    }),
+
+    deleteCargo: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.deleteCargo(input.id);
+      return { success: true };
+    }),
+
+    addCargoMember: scaleManagerProcedure.input(
+      z.object({
+        cargoId: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        studentId: z.number().int(),
+        tituloCargo: z.string().trim().max(100).optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.addCargoMember(input.cargoId, input.studentId, input.tituloCargo);
+      return { success: true };
+    }),
+
+    removeCargoMember: scaleManagerProcedure.input(
+      z.object({
+        cargoId: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        studentId: z.number().int(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.removeCargoMember(input.cargoId, input.studentId);
+      return { success: true };
+    }),
+
+    listTreasuryEntries: publicProcedure.input(
+      z.object({ cargoId: z.number().int() })
+    ).query(async ({ input }) => {
+      return serviceScaleDb.listTreasuryEntries(input.cargoId);
+    }),
+
+    addTreasuryEntry: scaleManagerProcedure.input(
+      z.object({
+        cargoId: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        tipo: z.enum(['entrada', 'saida']),
+        valor: z.number().positive(),
+        descricao: z.string().trim().min(1).max(255),
+        data: z.string().trim().min(10).max(10),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const id = await serviceScaleDb.addTreasuryEntry({ ...input, registradoPor: ctx.user.id });
+      return { id };
+    }),
+
+    deleteTreasuryEntry: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      await serviceScaleDb.deleteTreasuryEntry(input.id);
+      return { success: true };
+    }),
   }),
 
   student: studentRouter,

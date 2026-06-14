@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
+import { ClassroomCargosTab } from "@/components/admin/ClassroomCargosTab";
 import { toast } from "sonner";
 
 const conditionLabels: Record<string, string> = {
@@ -583,6 +584,7 @@ export default function ClassroomMap() {
   // View Navigation links
   const menuOptions = [
     { title: "Frequência (Pecúlio)", desc: "Lançar e auditar faltas ou dispensas", icon: ClipboardList, path: "/sala-de-aula/peculio", adminOnly: true },
+    { title: "Funções e Cargos", desc: "Criar funções, nomear membros e tesouraria", icon: Users, path: "/sala-de-aula/cargos", adminOnly: true },
     { title: "Efetivo do Pelotão", desc: "Ver condições e promover lideranças", icon: Users, path: "/sala-de-aula/efetivo", adminOnly: true },
     { title: "Escalas de Limpeza", desc: "Visualizar e gerenciar faxina semanal", icon: CalendarDays, path: "/sala-de-aula/escala", adminOnly: false },
     { title: "Aditamentos Vigentes", desc: "Acessar informativos e PDFs oficiais", icon: FileText, path: "/sala-de-aula/aditamentos", adminOnly: false },
@@ -976,6 +978,15 @@ export default function ClassroomMap() {
                 <Card className="p-8 text-center max-w-md mx-auto"><CardContent><p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife.</p></CardContent></Card>
               ) : (
                 <PeculioTab companhia={companhia} setCompanhia={setCompanhia} peloton={peloton} setPeloton={setPeloton} />
+              )
+            )}
+
+            {subview === "cargos" && (
+              /* CARGOS / FUNÇÕES SUBVIEW (XERIFE ONLY) */
+              !isAdminOrXerifeAdmin ? (
+                <Card className="p-8 text-center max-w-md mx-auto"><CardContent><p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife.</p></CardContent></Card>
+              ) : (
+                <ClassroomCargosTab companhia={selectedCompanhia} peloton={selectedPeloton} isAdmin={isAdminOrXerifeAdmin} />
               )
             )}
 

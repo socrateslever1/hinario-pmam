@@ -893,3 +893,226 @@ export async function deleteAditamento(id: number): Promise<void> {
   await ensureServiceScaleTables();
   await query("DELETE FROM pmam_aditamentos WHERE id = ?", [id]);
 }
+
+// ===== CARGOS / FUNÇÕES CUSTOMIZADAS =====
+
+let cargosSchemaPromise: Promise<void> | null = null;
+
+async function ensureCargosTable() {
+  if (!cargosSchemaPromise) {
+    cargosSchemaPromise = (async () => {
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_classroom_cargos (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          nome VARCHAR(100) NOT NULL,
+          descricao VARCHAR(255) NULL,
+          icone VARCHAR(50) NULL DEFAULT 'shield',
+          tem_tesouraria BOOLEAN NOT NULL DEFAULT false,
+          created_by INT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_classroom_cargos_scope (companhia, peloton)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_classroom_cargo_members (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          cargo_id INT NOT NULL,
+          student_id INT NOT NULL,
+          titulo_cargo VARCHAR(100) NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_cargo_member (cargo_id, student_id),
+          FOREIGN KEY (cargo_id) REFERENCES pmam_classroom_cargos(id) ON DELETE CASCADE
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_treasury_entries (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          cargo_id INT NOT NULL,
+          tipo ENUM('entrada','saida') NOT NULL,
+          valor DECIMAL(10,2) NOT NULL,
+          descricao VARCHAR(255) NOT NULL,
+          data DATE NOT NULL,
+          registrado_por INT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (cargo_id) REFERENCES pmam_classroom_cargos(id) ON DELETE CASCADE,
+          KEY idx_pmam_treasury_cargo (cargo_id, data)
+        )
+      `);
+    })().catch((err) => { cargosSchemaPromise = null; throw err; });
+  }
+  await cargosSchemaPromise;
+}
+
+export interface ClassroomCargo {
+  id: number;
+  companhia: number;
+  peloton: number;
+  nome: string;
+  descricao?: string;
+  icone: string;
+  temTesouraria: boolean;
+  createdBy?: number;
+  createdAt: Date;
+  members: CargoMember[];
+}
+
+export interface CargoMember {
+  id: number;
+  cargoId: number;
+  studentId: number;
+  tituloCargo?: string;
+  nomeGuerra?: string;
+  numerica?: string;
+}
+
+export interface TreasuryEntry {
+  id: number;
+  cargoId: number;
+  tipo: 'entrada' | 'saida';
+  valor: number;
+  descricao: string;
+  data: string;
+  registradoPor?: number;
+  createdAt: Date;
+}
+
+export async function listCargos(companhia: number, peloton: number): Promise<ClassroomCargo[]> {
+  await ensureCargosTable();
+  const cargos = await query(
+    `SELECT * FROM pmam_classroom_cargos WHERE companhia = ? AND peloton = ? ORDER BY created_at ASC`,
+    [companhia, peloton]
+  );
+  if (!cargos.length) return [];
+
+  const cargoIds = (cargos as any[]).map((c: any) => c.id);
+  const members = await query(
+    `SELECT m.*, s.nome_guerra, s.numerica
+     FROM pmam_classroom_cargo_members m
+     LEFT JOIN pmam_students s ON s.id = m.student_id
+     WHERE m.cargo_id IN (${cargoIds.map(() => '?').join(',')})`,
+    cargoIds
+  );
+
+  return (cargos as any[]).map((c: any) => ({
+    id: c.id,
+    companhia: c.companhia,
+    peloton: c.peloton,
+    nome: c.nome,
+    descricao: c.descricao || undefined,
+    icone: c.icone || 'shield',
+    temTesouraria: Boolean(c.tem_tesouraria),
+    createdBy: c.created_by || undefined,
+    createdAt: c.created_at,
+    members: (members as any[])
+      .filter((m: any) => m.cargo_id === c.id)
+      .map((m: any) => ({
+        id: m.id,
+        cargoId: m.cargo_id,
+        studentId: m.student_id,
+        tituloCargo: m.titulo_cargo || undefined,
+        nomeGuerra: m.nome_guerra || undefined,
+        numerica: m.numerica || undefined,
+      })),
+  }));
+}
+
+export async function createCargo(input: {
+  companhia: number;
+  peloton: number;
+  nome: string;
+  descricao?: string;
+  icone?: string;
+  temTesouraria?: boolean;
+  createdBy?: number;
+}): Promise<number> {
+  await ensureCargosTable();
+  const result = await query(
+    `INSERT INTO pmam_classroom_cargos (companhia, peloton, nome, descricao, icone, tem_tesouraria, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [input.companhia, input.peloton, input.nome, input.descricao || null, input.icone || 'shield', input.temTesouraria ? 1 : 0, input.createdBy || null]
+  );
+  return (result as any).insertId;
+}
+
+export async function updateCargo(id: number, input: {
+  nome?: string;
+  descricao?: string;
+  icone?: string;
+  temTesouraria?: boolean;
+}): Promise<void> {
+  await ensureCargosTable();
+  const sets: string[] = [];
+  const params: any[] = [];
+  if (input.nome !== undefined) { sets.push('nome = ?'); params.push(input.nome); }
+  if (input.descricao !== undefined) { sets.push('descricao = ?'); params.push(input.descricao); }
+  if (input.icone !== undefined) { sets.push('icone = ?'); params.push(input.icone); }
+  if (input.temTesouraria !== undefined) { sets.push('tem_tesouraria = ?'); params.push(input.temTesouraria ? 1 : 0); }
+  if (!sets.length) return;
+  params.push(id);
+  await query(`UPDATE pmam_classroom_cargos SET ${sets.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, params);
+}
+
+export async function deleteCargo(id: number): Promise<void> {
+  await ensureCargosTable();
+  await query('DELETE FROM pmam_classroom_cargos WHERE id = ?', [id]);
+}
+
+export async function addCargoMember(cargoId: number, studentId: number, tituloCargo?: string): Promise<void> {
+  await ensureCargosTable();
+  await query(
+    `INSERT INTO pmam_classroom_cargo_members (cargo_id, student_id, titulo_cargo)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE titulo_cargo = VALUES(titulo_cargo)`,
+    [cargoId, studentId, tituloCargo || null]
+  );
+}
+
+export async function removeCargoMember(cargoId: number, studentId: number): Promise<void> {
+  await ensureCargosTable();
+  await query('DELETE FROM pmam_classroom_cargo_members WHERE cargo_id = ? AND student_id = ?', [cargoId, studentId]);
+}
+
+export async function listTreasuryEntries(cargoId: number): Promise<TreasuryEntry[]> {
+  await ensureCargosTable();
+  const rows = await query(
+    `SELECT * FROM pmam_treasury_entries WHERE cargo_id = ? ORDER BY data DESC, created_at DESC`,
+    [cargoId]
+  );
+  return (rows as any[]).map((r: any) => ({
+    id: r.id,
+    cargoId: r.cargo_id,
+    tipo: r.tipo as 'entrada' | 'saida',
+    valor: Number(r.valor),
+    descricao: r.descricao,
+    data: toDateOnly(r.data) || '',
+    registradoPor: r.registrado_por || undefined,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function addTreasuryEntry(input: {
+  cargoId: number;
+  tipo: 'entrada' | 'saida';
+  valor: number;
+  descricao: string;
+  data: string;
+  registradoPor?: number;
+}): Promise<number> {
+  await ensureCargosTable();
+  const result = await query(
+    `INSERT INTO pmam_treasury_entries (cargo_id, tipo, valor, descricao, data, registrado_por)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [input.cargoId, input.tipo, input.valor, input.descricao, input.data, input.registradoPor || null]
+  );
+  return (result as any).insertId;
+}
+
+export async function deleteTreasuryEntry(id: number): Promise<void> {
+  await ensureCargosTable();
+  await query('DELETE FROM pmam_treasury_entries WHERE id = ?', [id]);
+}
