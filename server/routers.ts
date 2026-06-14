@@ -266,7 +266,10 @@ export const appRouter = router({
     list: publicProcedure.query(async () => {
       return db.getActiveHymns();
     }),
-    listAll: masterProcedure.query(async () => {
+    listAll: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       return db.getAllHymns();
     }),
     getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
@@ -590,7 +593,10 @@ export const appRouter = router({
   }),
 
   admin: router({
-    stats: masterProcedure.query(async () => {
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       return db.getStats();
     }),
     uploadAudio: masterProcedure.input(z.object({
@@ -621,16 +627,22 @@ export const appRouter = router({
       }
       return results;
     }),
-    update: masterProcedure.input(z.object({
+    update: protectedProcedure.input(z.object({
       key: z.string(),
       value: z.string(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       await db.setSetting(input.key, input.value);
       return { success: true };
     }),
-    updateBatch: masterProcedure.input(z.object({
+    updateBatch: protectedProcedure.input(z.object({
       settings: z.array(z.object({ key: z.string(), value: z.string() })),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       for (const s of input.settings) {
         await db.setSetting(s.key, s.value);
       }
