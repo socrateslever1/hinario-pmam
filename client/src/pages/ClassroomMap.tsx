@@ -744,13 +744,10 @@ export default function ClassroomMap() {
               <CardDescription className="text-center">Você precisa fazer login para acessar a Sala de Aula</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center">Faça login como aluno ou xerife para continuar.</p>
+              <p className="text-sm text-muted-foreground text-center">Faça login como aluno para continuar.</p>
               <div className="flex flex-col gap-2">
                 <Link href="/entrar">
                   <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90">Entrar como Aluno</Button>
-                </Link>
-                <Link href="/xerife">
-                  <Button variant="outline" className="w-full">Entrar como Xerife</Button>
                 </Link>
               </div>
             </CardContent>
@@ -880,9 +877,10 @@ export default function ClassroomMap() {
                       </div>
                     )}
 
-                    {/* Seating map grid (exactly 5 columns, scrollable) */}
-                    <div className="overflow-x-auto w-full pb-4">
-                      <div className="min-w-[750px] grid grid-cols-5 gap-4">
+                    {/* Seating map grid (exactly 5 columns, scrollable in separate container) */}
+                    <div className="border border-border/50 rounded-lg bg-muted/5 p-4 mb-6">
+                      <div className="overflow-x-auto w-full pb-2">
+                        <div className="min-w-[750px] grid grid-cols-5 gap-4">
                         {/* Fileira 1 (01 a 11) */}
                         <div className="flex flex-col gap-3">
                           <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
@@ -923,6 +921,7 @@ export default function ClassroomMap() {
                           {renderSpecialSeatCard("xerife")}
                           {renderSpecialSeatCard("sub_xerife")}
                           {col5Regular.map((seatNumber) => renderSeatCard(seatNumber))}
+                        </div>
                         </div>
                       </div>
                     </div>
