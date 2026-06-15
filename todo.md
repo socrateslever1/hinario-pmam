@@ -255,3 +255,19 @@
 - [x] Implementar webhook para sincronização automática TiDB ↔ MySQL
 - [x] Testar sincronização bidirecional completa
 - [x] Validar integridade de dados após sincronização
+
+## Sistema de Notificações Personalizadas
+
+- [ ] Criar contexto NotificationContext para gerenciar notificações em tempo real
+- [ ] Criar hook useNotifications para enviar/receber notificações
+- [ ] Implementar NotificationBell.tsx com ícone de sino no navbar
+- [ ] Dropdown com lista de notificações (últimas 10)
+- [ ] Roteamento de notificações: todos, pelotão específico, xerifes, tesouraria
+- [ ] Painel de envio de notificações para admin (ClassroomMap ou AdminPanel)
+- [ ] Notificação ao publicar escala: "Escala de [data] publicada"
+- [ ] Notificação ao criar cargo: "Novo cargo criado: [nome]"
+- [ ] Notificação ao atribuir tesouraria: "Você foi designado tesoureiro de [cargo]"
+- [ ] Notificação ao atualizar tesouraria: "Tesouraria de [cargo] atualizada"
+- [ ] Notificação ao criar aditamento: "Novo aditamento: [título]"
+- [ ] Notificação ao promover xerife: "[Aluno] promovido a Xerife de [pelotão]"
+- [ ] Testes vitest para notificações

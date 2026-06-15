@@ -27,6 +27,7 @@ import {
 } from "@/lib/studentSession";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
+import { NotificationBell } from "@/components/NotificationBell";
 
 
 const LOGO_URL = "/logo/IMG_7728.PNG";
@@ -114,11 +115,7 @@ export default function Navbar() {
                 <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
-            <Link href="/cfap-2026" aria-label="Notificações">
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-                <Bell className="h-4 w-4 text-[#c4a84b]" />
-              </Button>
-            </Link>
+            <NotificationBell />
           </div>
         </div>
       </header>
@@ -170,11 +167,7 @@ export default function Navbar() {
                 <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
-            <Link href="/cfap-2026" aria-label="Notificações">
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
-                <Bell className="h-4 w-4 text-[#c4a84b]" />
-              </Button>
-            </Link>
+            <NotificationBell />
           </div>
 
           {/* Desktop-only Auth controls */}

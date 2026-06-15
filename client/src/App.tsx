@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import { usePWA } from "./hooks/usePWA";
@@ -112,15 +113,17 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable={true}>
-        <TooltipProvider>
-          <Toaster />
-          <ScrollToTop />
-          <div>
-            <Router />
-          </div>
-          <BottomNavigation />
-          <OfflineIndicator />
-        </TooltipProvider>
+        <NotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <ScrollToTop />
+            <div>
+              <Router />
+            </div>
+            <BottomNavigation />
+            <OfflineIndicator />
+          </TooltipProvider>
+        </NotificationProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
