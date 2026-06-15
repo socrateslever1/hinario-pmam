@@ -235,21 +235,7 @@ const institutionalGuidelines = [
   {
     icon: Shield,
     title: institutionalCopy.oathTitle,
-    text: `Ao ingressar!
-na Polícia Militar do Amazonas!
-Prometo!
-regular a minha conduta!
-pelos preceitos da moral!
-Cumprir!
-rigorosamente as ordens!
-das autoridades!
-a que estiver subordinado!
-E dedicar-me!
-inteiramente ao serviço policial militar!
-à manutenção da ordem pública!
-e à segurança da comunidade!
-Mesmo!
-com o risco da própria vida!`,
+    text: `<strong>Ao</strong> ingressar na Polícia Militar do Amazonas, <strong>prometo</strong> regular a minha conduta pelos preceitos da moral, <strong>cumprir</strong> rigorosamente as ordens das autoridades a que estiver subordinado e <strong>dedicar-me</strong> inteiramente ao serviço policial militar, à manutenção da ordem pública e à segurança da comunidade, mesmo com o risco da própria vida.`
   },
 ];
 
@@ -306,9 +292,7 @@ function InstitutionalGuidelines() {
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground md:text-base">{institutionalCopy.oathTitle}</h3>
                   </div>
                 </div>
-                <p className="whitespace-pre-line rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-center text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75]">
-                  &quot;{oath.text}&quot;
-                </p>
+                <p className="rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-justify text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75]" dangerouslySetInnerHTML={{ __html: `&quot;${oath.text.replace(/<strong>/g, '<strong class="font-bold">').replace(/<\/strong>/g, '</strong>')}&quot;` }} />
               </CardContent>
             </Card>
           )}

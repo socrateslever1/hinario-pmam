@@ -258,16 +258,16 @@
 
 ## Sistema de Notificações Personalizadas
 
-- [ ] Criar contexto NotificationContext para gerenciar notificações em tempo real
-- [ ] Criar hook useNotifications para enviar/receber notificações
-- [ ] Implementar NotificationBell.tsx com ícone de sino no navbar
-- [ ] Dropdown com lista de notificações (últimas 10)
-- [ ] Roteamento de notificações: todos, pelotão específico, xerifes, tesouraria
-- [ ] Painel de envio de notificações para admin (ClassroomMap ou AdminPanel)
+- [x] Criar contexto NotificationContext para gerenciar notificações em tempo real
+- [x] Criar hook useNotifications para enviar/receber notificações
+- [x] Implementar NotificationBell.tsx com ícone de sino no navbar
+- [x] Dropdown com lista de notificações (últimas 10)
+- [x] Roteamento de notificações: todos, pelotão específico, xerifes, tesouraria
+- [x] Painel de envio de notificações para admin (NotificationSendPanel.tsx)
 - [ ] Notificação ao publicar escala: "Escala de [data] publicada"
 - [ ] Notificação ao criar cargo: "Novo cargo criado: [nome]"
 - [ ] Notificação ao atribuir tesouraria: "Você foi designado tesoureiro de [cargo]"
 - [ ] Notificação ao atualizar tesouraria: "Tesouraria de [cargo] atualizada"
 - [ ] Notificação ao criar aditamento: "Novo aditamento: [título]"
 - [ ] Notificação ao promover xerife: "[Aluno] promovido a Xerife de [pelotão]"
-- [ ] Testes vitest para notificações
+- [ ] Integrar NotificationSendPanel ao ClassroomMap ou AdminPanel
