@@ -74,9 +74,8 @@ export default function Navbar() {
 
   const handleStudentLogout = () => {
     clearStudentSession();
-    if (isStudentArea(location)) {
-      window.location.href = "/entrar";
-    }
+    // Força atualização da página para limpar cache
+    window.location.href = "/";
   };
 
   return (
