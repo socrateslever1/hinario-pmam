@@ -1212,14 +1212,14 @@ export async function createStudentHighlight(input: {
 
 export async function listStudentHighlights(limit = 6): Promise<any[]> {
   await ensureServiceScaleTables();
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 6));
   return query(
     `SELECT h.*, s.numerica, s.nome_guerra, s.foto_url
      FROM pmam_student_highlights h
      INNER JOIN pmam_students s ON s.id = h.student_id
      WHERE h.active = true
      ORDER BY h.created_at DESC
-     LIMIT ?`,
-    [limit]
+     LIMIT ${safeLimit}`
   );
 }
 
