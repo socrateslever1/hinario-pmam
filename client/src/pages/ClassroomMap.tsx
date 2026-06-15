@@ -732,6 +732,34 @@ export default function ClassroomMap() {
 
   const filteredMenuOptions = menuOptions.filter(opt => !opt.adminOnly || isAdminOrXerifeAdmin);
 
+  // Proteção: Redirecionar para login se não estiver autenticado
+  if (!studentSession && !access?.isGeneral && !isAdminOrXerifeAdmin) {
+    return (
+      <div className="min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#0c0c0e]">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6 pb-24 max-w-6xl">
+          <Card className="max-w-md mx-auto mt-12 border-[#c4a84b]/30 bg-white dark:bg-zinc-900">
+            <CardHeader>
+              <CardTitle className="text-center text-[#1a3a2a] dark:text-[#c4a84b]">Acesso Restrito</CardTitle>
+              <CardDescription className="text-center">Você precisa fazer login para acessar a Sala de Aula</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">Faça login como aluno ou xerife para continuar.</p>
+              <div className="flex flex-col gap-2">
+                <Link href="/entrar">
+                  <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90">Entrar como Aluno</Button>
+                </Link>
+                <Link href="/xerife">
+                  <Button variant="outline" className="w-full">Entrar como Xerife</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#0c0c0e]">
       <Navbar />
