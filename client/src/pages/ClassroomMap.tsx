@@ -829,8 +829,8 @@ export default function ClassroomMap() {
               </Card>
             )}
 
-            {/* Quick Navigation Menu Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {/* Quick Navigation Menu Cards - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               {filteredMenuOptions.map((opt) => {
                 const Icon = opt.icon;
                 return (
@@ -879,6 +879,25 @@ export default function ClassroomMap() {
                         </div>
                       </div>
                     )}
+
+                    {/* Mobile Menu - Inside scrollable container */}
+                    <div className="md:hidden mb-4 overflow-x-auto pb-2">
+                      <div className="flex gap-2 min-w-min">
+                        {filteredMenuOptions.map((opt) => {
+                          const Icon = opt.icon;
+                          return (
+                            <Link href={opt.path} key={opt.path}>
+                              <div className="flex-shrink-0 w-24 rounded-lg border border-border/50 bg-white dark:bg-zinc-900 hover:border-[#c4a84b]/50 p-2 text-center cursor-pointer transition-all">
+                                <div className="flex justify-center mb-1">
+                                  <Icon className="h-4 w-4 text-[#c4a84b]" />
+                                </div>
+                                <p className="font-bold text-[9px] line-clamp-2 text-foreground">{opt.title}</p>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                     {/* Seating map grid (exactly 5 columns, scrollable) */}
                     <div className="overflow-x-auto w-full pb-4">
