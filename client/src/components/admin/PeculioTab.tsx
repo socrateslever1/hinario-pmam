@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, FileText, Printer, Save, Users } from "lucide-react";
+import { CalendarDays, Check, FileText, Lock, Printer, Save, UnlockKeyhole, Users } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,7 @@ export function PeculioTab({
   const [chefeTurma, setChefeTurma] = useState("");
   const [subchefeTurma, setSubchefeTurma] = useState("");
   const [cmtPel, setCmtPel] = useState("");
+  const [releaseReason, setReleaseReason] = useState("");
 
   // Student statuses state
   const [studentStatuses, setStudentStatuses] = useState<Record<number, { status: string; observacao: string }>>({});
@@ -97,6 +98,10 @@ export function PeculioTab({
   );
 
   const students = studentsQuery.data ?? [];
+  const lock = peculioQuery.data?.lock;
+  const isLocked = Boolean(lock?.isLocked);
+  const canRelease = Boolean(lock?.canRelease);
+  const canEdit = lock?.canEdit !== false;
 
   useEffect(() => {
     if (peculioQuery.data) {
@@ -130,8 +135,17 @@ export function PeculioTab({
     },
     onError: (error) => toast.error(error.message),
   });
+  const releasePeculio = trpc.peculio.release.useMutation({
+    onSuccess: async () => {
+      toast.success("PecÃºlio liberado temporariamente.");
+      setReleaseReason("");
+      await peculioQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const handleStatusChange = (studentId: number, status: string) => {
+    if (!canEdit) return;
     setStudentStatuses((current) => ({
       ...current,
       [studentId]: {
@@ -142,6 +156,7 @@ export function PeculioTab({
   };
 
   const handleObservacaoChange = (studentId: number, observacao: string) => {
+    if (!canEdit) return;
     setStudentStatuses((current) => ({
       ...current,
       [studentId]: {
@@ -152,6 +167,10 @@ export function PeculioTab({
   };
 
   const handleSave = () => {
+    if (!canEdit) {
+      toast.error("PecÃºlio fechado. Solicite liberaÃ§Ã£o ao Xerife Geral.");
+      return;
+    }
     const statusesPayload = students.map((student) => {
       const entry = studentStatuses[student.id] || { status: "pronto", observacao: "" };
       return {
@@ -177,6 +196,16 @@ export function PeculioTab({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleRelease = () => {
+    releasePeculio.mutate({
+      companhia: selectedCompanhia,
+      peloton: selectedPeloton,
+      date,
+      reason: releaseReason || null,
+      hours: 12,
+    });
   };
 
   const canChangeCompany = Boolean(access?.scope?.unrestricted);
@@ -230,7 +259,7 @@ export function PeculioTab({
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
               <div className="flex gap-2 items-end">
-                <Button className="flex-1 gap-2 bg-[#1a3a2a] text-white" onClick={handleSave} disabled={savePeculio.isPending}>
+                <Button className="flex-1 gap-2 bg-[#1a3a2a] text-white" onClick={handleSave} disabled={savePeculio.isPending || !canEdit}>
                   <Save className="h-4 w-4" />
                   Salvar Pecúlio
                 </Button>
@@ -243,6 +272,39 @@ export function PeculioTab({
           </div>
         </CardContent>
       </Card>
+
+      {lock && (
+        <Card className={`print:hidden border ${isLocked ? "border-red-500/30 bg-red-500/5" : lock.isReleased ? "border-amber-500/30 bg-amber-500/5" : "border-green-600/20 bg-green-600/5"}`}>
+          <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              {isLocked ? <Lock className="mt-0.5 h-5 w-5 text-red-500" /> : <Check className="mt-0.5 h-5 w-5 text-green-600" />}
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  {isLocked ? "PecÃºlio fechado para ediÃ§Ã£o" : lock.isReleased ? "PecÃºlio liberado temporariamente" : "PecÃºlio aberto para ediÃ§Ã£o"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Fechamento automÃ¡tico: {new Date(lock.lockedAt).toLocaleString("pt-BR")}{lock.unlockedUntil ? ` | Liberado atÃ©: ${new Date(lock.unlockedUntil).toLocaleString("pt-BR")}` : ""}
+                </p>
+                {lock.releaseReason && <p className="mt-1 text-xs text-muted-foreground">Motivo: {lock.releaseReason}</p>}
+              </div>
+            </div>
+            {isLocked && canRelease && (
+              <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[360px] md:flex-row">
+                <Input
+                  placeholder="Motivo da liberaÃ§Ã£o"
+                  value={releaseReason}
+                  onChange={(e) => setReleaseReason(e.target.value)}
+                  className="h-9 text-xs"
+                />
+                <Button size="sm" className="gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e]" onClick={handleRelease} disabled={releasePeculio.isPending}>
+                  <UnlockKeyhole className="h-4 w-4" />
+                  Liberar 12h
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* 2. Frequency table - Web View */}
       <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden hidden md:block">
@@ -285,6 +347,7 @@ export function PeculioTab({
                             <button
                               type="button"
                               onClick={() => handleStatusChange(student.id, st.value)}
+                              disabled={!canEdit}
                               className={`w-9 h-9 rounded-full text-xs font-black transition-all ${
                                 isSelected ? st.color + " scale-110 shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
                               }`}
@@ -299,6 +362,7 @@ export function PeculioTab({
                           placeholder="Observação da alteração..."
                           value={entry.observacao}
                           onChange={(e) => handleObservacaoChange(student.id, e.target.value)}
+                          disabled={!canEdit}
                           className="h-9 text-xs"
                         />
                       </TableCell>
@@ -339,6 +403,7 @@ export function PeculioTab({
                           key={st.value}
                           type="button"
                           onClick={() => handleStatusChange(student.id, st.value)}
+                          disabled={!canEdit}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground"
                           }`}
@@ -355,6 +420,7 @@ export function PeculioTab({
                     placeholder="Observação da alteração..."
                     value={entry.observacao}
                     onChange={(e) => handleObservacaoChange(student.id, e.target.value)}
+                    disabled={!canEdit}
                     className="h-8 text-xs mt-1"
                   />
                 </div>
@@ -376,15 +442,15 @@ export function PeculioTab({
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <Label>Local da Instrução</Label>
-                <Input value={instrucaoLocal} onChange={(e) => setInstrucaoLocal(e.target.value)} placeholder="Ex.: Stand de Tiro" />
+                <Input value={instrucaoLocal} onChange={(e) => setInstrucaoLocal(e.target.value)} placeholder="Ex.: Stand de Tiro" disabled={!canEdit} />
               </div>
               <div>
                 <Label>Disciplina / Instrução</Label>
-                <Input value={instrucaoDisciplina} onChange={(e) => setInstrucaoDisciplina(e.target.value)} placeholder="Ex.: Armamento e Tiro" />
+                <Input value={instrucaoDisciplina} onChange={(e) => setInstrucaoDisciplina(e.target.value)} placeholder="Ex.: Armamento e Tiro" disabled={!canEdit} />
               </div>
               <div className="flex flex-col justify-end pb-2">
                 <div className="flex items-center gap-2">
-                  <Switch id="instrucao-externa" checked={instrucaoExterna} onCheckedChange={setInstrucaoExterna} />
+                  <Switch id="instrucao-externa" checked={instrucaoExterna} onCheckedChange={setInstrucaoExterna} disabled={!canEdit} />
                   <Label htmlFor="instrucao-externa" className="cursor-pointer">Possui Instrução Externa?</Label>
                 </div>
               </div>
@@ -393,11 +459,11 @@ export function PeculioTab({
             <div className="grid gap-3 sm:grid-cols-3 pt-2">
               <div>
                 <Label>Chefe de Turma</Label>
-                <Input value={chefeTurma} onChange={(e) => setChefeTurma(e.target.value)} placeholder="Nome do Chefe de Turma" />
+                <Input value={chefeTurma} onChange={(e) => setChefeTurma(e.target.value)} placeholder="Nome do Chefe de Turma" disabled={!canEdit} />
               </div>
               <div>
                 <Label>Subchefe de Turma</Label>
-                <Input value={subchefeTurma} onChange={(e) => setSubchefeTurma(e.target.value)} placeholder="Nome do Subchefe de Turma" />
+                <Input value={subchefeTurma} onChange={(e) => setSubchefeTurma(e.target.value)} placeholder="Nome do Subchefe de Turma" disabled={!canEdit} />
               </div>
               <div>
                 <Label>CMT de Pelotão</Label>

@@ -45,15 +45,14 @@ export default function Admin() {
   const [drillSearchTerm, setDrillSearchTerm] = useState("");
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
-  const isMaster = isAuthenticated && user?.role === "master";
-
   const { data: scaleAccess, isLoading: scaleAccessLoading } = trpc.serviceScale.myAccess.useQuery(undefined, {
     enabled: isAuthenticated
   });
 
   const isXerife = Boolean(scaleAccess?.assignment);
   const isAuthorized = isAdminOrMaster || isXerife;
-  const canManageGlobalContent = isMaster;
+  const isXerifeGeral = Boolean(isAdminOrMaster || scaleAccess?.isGeneral);
+  const canManageGlobalContent = isXerifeGeral;
   const canManagePlatoonContent = canManageGlobalContent || isXerife;
 
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
@@ -161,7 +160,7 @@ export default function Admin() {
                 <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
                   Área do Xerife
                 </h1>
-                <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Xerife"} {isMaster && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Master</Badge>}</p>
+                <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Xerife"} {isXerifeGeral && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Xerife Geral</Badge>}</p>
               </div>
             </div>
             <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-foreground gap-2 sm:w-auto" onClick={handleLogout}>
@@ -244,7 +243,7 @@ export default function Admin() {
               {canManageGlobalContent && (
                 <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               )}
-              {isMaster && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
+              {canManageGlobalContent && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
             </TabsList>
 
             {/* HYMNS TAB */}
@@ -541,7 +540,7 @@ export default function Admin() {
             </TabsContent>
 
             {/* USERS TAB (Master only) */}
-            {isMaster && (
+            {canManageGlobalContent && (
               <TabsContent value="users">
                 <UsersTab />
               </TabsContent>

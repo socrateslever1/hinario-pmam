@@ -44,12 +44,84 @@ export async function ensurePeculioTables() {
           FOREIGN KEY (report_id) REFERENCES pmam_peculio_reports(id) ON DELETE CASCADE
         )
       `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_peculio_unlocks (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          date DATE NOT NULL,
+          reason VARCHAR(255) NULL,
+          unlocked_until TIMESTAMP NOT NULL,
+          unlocked_by INT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_peculio_unlocks_scope_date (companhia, peloton, date),
+          KEY idx_pmam_peculio_unlocks_until (unlocked_until)
+        )
+      `);
     })().catch((error) => {
       schemaPromise = null;
       throw error;
     });
   }
   await schemaPromise;
+}
+
+export function getPeculioLockedAt(date: string): Date {
+  const close = new Date(`${date}T05:00:00-03:00`);
+  close.setUTCDate(close.getUTCDate() + 1);
+  return close;
+}
+
+export async function getPeculioUnlock(companhia: number, peloton: number, date: string) {
+  await ensurePeculioTables();
+  const rows = await query(`
+    SELECT *
+    FROM pmam_peculio_unlocks
+    WHERE companhia = ? AND peloton = ? AND date = ?
+    LIMIT 1
+  `, [companhia, peloton, date]);
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    companhia: row.companhia,
+    peloton: row.peloton,
+    date: toDateOnly(row.date),
+    reason: row.reason || null,
+    unlockedUntil: row.unlocked_until,
+    unlockedBy: row.unlocked_by || null,
+    createdAt: row.created_at,
+  };
+}
+
+export async function releasePeculio(input: {
+  companhia: number;
+  peloton: number;
+  date: string;
+  reason?: string | null;
+  unlockedUntil: Date;
+  unlockedBy?: number | null;
+}) {
+  await ensurePeculioTables();
+  await query(`
+    INSERT INTO pmam_peculio_unlocks
+      (companhia, peloton, date, reason, unlocked_until, unlocked_by)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      reason = VALUES(reason),
+      unlocked_until = VALUES(unlocked_until),
+      unlocked_by = VALUES(unlocked_by),
+      created_at = CURRENT_TIMESTAMP
+  `, [
+    input.companhia,
+    input.peloton,
+    input.date,
+    input.reason ?? null,
+    input.unlockedUntil,
+    input.unlockedBy ?? null,
+  ]);
 }
 
 export async function getPeculioReport(companhia: number, peloton: number, date: string) {

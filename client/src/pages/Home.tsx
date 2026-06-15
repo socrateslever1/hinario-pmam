@@ -4,6 +4,7 @@ import BlogFeed from "@/components/BlogFeed";
 import { ServiceBoardPreview } from "@/components/ServiceBoardPreview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { Link } from "wouter";
 import {
@@ -24,6 +25,7 @@ import {
   Target,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { getStudentSession } from "@/lib/studentSession";
 
 const BRASAO_URL = "/IMG_7727.webp";
 
@@ -357,6 +359,109 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
   );
 }
 
+function StudentNoticePanel() {
+  const student = getStudentSession();
+  const utils = trpc.useUtils();
+  const noticesQuery = trpc.serviceScale.myNotices.useQuery(
+    { studentId: student?.id ?? 0, sessionToken: student?.sessionToken ?? "" },
+    { enabled: Boolean(student) }
+  );
+  const markRead = trpc.serviceScale.markNoticeRead.useMutation({
+    onSuccess: () => utils.serviceScale.myNotices.invalidate(),
+  });
+
+  if (!student || !noticesQuery.data?.length) return null;
+
+  return (
+    <section className="bg-[#062417] px-4 py-5 text-[#f8f7f0] md:bg-background md:px-0 md:py-10 md:text-foreground">
+      <div className="container">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-xl font-black md:text-2xl" style={{ fontFamily: "Merriweather, serif" }}>
+            <Bell className="h-5 w-5 text-[#f0bd3a]" />
+            Avisos do PelotÃ£o
+          </h2>
+          <Link href="/sala-de-aula" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a] md:text-[#1a3a2a]">
+            Sala
+          </Link>
+        </div>
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+          <div className="flex min-w-min gap-3 md:grid md:grid-cols-3">
+            {noticesQuery.data.map((notice: any) => (
+              <Card key={notice.id} className="w-72 shrink-0 border-white/10 bg-[#0b3323]/80 text-white shadow-lg md:w-auto md:border-border/50 md:bg-white md:text-foreground">
+                <CardContent className="p-4">
+                  <Badge className="mb-3 bg-[#f0bd3a] text-[#062417]">
+                    {notice.priority === "urgent" ? "Urgente" : notice.priority === "important" ? "Importante" : "Aviso"}
+                  </Badge>
+                  <h3 className="line-clamp-2 text-sm font-black">{notice.title}</h3>
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-white/70 md:text-muted-foreground">{notice.message}</p>
+                  <Button
+                    size="sm"
+                    className="mt-3 h-8 w-full bg-[#f0bd3a] text-xs font-black text-[#062417] hover:bg-[#d6b64c]"
+                    disabled={markRead.isPending}
+                    onClick={() => markRead.mutate({ studentId: student.id, sessionToken: student.sessionToken, noticeId: notice.id })}
+                  >
+                    Marcar como lido
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentHighlights() {
+  const { data: highlights } = trpc.serviceScale.studentHighlights.useQuery();
+  if (!highlights?.length) return null;
+
+  return (
+    <section className="bg-[#f5f2e8] px-4 py-6 md:px-0 md:py-12">
+      <div className="container">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#1a3a2a]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1a3a2a]">
+              <Award className="h-3.5 w-3.5 text-[#c4a84b]" />
+              Destaques
+            </div>
+            <h2 className="text-xl font-black text-foreground md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+              Alunos em Destaque
+            </h2>
+          </div>
+        </div>
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+          <div className="flex min-w-min gap-3 md:grid md:grid-cols-3 lg:grid-cols-4">
+            {highlights.map((item: any) => (
+              <Card key={item.id} className="w-64 shrink-0 overflow-hidden border-border/50 bg-white shadow-sm md:w-auto">
+                <CardContent className="p-4">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#c4a84b] bg-[#1a3a2a]/10">
+                      {item.foto_url ? (
+                        <img src={item.foto_url} alt={item.nome_guerra} className="h-full w-full object-cover" />
+                      ) : (
+                        <Medal className="h-6 w-6 text-[#c4a84b]" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-[#1a3a2a]">{item.nome_guerra}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {item.companhia}Âª Cia / {item.peloton}Âº Pel
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-foreground">{item.title}</p>
+                  {item.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
 
@@ -364,6 +469,7 @@ export default function Home() {
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
       <HeroSection />
+      <StudentNoticePanel />
       <div className="md:hidden">
         <BlogFeed />
       </div>
@@ -373,6 +479,7 @@ export default function Home() {
         <BlogFeed />
       </div>
       <ServiceBoardPreview />
+      <StudentHighlights />
       <LatestHymns hymns={hymns as any[] | undefined} />
 
       {/* Institutional Guidelines Section */}

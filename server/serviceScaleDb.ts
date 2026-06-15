@@ -243,6 +243,84 @@ export async function ensureServiceScaleTables() {
         )
       `);
 
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_seat_change_requests (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          requested_desk_number INT NOT NULL,
+          current_desk_number INT NULL,
+          status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+          reason VARCHAR(255) NULL,
+          decided_by INT NULL,
+          decided_at TIMESTAMP NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_seat_requests_scope_status (companhia, peloton, status),
+          KEY idx_pmam_seat_requests_student_status (student_id, status)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_platoon_notices (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          companhia INT NULL,
+          peloton INT NULL,
+          student_id INT NULL,
+          title VARCHAR(160) NOT NULL,
+          message TEXT NOT NULL,
+          priority ENUM('normal','important','urgent') NOT NULL DEFAULT 'normal',
+          created_by INT NULL,
+          archived_at TIMESTAMP NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_notices_scope (companhia, peloton, student_id, archived_at),
+          KEY idx_pmam_notices_created (created_at)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_notice_reads (
+          notice_id INT NOT NULL,
+          student_id INT NOT NULL,
+          read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (notice_id, student_id)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_student_observations (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          type ENUM('positive','negative','neutral') NOT NULL DEFAULT 'neutral',
+          note TEXT NOT NULL,
+          created_by INT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          KEY idx_pmam_student_observations_student (student_id, created_at),
+          KEY idx_pmam_student_observations_scope (companhia, peloton)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_student_highlights (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          title VARCHAR(160) NOT NULL,
+          description TEXT NULL,
+          promoted_by INT NULL,
+          active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_student_highlights_active (active, created_at),
+          KEY idx_pmam_student_highlights_scope (companhia, peloton)
+        )
+      `);
+
       // Check if duty_date column exists in pmam_weekly_service_scales
       const columns = await query("SHOW COLUMNS FROM pmam_weekly_service_scales LIKE 'duty_date'");
       if ((columns as any[]).length === 0) {
@@ -894,6 +972,257 @@ export async function deleteAditamento(id: number): Promise<void> {
   await query("DELETE FROM pmam_aditamentos WHERE id = ?", [id]);
 }
 
+export interface SeatChangeRequest {
+  id: number;
+  studentId: number;
+  numerica?: string;
+  nomeGuerra?: string;
+  companhia: number;
+  peloton: number;
+  requestedDeskNumber: number;
+  currentDeskNumber: number | null;
+  status: "pending" | "approved" | "rejected";
+  reason: string | null;
+  decidedBy: number | null;
+  decidedAt: Date | string | null;
+  createdAt: Date | string;
+}
+
+function mapSeatRequest(row: any): SeatChangeRequest {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    numerica: row.numerica,
+    nomeGuerra: row.nome_guerra,
+    companhia: row.companhia,
+    peloton: row.peloton,
+    requestedDeskNumber: row.requested_desk_number,
+    currentDeskNumber: row.current_desk_number,
+    status: row.status,
+    reason: row.reason,
+    decidedBy: row.decided_by,
+    decidedAt: row.decided_at,
+    createdAt: row.created_at,
+  };
+}
+
+export async function createSeatChangeRequest(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  requestedDeskNumber: number;
+  currentDeskNumber: number | null;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_seat_change_requests
+     SET status = 'rejected', reason = 'Substituida por nova solicitacao', updated_at = CURRENT_TIMESTAMP
+     WHERE student_id = ? AND status = 'pending'`,
+    [input.studentId]
+  );
+  const result = await query(
+    `INSERT INTO pmam_seat_change_requests
+      (student_id, companhia, peloton, requested_desk_number, current_desk_number)
+     VALUES (?, ?, ?, ?, ?)`,
+    [input.studentId, input.companhia, input.peloton, input.requestedDeskNumber, input.currentDeskNumber]
+  );
+  return (result as any).insertId;
+}
+
+export async function listSeatChangeRequests(companhia: number, peloton: number, status: "pending" | "approved" | "rejected" = "pending"): Promise<SeatChangeRequest[]> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT r.*, s.numerica, s.nome_guerra
+     FROM pmam_seat_change_requests r
+     LEFT JOIN pmam_students s ON s.id = r.student_id
+     WHERE r.companhia = ? AND r.peloton = ? AND r.status = ?
+     ORDER BY r.created_at ASC`,
+    [companhia, peloton, status]
+  );
+  return (rows as any[]).map(mapSeatRequest);
+}
+
+export async function getSeatChangeRequest(id: number): Promise<SeatChangeRequest | null> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT r.*, s.numerica, s.nome_guerra
+     FROM pmam_seat_change_requests r
+     LEFT JOIN pmam_students s ON s.id = r.student_id
+     WHERE r.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  return rows[0] ? mapSeatRequest(rows[0]) : null;
+}
+
+export async function decideSeatChangeRequest(input: {
+  id: number;
+  status: "approved" | "rejected";
+  reason: string | null;
+  decidedBy: number;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_seat_change_requests
+     SET status = ?, reason = ?, decided_by = ?, decided_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [input.status, input.reason, input.decidedBy, input.id]
+  );
+}
+
+export interface PlatoonNotice {
+  id: number;
+  companhia: number | null;
+  peloton: number | null;
+  studentId: number | null;
+  title: string;
+  message: string;
+  priority: "normal" | "important" | "urgent";
+  createdBy: number | null;
+  createdAt: Date | string;
+  readAt?: Date | string | null;
+}
+
+function mapNotice(row: any): PlatoonNotice {
+  return {
+    id: row.id,
+    companhia: row.companhia,
+    peloton: row.peloton,
+    studentId: row.student_id,
+    title: row.title,
+    message: row.message,
+    priority: row.priority,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    readAt: row.read_at ?? null,
+  };
+}
+
+export async function createNotice(input: {
+  companhia: number | null;
+  peloton: number | null;
+  studentId: number | null;
+  title: string;
+  message: string;
+  priority: "normal" | "important" | "urgent";
+  createdBy: number;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  const result = await query(
+    `INSERT INTO pmam_platoon_notices
+      (companhia, peloton, student_id, title, message, priority, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [input.companhia, input.peloton, input.studentId, input.title, input.message, input.priority, input.createdBy]
+  );
+  return (result as any).insertId;
+}
+
+export async function listStudentNotices(studentId: number, companhia: number, peloton: number): Promise<PlatoonNotice[]> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT n.*, r.read_at
+     FROM pmam_platoon_notices n
+     LEFT JOIN pmam_notice_reads r ON r.notice_id = n.id AND r.student_id = ?
+     WHERE n.archived_at IS NULL
+       AND r.notice_id IS NULL
+       AND (
+         n.student_id = ?
+         OR (n.student_id IS NULL AND n.companhia = ? AND n.peloton = ?)
+         OR (n.student_id IS NULL AND n.companhia IS NULL AND n.peloton IS NULL)
+       )
+     ORDER BY FIELD(n.priority, 'urgent', 'important', 'normal'), n.created_at DESC
+     LIMIT 12`,
+    [studentId, studentId, companhia, peloton]
+  );
+  return (rows as any[]).map(mapNotice);
+}
+
+export async function listScopeNotices(companhia: number, peloton: number): Promise<PlatoonNotice[]> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT *
+     FROM pmam_platoon_notices
+     WHERE archived_at IS NULL
+       AND ((companhia = ? AND peloton = ?) OR (companhia IS NULL AND peloton IS NULL))
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [companhia, peloton]
+  );
+  return (rows as any[]).map(mapNotice);
+}
+
+export async function markNoticeRead(noticeId: number, studentId: number): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `INSERT INTO pmam_notice_reads (notice_id, student_id)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE read_at = CURRENT_TIMESTAMP`,
+    [noticeId, studentId]
+  );
+}
+
+export async function createStudentObservation(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  type: "positive" | "negative" | "neutral";
+  note: string;
+  createdBy: number;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  const result = await query(
+    `INSERT INTO pmam_student_observations
+      (student_id, companhia, peloton, type, note, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [input.studentId, input.companhia, input.peloton, input.type, input.note, input.createdBy]
+  );
+  return (result as any).insertId;
+}
+
+export async function listStudentObservations(studentId: number): Promise<any[]> {
+  await ensureServiceScaleTables();
+  return query(
+    `SELECT o.*, u.name AS created_by_name
+     FROM pmam_student_observations o
+     LEFT JOIN pmam_users u ON u.id = o.created_by
+     WHERE o.student_id = ?
+     ORDER BY o.created_at DESC
+     LIMIT 50`,
+    [studentId]
+  );
+}
+
+export async function createStudentHighlight(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  title: string;
+  description: string | null;
+  promotedBy: number;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  const result = await query(
+    `INSERT INTO pmam_student_highlights
+      (student_id, companhia, peloton, title, description, promoted_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [input.studentId, input.companhia, input.peloton, input.title, input.description, input.promotedBy]
+  );
+  return (result as any).insertId;
+}
+
+export async function listStudentHighlights(limit = 6): Promise<any[]> {
+  await ensureServiceScaleTables();
+  return query(
+    `SELECT h.*, s.numerica, s.nome_guerra, s.foto_url
+     FROM pmam_student_highlights h
+     INNER JOIN pmam_students s ON s.id = h.student_id
+     WHERE h.active = true
+     ORDER BY h.created_at DESC
+     LIMIT ?`,
+    [limit]
+  );
+}
+
 // ===== CARGOS / FUNÇÕES CUSTOMIZADAS =====
 
 let cargosSchemaPromise: Promise<void> | null = null;
@@ -1021,6 +1350,16 @@ export async function listCargos(companhia: number, peloton: number): Promise<Cl
   }));
 }
 
+export async function getCargoScope(id: number): Promise<{ companhia: number; peloton: number } | null> {
+  await ensureCargosTable();
+  const rows = await query(
+    `SELECT companhia, peloton FROM pmam_classroom_cargos WHERE id = ? LIMIT 1`,
+    [id]
+  );
+  const row = rows[0];
+  return row ? { companhia: Number(row.companhia), peloton: Number(row.peloton) } : null;
+}
+
 export async function createCargo(input: {
   companhia: number;
   peloton: number;
@@ -1115,4 +1454,18 @@ export async function addTreasuryEntry(input: {
 export async function deleteTreasuryEntry(id: number): Promise<void> {
   await ensureCargosTable();
   await query('DELETE FROM pmam_treasury_entries WHERE id = ?', [id]);
+}
+
+export async function getTreasuryEntryScope(id: number): Promise<{ companhia: number; peloton: number } | null> {
+  await ensureCargosTable();
+  const rows = await query(
+    `SELECT c.companhia, c.peloton
+     FROM pmam_treasury_entries e
+     INNER JOIN pmam_classroom_cargos c ON c.id = e.cargo_id
+     WHERE e.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  const row = rows[0];
+  return row ? { companhia: Number(row.companhia), peloton: Number(row.peloton) } : null;
 }

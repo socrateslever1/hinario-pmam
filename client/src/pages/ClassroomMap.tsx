@@ -28,7 +28,7 @@ import {
   ArrowLeft, LayoutGrid, User, Laptop, Crown, Shield, 
   CalendarDays, FileText, History, ExternalLink, Star, 
   Save, Trash2, Check, UserCog, Users, ClipboardList,
-  Minus, Plus
+  Minus, Plus, Inbox, Send, Upload, X, Award
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
@@ -152,6 +152,12 @@ export default function ClassroomMap() {
   const [aditConteudo, setAditConteudo] = useState("");
   const [aditData, setAditData] = useState(new Date().toISOString().slice(0, 10));
   const [aditPdfUrl, setAditPdfUrl] = useState("");
+  const [isUploadingAditamento, setIsUploadingAditamento] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeMessage, setNoticeMessage] = useState("");
+  const [noticeStudentId, setNoticeStudentId] = useState("all");
+  const [observationByStudent, setObservationByStudent] = useState<Record<number, string>>({});
+  const [observationTypeByStudent, setObservationTypeByStudent] = useState<Record<number, "positive" | "negative" | "neutral">>({});
 
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
@@ -234,6 +240,19 @@ export default function ClassroomMap() {
     onError: (err) => toast.error(err.message),
   });
 
+  const requestSeatChange = trpc.serviceScale.requestSeatChange.useMutation({
+    onSuccess: () => toast.success("Pedido enviado ao Xerife. Aguarde autorizaÃ§Ã£o."),
+    onError: (err) => toast.error(err.message),
+  });
+
+  const decideSeatRequest = trpc.serviceScale.decideSeatChangeRequest.useMutation({
+    onSuccess: async () => {
+      toast.success("Pedido atualizado");
+      await Promise.all([seatRequestsQuery.refetch(), platoonPublicQuery.refetch()]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const updateCapacity = trpc.serviceScale.updatePlatoonCapacity.useMutation({
     onSuccess: async () => {
       toast.success("Capacidade do pelotão atualizada");
@@ -292,6 +311,31 @@ export default function ClassroomMap() {
     onError: (err) => toast.error(err.message),
   });
 
+  const uploadAditamentoFile = trpc.serviceScale.uploadAditamentoFile.useMutation();
+
+  const createNotice = trpc.serviceScale.createNotice.useMutation({
+    onSuccess: () => {
+      toast.success("Aviso enviado");
+      setNoticeTitle("");
+      setNoticeMessage("");
+      setNoticeStudentId("all");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
+    onSuccess: (_data, variables) => {
+      toast.success("AnotaÃ§Ã£o registrada");
+      setObservationByStudent((current) => ({ ...current, [variables.studentId]: "" }));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createStudentHighlight = trpc.serviceScale.createStudentHighlight.useMutation({
+    onSuccess: () => toast.success("Aluno promovido para destaque da tela inicial"),
+    onError: (err) => toast.error(err.message),
+  });
+
   const deleteAditamento = trpc.serviceScale.deleteAditamento.useMutation({
     onSuccess: async () => {
       toast.success("Aditamento excluído");
@@ -312,12 +356,19 @@ export default function ClassroomMap() {
   const isCurrentStudentActiveXerife = studentSession && activeRoles && 
     (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
 
+  const seatRequestsQuery = trpc.serviceScale.seatChangeRequests.useQuery(
+    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
+    { enabled: Boolean(isAdminOrXerifeAdmin && selectedCompanhia && selectedPeloton) }
+  );
+
   // Classroom seat generation
   const startNumber = selectedCompanhia * 1000 + selectedPeloton * 100;
-  const col1 = Array.from({ length: 11 }, (_, i) => startNumber + i + 1); // 01 to 11
-  const col2 = Array.from({ length: 10 }, (_, i) => startNumber + i + 12); // 12 to 21
-  const col3 = Array.from({ length: 10 }, (_, i) => startNumber + i + 22); // 22 to 31
-  const col4 = Array.from({ length: 10 }, (_, i) => startNumber + i + 32); // 32 to 41
+  const makeSeatColumn = (first: number, last: number) =>
+    Array.from({ length: Math.max(0, Math.min(last, capacity) - first + 1) }, (_, i) => startNumber + first + i);
+  const col1 = makeSeatColumn(1, 11); // 01 to 11
+  const col2 = makeSeatColumn(12, 21); // 12 to 21
+  const col3 = makeSeatColumn(22, 31); // 22 to 31
+  const col4 = makeSeatColumn(32, 41); // 32 to 41
   const col5RegularLength = Math.max(0, capacity - 41);
   const col5Regular = Array.from({ length: col5RegularLength }, (_, i) => startNumber + i + 42); // 42 onwards
 
@@ -467,7 +518,18 @@ export default function ClassroomMap() {
 
   // Handlers
   const handleSeatClick = (seatNumber: number) => {
-    if (!isAdminOrXerifeAdmin) return;
+    if (!isAdminOrXerifeAdmin) {
+      if (!studentSession) {
+        toast.info("Entre como aluno para solicitar troca de carteira.");
+        return;
+      }
+      requestSeatChange.mutate({
+        studentId: studentSession.id,
+        sessionToken: studentSession.sessionToken,
+        requestedDeskNumber: seatNumber,
+      });
+      return;
+    }
     setSelectedSeat(seatNumber);
     const occupant = students.find((s: any) => s.deskNumber === seatNumber);
     
@@ -482,9 +544,13 @@ export default function ClassroomMap() {
 
   const handleAssignSeat = () => {
     if (!selectedSeat) return;
+    if (selectedStudentId === "none") {
+      toast.error("Selecione um aluno para ocupar a carteira.");
+      return;
+    }
     updateStudentDesk.mutate({
       studentId: Number(selectedStudentId),
-      deskNumber: selectedStudentId === "none" ? null : selectedSeat,
+      deskNumber: selectedSeat,
     });
   };
 
@@ -573,6 +639,73 @@ export default function ClassroomMap() {
       conteudo: aditConteudo || null,
       data: aditData,
       pdfUrl: aditPdfUrl || null,
+    });
+  };
+
+  const handleAditamentoFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAditamento(true);
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const result = await uploadAditamentoFile.mutateAsync({
+        companhia: selectedCompanhia,
+        peloton: selectedPeloton,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        base64Data,
+      });
+      setAditPdfUrl(result.url);
+      toast.success("Arquivo do aditamento enviado");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao enviar arquivo");
+    } finally {
+      setIsUploadingAditamento(false);
+      event.currentTarget.value = "";
+    }
+  };
+
+  const handleSendNotice = () => {
+    if (!noticeTitle.trim() || !noticeMessage.trim()) {
+      toast.error("Informe tÃ­tulo e mensagem do aviso.");
+      return;
+    }
+    createNotice.mutate({
+      companhia: selectedCompanhia,
+      peloton: selectedPeloton,
+      studentId: noticeStudentId === "all" ? null : Number(noticeStudentId),
+      title: noticeTitle,
+      message: noticeMessage,
+      priority: "important",
+    });
+  };
+
+  const handleAddObservation = (studentId: number) => {
+    const note = observationByStudent[studentId]?.trim();
+    if (!note) {
+      toast.error("Escreva a observaÃ§Ã£o antes de registrar.");
+      return;
+    }
+    addStudentObservation.mutate({
+      studentId,
+      type: observationTypeByStudent[studentId] || "neutral",
+      note,
+    });
+  };
+
+  const handleCreateHighlight = (student: any) => {
+    const title = prompt(`TÃ­tulo do destaque para ${student.nomeGuerra}:`, "Aluno destaque");
+    if (!title?.trim()) return;
+    const description = prompt("DescriÃ§Ã£o curta do destaque:", "");
+    createStudentHighlight.mutate({
+      studentId: student.id,
+      title: title.trim(),
+      description: description?.trim() || null,
     });
   };
 
@@ -880,6 +1013,115 @@ export default function ClassroomMap() {
                   </CardContent>
                 </Card>
 
+                {!isAdminOrXerifeAdmin && studentSession && (
+                  <Card className="border-[#c4a84b]/30 bg-[#fff8e1] shadow-md dark:bg-yellow-950/20">
+                    <CardContent className="p-4 text-xs leading-relaxed text-[#1a3a2a] dark:text-yellow-100">
+                      <p className="font-bold">Troca de carteira</p>
+                      <p className="mt-1 text-muted-foreground">
+                        Toque na carteira desejada para enviar um pedido ao Xerife. A troca sÃ³ acontece apÃ³s aprovaÃ§Ã£o.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {isAdminOrXerifeAdmin && (
+                  <Card className="border-border/50 bg-white shadow-md dark:bg-zinc-900">
+                    <CardHeader className="pb-3 border-b bg-muted/20">
+                      <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#1a3a2a] dark:text-[#c4a84b]">
+                        <Inbox className="h-4 w-4 text-[#c4a84b]" />
+                        Pedidos de Carteira
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">
+                        SolicitaÃ§Ãµes pendentes dos alunos
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 p-3">
+                      {(seatRequestsQuery.data ?? []).map((request: any) => (
+                        <div key={request.id} className="rounded-lg border bg-muted/10 p-3 text-xs">
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-foreground">{request.nomeGuerra || "Aluno"}</p>
+                              <p className="text-muted-foreground">
+                                {request.numerica} pediu a carteira {request.requestedDeskNumber}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px]">Pendente</Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              size="sm"
+                              className="h-8 bg-[#1a3a2a] text-xs text-white"
+                              onClick={() => decideSeatRequest.mutate({ id: request.id, status: "approved" })}
+                              disabled={decideSeatRequest.isPending}
+                            >
+                              <Check className="mr-1 h-3.5 w-3.5" />
+                              Aprovar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs text-destructive"
+                              onClick={() => decideSeatRequest.mutate({ id: request.id, status: "rejected", reason: "Rejeitado pelo Xerife" })}
+                              disabled={decideSeatRequest.isPending}
+                            >
+                              <X className="mr-1 h-3.5 w-3.5" />
+                              Rejeitar
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {!seatRequestsQuery.data?.length && (
+                        <p className="py-4 text-center text-xs text-muted-foreground">Nenhum pedido pendente.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {isAdminOrXerifeAdmin && (
+                  <Card className="border-border/50 bg-white shadow-md dark:bg-zinc-900">
+                    <CardHeader className="pb-3 border-b bg-muted/20">
+                      <CardTitle className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-[#1a3a2a] dark:text-[#c4a84b]">
+                        <Send className="h-4 w-4 text-[#c4a84b]" />
+                        Enviar Aviso
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">
+                        Aviso individual ou para todo o PelotÃ£o
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 p-3">
+                      <Select value={noticeStudentId} onValueChange={setNoticeStudentId}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todo o PelotÃ£o</SelectItem>
+                          {students.map((student: any) => (
+                            <SelectItem key={student.id} value={String(student.id)}>
+                              {student.numerica} - {student.nomeGuerra}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={noticeTitle}
+                        onChange={(event) => setNoticeTitle(event.target.value)}
+                        placeholder="TÃ­tulo do aviso"
+                        className="h-9 text-xs"
+                      />
+                      <textarea
+                        value={noticeMessage}
+                        onChange={(event) => setNoticeMessage(event.target.value)}
+                        placeholder="Mensagem"
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                      <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSendNotice} disabled={createNotice.isPending}>
+                        <Send className="h-4 w-4" />
+                        {createNotice.isPending ? "Enviando..." : "Enviar Aviso"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Other platoons active xerifes */}
                 <Card className="border-border/50 bg-white dark:bg-zinc-900 shadow-md">
                   <CardHeader className="pb-3 border-b bg-muted/20">
@@ -1035,6 +1277,50 @@ export default function ClassroomMap() {
                             </Select>
                           </div>
 
+                          <div className="mt-3 space-y-2 rounded-lg border bg-muted/10 p-2">
+                            <div className="flex gap-2">
+                              <Select
+                                value={observationTypeByStudent[student.id] || "neutral"}
+                                onValueChange={(value) =>
+                                  setObservationTypeByStudent((current) => ({
+                                    ...current,
+                                    [student.id]: value as "positive" | "negative" | "neutral",
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 text-[11px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="positive">Positiva</SelectItem>
+                                  <SelectItem value="neutral">Neutra</SelectItem>
+                                  <SelectItem value="negative">Negativa</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 shrink-0 text-[11px]"
+                                onClick={() => handleAddObservation(student.id)}
+                                disabled={addStudentObservation.isPending}
+                              >
+                                Registrar
+                              </Button>
+                            </div>
+                            <textarea
+                              value={observationByStudent[student.id] || ""}
+                              onChange={(event) =>
+                                setObservationByStudent((current) => ({
+                                  ...current,
+                                  [student.id]: event.target.value,
+                                }))
+                              }
+                              placeholder="ObservaÃ§Ã£o positiva ou negativa"
+                              className="flex min-h-[56px] w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                          </div>
+
                           <div className="mt-3 flex items-center justify-between border-t pt-2 gap-2">
                             <Button
                               size="sm"
@@ -1059,6 +1345,18 @@ export default function ClassroomMap() {
                               Sub-Xerife
                             </Button>
                           </div>
+                          {access?.isGeneral && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="mt-2 h-8 w-full gap-1 bg-[#c4a84b] text-[11px] font-black text-[#1a1a1a] hover:bg-[#b39740]"
+                              onClick={() => handleCreateHighlight(student)}
+                              disabled={createStudentHighlight.isPending}
+                            >
+                              <Award className="h-3.5 w-3.5" />
+                              Promover Destaque
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1260,8 +1558,23 @@ export default function ClassroomMap() {
                         <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-[#c4a84b] focus-visible:ring-offset-2" value={aditConteudo} onChange={(e) => setAditConteudo(e.target.value)} placeholder="Ex: Detalhes das atividades da semana..." />
                       </div>
                       <div>
-                        <Label>Link do PDF</Label>
-                        <Input value={aditPdfUrl} onChange={(e) => setAditPdfUrl(e.target.value)} placeholder="Ex: https://links.pdf" />
+                        <Label>Arquivo do Aditamento</Label>
+                        <div className="mt-1 flex items-center gap-2">
+                          <Input
+                            type="file"
+                            accept="application/pdf,image/*"
+                            onChange={handleAditamentoFileUpload}
+                            disabled={isUploadingAditamento}
+                          />
+                          <Button type="button" variant="outline" size="icon" disabled={isUploadingAditamento}>
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {aditPdfUrl && (
+                          <p className="mt-1 truncate text-[10px] font-semibold text-[#1a3a2a]">
+                            Arquivo enviado e vinculado ao aditamento.
+                          </p>
+                        )}
                       </div>
                       <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAditamento} disabled={saveAditamento.isPending}>
                         <Save className="h-4 w-4" /> Publicar Aditamento

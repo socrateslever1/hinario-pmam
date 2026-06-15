@@ -42,12 +42,18 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
-// Only Master can access
-const masterProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "master") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao Xerife Master" });
+// Xerife Geral: master/admin or a user explicitly assigned as principal.
+const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.role === "master" || ctx.user.role === "admin") {
+    return next({ ctx });
   }
-  return next({ ctx });
+
+  const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+  if (assignment?.level === "principal") {
+    return next({ ctx });
+  }
+
+  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao Xerife Geral" });
 });
 
 // Allow master, admin, or any user with a xerife assignment
@@ -72,6 +78,37 @@ async function requireServiceScaleAccess(
     throw new TRPCError({ code: "FORBIDDEN", message: "Sem acesso a este Pelotão" });
   }
   return assignment;
+}
+
+async function isXerifeGeral(user: any) {
+  if (user.role === "master" || user.role === "admin") return true;
+  const assignment = await serviceScaleDb.getXerifeAssignment(user.id);
+  return assignment?.level === "principal";
+}
+
+async function getPeculioLockState(
+  user: any,
+  companhia: number,
+  peloton: number,
+  date: string,
+) {
+  const now = new Date();
+  const lockedAt = peculioDb.getPeculioLockedAt(date);
+  const unlock = await peculioDb.getPeculioUnlock(companhia, peloton, date);
+  const unlockedUntil = unlock?.unlockedUntil ? new Date(unlock.unlockedUntil) : null;
+  const isReleased = Boolean(unlockedUntil && unlockedUntil.getTime() > now.getTime());
+  const lockedByTime = now.getTime() >= lockedAt.getTime();
+  const general = await isXerifeGeral(user);
+
+  return {
+    lockedAt: lockedAt.toISOString(),
+    isLocked: lockedByTime && !isReleased && !general,
+    isReleased,
+    unlockedUntil: unlockedUntil?.toISOString() ?? null,
+    releaseReason: unlock?.reason ?? null,
+    canRelease: general,
+    canEdit: !lockedByTime || isReleased || general,
+  };
 }
 
 export const appRouter = router({
@@ -1336,10 +1373,12 @@ export const appRouter = router({
 
     myAccess: protectedProcedure.query(async ({ ctx }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || assignment?.level === "principal";
       return {
         assignment,
         scope: serviceScaleDb.getDefaultScope(ctx.user, assignment),
         isMaster: ctx.user.role === "master",
+        isGeneral,
       };
     }),
 
@@ -1467,6 +1506,70 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    requestSeatChange: publicProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        sessionToken: z.string().trim().min(16),
+        requestedDeskNumber: z.number().int(),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      }
+      if (input.requestedDeskNumber === student.deskNumber) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "VocÃª jÃ¡ estÃ¡ nessa carteira" });
+      }
+      await serviceScaleDb.createSeatChangeRequest({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        requestedDeskNumber: input.requestedDeskNumber,
+        currentDeskNumber: student.deskNumber ?? null,
+      });
+      return { success: true };
+    }),
+
+    seatChangeRequests: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        status: z.enum(["pending", "approved", "rejected"]).default("pending"),
+      })
+    ).query(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return serviceScaleDb.listSeatChangeRequests(input.companhia, input.peloton, input.status);
+    }),
+
+    decideSeatChangeRequest: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+        status: z.enum(["approved", "rejected"]),
+        reason: z.string().trim().max(255).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const request = await serviceScaleDb.getSeatChangeRequest(input.id);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pedido de carteira nÃ£o encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, request.companhia, request.peloton);
+      if (request.status !== "pending") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Este pedido jÃ¡ foi decidido" });
+      }
+      if (input.status === "approved") {
+        await studentDb.clearStudentDesk(request.companhia, request.peloton, request.requestedDeskNumber);
+        await studentDb.updateStudentDeskNumber(request.studentId, request.requestedDeskNumber);
+      }
+      await serviceScaleDb.decideSeatChangeRequest({
+        id: input.id,
+        status: input.status,
+        reason: input.reason ?? null,
+        decidedBy: ctx.user.id,
+      });
+      return { success: true };
+    }),
+
     listAditamentos: publicProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5),
@@ -1496,6 +1599,21 @@ export const appRouter = router({
         pdfUrl: input.pdfUrl ?? null,
       });
       return { success: true };
+    }),
+
+    uploadAditamentoFile: scaleManagerProcedure.input(z.object({
+      companhia: z.number().int().min(1).max(5),
+      peloton: z.number().int().min(1).max(2),
+      fileName: z.string().trim().min(1).max(180),
+      mimeType: z.string().trim().min(3).max(120),
+      base64Data: z.string().min(1),
+    })).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const ext = input.fileName.split(".").pop() || "pdf";
+      const buffer = Buffer.from(input.base64Data, "base64");
+      const fileKey = `aditamentos/${input.companhia}-${input.peloton}/${Date.now()}-${nanoid(8)}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      return { url };
     }),
 
     deleteAditamento: scaleManagerProcedure.input(
@@ -1676,6 +1794,119 @@ export const appRouter = router({
     getAllActiveXerifes: publicProcedure.query(async () => {
       return serviceScaleDb.listAllActiveXerifes();
     }),
+
+    myNotices: publicProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        sessionToken: z.string().trim().min(16),
+      })
+    ).query(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      }
+      return serviceScaleDb.listStudentNotices(student.id, student.companhia, student.peloton);
+    }),
+
+    markNoticeRead: publicProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        sessionToken: z.string().trim().min(16),
+        noticeId: z.number().int(),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      await serviceScaleDb.markNoticeRead(input.noticeId, input.studentId);
+      return { success: true };
+    }),
+
+    createNotice: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).nullable().optional(),
+        peloton: z.number().int().min(1).max(2).nullable().optional(),
+        studentId: z.number().int().nullable().optional(),
+        title: z.string().trim().min(1).max(160),
+        message: z.string().trim().min(1).max(4000),
+        priority: z.enum(["normal", "important", "urgent"]).default("normal"),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      let companhia = input.companhia ?? null;
+      let peloton = input.peloton ?? null;
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!assignment?.companhia || !assignment?.peloton) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem escopo de PelotÃ£o" });
+        }
+        companhia = assignment.companhia;
+        peloton = assignment.peloton;
+      } else if (companhia && peloton) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      if (input.studentId) {
+        const student = await studentDb.getStudentById(input.studentId);
+        if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+        companhia = student.companhia;
+        peloton = student.peloton;
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      const id = await serviceScaleDb.createNotice({
+        companhia,
+        peloton,
+        studentId: input.studentId ?? null,
+        title: input.title,
+        message: input.message,
+        priority: input.priority,
+        createdBy: ctx.user.id,
+      });
+      return { id };
+    }),
+
+    addStudentObservation: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        type: z.enum(["positive", "negative", "neutral"]).default("neutral"),
+        note: z.string().trim().min(1).max(4000),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const id = await serviceScaleDb.createStudentObservation({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        type: input.type,
+        note: input.note,
+        createdBy: ctx.user.id,
+      });
+      return { id };
+    }),
+
+    createStudentHighlight: masterProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        title: z.string().trim().min(1).max(160),
+        description: z.string().trim().max(4000).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      const id = await serviceScaleDb.createStudentHighlight({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        title: input.title,
+        description: input.description ?? null,
+        promotedBy: ctx.user.id,
+      });
+      return { id };
+    }),
+
+    studentHighlights: publicProcedure.query(async () => {
+      return serviceScaleDb.listStudentHighlights(6);
+    }),
   }),
 
   peculio: router({
@@ -1687,7 +1918,9 @@ export const appRouter = router({
       })
     ).query(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
-      return peculioDb.getPeculioReport(input.companhia, input.peloton, input.date);
+      const data = await peculioDb.getPeculioReport(input.companhia, input.peloton, input.date);
+      const lock = await getPeculioLockState(ctx.user, input.companhia, input.peloton, input.date);
+      return { ...data, lock };
     }),
 
     save: scaleManagerProcedure.input(
@@ -1711,7 +1944,38 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const lock = await getPeculioLockState(ctx.user, input.companhia, input.peloton, input.date);
+      if (!lock.canEdit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "PecÃºlio fechado apÃ³s 05h. Solicite liberaÃ§Ã£o ao Xerife Geral.",
+        });
+      }
       return peculioDb.savePeculioReport(input);
+    }),
+
+    release: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        date: z.string().trim().min(10).max(10),
+        reason: z.string().trim().max(255).nullable().optional(),
+        hours: z.number().int().min(1).max(72).default(12),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const unlockedUntil = new Date(Date.now() + input.hours * 60 * 60 * 1000);
+      await peculioDb.releasePeculio({
+        companhia: input.companhia,
+        peloton: input.peloton,
+        date: input.date,
+        reason: input.reason ?? null,
+        unlockedUntil,
+        unlockedBy: ctx.user.id,
+      });
+      return {
+        success: true,
+        unlockedUntil: unlockedUntil.toISOString(),
+      };
     }),
 
 
@@ -1754,7 +2018,9 @@ export const appRouter = router({
         temTesouraria: z.boolean().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getCargoScope(input.id);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "FunÃ§Ã£o nÃ£o encontrada" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.updateCargo(input.id, input);
       return { success: true };
     }),
@@ -1766,7 +2032,9 @@ export const appRouter = router({
         peloton: z.number().int().min(1).max(2),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getCargoScope(input.id);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "FunÃ§Ã£o nÃ£o encontrada" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.deleteCargo(input.id);
       return { success: true };
     }),
@@ -1780,7 +2048,9 @@ export const appRouter = router({
         tituloCargo: z.string().trim().max(100).optional(),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getCargoScope(input.cargoId);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "FunÃ§Ã£o nÃ£o encontrada" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.addCargoMember(input.cargoId, input.studentId, input.tituloCargo);
       return { success: true };
     }),
@@ -1793,7 +2063,9 @@ export const appRouter = router({
         studentId: z.number().int(),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getCargoScope(input.cargoId);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "FunÃ§Ã£o nÃ£o encontrada" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.removeCargoMember(input.cargoId, input.studentId);
       return { success: true };
     }),
@@ -1815,7 +2087,9 @@ export const appRouter = router({
         data: z.string().trim().min(10).max(10),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getCargoScope(input.cargoId);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "FunÃ§Ã£o nÃ£o encontrada" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       const id = await serviceScaleDb.addTreasuryEntry({ ...input, registradoPor: ctx.user.id });
       return { id };
     }),
@@ -1827,7 +2101,9 @@ export const appRouter = router({
         peloton: z.number().int().min(1).max(2),
       })
     ).mutation(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const scope = await serviceScaleDb.getTreasuryEntryScope(input.id);
+      if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "LanÃ§amento nÃ£o encontrado" });
+      await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.deleteTreasuryEntry(input.id);
       return { success: true };
     }),
