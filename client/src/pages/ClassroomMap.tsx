@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
+import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { ClassroomCargosTab } from "@/components/admin/ClassroomCargosTab";
 import { toast } from "sonner";
 
@@ -161,6 +162,9 @@ export default function ClassroomMap() {
 
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
+    if (access?.isGeneral) {
+      return;
+    }
     if (studentSession) {
       setCompanhia(String(studentSession.companhia));
       setPeloton(String(studentSession.peloton));
@@ -241,7 +245,7 @@ export default function ClassroomMap() {
   });
 
   const requestSeatChange = trpc.serviceScale.requestSeatChange.useMutation({
-    onSuccess: () => toast.success("Pedido enviado ao Xerife. Aguarde autorizaÃ§Ã£o."),
+    onSuccess: () => toast.success("Pedido enviado ao Xerife. Aguarde autorização."),
     onError: (err) => toast.error(err.message),
   });
 
@@ -325,7 +329,7 @@ export default function ClassroomMap() {
 
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
     onSuccess: (_data, variables) => {
-      toast.success("AnotaÃ§Ã£o registrada");
+      toast.success("Anotação registrada");
       setObservationByStudent((current) => ({ ...current, [variables.studentId]: "" }));
     },
     onError: (err) => toast.error(err.message),
@@ -345,7 +349,8 @@ export default function ClassroomMap() {
   });
 
   // Access validation
-  const isAdminOrXerifeAdmin = access?.isMaster || 
+  const isXerifeGeral = Boolean(access?.isGeneral);
+  const isAdminOrXerifeAdmin = isXerifeGeral ||
     (access?.assignment && 
      (access.assignment.level === "principal" ||
       (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
@@ -355,6 +360,7 @@ export default function ClassroomMap() {
 
   const isCurrentStudentActiveXerife = studentSession && activeRoles && 
     (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
+  const canChangeClassroomScope = isXerifeGeral;
 
   const seatRequestsQuery = trpc.serviceScale.seatChangeRequests.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
@@ -672,7 +678,7 @@ export default function ClassroomMap() {
 
   const handleSendNotice = () => {
     if (!noticeTitle.trim() || !noticeMessage.trim()) {
-      toast.error("Informe tÃ­tulo e mensagem do aviso.");
+      toast.error("Informe título e mensagem do aviso.");
       return;
     }
     createNotice.mutate({
@@ -688,7 +694,7 @@ export default function ClassroomMap() {
   const handleAddObservation = (studentId: number) => {
     const note = observationByStudent[studentId]?.trim();
     if (!note) {
-      toast.error("Escreva a observaÃ§Ã£o antes de registrar.");
+      toast.error("Escreva a observação antes de registrar.");
       return;
     }
     addStudentObservation.mutate({
@@ -699,9 +705,9 @@ export default function ClassroomMap() {
   };
 
   const handleCreateHighlight = (student: any) => {
-    const title = prompt(`TÃ­tulo do destaque para ${student.nomeGuerra}:`, "Aluno destaque");
+    const title = prompt(`Título do destaque para ${student.nomeGuerra}:`, "Aluno destaque");
     if (!title?.trim()) return;
-    const description = prompt("DescriÃ§Ã£o curta do destaque:", "");
+    const description = prompt("Descrição curta do destaque:", "");
     createStudentHighlight.mutate({
       studentId: student.id,
       title: title.trim(),
@@ -754,7 +760,7 @@ export default function ClassroomMap() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Select value={companhia} onValueChange={setCompanhia} disabled={Boolean(studentSession)}>
+                <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeClassroomScope}>
                   <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-900 border-border/50">
                     <SelectValue />
                   </SelectTrigger>
@@ -763,7 +769,7 @@ export default function ClassroomMap() {
                   </SelectContent>
                 </Select>
 
-                <Select value={peloton} onValueChange={setPeloton} disabled={Boolean(studentSession)}>
+                <Select value={peloton} onValueChange={setPeloton} disabled={!canChangeClassroomScope}>
                   <SelectTrigger className="w-[120px] bg-white dark:bg-zinc-900 border-border/50">
                     <SelectValue />
                   </SelectTrigger>
@@ -1018,7 +1024,7 @@ export default function ClassroomMap() {
                     <CardContent className="p-4 text-xs leading-relaxed text-[#1a3a2a] dark:text-yellow-100">
                       <p className="font-bold">Troca de carteira</p>
                       <p className="mt-1 text-muted-foreground">
-                        Toque na carteira desejada para enviar um pedido ao Xerife. A troca sÃ³ acontece apÃ³s aprovaÃ§Ã£o.
+                        Toque na carteira desejada para enviar um pedido ao Xerife. A troca só acontece após aprovação.
                       </p>
                     </CardContent>
                   </Card>
@@ -1032,7 +1038,7 @@ export default function ClassroomMap() {
                         Pedidos de Carteira
                       </CardTitle>
                       <CardDescription className="text-[10px]">
-                        SolicitaÃ§Ãµes pendentes dos alunos
+                        Solicitações pendentes dos alunos
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 p-3">
@@ -1085,7 +1091,7 @@ export default function ClassroomMap() {
                         Enviar Aviso
                       </CardTitle>
                       <CardDescription className="text-[10px]">
-                        Aviso individual ou para todo o PelotÃ£o
+                        Aviso individual ou para todo o Pelotão
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 p-3">
@@ -1094,7 +1100,7 @@ export default function ClassroomMap() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Todo o PelotÃ£o</SelectItem>
+                          <SelectItem value="all">Todo o Pelotão</SelectItem>
                           {students.map((student: any) => (
                             <SelectItem key={student.id} value={String(student.id)}>
                               {student.numerica} - {student.nomeGuerra}
@@ -1105,7 +1111,7 @@ export default function ClassroomMap() {
                       <Input
                         value={noticeTitle}
                         onChange={(event) => setNoticeTitle(event.target.value)}
-                        placeholder="TÃ­tulo do aviso"
+                        placeholder="Título do aviso"
                         className="h-9 text-xs"
                       />
                       <textarea
@@ -1157,6 +1163,10 @@ export default function ClassroomMap() {
               </div>
 
             </div>
+
+            {isXerifeGeral && (
+              <PeculioOverview />
+            )}
 
             {/* Assignment dialog */}
             <Dialog open={assignmentModalOpen} onOpenChange={setAssignmentModalOpen}>
@@ -1218,6 +1228,8 @@ export default function ClassroomMap() {
               /* PECULIO SUBVIEW (XERIFE ONLY) */
               !isAdminOrXerifeAdmin ? (
                 <Card className="p-8 text-center max-w-md mx-auto"><CardContent><p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife.</p></CardContent></Card>
+              ) : isXerifeGeral ? (
+                <PeculioOverview />
               ) : (
                 <PeculioTab companhia={companhia} setCompanhia={setCompanhia} peloton={peloton} setPeloton={setPeloton} />
               )
@@ -1316,7 +1328,7 @@ export default function ClassroomMap() {
                                   [student.id]: event.target.value,
                                 }))
                               }
-                              placeholder="ObservaÃ§Ã£o positiva ou negativa"
+                              placeholder="Observação positiva ou negativa"
                               className="flex min-h-[56px] w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                           </div>

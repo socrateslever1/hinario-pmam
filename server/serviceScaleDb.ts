@@ -355,7 +355,7 @@ export function canAccessScope(
   companhia: number,
   peloton?: number | null,
 ) {
-  if (user.role === "master") return true;
+  if (user.role === "master" || user.role === "admin") return true;
   if (!assignment) return false;
   if (assignment.level === "principal") return true;
   if (assignment.level === "companhia") return assignment.companhia === companhia;
@@ -366,7 +366,7 @@ export function getDefaultScope(
   user: { role?: string | null },
   assignment: XerifeAssignment | null,
 ): { companhia?: number; peloton?: number; unrestricted: boolean } {
-  if (user.role === "master" || assignment?.level === "principal") {
+  if (user.role === "master" || user.role === "admin" || assignment?.level === "principal") {
     return { unrestricted: true };
   }
   if (assignment?.level === "companhia" && assignment.companhia) {
