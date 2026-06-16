@@ -109,7 +109,7 @@ export default function HymnDetail() {
       <Navbar />
 
       {/* Header */}
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-10">
+      <section className="bg-white border-b border-border/40 px-2 pb-7 pt-6 md:px-0 md:py-10">
         <div className="container">
           <Link href={catalogHref}>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-[#1a3a2a]/5 gap-2 mb-4">
@@ -151,7 +151,7 @@ export default function HymnDetail() {
         <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-2 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content - Lyrics & Player */}

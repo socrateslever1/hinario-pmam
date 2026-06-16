@@ -61,7 +61,7 @@ export default function Hymns() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-white border-b border-border/40 px-2 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <Music className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
@@ -74,7 +74,7 @@ export default function Hymns() {
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-transparent px-4 pb-8 pt-2 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-2 pb-8 pt-2 md:bg-background md:px-0 md:py-8">
         <div className="container space-y-6 md:space-y-8">
           <div className="relative mx-auto max-w-md rounded-[1.4rem] border border-border/50 bg-white p-2 shadow-sm md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none">
             <Search className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
