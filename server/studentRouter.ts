@@ -3,6 +3,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as studentDb from "./studentDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
+import * as db from "./db";
+import { sdk } from "./_core/sdk";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { getSessionCookieOptions } from "./_core/cookies";
 
 export const studentRouter = router({
   register: publicProcedure
@@ -76,7 +80,7 @@ export const studentRouter = router({
         senha: z.string().min(6),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Validar numérica
       const validation = validateNumerica(input.numerica);
       if (!validation.isValid) {
@@ -109,6 +113,23 @@ export const studentRouter = router({
       }
 
       const sessionToken = await studentDb.rotateStudentSessionToken(student.id);
+
+      // Se o aluno for xerife (tiver cadastro na tabela de usuários), loga ele também como usuário/xerife
+      try {
+        const email = `${student.numerica}@pmam.com`;
+        const user = await db.getUserByEmail(email);
+        if (user) {
+          const userSessionToken = await sdk.createSessionToken(user.openId, {
+            name: user.name || "",
+            expiresInMs: ONE_YEAR_MS,
+          });
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, userSessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+          await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+        }
+      } catch (err) {
+        console.error("[StudentLogin] Failed to auto-login xerife user:", err);
+      }
 
       return {
         id: student.id,
