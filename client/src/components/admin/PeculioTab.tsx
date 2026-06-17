@@ -323,24 +323,13 @@ export function PeculioTab({
     dispensa_medica: "Dispensa Médica",
     dispensa_administrativa: "Dispensa Administrativa",
   }), []);
-  const changedRows = useMemo(() => students
-    .map((student) => {
-      const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
-      return {
-        student,
-        status: entry.status,
-        observacao: entry.observacao.trim(),
-        arrivalTime: entry.arrivalTime,
-        justificationStatus: entry.justificationStatus,
-      };
-    })
-    .filter((item) => item.status !== "pronto" || item.arrivalTime || item.justificationStatus), [students, studentStatuses]);
+
   const getStatusName = (status: string) => statusNames[status as keyof typeof statusNames] ?? status;
   const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString("pt-BR") : "";
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      {/* 1. Header controls */}
+      {/* 1. Header controls - Screen only */}
       <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden">
         <CardContent className="space-y-4 p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
@@ -393,568 +382,161 @@ export function PeculioTab({
                   className="h-11 text-base sm:h-10 sm:text-sm"
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
-                <Button className="min-h-11 flex-1 gap-2 bg-[#1a3a2a] text-white touch-manipulation" onClick={handleSave} disabled={savePeculio.isPending || !canEdit}>
-                  <Save className="h-4 w-4" />
-                  Salvar Pecúlio
-                </Button>
-                <Button
-                  className="min-h-11 flex-1 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation"
-                  onClick={handleClose}
-                  disabled={savePeculio.isPending || closePeculio.isPending || !canEdit}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Fechar
-                </Button>
-                <Button variant="outline" className="min-h-11 gap-2 touch-manipulation" onClick={handlePrint}>
-                  <Printer className="h-4 w-4" />
-                  Imprimir
-                </Button>
-              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {lock && (
-        <Card className={`print:hidden border ${isLocked ? "border-red-500/30 bg-red-500/5" : lock.isReleased ? "border-amber-500/30 bg-amber-500/5" : "border-green-600/20 bg-green-600/5"}`}>
-          <CardContent className="flex min-w-0 flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              {lock.closedAt ? (
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#c4a84b]" />
-              ) : isLocked ? (
-                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
-              ) : (
-                <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground">
-                  {lock.closedAt ? "Pecúlio fechado e autenticado" : isLocked ? "Pecúlio fechado para edição" : lock.isReleased ? "Pecúlio liberado temporariamente" : "Pecúlio aberto para edição"}
-                </p>
-                <p className="break-words text-xs leading-relaxed text-muted-foreground">
-                  Entrada: {lock.entryTime || entryTime} | Fechamento automático: {new Date(lock.lockedAt).toLocaleString("pt-BR")}{lock.unlockedUntil ? ` | Liberado até: ${new Date(lock.unlockedUntil).toLocaleString("pt-BR")}` : ""}
-                </p>
-                {lock.lateArrivalUntil && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Chegada tardia sem falta até {new Date(lock.lateArrivalUntil).toLocaleString("pt-BR")}. No horário de entrada ou após, registra como falta.
-                  </p>
-                )}
-                {lock.closedAt && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Fechado por {lock.closedByName || "usuário autenticado"} em {new Date(lock.closedAt).toLocaleString("pt-BR")}
-                  </p>
-                )}
-                {lock.releaseReason && <p className="mt-1 text-xs text-muted-foreground">Motivo: {lock.releaseReason}</p>}
-              </div>
-            </div>
-            {isLocked && canRelease && (
-              <div className="flex w-full min-w-0 flex-col gap-2 md:w-auto md:min-w-[360px] md:flex-row">
-                <Input
-                  placeholder="Motivo da liberação"
-                  value={releaseReason}
-                  onChange={(e) => setReleaseReason(e.target.value)}
-                  className="h-11 text-base sm:h-9 sm:text-xs"
-                />
-                <Button size="sm" className="min-h-10 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation" onClick={handleRelease} disabled={releasePeculio.isPending}>
-                  <UnlockKeyhole className="h-4 w-4" />
-                  Liberar 12h
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 2. Frequency table - Web View */}
-      <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden hidden md:block">
-        <CardContent className="p-3 sm:p-5">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-[#c4a84b]" />
-              <h2 className="text-lg font-bold text-foreground">Matriz de Frequência e Alterações</h2>
-            </div>
-            <span className="text-sm font-semibold text-muted-foreground">Data: {formattedDate}</span>
+            <Button onClick={handlePrint} variant="outline" size="sm" className="gap-2">
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
           </div>
 
-          <div className="w-full overflow-x-auto rounded-md border border-border/60 overscroll-x-contain">
-            <Table className="min-w-[980px]">
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[60px] text-center font-bold">Nº</TableHead>
-                  <TableHead className="font-bold">Aluno</TableHead>
-                  {statusList.map((st) => (
-                    <TableHead key={st.value} className="text-center font-bold w-[70px]">
-                      {st.label}
-                    </TableHead>
-                  ))}
-                  <TableHead className="font-bold">Situação / Observação</TableHead>
-                  <TableHead className="w-[190px] font-bold">Registro</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student) => {
-                  const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
-                  return (
-                    <TableRow key={student.id} className="hover:bg-muted/30">
-                      <TableCell className="text-center font-semibold">{student.numerica}</TableCell>
-                      <TableCell className="font-medium text-[#1a3a2a] dark:text-green-400">
-                        {student.nomeGuerra}
-                      </TableCell>
-                      {statusList.map((st) => {
-                        const isSelected = entry.status === st.value;
-                        return (
-                          <TableCell key={st.value} className="text-center p-2">
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(student.id, st.value)}
-                              disabled={!canEdit}
-                              className={`h-10 w-10 rounded-full text-xs font-black transition-all touch-manipulation ${
-                                isSelected ? st.color + " scale-110 shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
-                            >
-                              {st.label}
-                            </button>
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="p-2">
-                        <Input
-                          placeholder="Observação da alteração..."
-                          value={entry.observacao}
-                          onChange={(e) => handleObservacaoChange(student.id, e.target.value)}
-                          disabled={!canEdit}
-                          className="h-10 text-sm"
-                        />
-                      </TableCell>
-                      <TableCell className="space-y-2 p-2 text-xs">
-                        {entry.arrivalTime && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            {formatDateTime(entry.arrivalTime)}
-                          </div>
-                        )}
-                        {entry.justificationStatus && (
-                          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-800 dark:text-amber-200">
-                            Justificativa: {entry.justificationStatus === "pending" ? "pendente" : entry.justificationStatus === "approved" ? "acatada" : "negada"}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                          {lock?.canRegisterArrival && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2 text-[11px]"
-                              onClick={() => handleRegisterArrival(student.id)}
-                              disabled={registerArrival.isPending}
-                            >
-                              Chegada
-                            </Button>
-                          )}
-                          {!canEdit && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2 text-[11px]"
-                              onClick={() => handleRequestJustification(student.id)}
-                              disabled={requestJustification.isPending}
-                            >
-                              Justificar
-                            </Button>
-                          )}
-                          {canRelease && entry.justificationStatus === "pending" && (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="h-8 bg-[#1a3a2a] px-2 text-[11px] text-white"
-                                onClick={() => handleReviewJustification(student.id, true)}
-                                disabled={reviewJustification.isPending}
-                              >
-                                Acatar
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="destructive"
-                                className="h-8 px-2 text-[11px]"
-                                onClick={() => handleReviewJustification(student.id, false)}
-                                disabled={reviewJustification.isPending}
-                              >
-                                Negar
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {!students.length && (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center p-6 text-muted-foreground">
-                      Nenhum aluno cadastrado para este Pelotão.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 2. Frequency list - Mobile View */}
-      <div className="space-y-4 print:hidden md:hidden">
-        {students.map((student) => {
-          const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
-          return (
-            <Card key={student.id} className="min-w-0 border-border/50 bg-white dark:bg-zinc-900">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex min-w-0 items-center justify-between gap-3 border-b pb-2">
-                  <span className="min-w-0 truncate font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</span>
-                  <span className="shrink-0 text-xs font-bold text-muted-foreground">Nº {student.numerica}</span>
-                </div>
-                <div>
-                  <Label className="text-[11px] text-muted-foreground">Status / Frequência</Label>
-                  <div className="mt-1 grid grid-cols-4 gap-1.5">
-                    {statusList.map((st) => {
-                      const isSelected = entry.status === st.value;
-                      return (
-                        <button
-                          key={st.value}
-                          type="button"
-                          onClick={() => handleStatusChange(student.id, st.value)}
-                          disabled={!canEdit}
-                          className={`min-h-10 rounded-lg px-2 py-2 text-xs font-bold transition-all touch-manipulation ${
-                            isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {st.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-[11px] text-muted-foreground">SITUAÇÃO / ALTERAÇÃO</Label>
+          {/* Lock status */}
+          {isLocked && (
+            <div className="flex items-center gap-2 rounded bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+              <Lock className="h-4 w-4" />
+              <span>Pecúlio fechado em {lock?.closedAt ? new Date(lock.closedAt).toLocaleString("pt-BR") : "data desconhecida"}</span>
+              {canRelease && (
+                <div className="ml-auto flex gap-2">
                   <Input
-                    placeholder="Observação da alteração..."
-                    value={entry.observacao}
-                    onChange={(e) => handleObservacaoChange(student.id, e.target.value)}
-                    disabled={!canEdit}
-                    className="mt-1 h-11 text-base"
+                    type="text"
+                    placeholder="Motivo da liberação"
+                    value={releaseReason}
+                    onChange={(e) => setReleaseReason(e.target.value)}
+                    className="h-8 text-xs"
                   />
+                  <Button onClick={handleRelease} size="sm" variant="secondary">
+                    Liberar
+                  </Button>
                 </div>
-                {(entry.arrivalTime || entry.justificationStatus || lock?.canRegisterArrival || !canEdit) && (
-                  <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
-                    {entry.arrivalTime && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        Chegada: {formatDateTime(entry.arrivalTime)}
-                      </div>
-                    )}
-                    {entry.justificationStatus && (
-                      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-800 dark:text-amber-200">
-                        Justificativa: {entry.justificationStatus === "pending" ? "pendente" : entry.justificationStatus === "approved" ? "acatada" : "negada"}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      {lock?.canRegisterArrival && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="min-h-9 flex-1 text-xs"
-                          onClick={() => handleRegisterArrival(student.id)}
-                          disabled={registerArrival.isPending}
-                        >
-                          Registrar chegada
-                        </Button>
-                      )}
-                      {!canEdit && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="min-h-9 flex-1 text-xs"
-                          onClick={() => handleRequestJustification(student.id)}
-                          disabled={requestJustification.isPending}
-                        >
-                          Justificar correção
-                        </Button>
-                      )}
-                      {canRelease && entry.justificationStatus === "pending" && (
-                        <>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="min-h-9 flex-1 bg-[#1a3a2a] text-xs text-white"
-                            onClick={() => handleReviewJustification(student.id, true)}
-                            disabled={reviewJustification.isPending}
-                          >
-                            Acatar
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            className="min-h-9 flex-1 text-xs"
-                            onClick={() => handleReviewJustification(student.id, false)}
-                            disabled={reviewJustification.isPending}
-                          >
-                            Negar
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* 3. Header config, signatures, and legend (Web view) */}
-      <div className="grid gap-6 print:hidden xl:grid-cols-[1.2fr_0.8fr]">
-        {/* Extra instruction details */}
-        <Card className="border-border/50 bg-white dark:bg-zinc-900">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center gap-2 border-b pb-2">
-              <FileText className="h-5 w-5 text-[#c4a84b]" />
-              <h2 className="text-lg font-bold text-foreground">Instrução Externa & Assinaturas</h2>
+              )}
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div>
-                <Label>Local da Instrução</Label>
-                <Input value={instrucaoLocal} onChange={(e) => setInstrucaoLocal(e.target.value)} placeholder="Ex.: Stand de Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
-              </div>
-              <div>
-                <Label>Disciplina / Instrução</Label>
-                <Input value={instrucaoDisciplina} onChange={(e) => setInstrucaoDisciplina(e.target.value)} placeholder="Ex.: Armamento e Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
-              </div>
-              <div className="flex flex-col justify-end md:pb-2">
-                <div className="flex min-h-11 items-center gap-2 rounded-md border border-border/50 px-3 py-2 md:border-0 md:px-0 md:py-0">
-                  <Switch id="instrucao-externa" checked={instrucaoExterna} onCheckedChange={setInstrucaoExterna} disabled={!canEdit} />
-                  <Label htmlFor="instrucao-externa" className="cursor-pointer text-sm leading-snug">Possui Instrução Externa?</Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 pt-2 md:grid-cols-3">
-              <div>
-                <Label>Chefe de Turma</Label>
-                <Input value={chefeTurma} onChange={(e) => setChefeTurma(e.target.value)} placeholder="Nome do Chefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
-              </div>
-              <div>
-                <Label>Subchefe de Turma</Label>
-                <Input value={subchefeTurma} onChange={(e) => setSubchefeTurma(e.target.value)} placeholder="Nome do Subchefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
-              </div>
-              <div>
-                <Label>CMT de Pelotão</Label>
-                <Input value={cmtPel} onChange={(e) => setCmtPel(e.target.value)} placeholder="Nome do CMT do Pelotão" className="h-11 text-base sm:h-10 sm:text-sm" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Legend Card */}
-        <Card className="border-border/50 bg-white dark:bg-zinc-900">
-          <CardContent className="p-5 space-y-3">
-            <h3 className="font-bold text-foreground border-b pb-2">Legenda de Alterações</h3>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {legendDetails.map((item) => (
-                <div key={item.abbr} className="flex items-center gap-2 p-1.5 rounded bg-muted/30">
-                  <span className="font-bold bg-muted px-2 py-0.5 rounded border text-[10px] w-8 text-center">{item.abbr}</span>
-                  <span className="text-muted-foreground">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden">
-        <CardContent className="space-y-3 p-4 sm:p-5">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#c4a84b]" />
-              <h2 className="text-base font-bold text-foreground">Resumo das Alterações</h2>
-            </div>
-            <span className="text-xs font-semibold text-muted-foreground">Data: {formattedDate}</span>
-          </div>
-
-          {changedRows.length ? (
-            <div className="grid gap-2 md:grid-cols-2">
-              {changedRows.map((item) => (
-                <div key={item.student.id} className="flex min-w-0 items-start justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-foreground">
-                      Nº {item.student.numerica} - {item.student.nomeGuerra}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.observacao || "Sem observação registrada"}
-                    </p>
-                    {item.arrivalTime && (
-                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        Chegada: {formatDateTime(item.arrivalTime)}
-                      </p>
-                    )}
-                    {item.justificationStatus && (
-                      <p className="mt-1 text-xs font-semibold text-amber-700 dark:text-amber-200">
-                        Justificativa {item.justificationStatus === "pending" ? "pendente" : item.justificationStatus === "approved" ? "acatada" : "negada"}
-                      </p>
-                    )}
-                  </div>
-                  <span className="shrink-0 rounded-full bg-[#1a3a2a]/10 px-2 py-1 text-[11px] font-bold text-[#1a3a2a] dark:text-green-300">
-                    {getStatusName(item.status)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-3 text-sm text-muted-foreground">
-              Nenhuma alteração registrada neste pecúlio.
-            </p>
           )}
+
+          {/* Save/Close buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {canEdit && (
+              <>
+                <Button onClick={handleSave} disabled={savePeculio.isPending} className="gap-2">
+                  <Save className="h-4 w-4" /> Salvar
+                </Button>
+                <Button onClick={handleClose} disabled={closePeculio.isPending} variant="secondary" className="gap-2">
+                  <ShieldCheck className="h-4 w-4" /> Fechar e Autenticar
+                </Button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* 4. OFFICIAL PMAM PECÚLIO PRINT VIEW - Hidden by default, visible during window.print() */}
-      <div className="hidden print:block peculio-print-container font-serif text-black p-4 space-y-4" style={{ fontSize: "11px" }}>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            body { background: white !important; color: black !important; }
-            .print\\:hidden, header, nav, footer, aside, .sw-active, button { display: none !important; }
-            .peculio-print-container { display: block !important; width: 100%; }
-            @page { size: portrait; margin: 1.5cm; }
-          }
-          .peculio-table th, .peculio-table td { border: 1px solid black !important; padding: 2px 4px !important; text-align: center; }
-          .peculio-table td.left-align { text-align: left !important; }
-        ` }} />
-
-        {/* Header section matching PDF */}
-        <div className="flex flex-col items-center text-center space-y-1">
-          <h1 className="text-sm font-black tracking-wider">PMAM</h1>
-          <h2 className="text-xs font-black">POLÍCIA MILITAR DO AMAZONAS</h2>
-          <h3 className="text-[10px] font-bold">DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</h3>
-          <h4 className="text-[10px] font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</h4>
-          <div className="w-full border-t border-black my-2"></div>
-          
-          <div className="flex justify-between w-full font-bold text-xs">
-            <span>PECÚLIO {selectedCompanhia}ª CIA/{selectedPeloton}º PEL - CFSD/2026</span>
-            <span>DATA: {formattedDate}</span>
+      {/* 2. Print Header - Print only */}
+      <div className="hidden print:block space-y-2 pb-4 border-b-2 border-black">
+        <div className="flex justify-between items-start gap-4">
+          <div className="text-center flex-1">
+            <div className="text-xs font-bold">PMAM</div>
+            <div className="text-xs">POLÍCIA MILITAR DO AMAZONAS</div>
+            <div className="text-xs">DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</div>
+            <div className="text-xs">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</div>
+          </div>
+          <div className="text-xs text-right">
+            <div className="font-bold">PECÚLIO {selectedCompanhia}ª CIA/{selectedPeloton}º PEL - CFSD/2026</div>
+            <div>DATA: {formattedDate}</div>
           </div>
         </div>
+      </div>
 
-        {/* Attendance Matrix Table */}
-        <table className="w-full peculio-table border-collapse mt-4">
-          <thead>
-            <tr className="font-bold">
-              <th className="w-10">ORD</th>
-              <th className="w-12">Nº</th>
-              <th>NOME COMPLETO</th>
-              <th className="w-16">PRONTO</th>
-              <th className="w-8">FT</th>
-              <th className="w-8">AT</th>
-              <th className="w-8">DD</th>
-              <th className="w-8">DI</th>
-              <th className="w-8">DM</th>
-              <th className="w-8">DA</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* 3. Compact Table for Print */}
+      <div className="overflow-x-auto">
+        <Table className="text-xs print:text-[10px]">
+          <TableHeader className="print:bg-gray-200">
+            <TableRow className="print:border-black print:border">
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">ORD</TableHead>
+              <TableHead className="w-12 print:p-1 print:text-center print:border print:border-black">Nº</TableHead>
+              <TableHead className="print:p-1 print:border print:border-black">NOME COMPLETO</TableHead>
+              <TableHead className="w-12 print:p-1 print:text-center print:border print:border-black">PRONTO</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">FT</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">AT</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">DD</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">DI</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">DM</TableHead>
+              <TableHead className="w-8 print:p-1 print:text-center print:border print:border-black">DA</TableHead>
+              {canEdit && <TableHead className="print:hidden">Ações</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {students.map((student, idx) => {
-              const entry = studentStatuses[student.id] || { status: "pronto", observacao: "" };
+              const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null };
               return (
-                <tr key={student.id}>
-                  <td>{idx + 1}</td>
-                  <td>{student.numerica}</td>
-                  <td className="left-align font-semibold uppercase">{student.nomeGuerra}</td>
-                  <td>{entry.status === "pronto" ? "X" : ""}</td>
-                  <td>{entry.status === "falta" ? "X" : ""}</td>
-                  <td>{entry.status === "atraso" ? "X" : ""}</td>
-                  <td>{entry.status === "diverso_destino" ? "X" : ""}</td>
-                  <td>{entry.status === "destino_ignorado" ? "X" : ""}</td>
-                  <td>{entry.status === "dispensa_medica" ? "X" : ""}</td>
-                  <td>{entry.status === "dispensa_administrativa" ? "X" : ""}</td>
-                </tr>
+                <TableRow key={student.id} className="print:border-black print:border">
+                  <TableCell className="print:p-1 print:text-center print:border print:border-black">{idx + 1}</TableCell>
+                  <TableCell className="print:p-1 print:text-center print:border print:border-black">{student.numerica}</TableCell>
+                  <TableCell className="print:p-1 print:border print:border-black">{student.nomeGuerra}</TableCell>
+                  {statusList.map((status) => (
+                    <TableCell
+                      key={status.value}
+                      className="print:p-1 print:text-center print:border print:border-black text-center"
+                    >
+                      {canEdit ? (
+                        <button
+                          onClick={() => handleStatusChange(student.id, status.value)}
+                          className={`w-full h-6 text-xs rounded ${
+                            entry.status === status.value
+                              ? status.color
+                              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                          } print:bg-white print:border print:border-black`}
+                        >
+                          {status.label === "PRONTO" ? "✓" : status.label}
+                        </button>
+                      ) : (
+                        <div className="text-xs">
+                          {entry.status === status.value && (status.label === "PRONTO" ? "✓" : status.label)}
+                        </div>
+                      )}
+                    </TableCell>
+                  ))}
+                  {canEdit && (
+                    <TableCell className="print:hidden">
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => handleRegisterArrival(student.id)}
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs"
+                        >
+                          <Clock className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+      </div>
 
-        {/* Legend and Instruction Box */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="border border-black p-2 space-y-1">
-            <h5 className="font-bold uppercase border-b border-black pb-1 mb-1">Legenda das Alterações</h5>
-            <div className="grid grid-cols-2 gap-x-2 text-[9px]">
-              <div><strong>FT</strong> - FALTA</div>
-              <div><strong>AT</strong> - ATRASO</div>
-              <div><strong>DD</strong> - DIVERSO DESTINO</div>
-              <div><strong>DI</strong> - DESTINO IGNORADO</div>
-              <div><strong>DM</strong> - DISPENSA MÉDICA</div>
-              <div><strong>DA</strong> - DISPENSA ADMINISTRATIVA</div>
+      {/* 4. Legend */}
+      <div className="mt-4 print:mt-2 space-y-2">
+        <div className="text-xs font-bold print:text-[10px]">LEGENDA DAS ALTERAÇÕES:</div>
+        <div className="grid grid-cols-2 gap-2 text-xs print:text-[10px] print:grid-cols-3">
+          {legendDetails.map((item) => (
+            <div key={item.abbr}>
+              <span className="font-bold">{item.abbr}</span> - {item.name}
             </div>
-          </div>
-
-          <div className="border border-black p-2 flex flex-col justify-between">
-            <h5 className="font-bold uppercase border-b border-black pb-1 mb-1 text-center">Instrução Externa</h5>
-            <div className="grid grid-cols-2 gap-2 text-[9px]">
-              <div><strong>Local:</strong> {instrucaoLocal || "________________"}</div>
-              <div><strong>Disciplina:</strong> {instrucaoDisciplina || "________________"}</div>
-            </div>
-            <div className="flex items-center gap-4 text-[9px] mt-2">
-              <span><strong>Externa?</strong></span>
-              <span>[ {instrucaoExterna ? "X" : " "} ] SIM</span>
-              <span>[ {!instrucaoExterna ? "X" : " "} ] NÃO</span>
-            </div>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Descriptions / Details of changes (Page 2 layout elements inside print view) */}
-        <div className="page-break-before border border-black p-2 mt-4">
-          <h5 className="font-bold uppercase border-b border-black pb-1 mb-2 text-center">Descrição das Alterações</h5>
-          <div className="space-y-1">
-            {students.filter(s => {
-              const entry = studentStatuses[s.id];
-              return entry && (entry.status !== "pronto" || entry.observacao);
-            }).map((student, idx) => {
-              const entry = studentStatuses[student.id];
-              return (
-                <div key={student.id} className="text-[10px] uppercase border-b border-dashed border-gray-300 pb-1">
-                  <strong>{idx + 1}. Nº {student.numerica} - {student.nomeGuerra}:</strong> {conditionAbbrs[entry?.status || "pronto"]} {entry?.observacao ? ` - ${entry.observacao}` : ""}
-                </div>
-              );
-            })}
-            {!students.some(s => {
-              const entry = studentStatuses[s.id];
-              return entry && (entry.status !== "pronto" || entry.observacao);
-            }) && (
-              <div className="text-center text-gray-500 italic p-4 text-[10px]">Sem alterações registradas.</div>
-            )}
-          </div>
+      {/* 5. Signatures - Print only */}
+      <div className="hidden print:block space-y-8 mt-8 text-center text-xs">
+        <div>
+          <div className="border-t border-black w-32 mx-auto"></div>
+          <div className="font-bold">CHEFE DE TURMA</div>
         </div>
-
-        {/* Signatures section matching PDF */}
-        <div className="grid grid-cols-3 gap-6 text-center pt-12">
-          <div className="flex flex-col items-center">
-            <div className="w-40 border-b border-black"></div>
-            <span className="text-[9px] font-bold uppercase mt-1">Chefe de Turma</span>
-            <span className="text-[8px] text-gray-500 italic">{chefeTurma || "Assinatura"}</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-40 border-b border-black"></div>
-            <span className="text-[9px] font-bold uppercase mt-1">Subchefe de Turma</span>
-            <span className="text-[8px] text-gray-500 italic">{subchefeTurma || "Assinatura"}</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-40 border-b border-black"></div>
-            <span className="text-[9px] font-bold uppercase mt-1">CMT de Pel</span>
-            <span className="text-[8px] text-gray-500 italic">{cmtPel || "Assinatura"}</span>
-          </div>
+        <div>
+          <div className="border-t border-black w-32 mx-auto"></div>
+          <div className="font-bold">SUBCHEFE DE TURMA</div>
+        </div>
+        <div>
+          <div className="border-t border-black w-32 mx-auto"></div>
+          <div className="font-bold">CMT DE PEL</div>
         </div>
       </div>
     </div>
