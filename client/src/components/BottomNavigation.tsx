@@ -15,7 +15,6 @@ import {
 import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { trpc } from "@/lib/trpc";
 import { useEffect, useState } from "react";
 
 export const notifySessionChange = () => {
@@ -83,13 +82,7 @@ export default function BottomNavigation() {
     setMoreOpen(false);
   };
 
-  const logoutMutation = trpc.auth.logout.useMutation();
-  const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (e) {
-      console.error("[StudentLogout] Failed to logout auth session:", e);
-    }
+  const handleLogout = () => {
     clearStudentSession();
     notifySessionChange();
     setMoreOpen(false);

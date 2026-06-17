@@ -1383,10 +1383,7 @@ export const appRouter = router({
       return serviceScaleDb.getPublishedServiceBoard(input?.weekStart);
     }),
 
-    myAccess: publicProcedure.query(async ({ ctx }) => {
-      if (!ctx.user) {
-        return null;
-      }
+    myAccess: protectedProcedure.query(async ({ ctx }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
       const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || assignment?.level === "principal";
       return {
