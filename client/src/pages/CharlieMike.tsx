@@ -64,8 +64,8 @@ export default function CharlieMike() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
-        <div className="container text-center">
+      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-12">
+        <div className="px-0 md:container text-center">
           <ListMusic className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Charlie Mike
@@ -77,8 +77,8 @@ export default function CharlieMike() {
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-5 md:bg-background md:px-0 md:py-6">
-        <div className="container space-y-5 md:space-y-6">
+      <section className="bg-transparent px-3 py-5 md:bg-background md:px-0 md:py-6">
+        <div className="px-0 md:container space-y-5 md:space-y-6">
           <PlaylistPlayer
             title="Charlie Mike"
             description="Acervo TFM em fila contínua para treino, instrução e ambientação, com leitura mais confortável em web e mobile."

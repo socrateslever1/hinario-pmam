@@ -72,7 +72,13 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleStudentLogout = () => {
+  const logoutMutation = trpc.auth.logout.useMutation();
+  const handleStudentLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch (e) {
+      console.error("[StudentLogout] Failed to logout auth session:", e);
+    }
     clearStudentSession();
     // Força atualização da página para limpar cache
     window.location.href = "/";

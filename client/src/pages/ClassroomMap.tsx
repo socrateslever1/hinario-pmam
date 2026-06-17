@@ -350,16 +350,18 @@ export default function ClassroomMap() {
 
   // Access validation
   const isXerifeGeral = Boolean(access?.isGeneral);
+  const isCurrentStudentActiveXerife = studentSession && activeRoles && 
+    (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
+
   const isAdminOrXerifeAdmin = isXerifeGeral ||
     (access?.assignment && 
      (access.assignment.level === "principal" ||
       (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
       (access.assignment.level === "pelotao" && 
        access.assignment.companhia === selectedCompanhia && 
-       access.assignment.peloton === selectedPeloton)));
+       access.assignment.peloton === selectedPeloton))) ||
+    Boolean(isCurrentStudentActiveXerife);
 
-  const isCurrentStudentActiveXerife = studentSession && activeRoles && 
-    (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
   const canChangeClassroomScope = isXerifeGeral;
 
   const seatRequestsQuery = trpc.serviceScale.seatChangeRequests.useQuery(
@@ -851,86 +853,82 @@ export default function ClassroomMap() {
             {/* Main Grid: Seating Map & Side Column */}
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
               
-              <div className="space-y-6">
-                {/* Seating Map Card */}
-                <Card className="border-border/50 bg-white dark:bg-zinc-900 shadow-md">
-                  <CardContent className="p-6">
-                    {/* Front indication */}
-                    <div className="mb-8 flex flex-col items-center justify-center border-b pb-5 dark:border-zinc-800">
-                      <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-6 py-2 dark:bg-zinc-800 border border-border/50 shadow-inner w-full max-w-sm justify-center">
-                        <Laptop className="h-4 w-4 text-[#c4a84b]" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground">
-                          MESA DO INSTRUTOR / QUADRO (FRENTE)
-                        </span>
+              <div className="space-y-6 min-w-0">
+                {/* Seating Map Container */}
+                <div className="space-y-6 min-w-0">
+                  {/* Front indication */}
+                  <div className="flex flex-col items-center justify-center border-b pb-5 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-6 py-2 dark:bg-zinc-800 border border-border/50 shadow-inner w-full max-w-sm justify-center">
+                      <Laptop className="h-4 w-4 text-[#c4a84b]" />
+                      <span className="text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground">
+                        MESA DO INSTRUTOR / QUADRO (FRENTE)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Capacity control (Xerife only) */}
+                  {isAdminOrXerifeAdmin && (
+                    <div className="flex items-center justify-between bg-white/60 dark:bg-zinc-900/40 border border-border/40 p-2.5 rounded-lg max-w-md mx-auto shadow-sm">
+                      <span className="text-xs font-bold text-muted-foreground">Ajuste de assentos:</span>
+                      <div className="flex items-center gap-2">
+                        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAdjustCapacity(-1)} disabled={capacity <= 10}><Minus className="h-3.5 w-3.5" /></Button>
+                        <span className="text-xs font-bold w-16 text-center">{capacity} cadeiras</span>
+                        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAdjustCapacity(1)} disabled={capacity >= 120}><Plus className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
+                  )}
 
-                    {/* Capacity control (Xerife only) */}
-                    {isAdminOrXerifeAdmin && (
-                      <div className="mb-4 flex items-center justify-between bg-muted/30 p-2 rounded-lg">
-                        <span className="text-xs font-bold text-muted-foreground">Ajuste de assentos:</span>
-                        <div className="flex items-center gap-2">
-                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAdjustCapacity(-1)} disabled={capacity <= 10}><Minus className="h-3.5 w-3.5" /></Button>
-                          <span className="text-xs font-bold w-16 text-center">{capacity} cadeiras</span>
-                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => handleAdjustCapacity(1)} disabled={capacity >= 120}><Plus className="h-3.5 w-3.5" /></Button>
+                  {/* Seating map grid (exactly 5 columns, scrollable in separate container) */}
+                  <div className="border border-border/50 rounded-xl bg-white/80 dark:bg-zinc-900/60 p-6 shadow-md overflow-x-auto w-full max-w-full min-w-0 mb-6">
+                    <div className="min-w-[750px] grid grid-cols-5 gap-4 pb-2">
+                      {/* Fileira 1 (01 a 11) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                          Fileira 1
                         </div>
+                        {col1.map((seatNumber) => renderSeatCard(seatNumber))}
                       </div>
-                    )}
 
-                    {/* Seating map grid (exactly 5 columns, scrollable in separate container) */}
-                    <div className="border border-border/50 rounded-lg bg-muted/5 p-4 mb-6">
-                      <div className="overflow-x-auto w-full pb-2">
-                        <div className="min-w-[750px] grid grid-cols-5 gap-4">
-                        {/* Fileira 1 (01 a 11) */}
-                        <div className="flex flex-col gap-3">
-                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
-                            Fileira 1
-                          </div>
-                          {col1.map((seatNumber) => renderSeatCard(seatNumber))}
+                      {/* Fileira 2 (12 a 21) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                          Fileira 2
                         </div>
+                        {col2.map((seatNumber) => renderSeatCard(seatNumber))}
+                      </div>
 
-                        {/* Fileira 2 (12 a 21) */}
-                        <div className="flex flex-col gap-3">
-                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
-                            Fileira 2
-                          </div>
-                          {col2.map((seatNumber) => renderSeatCard(seatNumber))}
+                      {/* Fileira 3 (22 a 31) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                          Fileira 3
                         </div>
+                        {col3.map((seatNumber) => renderSeatCard(seatNumber))}
+                      </div>
 
-                        {/* Fileira 3 (22 a 31) */}
-                        <div className="flex flex-col gap-3">
-                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
-                            Fileira 3
-                          </div>
-                          {col3.map((seatNumber) => renderSeatCard(seatNumber))}
+                      {/* Fileira 4 (32 a 41) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                          Fileira 4
                         </div>
+                        {col4.map((seatNumber) => renderSeatCard(seatNumber))}
+                      </div>
 
-                        {/* Fileira 4 (32 a 41) */}
-                        <div className="flex flex-col gap-3">
-                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
-                            Fileira 4
-                          </div>
-                          {col4.map((seatNumber) => renderSeatCard(seatNumber))}
+                      {/* Fileira 5 (Xerife, Sub-xerife, 42 a 51+) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
+                          Fileira 5
                         </div>
-
-                        {/* Fileira 5 (Xerife, Sub-xerife, 42 a 51+) */}
-                        <div className="flex flex-col gap-3">
-                          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
-                            Fileira 5
-                          </div>
-                          {renderSpecialSeatCard("xerife")}
-                          {renderSpecialSeatCard("sub_xerife")}
-                          {col5Regular.map((seatNumber) => renderSeatCard(seatNumber))}
-                        </div>
-                        </div>
+                        {renderSpecialSeatCard("xerife")}
+                        {renderSpecialSeatCard("sub_xerife")}
+                        {col5Regular.map((seatNumber) => renderSeatCard(seatNumber))}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="mt-8 pt-5 border-t dark:border-zinc-800 text-center">
-                      <span className="text-[8px] font-bold uppercase tracking-[0.25em] text-muted-foreground/35">FUNDO DA SALA</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                  <div className="pt-5 border-t dark:border-zinc-800 text-center">
+                    <span className="text-[8px] font-bold uppercase tracking-[0.25em] text-muted-foreground/35">FUNDO DA SALA</span>
+                  </div>
+                </div>
 
                 {/* Unassigned Students List */}
                 <Card className="border-border/50 bg-white dark:bg-zinc-900 shadow-md">
