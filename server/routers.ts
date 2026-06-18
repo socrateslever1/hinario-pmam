@@ -1924,6 +1924,11 @@ export const appRouter = router({
     }),
   }),
 
+  /**
+   * MANUS_LOCK: PECULIO_CRITICAL_MODULE
+   * Nao alterar deliberadamente estas rotas sem autorizacao explicita do dono do projeto.
+   * Preservar regras de escopo, fechamento, liberacao, chegada tardia, justificativa e revisao pelo Xerife Geral.
+   */
   peculio: router({
     list: masterProcedure.input(
       z.object({

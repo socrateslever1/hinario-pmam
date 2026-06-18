@@ -1,3 +1,9 @@
+/**
+ * MANUS_LOCK: PECULIO_CRITICAL_MODULE
+ * Nao alterar deliberadamente este arquivo sem autorizacao explicita do dono do projeto.
+ * Esta visao consolida Peculios por Companhia/Pelotao para o Xerife Geral.
+ * Mudancas aqui devem preservar escopo, permissoes, fechamento, liberacao e revisao dos Peculios.
+ */
 import { useState } from "react";
 import { ArrowLeft, Check, ClipboardList, Lock, ShieldCheck, UnlockKeyhole } from "lucide-react";
 import { toast } from "sonner";

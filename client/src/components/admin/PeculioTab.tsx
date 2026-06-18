@@ -1,3 +1,9 @@
+/**
+ * MANUS_LOCK: PECULIO_CRITICAL_MODULE
+ * Nao alterar deliberadamente este arquivo sem autorizacao explicita do dono do projeto.
+ * Este componente controla frequencia, fechamento, chegada tardia, justificativas e assinatura do Peculio.
+ * Mudancas aqui devem preservar regras de negocio, permissoes do Xerife Geral/Xerife nomeado e auditoria por aluno.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Check, Clock, FileText, Lock, Printer, Save, ShieldCheck, UnlockKeyhole, Users } from "lucide-react";
 import { toast } from "sonner";

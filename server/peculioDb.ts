@@ -1,3 +1,9 @@
+/**
+ * MANUS_LOCK: PECULIO_CRITICAL_MODULE
+ * Nao alterar deliberadamente este arquivo sem autorizacao explicita do dono do projeto.
+ * Este modulo cria e mantem as tabelas, auditoria, chegada tardia, justificativas e fechamento do Peculio.
+ * Qualquer mudanca pode afetar dados reais de frequencia; preserve migracoes incrementais e compatibilidade.
+ */
 import { query } from "./mysql";
 
 let schemaPromise: Promise<void> | null = null;

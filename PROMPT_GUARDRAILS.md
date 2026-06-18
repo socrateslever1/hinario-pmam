@@ -64,6 +64,30 @@ A IA deve considerar estes niveis de acesso:
 
 Quando o perfil do usuario nao estiver claro, a IA deve assumir o menor privilegio possivel.
 
+## Trava de protecao para Manus e outros agentes
+
+Os arquivos do Peculio sao modulos criticos e nao devem ser alterados deliberadamente por Manus, agentes externos ou automacoes sem autorizacao explicita do dono do projeto nesta conversa.
+
+Arquivos protegidos:
+
+- `client/src/components/admin/PeculioTab.tsx`
+- `client/src/components/admin/PeculioOverview.tsx`
+- `server/peculioDb.ts`
+- `server/routers.ts`, somente o bloco `peculio: router`
+- `client/src/pages/ClassroomMap.tsx`, somente chamadas e navegacao da area de Peculio
+
+Regras absolutas para esses arquivos:
+
+- Nao remover regras de frequencia, fechamento, chegada tardia, justificativa ou assinatura digital.
+- Nao remover permissao especial do Xerife Geral.
+- Nao liberar edicao ampla para Xerife nomeado depois do fechamento.
+- Nao trocar endpoints, nomes de rotas ou schema de dados sem revisar backend e frontend juntos.
+- Nao apagar colunas, migracoes incrementais ou dados historicos.
+- Nao reescrever a tela do Peculio do zero.
+- Qualquer ajuste visual deve preservar o motor atual.
+
+Antes de mexer nesses arquivos, o agente deve explicar a necessidade, listar o impacto e receber autorizacao explicita.
+
 ## Parametros para estudos
 
 Ao responder perguntas de estudo:
