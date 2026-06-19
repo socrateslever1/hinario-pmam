@@ -724,12 +724,12 @@ export default function ClassroomMap() {
 
   // View Navigation links
   const menuOptions = [
-    { title: "Frequência (Pecúlio)", desc: "Lançar e auditar faltas ou dispensas", icon: ClipboardList, path: "/sala-de-aula/peculio", adminOnly: true },
-    { title: "Funções e Cargos", desc: "Criar funções, nomear membros e tesouraria", icon: Users, path: "/sala-de-aula/cargos", adminOnly: true },
-    { title: "Efetivo do Pelotão", desc: "Ver condições e promover lideranças", icon: Users, path: "/sala-de-aula/efetivo", adminOnly: true },
-    { title: "Escalas de Limpeza", desc: "Visualizar e gerenciar faxina semanal", icon: CalendarDays, path: "/sala-de-aula/escala", adminOnly: false },
-    { title: "Aditamentos Vigentes", desc: "Acessar informativos e PDFs oficiais", icon: FileText, path: "/sala-de-aula/aditamentos", adminOnly: false },
-    { title: "Histórico de Xerifado", desc: "Arquivo histórico de promoções", icon: History, path: "/sala-de-aula/historico", adminOnly: false }
+    { title: "Frequência (Pecúlio)", mobileTitle: "Frequência", desc: "Lançar e auditar faltas ou dispensas", mobileDesc: "Pecúlio diário", icon: ClipboardList, path: "/sala-de-aula/peculio", adminOnly: true },
+    { title: "Funções e Cargos", mobileTitle: "Funções", desc: "Criar funções, nomear membros e tesouraria", mobileDesc: "Cargos e tesouraria", icon: Users, path: "/sala-de-aula/cargos", adminOnly: true },
+    { title: "Efetivo do Pelotão", mobileTitle: "Efetivo", desc: "Ver condições e promover lideranças", mobileDesc: "Alunos e liderança", icon: Users, path: "/sala-de-aula/efetivo", adminOnly: true },
+    { title: "Escalas de Limpeza", mobileTitle: "Limpeza", desc: "Visualizar e gerenciar faxina semanal", mobileDesc: "Faxina semanal", icon: CalendarDays, path: "/sala-de-aula/escala", adminOnly: false },
+    { title: "Aditamentos Vigentes", mobileTitle: "Aditamentos", desc: "Acessar informativos e PDFs oficiais", mobileDesc: "PDFs oficiais", icon: FileText, path: "/sala-de-aula/aditamentos", adminOnly: false },
+    { title: "Histórico de Xerifado", mobileTitle: "Histórico", desc: "Arquivo histórico de promoções", mobileDesc: "Promoções", icon: History, path: "/sala-de-aula/historico", adminOnly: false }
   ];
 
   const filteredMenuOptions = menuOptions.filter(opt => !opt.adminOnly || isAdminOrXerifeAdmin);
@@ -834,19 +834,21 @@ export default function ClassroomMap() {
             )}
 
             {/* Quick Navigation Menu Cards */}
-            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
               {filteredMenuOptions.map((opt) => {
                 const Icon = opt.icon;
                 return (
                   <Link href={opt.path} key={opt.path}>
-                    <Card className="h-[50px] overflow-hidden border-border/50 bg-white py-0 dark:bg-zinc-900 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 cursor-pointer transition-all duration-300">
-                      <CardContent className="flex h-full items-center gap-2 px-2.5 py-1.5">
-                        <div className="rounded bg-[#c4a84b]/10 p-1 text-[#c4a84b]">
+                    <Card className="h-[54px] overflow-hidden border-border/50 bg-white py-0 shadow-sm transition-all duration-300 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 dark:bg-zinc-900 md:h-[56px]">
+                      <CardContent className="flex h-full items-center gap-2 px-2 py-1.5 md:px-2.5">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 text-[#c4a84b]">
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-bold leading-none">{opt.title}</p>
-                          <p className="mt-1 truncate text-[10px] leading-none text-muted-foreground">{opt.desc}</p>
+                          <p className="truncate text-[11px] font-black leading-tight text-foreground md:hidden">{opt.mobileTitle}</p>
+                          <p className="hidden truncate text-xs font-bold leading-tight text-foreground md:block">{opt.title}</p>
+                          <p className="mt-0.5 truncate text-[9.5px] leading-tight text-muted-foreground md:hidden">{opt.mobileDesc}</p>
+                          <p className="mt-0.5 hidden truncate text-[10px] leading-tight text-muted-foreground md:block">{opt.desc}</p>
                         </div>
                       </CardContent>
                     </Card>
