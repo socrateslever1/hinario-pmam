@@ -161,7 +161,7 @@ export default function CharlieMike() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-36 rounded-2xl" />
               ))}
@@ -175,24 +175,24 @@ export default function CharlieMike() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {songs.map((song: any) => (
                 <Link key={song.id} href={`/hino/${song.id}`}>
-                  <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden border-border/50 bg-white text-foreground shadow-sm hover:border-[#c4a84b]/50">
+                  <Card className="hymn-card-hover group cursor-pointer overflow-hidden border-border/50 bg-white py-0 text-foreground shadow-sm hover:border-[#c4a84b]/50">
                     <CardContent className="p-0">
                       <div className="h-1 w-full bg-[#2d5a27]" />
-                      <div className="p-5">
-                        <div className="flex items-start gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2d5a27] text-sm font-black text-white shadow-sm">
+                      <div className="p-3 md:p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#2d5a27] text-sm font-black text-white shadow-sm">
                             {String(song.number).padStart(2, "0")}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#2d5a27]">
+                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#2d5a27]">
                               Canção Militar
                             </p>
                             <h3 className="text-base font-bold leading-tight text-foreground">{song.title}</h3>
-                            {song.subtitle && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{song.subtitle}</p>}
-                            {song.author && <p className="mt-2 text-xs text-muted-foreground">{song.author}</p>}
+                            {song.subtitle && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{song.subtitle}</p>}
+                            {song.author && <p className="mt-1 text-xs text-muted-foreground">{song.author}</p>}
                           </div>
                           <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
                               <Play className="h-4 w-4 fill-white text-white" />
                             </div>
                           </div>

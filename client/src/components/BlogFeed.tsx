@@ -16,7 +16,7 @@ export default function BlogFeed() {
 
   if (isLoading) {
     return (
-      <section className="bg-[#062417] py-6 md:bg-background md:py-12">
+      <section className="bg-[#062417] py-5 md:bg-background md:py-8">
         <div className="container">
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#c4a84b]" />
@@ -31,9 +31,9 @@ export default function BlogFeed() {
   }
 
   return (
-    <section className="bg-[#062417] px-4 py-5 text-[#f8f7f0] md:bg-background md:px-0 md:py-12 md:text-foreground">
+    <section className="bg-[#062417] px-4 py-5 text-[#f8f7f0] md:bg-background md:px-0 md:py-8 md:text-foreground">
       <div className="container">
-        <div className="mb-3 flex items-center justify-between md:mb-8 md:block">
+        <div className="mb-3 flex items-center justify-between md:mb-5 md:block">
           <div className="mb-4 hidden items-center gap-2 rounded-full bg-muted px-4 py-1.5 md:inline-flex">
             <Calendar className="h-4 w-4 text-[#c4a84b]" />
             <span className="text-sm font-semibold uppercase tracking-widest text-[#1a3a2a]">
@@ -46,7 +46,7 @@ export default function BlogFeed() {
           <Link href="/cfap-2026" className="text-xs font-bold uppercase tracking-[0.14em] text-[#f0bd3a] md:hidden">
             Ver todos
           </Link>
-          <div className="mt-6 hidden h-1 w-20 rounded-full bg-[#c4a84b] md:block" />
+          <div className="mt-4 hidden h-1 w-20 rounded-full bg-[#c4a84b] md:block" />
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">

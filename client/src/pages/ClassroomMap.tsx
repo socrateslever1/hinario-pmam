@@ -771,24 +771,29 @@ export default function ClassroomMap() {
           <div className="space-y-6">
             
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <Link href={studentSession ? "/notas-do-curso" : "/"}>
-                  <Button variant="ghost" size="icon" className="rounded-full border border-border bg-white dark:bg-zinc-900">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full border border-border bg-white dark:bg-zinc-900">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
-                <div className="flex items-center gap-2">
-                  <LayoutGrid className="h-6 w-6 text-[#c4a84b]" />
-                  <h1 className="text-2xl font-black uppercase tracking-wider text-[#1a3a2a] dark:text-[#c4a84b]">
-                    Sala de Aula {isAdminOrXerifeAdmin && <span className="text-xs font-normal lowercase text-muted-foreground">(painel do xerife)</span>}
+                <div className="flex min-w-0 items-center gap-2">
+                  <LayoutGrid className="h-5 w-5 shrink-0 text-[#c4a84b] sm:h-6 sm:w-6" />
+                  <h1 className="min-w-0 text-xl font-black uppercase leading-tight tracking-wide text-[#1a3a2a] dark:text-[#c4a84b] sm:text-2xl sm:tracking-wider">
+                    <span className="whitespace-nowrap">Sala de Aula</span>
+                    {isAdminOrXerifeAdmin && (
+                      <span className="ml-1 align-baseline font-sans text-[11px] font-medium lowercase tracking-normal text-muted-foreground sm:text-xs">
+                        (painel do xerife)
+                      </span>
+                    )}
                   </h1>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeClassroomScope}>
-                  <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-900 border-border/50">
+                  <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[150px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -797,7 +802,7 @@ export default function ClassroomMap() {
                 </Select>
 
                 <Select value={peloton} onValueChange={setPeloton} disabled={!canChangeClassroomScope}>
-                  <SelectTrigger className="w-[120px] bg-white dark:bg-zinc-900 border-border/50">
+                  <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[128px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -834,14 +839,14 @@ export default function ClassroomMap() {
                 const Icon = opt.icon;
                 return (
                   <Link href={opt.path} key={opt.path}>
-                    <Card className="h-[50px] overflow-hidden border-border/50 bg-white dark:bg-zinc-900 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 cursor-pointer transition-all duration-300">
+                    <Card className="h-[50px] overflow-hidden border-border/50 bg-white py-0 dark:bg-zinc-900 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 cursor-pointer transition-all duration-300">
                       <CardContent className="flex h-full items-center gap-2 px-2.5 py-1.5">
                         <div className="rounded bg-[#c4a84b]/10 p-1 text-[#c4a84b]">
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[11px] font-bold leading-none sm:text-xs">{opt.title}</p>
-                          <p className="mt-1 truncate text-[9px] leading-none text-muted-foreground sm:text-[10px]">{opt.desc}</p>
+                          <p className="truncate text-xs font-bold leading-none">{opt.title}</p>
+                          <p className="mt-1 truncate text-[10px] leading-none text-muted-foreground">{opt.desc}</p>
                         </div>
                       </CardContent>
                     </Card>

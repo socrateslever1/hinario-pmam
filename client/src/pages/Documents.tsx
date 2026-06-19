@@ -25,9 +25,9 @@ import { toast } from "sonner";
 import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "/logo/IMG_7728.PNG";
-const PMAM_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
-const CFAP_HEADER_URL = BRASAO_URL; // Usar mesma URL que funciona
+const BRASAO_URL = "/documents/images/pmam-brasao.png";
+const PMAM_HEADER_URL = "/documents/images/pmam-brasao.png";
+const CFAP_HEADER_URL = "/documents/images/cfap-brasao.jpg";
 
 type DocType = "parte" | "requerimento" | "defesa" | "guia";
 
@@ -224,7 +224,10 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
   const fecho = docData.parteFecho || "Respeitosamente,";
 
   return (
-    <div className="flex min-h-[245mm] w-full flex-col bg-white text-[12px] leading-[1.45] text-black [color-scheme:light]">
+    <div
+      className="official-document-sheet relative flex w-full flex-col pb-[16mm] text-[12px] leading-[1.45] [color-scheme:light]"
+      style={{ height: "257mm", minHeight: "257mm" }}
+    >
       <header className="relative mb-8 min-h-[31mm] text-center font-serif">
         <img src={PMAM_HEADER_URL} alt="Brasão PMAM" className="absolute left-0 top-0 h-[24mm] w-[24mm] object-contain" />
         <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
@@ -258,14 +261,15 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
         <p className="mt-10 indent-[15mm]">{fecho}</p>
       </main>
 
-      <section className="mb-8 text-center">
-        <p>{remetente}</p>
+      <section className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-2 h-px w-[80mm] bg-black" />
+        <p className="font-bold uppercase">{remetente}</p>
         <p>Solicitante</p>
       </section>
 
-      <footer className="mt-auto border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
+      <footer className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
         <p className="font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP</p>
-        <p>Av. Governador Danilo de Matos, nº381, Bloco L, Distrito Industrial - CEP: 69.075-351 - Manaus/AM</p>
+        <p>Rua Benjamin Constant, 2150 - Petrópolis, Manaus - AM, CEP: 69063-010</p>
         <p>cfap@pm.am.gov.br</p>
       </footer>
     </div>
@@ -751,12 +755,25 @@ window.print();
           <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"}`}>
             <div 
               id="military-document-print" 
-              className="flex min-h-[297mm] w-[210mm] flex-col items-center justify-between border border-gray-200 bg-white p-[30mm] pb-[20mm] pt-[20mm] font-serif text-[13px] leading-relaxed text-black shadow-2xl [color-scheme:light] print:w-full print:min-h-0 print:border-none print:bg-white print:p-0 print:shadow-none"
-              style={{ fontFamily: "'Times New Roman', Times, serif" }}
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start border border-gray-200 p-[30mm] pb-[20mm] pt-[20mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:w-[210mm] print:min-h-[297mm] print:border-none print:bg-white print:p-0 print:shadow-none"
+              style={{
+                fontFamily: "'Times New Roman', Times, serif",
+                width: "210mm",
+                height: "297mm",
+                minHeight: "297mm",
+              }}
             >
               {/* Estilos CSS específicos de impressão injetados */}
               <style dangerouslySetInnerHTML={{__html: `
+                @page {
+                  size: A4 portrait;
+                  margin: 0;
+                }
                 @media print {
+                  html, body {
+                    width: 210mm !important;
+                    min-height: 297mm !important;
+                  }
                   body {
                     background-color: white !important;
                     color: black !important;
@@ -775,8 +792,8 @@ window.print();
                     margin: 0 !important;
                   }
                   #military-document-print {
-                    width: 100% !important;
-                    min-height: 100% !important;
+                    width: 210mm !important;
+                    min-height: 297mm !important;
                     padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais: Esquerda 3cm, Direita 2cm, Superior 3cm, Inferior 2cm */
                     border: none !important;
                     box-shadow: none !important;
@@ -794,7 +811,7 @@ window.print();
               {/* Top Section / Header */}
               <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
                 <img 
-                  src={BRASAO_URL} 
+                  src={PMAM_HEADER_URL} 
                   alt="Brasão PMAM" 
                   className="w-[18mm] h-[18mm] object-contain mb-1" 
                 />

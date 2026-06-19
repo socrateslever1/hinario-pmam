@@ -244,18 +244,18 @@ function InstitutionalGuidelines() {
   const guidelines = institutionalGuidelines.filter((item) => item.title !== institutionalCopy.oathTitle);
 
   return (
-    <section className="bg-background py-10 md:py-16">
+    <section className="bg-background py-5 md:py-7">
       <div className="container">
-        <div className="mb-8 text-center md:mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 md:mb-6">
+        <div className="mb-5 text-center md:mb-7">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 md:mb-4">
             <Star className="h-4 w-4 text-[#c4a84b]" />
             <span className="text-xs font-semibold uppercase tracking-widest text-[#1a3a2a] md:text-sm">{institutionalCopy.eyebrow}</span>
           </div>
           <h2 className="text-2xl font-bold text-foreground md:text-4xl" style={{ fontFamily: 'Merriweather, serif' }}>
             {institutionalCopy.title}
           </h2>
-          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-[#c4a84b] md:mt-6 md:w-20" />
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-6 md:text-lg">
+          <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-[#c4a84b] md:mt-4 md:w-20" />
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-4 md:text-base">
             {institutionalCopy.description}
           </p>
         </div>
@@ -357,7 +357,7 @@ function StudentNoticePanel() {
   if (!student || !noticesQuery.data?.length) return null;
 
   return (
-    <section className="bg-[#062417] px-4 py-5 text-[#f8f7f0] md:bg-background md:px-0 md:py-10 md:text-foreground">
+    <section className="bg-[#062417] px-4 py-4 text-[#f8f7f0] md:bg-background md:px-0 md:py-7 md:text-foreground">
       <div className="container">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-xl font-black md:text-2xl" style={{ fontFamily: "Merriweather, serif" }}>
@@ -401,7 +401,7 @@ function StudentHighlights() {
   if (!highlights?.length) return null;
 
   return (
-    <section className="bg-[#f5f2e8] px-4 py-6 md:px-0 md:py-12">
+    <section className="bg-[#f5f2e8] px-4 py-4 md:px-0 md:py-6">
       <div className="container">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -469,9 +469,9 @@ export default function Home() {
       {/* Institutional Guidelines Section */}
       <InstitutionalGuidelines />
 
-      <section className="py-5 bg-muted/30 md:py-10">
+      <section className="py-4 bg-muted/30 md:py-7">
         <div className="container">
-          <div className="mb-4 text-center md:mb-8">
+          <div className="mb-3 text-center md:mb-5">
             <h2 className="text-2xl font-bold text-foreground md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
               Categorias
             </h2>
@@ -501,9 +501,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-7 bg-background md:py-12">
+      <section className="py-5 bg-background md:py-8">
         <div className="container">
-          <div className="mb-6 text-center md:mb-9">
+          <div className="mb-4 text-center md:mb-6">
             <h2 className="text-2xl font-bold text-foreground md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
               Hinos em Destaque
             </h2>
@@ -542,7 +542,7 @@ export default function Home() {
               );
             })}
           </div>
-          <div className="mt-6 text-center md:mt-8">
+          <div className="mt-4 text-center md:mt-6">
             <Link href="/hinos">
               <Button size="lg" className="bg-[#1a3a2a] hover:bg-[#1a3a2a]/90 text-white gap-2">
                 <Music className="h-5 w-5" />
@@ -553,7 +553,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="military-gradient py-6 md:py-16">
+      <section className="military-gradient py-5 md:py-8">
         <div className="container">
           <div className="flex flex-col gap-4 text-left md:items-center md:text-center">
             <div className="flex items-center gap-3 md:flex-col md:gap-0">

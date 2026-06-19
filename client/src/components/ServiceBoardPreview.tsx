@@ -37,9 +37,9 @@ export function ServiceBoardPreview() {
   }
 
   return (
-    <section className="bg-background px-4 py-5 md:px-0 md:py-12">
+    <section className="bg-background px-4 py-4 md:px-0 md:py-7">
       <div className="container">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#1a3a2a]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1a3a2a]">
               <CalendarDays className="h-3.5 w-3.5 text-[#c4a84b]" />

@@ -181,6 +181,17 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Merriweather', serif;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+[data-slot="card"] :is(h3, [data-slot="card-title"]) {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.2;
+}
+
+[data-slot="card"] :is(p, span, label) {
+  letter-spacing: 0;
 }
 
 .military-gradient {
@@ -248,13 +259,59 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 12px 40px rgba(26, 58, 42, 0.15);
 }
 
-.checkerboard-pattern {
+.checkerboard-pattern-legacy {
   background-image: repeating-linear-gradient(
     90deg,
     #2563eb 0px, #2563eb 12px,
     #1e3a5f 12px, #1e3a5f 24px
   );
   height: 8px;
+}
+
+.checkerboard-pattern {
+  height: 14px;
+  background-color: #f8f7f0;
+  background-image:
+    linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505),
+    linear-gradient(45deg, #050505 25%, transparent 25%, transparent 75%, #050505 75%, #050505);
+  background-position: 0 0, 7px 7px;
+  background-size: 14px 14px;
+}
+
+.official-document-sheet,
+.dark .official-document-sheet {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.official-document-sheet :is(p, span, strong, h1, h2, h3, h4, h5, h6, div),
+.dark .official-document-sheet :is(p, span, strong, h1, h2, h3, h4, h5, h6, div) {
+  color: inherit;
+}
+
+.official-document-sheet .text-gray-700,
+.dark .official-document-sheet .text-gray-700 {
+  color: #374151 !important;
+}
+
+.official-document-sheet .text-gray-600,
+.dark .official-document-sheet .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.official-document-sheet .text-gray-500,
+.dark .official-document-sheet .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.official-document-sheet .bg-gray-100,
+.dark .official-document-sheet .bg-gray-100 {
+  background-color: #f3f4f6 !important;
+}
+
+.official-document-sheet .bg-gray-50\/50,
+.dark .official-document-sheet .bg-gray-50\/50 {
+  background-color: rgba(249, 250, 251, 0.5) !important;
 }
 
 /* Global Dark Mode Helper Overrides */
