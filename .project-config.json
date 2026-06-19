@@ -12,10 +12,11 @@
   "experiments": null,
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310419663028422427/oYQqDtLooPR5vbQ65ChDb9",
-    "access_key_id": "ASIAZV3A2ECZGPT76NM6",
-    "secret_access_key": "WI7cOznqtgFbJ50j0TQE+9a69REzJ5bMBZc6wP/p",
-    "session_token": "IQoJb3JpZ2luX2VjEOT//////////wEaCXVzLWVhc3QtMSJHMEUCIQDpXgVrV8cTjrFpfWcngA0AtjSWF8IsY37U9je6fX4JFwIgeFvmE18X2OFbJtYNQmg149y63Wa0evUHWDSyca9DAvQq/wMIrP//////////ARAEGgw2NjUzODYwOTg4NjYiDPil317jLmfyalBhvyrTA7vsWZl4lHd18OrftHO/QI7PMwu8TlimkmXWtl4GCfmW1fj7mqUnodY0x/RhaYx0yvfphjk+HpR0FtpO1+H1Z7PKDIXvVHq6tuTARZ2r1l060UtSYzm7SySDCOuc09I1WZUkzlQdEsG4t3Ny0ytptrL9048FeOvoorAwk/cW0h3tQJkhqBFy7H6o05JKqTGp/1xC1hVqOSf+zajBoysIhyKsbiMi8dorf87OjBFKF+TC9FAB5kss/k0gGSr/UL79wl4iLeu8duRywRHqQsB/Gz4JCfQpsLIT4n+yOQhLRA9c7Lc8RYHWjL359RkP0TN1peDG/kjXqVrqjwCvy1yAgPuY0vzdJsem6rPu1oSYdcf0yFP1n3HbKTHgUbQ50xq6T2VeopLUptJuGWgQA2uQDTO7BcOpfjlz1XF9Q+ruKf3l6ijS2Y/erpv3TQ9vhrcm2hk0iopCrpdCeVYreg8sI6cJ8x37xLJfurivRL7P6isj+yB3IwoGA2NmoQexhbVSK/AwFSed8CljIDiL9dkpdnvbOM3SOK/B2dQr11X+D62Xvwxfw1gbHaRhpTZ/eIecsDYv1TxVvKddwBk1l4ZgDD4FtcidBsqJSi2+hF8ZwJSxpr0yMNLG4NAGOp0BxMPKmbVVtwT9hUwX5nS7CFZIclU4FStH+bakI3oeloFU0JJUhQtd0Cm/2C2+QRyFXnKxOuBAccf3lsMYuzxkRFdezMPSlqkiDzAMj1CQuJQTmAAJr/g8i2Xrsnwt9trfRI61VpnshLsFreQ4+DVI8fHeKy0vkG5W4tqD9iQHkyC1f2QVK2ODCstlNEBN5aE08gt8Ik3H6TOon0AZ1Q==",
-    "expiration": "2026-05-28T23:13:22.000Z"
+    "access_key_id": "ASIAZV3A2ECZBVDK6DA4",
+    "secret_access_key": "jfH0+9UcQRhQdjyy9N4uYMtDPfS6jxWaLx0z6Jsp",
+    "session_token": "IQoJb3JpZ2luX2VjEO7//////////wEaCXVzLWVhc3QtMSJGMEQCIBP0NJSnNRPdxd1qVDQNjUUuduPbGff5B6ZaZqEZ6htdAiBIo0k/iLTnsT5leX1A31S7Me0qHwNOe3+DJZrwJ06KMir/Awi3//////////8BEAQaDDY2NTM4NjA5ODg2NiIMrENZPNA1s7LeX2u6KtMDCoDE0RIjidCA9JBYTE0Y/d70wiMipXzE7hgYBqbF2mAT+f3uDsjMJbw/lNkskzQAX/KHdMAlyzZZw38K4KAGlF+tJCl9F2LSAujCgAIldYkS3mK5GcJ2svSptKe4sgMC8xFvJDDMtvnP3m3UtvKudpNsmorpwIJUcDqb4K9KSVRtBitztWhWD03Wxl9MdcGWlSBJHfAoPAEJuDEPta55tLS8q04sSTMZUiuy0BDBbs5HcrISTaLUXPawRRFSwdxzEqnoIaYG8HX3o0N18kNl3HPk9tD//cwkUD4l49nJV6v1zCuK/xIZvOuhSH3vZ1PgKY24E2xYT911UdMFIT8lSH2dFuabxjQwUDB1GKpYmYBjpgzr8UHJXdhc6SoolvNzqdUVJEwmLqVAa17gXHHikQBqaWbiDqi3kgcXeNNRePXX2icYEfRdX4Fuebu08PRZxrSYhe/djVAOa9O6cWv1IXYYY9i0sg47wyrsQniKklaHGJ+BunUKBaCG5mhfm/xBZZvE1xDE0RUwewDQenSb8tAgfT3kHzithWPKuOzbnI57GdnlLFcytKdlx9p0B+wNJ57txHXuQD3eXLOB8Il+Jhr/K3GM4SPwjZHaRW7TF6+S43wwp6TT0QY6ngHNN/v8aNbm4JgQcYkcknkOilvr8hz0UrSBQRwBADPBgY4ewxcw5VACPKxKCQ9oPY81mfc5M5b5GNBuFWaezEq9jDOzg9UcaRy5xNWHM7pH//+uhYou/C3yzknwHsIaYswmlT8hpz/dvMt4YFWUi42HZJLRjNVygJ8i6ehCm36ZoyS6ZQmn4tkKUzg6C2YCVFbGG4n8CPj+/X8uFPF+2A==",
+    "expiration": "2026-06-19T17:22:47.000Z",
+    "backend": "GIT_BACKEND_S3"
   },
   "name": "hinario-pmam",
   "path": "/home/ubuntu/hinario-pmam",
