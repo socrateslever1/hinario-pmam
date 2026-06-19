@@ -130,14 +130,20 @@ export function normalizeEntryTime(value?: string | null) {
   return value;
 }
 
+function getManausDateTime(date: string, time: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour + 4, minute, 0, 0));
+}
+
 export function getPeculioLockedAt(date: string, entryTime?: string | null): Date {
-  const close = new Date(`${date}T${normalizeEntryTime(entryTime)}:00-03:00`);
+  const close = getManausDateTime(date, normalizeEntryTime(entryTime));
   close.setMinutes(close.getMinutes() - 5);
   return close;
 }
 
 export function getPeculioEntryAt(date: string, entryTime?: string | null): Date {
-  return new Date(`${date}T${normalizeEntryTime(entryTime)}:00-03:00`);
+  return getManausDateTime(date, normalizeEntryTime(entryTime));
 }
 
 export function getPeculioLateArrivalUntil(date: string, entryTime?: string | null): Date {
