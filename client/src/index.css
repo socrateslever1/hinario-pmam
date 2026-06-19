@@ -177,43 +177,11 @@
 }
 body {
   font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-h1 {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-h2 {
-  font-size: 1.75rem;
-  font-weight: 700;
-}
-
-h3 {
-  font-size: 1.35rem;
-  font-weight: 600;
-}
-
-h4 {
-  font-size: 1.15rem;
-  font-weight: 600;
-}
-
-h5 {
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-h6 {
-  font-size: 1rem;
-  font-weight: 600;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Merriweather', serif;
-  line-height: 1.2;
+  line-height: 1.18;
   letter-spacing: 0;
 }
 
@@ -280,7 +248,7 @@ h1, h2, h3, h4, h5, h6 {
 .lyrics-text {
   white-space: pre-line;
   line-height: 1.9;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 
 .hymn-card-hover {
