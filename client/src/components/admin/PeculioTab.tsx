@@ -471,8 +471,8 @@ export function PeculioTab({
         </Card>
       )}
 
-      {/* 2. Frequency table - Web View */}
-      <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden hidden md:block">
+      {/* 2. Matriz de frequência */}
+      <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden">
         <CardContent className="p-3 sm:p-5">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
@@ -483,13 +483,13 @@ export function PeculioTab({
           </div>
 
           <div className="w-full overflow-x-auto rounded-md border border-border/60 overscroll-x-contain">
-            <Table className="min-w-[980px]">
+            <Table className="min-w-[1120px]">
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="w-[60px] text-center font-bold">Nº</TableHead>
                   <TableHead className="font-bold">Aluno</TableHead>
                   {statusList.map((st) => (
-                    <TableHead key={st.value} className="text-center font-bold w-[70px]">
+                    <TableHead key={st.value} className={`text-center font-bold ${st.value === "pronto" ? "w-[86px]" : "w-[70px]"}`}>
                       {st.label}
                     </TableHead>
                   ))}
@@ -514,8 +514,8 @@ export function PeculioTab({
                               type="button"
                               onClick={() => handleStatusChange(student.id, st.value)}
                               disabled={!canEdit}
-                              className={`h-10 w-10 rounded-full text-xs font-black transition-all touch-manipulation ${
-                                isSelected ? st.color + " scale-110 shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              className={`${st.value === "pronto" ? "h-9 min-w-[66px] rounded-md px-2" : "h-10 w-10 rounded-full"} text-[11px] font-black leading-none transition-colors touch-manipulation ${
+                                isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
                               }`}
                             >
                               {st.label}
@@ -611,7 +611,7 @@ export function PeculioTab({
       </Card>
 
       {/* 2. Frequency list - Mobile View */}
-      <div className="space-y-4 print:hidden md:hidden">
+      <div className="hidden">
         {students.map((student) => {
           const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
           return (

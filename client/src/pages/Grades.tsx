@@ -391,23 +391,23 @@ export default function Grades() {
             </Button>
           </div>
 
-          <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <div className="mb-5 grid grid-cols-3 gap-2 sm:mb-8 sm:gap-4">
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Média geral</p>
-                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{average.toFixed(2)}</p>
+              <CardContent className="p-2.5 sm:p-4">
+                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Média geral</p>
+                <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{average.toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Notas lançadas</p>
-                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{grades.length}</p>
+              <CardContent className="p-2.5 sm:p-4">
+                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Notas lançadas</p>
+                <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{grades.length}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Disciplinas disponíveis</p>
-                <p className="text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{disciplines.length}</p>
+              <CardContent className="p-2.5 sm:p-4">
+                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Disciplinas disponíveis</p>
+                <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{disciplines.length}</p>
               </CardContent>
             </Card>
           </div>

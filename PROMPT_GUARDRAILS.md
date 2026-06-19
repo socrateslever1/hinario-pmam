@@ -75,7 +75,7 @@ Arquivos protegidos:
 - `server/peculioDb.ts`
 - `server/routers.ts`, somente o bloco `peculio: router`
 - `client/src/pages/ClassroomMap.tsx`, somente chamadas e navegacao da area de Peculio
-
+  
 Regras absolutas para esses arquivos:
 
 - Nao remover regras de frequencia, fechamento, chegada tardia, justificativa ou assinatura digital.

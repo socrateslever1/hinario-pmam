@@ -106,10 +106,10 @@ function HeroSection() {
   };
 
   return (
-    <section className="px-4 py-6 md:py-8 text-[#f8f7f0]">
+    <section className="px-4 py-4 md:py-6 text-[#f8f7f0]">
       <div className="mx-auto max-w-6xl">
         <div
-          className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#092719]/95 p-6 md:p-10 shadow-[0_22px_60px_rgba(0,0,0,.35)] min-h-[340px] md:min-h-[400px] flex flex-col justify-between"
+          className="relative flex min-h-[270px] flex-col justify-between overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#092719]/95 p-5 shadow-[0_18px_44px_rgba(0,0,0,.32)] md:min-h-[320px] md:p-8"
           onTouchStart={(event) => setTouchStartX(event.touches[0]?.clientX ?? null)}
           onTouchEnd={(event) => handleTouchEnd(event.changedTouches[0]?.clientX ?? 0)}
         >
@@ -121,24 +121,24 @@ function HeroSection() {
           <div className="relative grid grid-cols-1 md:grid-cols-[1.25fr_0.75fr] items-center gap-6 z-10 flex-1">
             <div className="py-2 md:py-4 flex flex-col justify-center items-start">
               {/* Badge */}
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70">
                 <SlideIcon className="h-3.5 w-3.5 text-[#f0bd3a]" />
                 {slide.badge}
               </div>
 
               {/* Title */}
-              <h1 className="text-3xl md:text-5xl font-extrabold leading-[1.05] tracking-tight text-white max-w-xl font-serif" style={{ fontFamily: 'Merriweather, serif' }}>
+              <h1 className="text-2xl md:text-4xl font-extrabold leading-[1.05] tracking-tight text-white max-w-xl font-serif" style={{ fontFamily: 'Merriweather, serif' }}>
                 {slide.title} <span className="text-[#f0bd3a] block mt-1">{slide.highlight}</span>
               </h1>
 
               {/* Description */}
-              <p className="mt-4 text-xs md:text-sm font-normal leading-relaxed text-white/70 max-w-md md:max-w-lg">
+              <p className="mt-3 text-xs md:text-sm font-normal leading-relaxed text-white/70 max-w-md md:max-w-lg">
                 {slide.text}
               </p>
 
               {/* Action Button */}
               <Link href={slide.href}>
-                <Button className="mt-6 h-11 md:h-12 rounded-xl bg-[#f0bd3a] px-6 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c] transition-all flex items-center gap-2">
+                <Button className="mt-4 h-10 rounded-xl bg-[#f0bd3a] px-5 text-sm font-black text-[#062417] shadow-lg shadow-black/25 hover:bg-[#d6b64c] transition-all flex items-center gap-2 md:h-11">
                   <Music className="h-4 w-4" />
                   {slide.action}
                   <ChevronRight className="h-4 w-4" />
@@ -151,13 +151,13 @@ function HeroSection() {
               <img
                 src={BRASAO_URL}
                 alt="Brasão PMAM"
-                className="w-48 h-48 md:w-[24rem] md:h-[24rem] object-contain opacity-[0.22] md:opacity-[0.25] drop-shadow-[0_24px_32px_rgba(0,0,0,.42)]"
+                className="h-40 w-40 object-contain opacity-[0.22] drop-shadow-[0_24px_32px_rgba(0,0,0,.42)] md:h-[20rem] md:w-[20rem] md:opacity-[0.25]"
               />
             </div>
           </div>
 
           {/* Dots Indicator */}
-          <div className="mt-4 flex justify-center gap-2 z-10">
+          <div className="mt-3 flex justify-center gap-2 z-10">
             {heroSlides.map((item, index) => (
               <button
                 key={item.badge}
@@ -187,13 +187,13 @@ function QuickAccess() {
         <div className="flex min-w-min gap-3">
           {quickAccessItems.map((item) => (
             <Link key={item.label} href={item.href}>
-              <div className="bg-white border border-border/50 shadow-sm h-36 w-36 shrink-0 rounded-lg p-4">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] shadow-inner">
-                  <item.icon className="h-5 w-5" />
+              <div className="h-28 w-32 shrink-0 rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] shadow-inner">
+                  <item.icon className="h-4 w-4" />
                 </div>
-                <p className="text-3xl font-black leading-none text-foreground">{item.value}</p>
-                <p className="mt-2 text-sm font-black text-[#1a3a2a]">{item.label}</p>
-                <p className="mt-1 text-xs leading-snug text-muted-foreground">{item.desc}</p>
+                <p className="text-2xl font-black leading-none text-foreground">{item.value}</p>
+                <p className="mt-1 text-xs font-black text-[#1a3a2a]">{item.label}</p>
+                <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">{item.desc}</p>
               </div>
             </Link>
           ))}
@@ -260,27 +260,27 @@ function InstitutionalGuidelines() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {guidelines.map((item) => {
             const Icon = item.icon;
             return (
-              <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50">
-                <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
-                <CardContent className="p-4 md:p-6">
-                  <div className="mb-3 flex items-center gap-3 md:mb-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-white">
-                      <Icon className="h-5 w-5 text-[#c4a84b]" />
+              <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50">
+                <div className="h-1 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-1.5" />
+                <CardContent className="p-3 md:p-5">
+                  <div className="mb-2 flex items-center gap-2 md:mb-3 md:gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-white md:h-10 md:w-10">
+                      <Icon className="h-4 w-4 text-[#c4a84b] md:h-5 md:w-5" />
                     </div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground md:text-sm">{item.title}</h3>
+                    <h3 className="font-sans text-xs font-bold uppercase tracking-wider text-foreground md:text-sm">{item.title}</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+                  <p className="text-xs leading-snug text-muted-foreground md:text-xs md:leading-relaxed">{item.text}</p>
                 </CardContent>
               </Card>
             );
           })}
 
           {oath && (
-            <Card className="overflow-hidden border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50 sm:col-span-2 lg:col-span-4">
+            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4">
               <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
               <CardContent className="p-4 md:p-8">
                 <div className="mb-4 flex items-center gap-3 md:mb-6">
@@ -289,7 +289,7 @@ function InstitutionalGuidelines() {
                   </div>
                   <div>
                     <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#c4a84b] md:text-xs">{institutionalCopy.organization}</p>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground md:text-base">{institutionalCopy.oathTitle}</h3>
+                    <h3 className="font-sans text-sm font-bold uppercase tracking-wider text-foreground md:text-sm">{institutionalCopy.oathTitle}</h3>
                   </div>
                 </div>
                 <p className="rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-justify text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75]" dangerouslySetInnerHTML={{ __html: `&quot;${oath.text.replace(/<strong>/g, '<strong class="font-bold">').replace(/<\/strong>/g, '</strong>')}&quot;` }} />
@@ -325,8 +325,8 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
                 {String(hymn.number ?? "").padStart(2, "0")}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-black text-foreground">{hymn.title}</h3>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <h3 className="truncate font-sans text-sm font-bold text-foreground">{hymn.title}</h3>
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   {categoryLabels[hymn.category] ?? hymn.category ?? "Hino"}
                 </p>
               </div>
@@ -371,12 +371,12 @@ function StudentNoticePanel() {
         <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
           <div className="flex min-w-min gap-3 md:grid md:grid-cols-3">
             {noticesQuery.data.map((notice: any) => (
-              <Card key={notice.id} className="w-72 shrink-0 border-white/10 bg-[#0b3323]/80 text-white shadow-lg md:w-auto md:border-border/50 md:bg-white md:text-foreground">
+              <Card key={notice.id} className="w-72 shrink-0 border-white/10 bg-[#0b3323]/80 py-0 text-white shadow-lg md:w-auto md:border-border/50 md:bg-white md:text-foreground">
                 <CardContent className="p-4">
                   <Badge className="mb-3 bg-[#f0bd3a] text-[#062417]">
                     {notice.priority === "urgent" ? "Urgente" : notice.priority === "important" ? "Importante" : "Aviso"}
                   </Badge>
-                  <h3 className="line-clamp-2 text-sm font-black">{notice.title}</h3>
+                  <h3 className="line-clamp-2 font-sans text-sm font-bold">{notice.title}</h3>
                   <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-white/70 md:text-muted-foreground">{notice.message}</p>
                   <Button
                     size="sm"
@@ -417,7 +417,7 @@ function StudentHighlights() {
         <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
           <div className="flex min-w-min gap-3 md:grid md:grid-cols-3 lg:grid-cols-4">
             {highlights.map((item: any) => (
-              <Card key={item.id} className="w-64 shrink-0 overflow-hidden border-border/50 bg-white shadow-sm md:w-auto">
+              <Card key={item.id} className="w-64 shrink-0 overflow-hidden border-border/50 bg-white py-0 shadow-sm md:w-auto">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#c4a84b] bg-[#1a3a2a]/10">
@@ -428,13 +428,13 @@ function StudentHighlights() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-[#1a3a2a]">{item.nome_guerra}</p>
+                      <p className="truncate font-sans text-sm font-bold text-[#1a3a2a]">{item.nome_guerra}</p>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                         {item.companhia}Âª Cia / {item.peloton}Âº Pel
                       </p>
                     </div>
                   </div>
-                  <p className="text-sm font-bold text-foreground">{item.title}</p>
+                  <p className="font-sans text-sm font-bold text-foreground">{item.title}</p>
                   {item.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
                 </CardContent>
               </Card>
@@ -469,28 +469,28 @@ export default function Home() {
       {/* Institutional Guidelines Section */}
       <InstitutionalGuidelines />
 
-      <section className="py-10 bg-muted/30 md:py-16">
+      <section className="py-5 bg-muted/30 md:py-10">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
+          <div className="mb-4 text-center md:mb-8">
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
               Categorias
             </h2>
-            <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-4 rounded-full" />
-            <p className="mt-4 text-muted-foreground">
+            <div className="mx-auto mt-2 h-1 w-14 rounded-full bg-[#c4a84b]" />
+            <p className="mt-2 text-sm text-muted-foreground">
               {hymns?.length ?? 26} hinos e canções organizados em 5 categorias
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {categories.map((cat) => (
               <Link key={cat.key} href={`/hinos?categoria=${cat.key}`}>
-                <Card className="hymn-card-hover cursor-pointer border-border/50 hover:border-[#c4a84b]/50 h-full">
-                  <CardContent className="p-6 text-center">
-                    <div className="w-14 h-14 rounded-full bg-[#1a3a2a]/10 flex items-center justify-center mx-auto mb-4">
-                      <cat.icon className="h-7 w-7 text-[#1a3a2a]" />
+                <Card className="hymn-card-hover h-[88px] cursor-pointer border-border/50 py-0 hover:border-[#c4a84b]/50 md:h-[108px]">
+                  <CardContent className="flex h-full flex-col items-center justify-center overflow-hidden p-2 text-center md:p-3">
+                    <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#1a3a2a]/10 md:mb-1.5 md:h-10 md:w-10">
+                      <cat.icon className="h-3.5 w-3.5 text-[#1a3a2a] md:h-5 md:w-5" />
                     </div>
-                    <h3 className="font-semibold text-foreground text-sm">{cat.label}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{cat.desc}</p>
-                    <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#c4a84b]">
+                    <h3 className="font-sans text-xs font-bold leading-tight text-foreground md:text-xs">{cat.label}</h3>
+                    <p className="mt-0.5 hidden max-w-full truncate text-[10px] text-muted-foreground md:block md:text-xs">{cat.desc}</p>
+                    <div className="mt-1 whitespace-nowrap text-xs font-semibold leading-none text-[#c4a84b] md:text-xs">
                       {cat.count} composições
                     </div>
                   </CardContent>
@@ -501,15 +501,15 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-10 bg-background md:py-16">
+      <section className="py-7 bg-background md:py-12">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
+          <div className="mb-6 text-center md:mb-9">
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
               Hinos em Destaque
             </h2>
-            <div className="w-20 h-1 bg-[#c4a84b] mx-auto mt-4 rounded-full" />
+            <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-[#c4a84b]" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
             {[
               { num: 1, title: "Hino Nacional Brasileiro", cat: "Hino Nacional" },
               { num: 8, title: "Canção da PMAM", cat: "Canção da Corporação" },
@@ -518,23 +518,23 @@ export default function Home() {
               const hymn = hymns?.find((h: any) => h.number === item.num);
               return (
                 <Link key={item.num} href={`/hino/${hymn?.id ?? item.num}`}>
-                  <Card className="hymn-card-hover cursor-pointer overflow-hidden border-border/50 hover:border-[#c4a84b]/50 h-full">
-                    <div className="h-2 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm">
+                  <Card className="hymn-card-hover cursor-pointer overflow-hidden border-border/50 py-0 hover:border-[#c4a84b]/50">
+                    <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+                    <CardContent className="p-2.5 md:p-4">
+                      <div className="mb-2 flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-xs font-bold text-white">
                           {String(item.num).padStart(2, "0")}
                         </div>
                         <div>
-                          <p className="text-xs text-[#c4a84b] font-medium uppercase tracking-wider">{item.cat}</p>
-                          <h3 className="font-semibold text-foreground">{item.title}</h3>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-[#c4a84b]">{item.cat}</p>
+                          <h3 className="font-sans text-sm font-bold leading-tight text-foreground">{item.title}</h3>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-3">
+                      <p className="line-clamp-1 text-xs leading-snug text-muted-foreground md:line-clamp-2 md:text-sm">
                         {hymn?.description ?? "Clique para ver a letra completa e ouvir este hino."}
                       </p>
-                      <div className="mt-4 flex items-center gap-1 text-sm font-medium text-[#1a3a2a]">
-                        Ver letra completa <ChevronRight className="h-4 w-4" />
+                      <div className="mt-2 flex items-center gap-1 text-xs font-medium text-[#1a3a2a] md:text-sm">
+                        Ver letra completa <ChevronRight className="h-3.5 w-3.5" />
                       </div>
                     </CardContent>
                   </Card>
@@ -542,7 +542,7 @@ export default function Home() {
               );
             })}
           </div>
-          <div className="text-center mt-10">
+          <div className="mt-6 text-center md:mt-8">
             <Link href="/hinos">
               <Button size="lg" className="bg-[#1a3a2a] hover:bg-[#1a3a2a]/90 text-white gap-2">
                 <Music className="h-5 w-5" />

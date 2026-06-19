@@ -562,7 +562,7 @@ export default function PlaylistPlayer({
                     </Button>
                     <Button
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-white text-[#10281d] hover:bg-white/90"
+                      className="h-10 w-10 rounded-full bg-[#f0bd3a] text-[#062417] hover:bg-[#d6b64c]"
                       onClick={() => setPlaying((current) => !current)}
                     >
                       {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
@@ -754,7 +754,7 @@ export default function PlaylistPlayer({
                 </Button>
                 <Button
                   size="icon"
-                  className="h-14 w-14 rounded-full bg-white text-[#10281d] hover:bg-white/90"
+                  className="h-14 w-14 rounded-full bg-[#f0bd3a] text-[#062417] hover:bg-[#d6b64c]"
                   onClick={() => setPlaying((current) => !current)}
                 >
                   {playing ? <Pause className="h-6 w-6 sm:h-7 sm:w-7" /> : <Play className="ml-0.5 h-6 w-6 sm:h-7 sm:w-7" />}

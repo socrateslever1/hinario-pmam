@@ -224,7 +224,7 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
   const fecho = docData.parteFecho || "Respeitosamente,";
 
   return (
-    <div className="flex min-h-[245mm] w-full flex-col text-[12px] leading-[1.45] text-black">
+    <div className="flex min-h-[245mm] w-full flex-col bg-white text-[12px] leading-[1.45] text-black [color-scheme:light]">
       <header className="relative mb-8 min-h-[31mm] text-center font-serif">
         <img src={PMAM_HEADER_URL} alt="Brasão PMAM" className="absolute left-0 top-0 h-[24mm] w-[24mm] object-contain" />
         <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
@@ -751,7 +751,7 @@ window.print();
           <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"}`}>
             <div 
               id="military-document-print" 
-              className="bg-white text-black shadow-2xl border border-gray-200 p-[30mm] pt-[20mm] pb-[20mm] w-[210mm] min-h-[297mm] flex flex-col items-center justify-between font-serif text-[13px] leading-relaxed relative print:shadow-none print:border-none print:p-0 print:w-full print:min-h-0 print:bg-white"
+              className="flex min-h-[297mm] w-[210mm] flex-col items-center justify-between border border-gray-200 bg-white p-[30mm] pb-[20mm] pt-[20mm] font-serif text-[13px] leading-relaxed text-black shadow-2xl [color-scheme:light] print:w-full print:min-h-0 print:border-none print:bg-white print:p-0 print:shadow-none"
               style={{ fontFamily: "'Times New Roman', Times, serif" }}
             >
               {/* Estilos CSS específicos de impressão injetados */}

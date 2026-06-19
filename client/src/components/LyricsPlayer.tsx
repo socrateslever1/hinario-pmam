@@ -244,7 +244,7 @@ export default function LyricsPlayer({
                   size="icon"
                   onClick={() => mediaUrl && setPlaying(!playing)}
                   disabled={!mediaUrl}
-                  className="h-12 w-12 rounded-full border-4 border-[#f0bd3a]/15 bg-[#f0bd3a] text-[#062417] shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-all hover:bg-[#d6b64c] active:scale-95 sm:h-14 sm:w-14 md:border-[#c4a84b]/10 md:bg-[#1a3a2a] md:text-white md:hover:bg-[#1a3a2a]/95"
+                  className="h-12 w-12 rounded-full border-4 border-[#f0bd3a]/15 bg-[#f0bd3a] text-[#062417] shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-all hover:bg-[#d6b64c] active:scale-95 sm:h-14 sm:w-14 md:border-[#c4a84b]/10 md:bg-[#1a3a2a] md:text-white md:hover:bg-[#1a3a2a]/95 dark:border-[#f0bd3a]/20 dark:bg-[#f0bd3a] dark:text-[#062417] dark:hover:bg-[#d6b64c]"
                 >
                   {playing ? <Pause className="h-5 w-5 sm:h-6 sm:w-6" /> : <Play className="ml-0.5 h-5 w-5 sm:h-6 sm:w-6" />}
                 </Button>

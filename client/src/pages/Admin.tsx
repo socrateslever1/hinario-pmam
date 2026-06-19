@@ -175,48 +175,48 @@ export default function Admin() {
         <div className="container">
           {/* Stats */}
           {canManageGlobalContent && (
-            <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
-              <Card className="border-border/50 bg-white text-foreground shadow-sm">
-                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 md:h-12 md:w-12">
-                    <Music className="h-5 w-5 shrink-0 text-[#1a3a2a] md:h-6 md:w-6" />
+            <div className="mb-3 grid grid-cols-2 gap-2 md:mb-5 md:grid-cols-4 md:gap-3">
+              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 md:h-8 md:w-8">
+                    <Music className="h-3.5 w-3.5 shrink-0 text-[#1a3a2a] md:h-4 md:w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalHymns ?? 0}</p>
-                    <p className="truncate text-xs text-muted-foreground md:text-sm">Hinos</p>
+                    <p className="text-base font-bold leading-none text-foreground md:text-lg">{stats?.totalHymns ?? 0}</p>
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">Hinos</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white text-foreground shadow-sm">
-                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
-                    <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
+              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 md:h-8 md:w-8">
+                    <Shield className="h-3.5 w-3.5 shrink-0 text-[#c4a84b] md:h-4 md:w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalCharlieMike ?? 0}</p>
-                    <p className="truncate text-xs text-muted-foreground md:text-sm">Charlie Mike</p>
+                    <p className="text-base font-bold leading-none text-foreground md:text-lg">{stats?.totalCharlieMike ?? 0}</p>
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">Charlie Mike</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white text-foreground shadow-sm">
-                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#c4a84b]/10 md:h-12 md:w-12">
-                    <Target className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-6 md:w-6" />
+              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 md:h-8 md:w-8">
+                    <Target className="h-3.5 w-3.5 shrink-0 text-[#c4a84b] md:h-4 md:w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalMissions ?? 0}</p>
-                    <p className="text-sm text-muted-foreground">Missões CFAP</p>
+                    <p className="text-base font-bold leading-none text-foreground md:text-lg">{stats?.totalMissions ?? 0}</p>
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">Missões CFAP</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white text-foreground shadow-sm">
-                <CardContent className="flex min-w-0 items-center gap-3 p-4 md:gap-4 md:p-6">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a2744]/10 md:h-12 md:w-12">
-                    <Users className="h-5 w-5 shrink-0 text-[#1a2744] md:h-6 md:w-6" />
+              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+                <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1a2744]/10 md:h-8 md:w-8">
+                    <Users className="h-3.5 w-3.5 shrink-0 text-[#1a2744] md:h-4 md:w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xl font-bold leading-none text-foreground md:text-2xl">{stats?.totalUsers ?? 0}</p>
-                    <p className="text-sm text-muted-foreground">Usuários</p>
+                    <p className="text-base font-bold leading-none text-foreground md:text-lg">{stats?.totalUsers ?? 0}</p>
+                    <p className="truncate text-[11px] text-muted-foreground md:text-xs">Usuários</p>
                   </div>
                 </CardContent>
               </Card>
@@ -290,33 +290,33 @@ export default function Admin() {
                     );
                   })
                   ?.map((hymn: any) => (
-                  <Card key={hymn.id} className="border-border/50">
-                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className="w-10 h-10 rounded-lg bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <Card key={hymn.id} className="border-border/50 py-0">
+                    <CardContent className="flex flex-row items-center gap-1.5 p-2">
+                      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-[#1a3a2a] text-[10px] font-bold text-white">
                         {String(hymn.number).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
-                        <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
+                        <p className="line-clamp-1 text-xs font-semibold leading-tight text-foreground md:text-sm">{hymn.title}</p>
+                        <p className="line-clamp-1 text-[10px] leading-tight text-muted-foreground md:text-xs">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
                       </div>
-                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                        {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
-                        {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
+                      <div className="flex shrink-0 flex-wrap items-center gap-0.5 sm:flex-nowrap">
+                        {hymn.youtubeUrl && <Youtube className="h-3 w-3 text-red-500" />}
+                        {hymn.audioUrl && <Music className="h-3 w-3 text-green-600" />}
                         {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
-                          <Target className="h-4 w-4 text-[#c4a84b]" />
+                          <Target className="h-3 w-3 text-[#c4a84b]" />
                         )}
-                        <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+                        <Switch className="scale-75" checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
                         
-                        <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
-                          <Clock className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
+                          <Clock className="h-3 w-3" />
                         </Button>
 
-                        <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
+                          <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive"
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive"
                           onClick={() => { if (confirm("Remover este hino?")) deleteHymn.mutate({ id: hymn.id }); }}>
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </CardContent>
@@ -369,33 +369,33 @@ export default function Admin() {
                     );
                   })
                   ?.map((hymn: any) => (
-                  <Card key={hymn.id} className="border-border/50">
-                    <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className="w-10 h-10 rounded-lg bg-[#1a3a2a] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <Card key={hymn.id} className="border-border/50 py-0">
+                    <CardContent className="flex flex-row items-center gap-1.5 p-2">
+                      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-[#1a3a2a] text-[10px] font-bold text-white">
                         {String(hymn.number).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm break-words">{hymn.title}</p>
-                        <p className="text-xs text-muted-foreground break-words">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
+                        <p className="line-clamp-1 text-xs font-semibold leading-tight text-foreground md:text-sm">{hymn.title}</p>
+                        <p className="line-clamp-1 text-[10px] leading-tight text-muted-foreground md:text-xs">{hymn.category} {hymn.author ? `• ${hymn.author}` : ""}</p>
                       </div>
-                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                        {hymn.youtubeUrl && <Youtube className="h-4 w-4 text-red-500" />}
-                        {hymn.audioUrl && <Music className="h-4 w-4 text-green-600" />}
+                      <div className="flex shrink-0 flex-wrap items-center gap-0.5 sm:flex-nowrap">
+                        {hymn.youtubeUrl && <Youtube className="h-3 w-3 text-red-500" />}
+                        {hymn.audioUrl && <Music className="h-3 w-3 text-green-600" />}
                         {hasLyricsSyncData(buildLyricsSyncLines(hymn.lyrics, hymn.lyricsSync)) && (
-                          <Target className="h-4 w-4 text-[#c4a84b]" />
+                          <Target className="h-3 w-3 text-[#c4a84b]" />
                         )}
-                        <Switch checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
+                        <Switch className="scale-75" checked={hymn.isActive} onCheckedChange={(checked) => toggleHymn.mutate({ id: hymn.id, isActive: checked })} />
                         
-                        <Button variant="ghost" size="icon" className="text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
-                          <Clock className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-[#c4a84b]" onClick={() => navigate(`/admin/sync/${hymn.id}`)}>
+                          <Clock className="h-3 w-3" />
                         </Button>
 
-                        <Button variant="ghost" size="icon" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingHymn(hymn); setHymnDialogOpen(true); }}>
+                          <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive"
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive"
                           onClick={() => { if (confirm("Remover esta canção?")) deleteHymn.mutate({ id: hymn.id }); }}>
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </CardContent>

@@ -394,49 +394,49 @@ export default function ClassroomMap() {
       <div
         key={seatNumber}
         onClick={() => handleSeatClick(seatNumber)}
-        className={`relative flex flex-col items-center justify-between rounded-xl border p-2 text-center transition-all duration-200 ${
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${
           isOccupied
             ? getSeatConditionStyle(cond)
             : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
         } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
-        style={{ minHeight: "100px" }}
+        style={{ minHeight: "64px" }}
       >
-        <div className="absolute top-1.5 left-1.5 flex items-center justify-center">
+        <div className="absolute left-1 top-1 flex items-center justify-center">
           <span className="text-[8px] font-black text-muted-foreground/60">
             {seatNumber}
           </span>
         </div>
 
         {isOccupied ? (
-          <div className="flex flex-col items-center justify-center h-full w-full pt-3">
+          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5">
             {occupant.fotoUrl ? (
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`h-9 w-9 rounded-full object-cover border-2 shadow-sm mb-1.5 ${
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${
                   isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
                 }`}
               />
             ) : (
-              <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 mb-1.5 font-bold text-[9px] ${
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${
                 isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
               }`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <span className={`text-[10px] font-bold truncate w-full px-1 ${
+            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${
               isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
             }`}>
               {occupant.nomeGuerra}
             </span>
-            <span className="text-[8px] text-muted-foreground">
+            <span className="text-[7px] text-muted-foreground">
               {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
             </span>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full w-full pt-3 text-muted-foreground/30">
-            <User className="h-5 w-5 stroke-[1.5] mb-1 opacity-20" />
-            <span className="text-[8px] font-semibold uppercase tracking-wider">Vazia</span>
+          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 text-muted-foreground/30">
+            <User className="mb-0.5 h-3.5 w-3.5 stroke-[1.5] opacity-20" />
+            <span className="text-[7px] font-semibold uppercase tracking-wider">Vazia</span>
           </div>
         )}
       </div>
@@ -464,36 +464,36 @@ export default function ClassroomMap() {
             setLocation("/sala-de-aula/efetivo");
           }
         }}
-        className={`relative flex flex-col items-center justify-between rounded-xl border p-2 text-center transition-all duration-200 ${
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${
           isOccupied
             ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
             : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
         } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
-        style={{ minHeight: "100px" }}
+        style={{ minHeight: "64px" }}
       >
-        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+        <div className="absolute left-1 top-1 flex items-center gap-1">
           {role === 'xerife' ? (
-            <Crown className="h-3 w-3 text-yellow-500 fill-current animate-pulse" />
+            <Crown className="h-2.5 w-2.5 animate-pulse fill-current text-yellow-500" />
           ) : (
-            <Shield className="h-3 w-3 text-slate-400" />
+            <Shield className="h-2.5 w-2.5 text-slate-400" />
           )}
-          <span className="text-[8px] font-black uppercase text-muted-foreground/80 tracking-wider">
+          <span className="text-[6px] font-black uppercase tracking-wider text-muted-foreground/80">
             {roleTitle}
           </span>
         </div>
 
         {isOccupied ? (
-          <div className="flex flex-col items-center justify-center h-full w-full pt-3">
+          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5">
             {occupant.fotoUrl ? (
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`h-9 w-9 rounded-full object-cover border-2 shadow-sm mb-1.5 ${
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${
                   isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
                 }`}
               />
             ) : (
-              <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 mb-1.5 font-bold text-[9px] ${
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${
                 isAbsent 
                   ? "bg-red-500/10 text-red-500 border-red-400" 
                   : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500" : "bg-slate-500/10 text-slate-600 border-slate-400")
@@ -501,23 +501,23 @@ export default function ClassroomMap() {
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <span className={`text-[10px] font-bold truncate w-full px-1 ${
+            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${
               isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
             }`}>
               {occupant.nomeGuerra}
             </span>
-            <span className="text-[8px] text-muted-foreground">
+            <span className="text-[7px] text-muted-foreground">
               {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
             </span>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full w-full pt-3 text-muted-foreground/30">
+          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 text-muted-foreground/30">
             {role === 'xerife' ? (
-              <Crown className="h-5 w-5 stroke-[1.5] mb-1 opacity-30 text-yellow-500" />
+              <Crown className="mb-0.5 h-3.5 w-3.5 stroke-[1.5] text-yellow-500 opacity-30" />
             ) : (
-              <Shield className="h-5 w-5 stroke-[1.5] mb-1 opacity-30 text-slate-400" />
+              <Shield className="mb-0.5 h-3.5 w-3.5 stroke-[1.5] text-slate-400 opacity-30" />
             )}
-            <span className="text-[8px] font-semibold uppercase tracking-wider">Vazia</span>
+            <span className="text-[7px] font-semibold uppercase tracking-wider">Vazia</span>
           </div>
         )}
       </div>
@@ -829,19 +829,19 @@ export default function ClassroomMap() {
             )}
 
             {/* Quick Navigation Menu Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3 lg:grid-cols-5">
               {filteredMenuOptions.map((opt) => {
                 const Icon = opt.icon;
                 return (
                   <Link href={opt.path} key={opt.path}>
-                    <Card className="border-border/50 bg-white dark:bg-zinc-900 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 cursor-pointer transition-all duration-300">
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#c4a84b]/10 text-[#c4a84b]">
-                          <Icon className="h-5 w-5" />
+                    <Card className="h-[50px] overflow-hidden border-border/50 bg-white dark:bg-zinc-900 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 cursor-pointer transition-all duration-300">
+                      <CardContent className="flex h-full items-center gap-2 px-2.5 py-1.5">
+                        <div className="rounded bg-[#c4a84b]/10 p-1 text-[#c4a84b]">
+                          <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold text-xs truncate">{opt.title}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{opt.desc}</p>
+                          <p className="truncate text-[11px] font-bold leading-none sm:text-xs">{opt.title}</p>
+                          <p className="mt-1 truncate text-[9px] leading-none text-muted-foreground sm:text-[10px]">{opt.desc}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -879,10 +879,10 @@ export default function ClassroomMap() {
                   )}
 
                   {/* Seating map grid (exactly 5 columns, scrollable in separate container) */}
-                  <div className="border border-border/50 rounded-xl bg-white/80 dark:bg-zinc-900/60 p-6 shadow-md overflow-x-auto w-full max-w-full min-w-0 mb-6">
-                    <div className="min-w-[750px] grid grid-cols-5 gap-4 pb-2">
+                  <div className="mb-6 w-full max-w-full min-w-0 overflow-x-auto rounded-xl border border-border/50 bg-white/80 p-3 shadow-md dark:bg-zinc-900/60">
+                    <div className="grid min-w-[480px] grid-cols-5 gap-2.5 pb-2">
                       {/* Fileira 1 (01 a 11) */}
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
                           Fileira 1
                         </div>
@@ -890,7 +890,7 @@ export default function ClassroomMap() {
                       </div>
 
                       {/* Fileira 2 (12 a 21) */}
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
                           Fileira 2
                         </div>
@@ -898,7 +898,7 @@ export default function ClassroomMap() {
                       </div>
 
                       {/* Fileira 3 (22 a 31) */}
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
                           Fileira 3
                         </div>
@@ -906,7 +906,7 @@ export default function ClassroomMap() {
                       </div>
 
                       {/* Fileira 4 (32 a 41) */}
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
                           Fileira 4
                         </div>
@@ -914,7 +914,7 @@ export default function ClassroomMap() {
                       </div>
 
                       {/* Fileira 5 (Xerife, Sub-xerife, 42 a 51+) */}
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2">
                         <div className="text-center font-bold text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b dark:border-zinc-800">
                           Fileira 5
                         </div>

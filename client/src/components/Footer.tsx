@@ -9,24 +9,24 @@ export default function Footer() {
 
   return (
     <footer className="military-gradient text-white/80">
-      <div className="checkerboard-pattern w-full" />
-      <div className="container py-10">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          <div className="flex items-start gap-3">
-            <img src={LOGO_URL} alt="Brasao PMAM" className="h-12 w-12 object-contain" />
+      <div className="checkerboard-pattern h-1.5 w-full" />
+      <div className="container py-3 md:py-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_1fr_1fr] md:items-start md:gap-8">
+          <div className="flex items-start gap-2.5">
+            <img src={LOGO_URL} alt="Brasao PMAM" className="h-8 w-8 object-contain md:h-9 md:w-9" />
             <div>
-              <h3 className="text-lg font-bold text-white" style={{ fontFamily: "Merriweather, serif" }}>
-                Hinario PMAM
+              <h3 className="text-sm font-bold leading-tight text-white md:text-base" style={{ fontFamily: "Merriweather, serif" }}>
+                Hinário PMAM
               </h3>
-              <p className="mt-1 text-sm text-white/60">
+              <p className="mt-0.5 max-w-sm text-[11px] leading-snug text-white/60 md:text-xs">
                 {settings?.footer_text || "Hinos, canções militares e material de estudo da Polícia Militar do Amazonas"}
               </p>
-              <p className="mt-1 text-xs text-white/40">Edição 2026</p>
+              <p className="mt-0.5 text-[10px] text-white/40">Edição 2026</p>
             </div>
           </div>
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Navegação</h4>
-            <ul className="space-y-2 text-sm">
+          <div className="hidden sm:block">
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white md:text-xs">Navegação</h4>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] md:block md:space-y-1 md:text-xs">
               <li><Link href="/" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Página Inicial</Link></li>
               <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Catálogo de Hinos</Link></li>
               <li><Link href="/charlie-mike" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Charlie Mike</Link></li>
@@ -36,36 +36,36 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Contato</h4>
-            <div className="space-y-2 text-sm">
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white md:text-xs">Contato</h4>
+            <div className="grid grid-cols-1 gap-1 text-[11px] sm:block sm:space-y-1 md:text-xs">
               {settings?.footer_phone && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <Phone className="h-3.5 w-3.5 shrink-0 text-[#c4a84b]" />
+                  <Phone className="h-3 w-3 shrink-0 text-[#c4a84b]" />
                   {settings.footer_phone}
                 </p>
               )}
               {settings?.footer_email && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-[#c4a84b]" />
+                  <Mail className="h-3 w-3 shrink-0 text-[#c4a84b]" />
                   {settings.footer_email}
                 </p>
               )}
               {settings?.footer_address && (
                 <p className="flex items-center gap-2 text-white/60">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[#c4a84b]" />
+                  <MapPin className="h-3 w-3 shrink-0 text-[#c4a84b]" />
                   {settings.footer_address}
                 </p>
               )}
               {(settings?.footer_instagram || settings?.footer_facebook) && (
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-1 flex items-center gap-3">
                   {settings?.footer_instagram && (
                     <a href={settings.footer_instagram} target="_blank" rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
-                      <Instagram className="h-5 w-5" />
+                      <Instagram className="h-4 w-4" />
                     </a>
                   )}
                   {settings?.footer_facebook && (
                     <a href={settings.footer_facebook} target="_blank" rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
-                      <Facebook className="h-5 w-5" />
+                      <Facebook className="h-4 w-4" />
                     </a>
                   )}
                 </div>
@@ -80,9 +80,9 @@ export default function Footer() {
             </div>
           </div>
         </div>
-        <div className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-white/40">
+        <div className="mt-3 border-t border-white/10 pt-2 text-center text-[10px] leading-tight text-white/40 md:mt-4 md:text-[11px]">
           <p>Hinário da PMAM - Tradição, estudo e identidade institucional</p>
-          <p className="mt-1 flex items-center justify-center gap-1">
+          <p className="mt-0.5 flex items-center justify-center gap-1">
             <Shield className="h-3 w-3" /> Servir e Proteger
           </p>
         </div>

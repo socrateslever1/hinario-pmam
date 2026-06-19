@@ -29,6 +29,17 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function shouldUseInstantLyricsScroll(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const userAgent = window.navigator.userAgent || "";
+  const isSamsungInternet = /SamsungBrowser/i.test(userAgent);
+  const isTouchDevice = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+  const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+
+  return isSamsungInternet || isTouchDevice || prefersReducedMotion;
+}
+
 export default function SyncedLyricsPanel({
   hymnTitle,
   lyrics,
@@ -45,6 +56,7 @@ export default function SyncedLyricsPanel({
   const [activeLineIndex, setActiveLineIndex] = useState(-1);
   const [autoScroll, setAutoScroll] = useState(true);
   const rafRef = useRef<number | null>(null);
+  const lastScrolledLineRef = useRef(-1);
 
   const manualLines = useMemo(() => buildLyricsSyncLines(lyrics, lyricsSync), [lyrics, lyricsSync]);
   const hasManualSync = useMemo(() => hasLyricsSyncData(manualLines), [manualLines]);
@@ -57,6 +69,7 @@ export default function SyncedLyricsPanel({
   // Resetar ao trocar de hino (mantém autoScroll ativo)
   useEffect(() => {
     setActiveLineIndex(-1);
+    lastScrolledLineRef.current = -1;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, [hymnTitle, lyrics]);
 
@@ -89,6 +102,7 @@ export default function SyncedLyricsPanel({
   // scrollIntoView calcula a posição correta automaticamente, sem aritmética manual
   useEffect(() => {
     if (!autoScroll || activeLineIndex < 0) return;
+    if (lastScrolledLineRef.current === activeLineIndex) return;
 
     // Cancelar RAF anterior se ainda pendente
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -106,6 +120,13 @@ export default function SyncedLyricsPanel({
       // Isso garante que apenas o painel interno role, nunca a página inteira
       const containerRect = container.getBoundingClientRect();
       const elRect = activeEl.getBoundingClientRect();
+      const comfortTop = containerRect.top + container.clientHeight * 0.28;
+      const comfortBottom = containerRect.bottom - container.clientHeight * 0.28;
+
+      if (elRect.top >= comfortTop && elRect.bottom <= comfortBottom) {
+        lastScrolledLineRef.current = activeLineIndex;
+        return;
+      }
 
       // Posição do elemento relativa ao topo do container (incluindo scroll atual)
       const elRelativeTop = elRect.top - containerRect.top + container.scrollTop;
@@ -117,8 +138,9 @@ export default function SyncedLyricsPanel({
 
       container.scrollTo({
         top: Math.max(0, targetScroll),
-        behavior: "smooth",
+        behavior: shouldUseInstantLyricsScroll() ? "auto" : "smooth",
       });
+      lastScrolledLineRef.current = activeLineIndex;
     });
 
     return () => {
@@ -163,7 +185,7 @@ export default function SyncedLyricsPanel({
           </div>
         </div>
 
-        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-2.5 overflow-y-auto px-3 py-3 sm:px-4 md:px-6 md:py-4`}>
+        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-2.5 overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch] sm:px-4 md:px-6 md:py-4`}>
           {lines.length > 0 ? (
             lines.map((line, index) => {
               const isSection = isLyricsSectionLabel(line.text);
