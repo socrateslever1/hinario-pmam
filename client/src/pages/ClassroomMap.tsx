@@ -1060,6 +1060,86 @@ export default function ClassroomMap() {
                         <p className="text-xs text-muted-foreground text-center py-2 w-full">Todos os alunos estão sentados.</p>
                       )}
                     </div>
+                    <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Editar aluno do efetivo</DialogTitle>
+                          <DialogDescription>
+                            Corrija nome, numérica, lotação e carteira quando o aluno tiver sido carregado incorretamente.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label>Numérica</Label>
+                            <Input
+                              value={editStudentForm.numerica}
+                              onChange={(event) => setEditStudentForm((current) => ({ ...current, numerica: cleanNumerica(event.target.value) }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Nome de guerra</Label>
+                            <Input
+                              value={editStudentForm.nomeGuerra}
+                              onChange={(event) => setEditStudentForm((current) => ({ ...current, nomeGuerra: event.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Companhia</Label>
+                            <Select
+                              value={editStudentForm.companhia}
+                              onValueChange={(value) => setEditStudentForm((current) => ({ ...current, companhia: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5].map((item) => (
+                                  <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Pelotão</Label>
+                            <Select
+                              value={editStudentForm.peloton}
+                              onValueChange={(value) => setEditStudentForm((current) => ({ ...current, peloton: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2].map((item) => (
+                                  <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label>Carteira</Label>
+                            <Input
+                              type="number"
+                              value={editStudentForm.deskNumber}
+                              onChange={(event) => setEditStudentForm((current) => ({ ...current, deskNumber: event.target.value }))}
+                              placeholder="Deixe vazio para sem carteira"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="button" variant="outline" onClick={() => setEditingStudent(null)}>
+                            Cancelar
+                          </Button>
+                          <Button
+                            type="button"
+                            className="bg-[#1a3a2a] text-white"
+                            onClick={handleUpdateRosterStudent}
+                            disabled={updateRosterStudent.isPending}
+                          >
+                            Salvar alterações
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </CardContent>
                 </Card>
               </div>
@@ -1379,6 +1459,87 @@ export default function ClassroomMap() {
                         <p className="text-xs text-muted-foreground">Controle de condições em sala de aula e nomeação de Xerifes</p>
                       </div>
                     </div>
+                    <div className="mb-4 rounded-lg border bg-muted/10 p-3">
+                      <div className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
+                        <UserPlus className="h-4 w-4 text-[#c4a84b]" />
+                        Adicionar aluno ao efetivo
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-[120px_1fr_150px_auto]">
+                        <Input
+                          value={newStudentForm.numerica}
+                          onChange={(event) => setNewStudentForm((current) => ({ ...current, numerica: cleanNumerica(event.target.value) }))}
+                          placeholder="Numérica"
+                          className="h-9 text-sm"
+                        />
+                        <Input
+                          value={newStudentForm.nomeGuerra}
+                          onChange={(event) => setNewStudentForm((current) => ({ ...current, nomeGuerra: event.target.value }))}
+                          placeholder="Nome de guerra"
+                          className="h-9 text-sm"
+                        />
+                        <Input
+                          type="password"
+                          value={newStudentForm.senha}
+                          onChange={(event) => setNewStudentForm((current) => ({ ...current, senha: event.target.value }))}
+                          placeholder="Senha inicial"
+                          className="h-9 text-sm"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-9 bg-[#1a3a2a] text-white"
+                          onClick={handleCreateRosterStudent}
+                          disabled={createRosterStudent.isPending}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar
+                        </Button>
+                      </div>
+                    </div>
+
+                    {access?.isGeneral && pendingObservationsQuery.data?.length ? (
+                      <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-800 dark:text-amber-200">
+                          <Inbox className="h-4 w-4" />
+                          FO pendente de validação
+                        </div>
+                        <div className="space-y-2">
+                          {pendingObservationsQuery.data.map((item: any) => (
+                            <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background/80 p-2 text-xs md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <p className="font-bold">
+                                  {item.type === "positive" ? "FO+" : "FO-"} - {item.numerica} {item.nome_guerra}
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
+                                <p className="mt-1 text-[10px] text-muted-foreground">Lançada por {item.created_by_name || "xerife"}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 bg-[#1a3a2a] text-white"
+                                  onClick={() => validateStudentObservation.mutate({ id: item.id, status: "approved" })}
+                                  disabled={validateStudentObservation.isPending}
+                                >
+                                  Aprovar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8"
+                                  onClick={() => validateStudentObservation.mutate({ id: item.id, status: "rejected" })}
+                                  disabled={validateStudentObservation.isPending}
+                                >
+                                  Rejeitar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {students.map((student: any) => (
                         <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
@@ -1392,6 +1553,30 @@ export default function ClassroomMap() {
                             <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Cia / {student.peloton}º Pel</p>
                           </div>
                           
+                          <div className="mt-2 flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[10px]"
+                              onClick={() => openEditStudent(student)}
+                            >
+                              <Pencil className="mr-1 h-3 w-3" />
+                              Editar
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[10px] text-red-500 hover:text-red-600"
+                              onClick={() => handleDeleteRosterStudent(student)}
+                              disabled={deleteRosterStudent.isPending}
+                            >
+                              <Trash2 className="mr-1 h-3 w-3" />
+                              Remover
+                            </Button>
+                          </div>
+
                           <div className="mt-3">
                             <Label className="text-[11px] text-muted-foreground">Alterar Condição</Label>
                             <Select
@@ -1425,9 +1610,9 @@ export default function ClassroomMap() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="positive">Positiva</SelectItem>
+                                  <SelectItem value="positive">FO+</SelectItem>
                                   <SelectItem value="neutral">Neutra</SelectItem>
-                                  <SelectItem value="negative">Negativa</SelectItem>
+                                  <SelectItem value="negative">FO-</SelectItem>
                                 </SelectContent>
                               </Select>
                               <Button

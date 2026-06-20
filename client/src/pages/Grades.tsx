@@ -368,7 +368,7 @@ export default function Grades() {
           ) : (
             <Trophy className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           )}
-          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
             Notas do Curso
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">

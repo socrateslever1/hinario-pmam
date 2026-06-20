@@ -201,7 +201,7 @@ export default function StudentProfilePage() {
       <main className="container max-w-5xl px-4 py-6 md:py-8">
         <div className="mb-6 flex flex-col justify-between gap-4 p-5 text-foreground md:flex-row md:items-center md:p-0">
           <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+            <h1 className="flex items-center gap-2 text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
               <Shield className="h-8 w-8 text-[#c4a84b]" />
               Ficha de Cadastro do Aluno
             </h1>

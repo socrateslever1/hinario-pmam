@@ -355,7 +355,7 @@ window.print();
       <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
         <div className="container text-center">
           <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
             Gerador de Documentos Militares
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">

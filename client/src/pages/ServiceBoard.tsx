@@ -43,7 +43,7 @@ export default function ServiceBoard() {
             <CalendarDays className="h-3.5 w-3.5 text-[#f0bd3a]" />
             Quadro de Serviço
           </div>
-          <h1 className="text-3xl font-black md:text-5xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl font-black md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Escalas Publicadas
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base">

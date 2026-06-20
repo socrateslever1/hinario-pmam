@@ -115,7 +115,7 @@ export default function DrillDetail() {
               </Badge>
             )}
           </div>
-          <h1 className="text-3xl font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
             {drill.title}
           </h1>
           {drill.subtitle && (
