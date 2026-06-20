@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  ArrowLeft, LayoutGrid, User, Laptop, Crown, Shield, 
-  CalendarDays, FileText, History, ExternalLink, Star, 
+import {
+  ArrowLeft, LayoutGrid, User, Laptop, Crown, Shield,
+  CalendarDays, FileText, History, ExternalLink, Star,
   Save, Trash2, Check, UserCog, Users, ClipboardList,
   Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus
 } from "lucide-react";
@@ -151,7 +151,7 @@ export default function ClassroomMap() {
   const [aditamentoText, setAditamentoText] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [cleaningByDay, setCleaningByDay] = useState<Record<number, string[]>>({});
-  
+
   // Aditamentos states
   const [aditTitulo, setAditTitulo] = useState("");
   const [aditConteudo, setAditConteudo] = useState("");
@@ -402,16 +402,16 @@ export default function ClassroomMap() {
 
   // Access validation
   const isXerifeGeral = Boolean(access?.isGeneral);
-  const isCurrentStudentActiveXerife = studentSession && activeRoles && 
+  const isCurrentStudentActiveXerife = studentSession && activeRoles &&
     (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
 
   const isAdminOrXerifeAdmin = isXerifeGeral ||
-    (access?.assignment && 
-     (access.assignment.level === "principal" ||
-      (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
-      (access.assignment.level === "pelotao" && 
-       access.assignment.companhia === selectedCompanhia && 
-       access.assignment.peloton === selectedPeloton))) ||
+    (access?.assignment &&
+      (access.assignment.level === "principal" ||
+        (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
+        (access.assignment.level === "pelotao" &&
+          access.assignment.companhia === selectedCompanhia &&
+          access.assignment.peloton === selectedPeloton))) ||
     Boolean(isCurrentStudentActiveXerife);
 
   const canChangeClassroomScope = isXerifeGeral;
@@ -446,11 +446,10 @@ export default function ClassroomMap() {
       <div
         key={seatNumber}
         onClick={() => handleSeatClick(seatNumber)}
-        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${
-          isOccupied
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? getSeatConditionStyle(cond)
             : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
-        } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center justify-center">
@@ -465,20 +464,17 @@ export default function ClassroomMap() {
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${
-                  isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
-                }`}
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
+                  }`}
               />
             ) : (
-              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${
-                isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
-              }`}>
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
+                }`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${
-              isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
-            }`}>
+            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
+              }`}>
               {occupant.nomeGuerra}
             </span>
             <span className="text-[7px] text-muted-foreground">
@@ -501,10 +497,10 @@ export default function ClassroomMap() {
     const isOccupied = !!occupant;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
-    
+
     const roleTitle = role === 'xerife' ? "Xerife" : "Sub-Xerife";
-    const borderClass = role === 'xerife' 
-      ? "border-yellow-500 bg-yellow-500/5 dark:bg-yellow-950/10 shadow-sm" 
+    const borderClass = role === 'xerife'
+      ? "border-yellow-500 bg-yellow-500/5 dark:bg-yellow-950/10 shadow-sm"
       : "border-slate-400 bg-slate-400/5 dark:bg-slate-900/10 shadow-sm";
 
     return (
@@ -516,11 +512,10 @@ export default function ClassroomMap() {
             setLocation("/sala-de-aula/efetivo");
           }
         }}
-        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${
-          isOccupied
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
             : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
-        } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center gap-1">
@@ -540,22 +535,19 @@ export default function ClassroomMap() {
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${
-                  isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
-                }`}
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
+                  }`}
               />
             ) : (
-              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${
-                isAbsent 
-                  ? "bg-red-500/10 text-red-500 border-red-400" 
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent
+                  ? "bg-red-500/10 text-red-500 border-red-400"
                   : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500" : "bg-slate-500/10 text-slate-600 border-slate-400")
-              }`}>
+                }`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${
-              isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
-            }`}>
+            <span className={`w-full truncate px-0.5 text-[8px] font-bold ${isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
+              }`}>
               {occupant.nomeGuerra}
             </span>
             <span className="text-[7px] text-muted-foreground">
@@ -592,7 +584,7 @@ export default function ClassroomMap() {
     }
     setSelectedSeat(seatNumber);
     const occupant = students.find((s: any) => s.deskNumber === seatNumber);
-    
+
     // If we already pre-selected a student from the unassigned list
     if (selectedStudentId !== "none" && !students.find(s => s.id === Number(selectedStudentId))?.deskNumber) {
       // Keep it pre-selected
@@ -853,12 +845,12 @@ export default function ClassroomMap() {
       <Navbar />
 
       <main className="container mx-auto px-4 py-6 pb-24 max-w-6xl">
-        
+
         {/* Render nested views */}
         {subview === "map" ? (
           /* ================= MAIN CLASSROOM VIEW ================= */
           <div className="space-y-6">
-            
+
             {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -948,7 +940,7 @@ export default function ClassroomMap() {
 
             {/* Main Grid: Seating Map & Side Column */}
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-              
+
               <div className="space-y-6 min-w-0">
                 {/* Seating Map Container */}
                 <div className="space-y-6 min-w-0">
@@ -1038,14 +1030,13 @@ export default function ClassroomMap() {
                   <CardContent className="p-3">
                     <div className="flex flex-wrap gap-1.5 max-h-[150px] overflow-y-auto">
                       {unassignedStudents.map((s: any) => (
-                        <Badge 
-                          key={s.id} 
-                          variant="outline" 
-                          className={`text-xs px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-muted/80 ${
-                            selectedStudentId === String(s.id) 
-                              ? "bg-yellow-500/20 border-yellow-500 text-yellow-700" 
+                        <Badge
+                          key={s.id}
+                          variant="outline"
+                          className={`text-xs px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-muted/80 ${selectedStudentId === String(s.id)
+                              ? "bg-yellow-500/20 border-yellow-500 text-yellow-700"
                               : "border-border text-muted-foreground"
-                          }`}
+                            }`}
                           onClick={() => {
                             if (isAdminOrXerifeAdmin) {
                               setSelectedStudentId(String(s.id));
@@ -1060,86 +1051,6 @@ export default function ClassroomMap() {
                         <p className="text-xs text-muted-foreground text-center py-2 w-full">Todos os alunos estão sentados.</p>
                       )}
                     </div>
-                    <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Editar aluno do efetivo</DialogTitle>
-                          <DialogDescription>
-                            Corrija nome, numérica, lotação e carteira quando o aluno tiver sido carregado incorretamente.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="space-y-1">
-                            <Label>Numérica</Label>
-                            <Input
-                              value={editStudentForm.numerica}
-                              onChange={(event) => setEditStudentForm((current) => ({ ...current, numerica: cleanNumerica(event.target.value) }))}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Nome de guerra</Label>
-                            <Input
-                              value={editStudentForm.nomeGuerra}
-                              onChange={(event) => setEditStudentForm((current) => ({ ...current, nomeGuerra: event.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Companhia</Label>
-                            <Select
-                              value={editStudentForm.companhia}
-                              onValueChange={(value) => setEditStudentForm((current) => ({ ...current, companhia: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5].map((item) => (
-                                  <SelectItem key={item} value={String(item)}>{item}ª Companhia</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Pelotão</Label>
-                            <Select
-                              value={editStudentForm.peloton}
-                              onValueChange={(value) => setEditStudentForm((current) => ({ ...current, peloton: value }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2].map((item) => (
-                                  <SelectItem key={item} value={String(item)}>{item}º Pelotão</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1 sm:col-span-2">
-                            <Label>Carteira</Label>
-                            <Input
-                              type="number"
-                              value={editStudentForm.deskNumber}
-                              onChange={(event) => setEditStudentForm((current) => ({ ...current, deskNumber: event.target.value }))}
-                              placeholder="Deixe vazio para sem carteira"
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button type="button" variant="outline" onClick={() => setEditingStudent(null)}>
-                            Cancelar
-                          </Button>
-                          <Button
-                            type="button"
-                            className="bg-[#1a3a2a] text-white"
-                            onClick={handleUpdateRosterStudent}
-                            disabled={updateRosterStudent.isPending}
-                          >
-                            Salvar alterações
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
                   </CardContent>
                 </Card>
               </div>
@@ -1159,9 +1070,9 @@ export default function ClassroomMap() {
                     <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-center gap-3">
                       <div className="relative shrink-0">
                         {students.find((s: any) => s.id === activeRoles?.xerifeId)?.fotoUrl ? (
-                          <img 
-                            src={students.find((s: any) => s.id === activeRoles?.xerifeId)?.fotoUrl} 
-                            alt="Xerife" 
+                          <img
+                            src={students.find((s: any) => s.id === activeRoles?.xerifeId)?.fotoUrl}
+                            alt="Xerife"
                             className="h-11 w-11 rounded-full object-cover border-2 border-[#c4a84b]"
                           />
                         ) : (
@@ -1183,9 +1094,9 @@ export default function ClassroomMap() {
                     <div className="rounded-xl border border-slate-500/10 bg-slate-500/5 p-3 flex items-center gap-3">
                       <div className="relative shrink-0">
                         {students.find((s: any) => s.id === activeRoles?.subXerifeId)?.fotoUrl ? (
-                          <img 
-                            src={students.find((s: any) => s.id === activeRoles?.subXerifeId)?.fotoUrl} 
-                            alt="Sub-Xerife" 
+                          <img
+                            src={students.find((s: any) => s.id === activeRoles?.subXerifeId)?.fotoUrl}
+                            alt="Sub-Xerife"
                             className="h-11 w-11 rounded-full object-cover border-2 border-slate-400"
                           />
                         ) : (
@@ -1396,8 +1307,8 @@ export default function ClassroomMap() {
 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setAssignmentModalOpen(false); setSelectedStudentId("none"); }}>Cancelar</Button>
-                  <Button 
-                    className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" 
+                  <Button
+                    className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
                     onClick={handleAssignSeat}
                     disabled={updateStudentDesk.isPending}
                   >
@@ -1411,12 +1322,12 @@ export default function ClassroomMap() {
         ) : (
           /* ================= SUBVIEW ROUTING SYSTEM ================= */
           <div className="space-y-6">
-            
+
             {/* Back button header */}
             <div className="mb-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setLocation("/sala-de-aula")}
                 className="gap-2 bg-white dark:bg-zinc-900 border-border text-foreground font-bold hover:bg-muted/80"
               >
@@ -1552,7 +1463,7 @@ export default function ClassroomMap() {
                             </div>
                             <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Cia / {student.peloton}º Pel</p>
                           </div>
-                          
+
                           <div className="mt-2 flex justify-end gap-1">
                             <Button
                               type="button"
@@ -1742,7 +1653,7 @@ export default function ClassroomMap() {
                           <h2 className="text-lg font-bold text-foreground">Escala Semanal de Faxina</h2>
                         </div>
                       </div>
-                      
+
                       <div className="grid gap-3 sm:grid-cols-3">
                         <div>
                           <Label>Data de Serviço (Opcional)</Label>

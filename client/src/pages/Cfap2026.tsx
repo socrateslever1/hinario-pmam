@@ -232,8 +232,8 @@ function MissionCard({
             <Calendar className="h-3 w-3" />
             {mission.createdAt
               ? format(new Date(mission.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
-                  locale: ptBR,
-                })
+                locale: ptBR,
+              })
               : "Data não disponível"}
           </span>
           <span className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-600">
@@ -380,7 +380,7 @@ function MissionCard({
 export default function Cfap2026() {
   const [visitorId, setVisitorId] = useState("");
   const [visitorName, setVisitorName] = useState("");
-  
+
   // Platoon selection for Aditamentos (defaulting to student session if logged in)
   const studentSession = getStudentSession();
   const [companhia, setCompanhia] = useState(studentSession?.companhia ? String(studentSession.companhia) : "4");
@@ -422,7 +422,7 @@ export default function Cfap2026() {
         <div className="container text-center">
           <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1
-            className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]"
+            className="text-3xl font-bold text-[#1a3a2a] md:text-4xl dark:text-[#c4a84b]"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             CFAP 2026
@@ -505,7 +505,7 @@ export default function Cfap2026() {
                   <FileText className="h-5 w-5 text-[#c4a84b]" />
                   Banco de Aditamentos
                 </h2>
-                
+
                 {/* Platoon selector */}
                 <div className="flex items-center gap-2">
                   <Select value={companhia} onValueChange={setCompanhia}>

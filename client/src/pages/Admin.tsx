@@ -277,7 +277,7 @@ export default function Admin() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-2 xl:grid-cols-2">
                 {hymns
                   ?.filter((hymn: any) => hymn.collection !== "tfm")
                   ?.filter((hymn: any) => {
@@ -356,7 +356,7 @@ export default function Admin() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-2 xl:grid-cols-2">
                 {hymns
                   ?.filter((hymn: any) => hymn.collection === "tfm")
                   ?.filter((hymn: any) => {

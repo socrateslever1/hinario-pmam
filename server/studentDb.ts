@@ -539,10 +539,18 @@ export async function deleteStudent(id: number): Promise<void> {
   try {
     await connection.beginTransaction();
     await connection.execute("DELETE FROM pmam_student_grades WHERE student_id = ?", [id]);
-    await connection.execute("DELETE FROM pmam_student_observations WHERE student_id = ?", [id]);
-    await connection.execute("DELETE FROM pmam_seat_change_requests WHERE student_id = ?", [id]);
-    await connection.execute("DELETE FROM pmam_notice_reads WHERE student_id = ?", [id]);
-    await connection.execute("DELETE FROM pmam_peculio_student_statuses WHERE student_id = ?", [id]);
+    for (const table of [
+      "pmam_student_observations",
+      "pmam_seat_change_requests",
+      "pmam_notice_reads",
+      "pmam_peculio_student_statuses",
+    ]) {
+      try {
+        await connection.execute(`DELETE FROM ${table} WHERE student_id = ?`, [id]);
+      } catch (error: any) {
+        if (error?.code !== "ER_NO_SUCH_TABLE") throw error;
+      }
+    }
     await connection.execute("DELETE FROM pmam_students WHERE id = ?", [id]);
     await connection.commit();
   } catch (error) {

@@ -261,47 +261,11 @@ export function PeculioTab({
     statuses: buildStatusesPayload(),
   });
 
-  useEffect(() => {
-    if (!hasLocalChanges || !canEdit || !students.length || savePeculio.isPending) return;
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-    autosaveTimerRef.current = setTimeout(() => {
-      autosaveInProgressRef.current = true;
-      savePeculio.mutate(buildPeculioPayload());
-    }, 4000);
-    return () => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-      }
-    };
-  }, [
-    hasLocalChanges,
-    canEdit,
-    students.length,
-    studentStatuses,
-    instrucaoLocal,
-    instrucaoDisciplina,
-    instrucaoExterna,
-    chefeTurma,
-    subchefeTurma,
-    cmtPel,
-    entryTime,
-    selectedCompanhia,
-    selectedPeloton,
-    date,
-    savePeculio.isPending,
-  ]);
-
   const handleSave = () => {
     if (!canEdit) {
       toast.error("Pecúlio fechado. Solicite liberação ao Xerife Geral.");
       return;
     }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-    autosaveInProgressRef.current = false;
     savePeculio.mutate(buildPeculioPayload());
   };
 
@@ -569,9 +533,8 @@ export function PeculioTab({
                               type="button"
                               onClick={() => handleStatusChange(student.id, st.value)}
                               disabled={!canEdit}
-                              className={`${st.value === "pronto" ? "h-6 min-w-[50px] rounded px-1" : "h-6 w-6 rounded-full"} text-[9px] font-black leading-none transition-colors touch-manipulation ${
-                                isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
+                              className={`${st.value === "pronto" ? "h-6 min-w-[50px] rounded px-1" : "h-6 w-6 rounded-full"} text-[9px] font-black leading-none transition-colors touch-manipulation ${isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                }`}
                             >
                               {st.label}
                             </button>
@@ -692,7 +655,7 @@ export function PeculioTab({
           return (
             <Card key={student.id} className="min-w-0 border-border/50 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
               <CardContent className="p-0">
-                <div 
+                <div
                   onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}
                   className="flex min-w-0 items-center justify-between gap-3 p-3 cursor-pointer hover:bg-muted/10 transition-colors"
                 >
@@ -728,9 +691,8 @@ export function PeculioTab({
                               type="button"
                               onClick={() => handleStatusChange(student.id, st.value)}
                               disabled={!canEdit}
-                              className={`min-h-9 rounded-lg px-1 py-1 text-xs font-black transition-all touch-manipulation ${
-                                isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
+                              className={`min-h-9 rounded-lg px-1 py-1 text-xs font-black transition-all touch-manipulation ${isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                }`}
                             >
                               {st.label}
                             </button>
@@ -928,7 +890,8 @@ export function PeculioTab({
 
       {/* 4. OFFICIAL PMAM PECÚLIO PRINT VIEW - Hidden by default, visible during window.print() */}
       <div className="hidden print:block peculio-print-container font-serif text-black p-4 space-y-4" style={{ fontSize: "11px" }}>
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @media print {
             body { background: white !important; color: black !important; }
             .print\\:hidden, header, nav, footer, aside, .sw-active, button { display: none !important; }
@@ -946,7 +909,7 @@ export function PeculioTab({
           <h3 className="text-[10px] font-bold">DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</h3>
           <h4 className="text-[10px] font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</h4>
           <div className="w-full border-t border-black my-2"></div>
-          
+
           <div className="flex justify-between w-full font-bold text-xs">
             <span>PECÚLIO {selectedCompanhia}ª CIA/{selectedPeloton}º PEL - CFSD/2026</span>
             <span>DATA: {formattedDate}</span>
@@ -1037,8 +1000,8 @@ export function PeculioTab({
               const entry = studentStatuses[s.id];
               return entry && (entry.status !== "pronto" || entry.observacao);
             }) && (
-              <div className="text-center text-gray-500 italic p-4 text-[10px]">Sem alterações registradas.</div>
-            )}
+                <div className="text-center text-gray-500 italic p-4 text-[10px]">Sem alterações registradas.</div>
+              )}
           </div>
         </div>
 

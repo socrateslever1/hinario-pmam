@@ -58,29 +58,29 @@ export default function Hymns() {
   const activeCategoryConfig = categoryConfig[activeCategory] || categoryConfig.all;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-12">
-        <div className="px-0 md:container text-center">
+      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 dark:border-white/10 dark:bg-[#071018] md:px-0 md:py-12">
+        <div className="mx-auto w-full max-w-6xl px-3 text-center md:px-6">
           <Music className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#f8f7f0]" style={{ fontFamily: "Merriweather, serif" }}>
             Catálogo de Hinos
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm dark:text-white/70 md:text-base">
             {hymns?.length ?? 0} hinos, canções e orações militares
           </p>
         </div>
         <div className="checkerboard-pattern mt-6 hidden w-full md:block" />
       </section>
 
-      <section className="bg-transparent px-3 pb-8 pt-2 md:bg-background md:px-0 md:py-8">
-        <div className="px-0 md:container space-y-6 md:space-y-8">
-          <div className="relative mx-auto max-w-md rounded-[1.4rem] border border-border/50 bg-white p-2 shadow-sm md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+      <section className="bg-transparent px-3 pb-8 pt-2 md:bg-background md:px-0 md:py-8 dark:md:bg-[#020a0f]">
+        <div className="mx-auto w-full max-w-6xl space-y-6 px-3 md:space-y-8 md:px-6">
+          <div className="relative mx-auto max-w-md rounded-[1.4rem] border border-border/50 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-[#0b1720] md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none dark:md:bg-transparent">
             <Search className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar hino por nome, subtítulo ou autor..."
-              className="h-11 rounded-2xl border-border bg-white pl-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-[#1a3a2a]"
+              className="h-11 rounded-2xl border-border bg-white pl-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-[#1a3a2a] dark:border-white/10 dark:bg-[#0b1720] dark:text-white dark:placeholder:text-white/45"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -95,8 +95,8 @@ export default function Hymns() {
                   size="sm"
                   className={`shrink-0 rounded-full border-border px-4 font-black md:gap-2 ${
                     activeCategory === key
-                      ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
-                      : "bg-white text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-[#1a3a2a]"
+                      ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90 dark:bg-[#145c3a] dark:text-[#f8f7f0]"
+                      : "bg-white text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-[#1a3a2a] dark:border-white/10 dark:bg-[#0b1720] dark:text-white/70 dark:hover:bg-[#102436] dark:hover:text-white"
                   }`}
                   onClick={() => setActiveCategory(key)}
                 >
@@ -114,7 +114,7 @@ export default function Hymns() {
             accentColor={activeCategoryConfig.color}
           />
 
-          <div className="flex flex-col gap-2 rounded-[1.2rem] border border-border/50 bg-white p-4 text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between md:rounded-2xl md:border-border/60 md:bg-white/90 md:shadow-sm">
+          <div className="flex flex-col gap-2 rounded-[1.2rem] border border-border/50 bg-white p-4 text-foreground shadow-sm dark:border-white/10 dark:bg-[#0b1720] dark:text-white sm:flex-row sm:items-center sm:justify-between md:rounded-2xl md:border-border/60 md:bg-white/90 md:shadow-sm dark:md:border-white/10 dark:md:bg-[#0b1720]">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Seleção atual</p>
               <h2 className="mt-1 text-xl font-black tracking-normal text-foreground md:text-2xl">{activeCategoryConfig.label}</h2>
@@ -122,7 +122,7 @@ export default function Hymns() {
                 {filteredHymns.length} item(ns) prontos para ouvir individualmente ou em sequência.
               </p>
             </div>
-            <div className="flex w-fit items-center gap-2 rounded-full bg-[#1a3a2a]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#1a3a2a]">
+            <div className="flex w-fit items-center gap-2 rounded-full bg-[#1a3a2a]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#1a3a2a] dark:bg-[#d6b64c]/15 dark:text-[#f0bd3a]">
               <ListMusic className="h-4 w-4" />
               Player em lista
             </div>
@@ -145,7 +145,7 @@ export default function Hymns() {
                 const cfg = categoryConfig[hymn.category] || categoryConfig.all;
                 return (
                   <Link key={hymn.id} href={`/hino/${hymn.id}`}>
-                    <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden rounded-lg border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50">
+                    <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden rounded-lg border-border/50 bg-white shadow-sm hover:border-[#c4a84b]/50 dark:border-white/10 dark:bg-[#0b1720] dark:hover:border-[#d6b64c]/60">
                       <CardContent className="p-0">
                         <div className="hidden h-1 w-full md:block" style={{ backgroundColor: cfg.color }} />
                         <div className="p-2 md:p-3">
@@ -157,7 +157,7 @@ export default function Hymns() {
                               {String(hymn.number).padStart(2, "0")}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="mb-0.5 text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: cfg.color }}>
+                              <p className="mb-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-[#9a7b22] dark:text-[#f0bd3a]">
                                 {cfg.label}
                               </p>
                               <h3 className="truncate text-sm font-bold leading-tight text-foreground">

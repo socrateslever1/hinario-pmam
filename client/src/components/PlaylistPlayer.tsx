@@ -440,7 +440,7 @@ export default function PlaylistPlayer({
 
   if (queue.length === 0) {
     return (
-      <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
+      <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#071018]">
         <CardContent className="p-6 text-center sm:p-8">
           <ListMusic className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
           <h3 className="text-xl font-bold text-foreground">{title}</h3>
@@ -460,7 +460,7 @@ export default function PlaylistPlayer({
     return (
       <div className="flex flex-col gap-3 md:gap-4 md:grid md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
         {/* Player Compacto */}
-        <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg">
+        <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#071018]">
           <CardContent className="p-0">
             <div className="bg-gradient-to-br from-[#0f2017] via-[#183225] to-[#10281d] text-white">
               {/* Video YouTube (se houver) */}
@@ -581,9 +581,9 @@ export default function PlaylistPlayer({
                     </SheetTrigger>
                     <SheetContent side="right" className="w-full p-0 sm:w-96">
                       <SheetTitle className="sr-only">Fila de reprodução</SheetTitle>
-                      <div className="flex h-full flex-col bg-[#f6faf6]">
-                        <div className="border-b border-[#1a3a2a]/10 px-4 py-3 flex items-center justify-between">
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55">
+                      <div className="flex h-full flex-col bg-[#f6faf6] dark:bg-[#071018]">
+                        <div className="border-b border-[#1a3a2a]/10 px-4 py-3 flex items-center justify-between dark:border-white/10">
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 dark:text-white/60">
                             Fila ({queue.length})
                           </p>
                         </div>
@@ -596,21 +596,21 @@ export default function PlaylistPlayer({
                                 type="button"
                                 onClick={() => goToIndex(index, true)}
                                 className={`mb-2 flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-all ${
-                                  isCurrent ? "bg-[#1a3a2a] text-white shadow-md" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0]"
+                                  isCurrent ? "bg-[#1a3a2a] text-white shadow-md dark:bg-[#145c3a]" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0] dark:bg-[#0b1720] dark:text-white dark:ring-white/10 dark:hover:bg-[#102436]"
                                 }`}
                               >
                                 <div
                                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded text-[10px] font-black ${
-                                    isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a]"
+                                    isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a] dark:bg-[#d6b64c]/15 dark:text-[#f0bd3a]"
                                   }`}
                                 >
                                   {String(item.number).padStart(2, "0")}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className={`line-clamp-1 text-xs font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23]"}`}>
+                                  <p className={`line-clamp-1 text-xs font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23] dark:text-white"}`}>
                                     {item.title}
                                   </p>
-                                  <p className={`mt-0.5 line-clamp-1 text-[10px] ${isCurrent ? "text-white/65" : "text-[#1d2b23]/60"}`}>
+                                  <p className={`mt-0.5 line-clamp-1 text-[10px] ${isCurrent ? "text-white/75" : "text-[#1d2b23]/60 dark:text-white/65"}`}>
                                     {item.subtitle || item.author || "Faixa"}
                                   </p>
                                 </div>
@@ -640,7 +640,7 @@ export default function PlaylistPlayer({
 
         {/* Letras Sincronizadas */}
         {currentItem && (
-          <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg">
+          <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#071018]">
             <CardContent className="p-3">
               <SyncedLyricsPanel
                 hymnTitle={currentItem.title}
@@ -666,7 +666,7 @@ export default function PlaylistPlayer({
 
   // Layout Desktop: Grid com playlist lateral
   return (
-    <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl">
+    <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#071018]">
       <CardContent className="p-0">
         <div className="grid min-h-0 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 bg-gradient-to-br from-[#0f2017] via-[#183225] to-[#10281d] text-white">
@@ -790,8 +790,8 @@ export default function PlaylistPlayer({
             </div>
           </div>
 
-          <div className="min-h-0 border-t border-[#1a3a2a]/10 bg-[#f6faf6] lg:border-l lg:border-t-0">
-            <div className="border-b border-[#1a3a2a]/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55">
+          <div className="min-h-0 border-t border-[#1a3a2a]/10 bg-[#f6faf6] dark:border-white/10 dark:bg-[#071018] lg:border-l lg:border-t-0">
+            <div className="border-b border-[#1a3a2a]/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 dark:border-white/10 dark:text-white/60">
               Fila da playlist
             </div>
             <div className="max-h-[20rem] overflow-y-auto p-2 sm:max-h-[24rem] lg:max-h-[34rem]">
@@ -803,24 +803,24 @@ export default function PlaylistPlayer({
                     type="button"
                     onClick={() => goToIndex(index, true)}
                     className={`mb-2 flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-all ${
-                      isCurrent ? "bg-[#1a3a2a] text-white shadow-lg" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0]"
+                      isCurrent ? "bg-[#1a3a2a] text-white shadow-lg dark:bg-[#145c3a]" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0] dark:bg-[#0b1720] dark:text-white dark:ring-white/10 dark:hover:bg-[#102436]"
                     }`}
                   >
                     <div
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-black ${
-                        isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a]"
+                        isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a] dark:bg-[#d6b64c]/15 dark:text-[#f0bd3a]"
                       }`}
                     >
                       {String(item.number).padStart(2, "0")}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`line-clamp-2 text-sm font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23]"}`}>
+                        <p className={`line-clamp-2 text-sm font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23] dark:text-white"}`}>
                           {item.title}
                         </p>
                         {isOnline && item.youtubeUrl ? <Youtube className="h-4 w-4 shrink-0" /> : <Music className="h-4 w-4 shrink-0" />}
                       </div>
-                      <p className={`mt-1 line-clamp-2 text-xs ${isCurrent ? "text-white/65" : "text-[#1d2b23]/60"}`}>
+                      <p className={`mt-1 line-clamp-2 text-xs ${isCurrent ? "text-white/75" : "text-[#1d2b23]/60 dark:text-white/65"}`}>
                         {item.subtitle || item.author || "Selecionar faixa"}
                       </p>
                     </div>
@@ -832,7 +832,7 @@ export default function PlaylistPlayer({
         </div>
 
         {currentItem && (
-          <div className="border-t border-[#1a3a2a]/10 bg-[#f7faf7] p-3 sm:p-4 md:p-5">
+          <div className="border-t border-[#1a3a2a]/10 bg-[#f7faf7] p-3 dark:border-white/10 dark:bg-[#071018] sm:p-4 md:p-5">
             <SyncedLyricsPanel
               hymnTitle={currentItem.title}
               lyrics={currentItem.lyrics ?? ""}

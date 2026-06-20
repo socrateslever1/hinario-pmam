@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Shield, Users, Plus, Trash2, Edit2, Wallet,
-  TrendingUp, TrendingDown, DollarSign, ChevronDown, ChevronUp, UserPlus, X
+  TrendingUp, TrendingDown, DollarSign, ChevronDown, ChevronUp, UserPlus, X,
+  Save, Clock, Camera, Radio
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,14 +40,50 @@ const ICONE_OPTIONS = [
   { value: "users", label: "Grupo", icon: "👥" },
 ];
 
+const EXTRA_ICONE_OPTIONS = [
+  { value: "clock", label: "Homem-Hora", icon: "HH" },
+  { value: "camera", label: "P5 / MÃ­dia", icon: "P5" },
+  { value: "radio", label: "Aluno de LigaÃ§Ã£o", icon: "AL" },
+  { value: "clipboard", label: "Prancheta", icon: "CP" },
+  { value: "megaphone", label: "Avisos", icon: "AV" },
+  { value: "briefcase", label: "Secretaria", icon: "SC" },
+  { value: "target", label: "MissÃ£o", icon: "MS" },
+  { value: "medal", label: "Medalha", icon: "MD" },
+  { value: "calendar", label: "Escala", icon: "ES" },
+  { value: "file", label: "Documento", icon: "DOC" },
+  { value: "treasury", label: "Tesouraria", icon: "R$" },
+  { value: "justice", label: "Conselho", icon: "CD" },
+  { value: "check", label: "FiscalizaÃ§Ã£o", icon: "OK" },
+  { value: "headphones", label: "ComunicaÃ§Ã£o", icon: "COM" },
+  { value: "tools", label: "Apoio", icon: "AP" },
+  { value: "map", label: "OrientaÃ§Ã£o", icon: "MAP" },
+  { value: "bell", label: "Alerta", icon: "!" },
+  { value: "note", label: "Registro", icon: "REG" },
+];
+
+const ALL_ICONE_OPTIONS = [...ICONE_OPTIONS, ...EXTRA_ICONE_OPTIONS];
+
 function iconeEmoji(icone: string) {
   return ICONE_OPTIONS.find(o => o.value === icone)?.icon ?? "🛡️";
+}
+
+function cargoIconLabel(icone: string) {
+  return ALL_ICONE_OPTIONS.find(o => o.value === icone)?.icon ?? iconeEmoji(icone);
 }
 
 interface Props {
   companhia: number;
   peloton: number;
   isAdmin: boolean;
+}
+
+function getCurrentWeekStart() {
+  const copy = new Date();
+  const day = copy.getDay();
+  const diff = copy.getDate() - day + (day === 0 ? -6 : 1);
+  copy.setDate(diff);
+  copy.setHours(0, 0, 0, 0);
+  return copy.toISOString().slice(0, 10);
 }
 
 export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
@@ -56,6 +93,10 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
   const studentsQuery = trpc.serviceScale.students.useQuery(
     { companhia, peloton },
     { enabled: isAdmin }
+  );
+  const rolesQuery = trpc.serviceScale.getPlatoonPublic.useQuery(
+    { companhia, peloton, weekStart: getCurrentWeekStart() },
+    { enabled: Boolean(companhia && peloton) }
   );
 
   const createCargo = trpc.classroom.createCargo.useMutation({
@@ -78,6 +119,17 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
     onSuccess: () => { utils.classroom.listCargos.invalidate(); },
     onError: (e) => toast.error(e.message),
   });
+  const saveRoles = trpc.serviceScale.saveRoles.useMutation({
+    onSuccess: async () => {
+      toast.success("Cargos fixos atualizados!");
+      await Promise.all([
+        rolesQuery.refetch(),
+        utils.serviceScale.getPlatoonPublic.invalidate(),
+        utils.serviceScale.published.invalidate(),
+      ]);
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   // Form state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -86,6 +138,9 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
   const [formDesc, setFormDesc] = useState("");
   const [formIcone, setFormIcone] = useState("shield");
   const [formTesouraria, setFormTesouraria] = useState(false);
+  const [homemHoraId, setHomemHoraId] = useState("");
+  const [p5FilmmakerId, setP5FilmmakerId] = useState("");
+  const [alunoLigacaoId, setAlunoLigacaoId] = useState("");
 
   // Member state
   const [addMemberCargoId, setAddMemberCargoId] = useState<number | null>(null);
@@ -130,6 +185,31 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
 
   const cargos = cargosQuery.data ?? [];
   const students = studentsQuery.data ?? [];
+  const studentOptions = students.map((student: any) => ({
+    value: String(student.id),
+    label: `${student.numerica} - ${student.nomeGuerra}`,
+  }));
+
+  useEffect(() => {
+    const roles = rolesQuery.data?.roles;
+    setHomemHoraId(roles?.homemHoraId ? String(roles.homemHoraId) : "");
+    setP5FilmmakerId(roles?.p5FilmmakerId ? String(roles.p5FilmmakerId) : "");
+    setAlunoLigacaoId(roles?.alunoLigacaoId ? String(roles.alunoLigacaoId) : "");
+  }, [rolesQuery.data?.roles]);
+
+  function toNullableId(value: string) {
+    return value && value !== "none" ? Number(value) : null;
+  }
+
+  function handleSaveFixedRoles() {
+    saveRoles.mutate({
+      companhia,
+      peloton,
+      homemHoraId: toNullableId(homemHoraId),
+      p5FilmmakerId: toNullableId(p5FilmmakerId),
+      alunoLigacaoId: toNullableId(alunoLigacaoId),
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -145,6 +225,91 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
           </Button>
         )}
       </div>
+
+      <Card className="border-[#c4a84b]/25 bg-[#c4a84b]/5 dark:border-[#c4a84b]/20 dark:bg-[#c4a84b]/10">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-sm font-black uppercase tracking-[0.16em] text-[#1a3a2a] dark:text-[#f0bd3a]">
+                Cargos Fixos do Pelotão
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Defina as funções permanentes que aparecem no quadro geral da sala.
+              </p>
+            </div>
+            {rolesQuery.isFetching && <Badge variant="outline" className="w-fit text-[10px]">Atualizando</Badge>}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border bg-background/80 p-3 dark:bg-[#071018]">
+              <Label className="mb-2 flex items-center gap-2 text-xs font-bold">
+                <Clock className="h-4 w-4 text-[#c4a84b]" />
+                Homem-Hora
+              </Label>
+              <Select value={homemHoraId || "none"} onValueChange={(value) => setHomemHoraId(value === "none" ? "" : value)} disabled={!isAdmin}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não definido</SelectItem>
+                  {studentOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border bg-background/80 p-3 dark:bg-[#071018]">
+              <Label className="mb-2 flex items-center gap-2 text-xs font-bold">
+                <Camera className="h-4 w-4 text-[#c4a84b]" />
+                P5
+              </Label>
+              <Select value={p5FilmmakerId || "none"} onValueChange={(value) => setP5FilmmakerId(value === "none" ? "" : value)} disabled={!isAdmin}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não definido</SelectItem>
+                  {studentOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border bg-background/80 p-3 dark:bg-[#071018]">
+              <Label className="mb-2 flex items-center gap-2 text-xs font-bold">
+                <Radio className="h-4 w-4 text-[#c4a84b]" />
+                Aluno de Ligação
+              </Label>
+              <Select value={alunoLigacaoId || "none"} onValueChange={(value) => setAlunoLigacaoId(value === "none" ? "" : value)} disabled={!isAdmin}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não definido</SelectItem>
+                  {studentOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <Button
+              type="button"
+              className="h-9 w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#145c3a] sm:w-auto"
+              onClick={handleSaveFixedRoles}
+              disabled={saveRoles.isPending}
+            >
+              <Save className="h-4 w-4" />
+              Salvar Cargos Fixos
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {cargosQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
 
@@ -163,7 +328,7 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{iconeEmoji(cargo.icone)}</span>
+                <span className="text-2xl">{cargoIconLabel(cargo.icone)}</span>
                 <div>
                   <CardTitle className="text-base font-bold text-foreground">{cargo.nome}</CardTitle>
                   {cargo.descricao && <p className="text-xs text-muted-foreground mt-0.5">{cargo.descricao}</p>}
@@ -275,7 +440,7 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ICONE_OPTIONS.map(o => (
+                  {ALL_ICONE_OPTIONS.map(o => (
                     <SelectItem key={o.value} value={o.value}>{o.icon} {o.label}</SelectItem>
                   ))}
                 </SelectContent>
