@@ -53,7 +53,7 @@
   --chart-4: oklch(0.55 0.15 27);
   --chart-5: oklch(0.6 0.12 60);
   --radius: 0.5rem;
-  --background: oklch(0.98 0.005 90);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.2 0.02 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 250);
@@ -314,9 +314,15 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(249, 250, 251, 0.5) !important;
 }
 
-/* Global Dark Mode Helper Overrides */
-.dark .bg-\[\#f5f2e8\] {
+/* Global Helper Overrides for bg-[#f5f2e8] and Dark Mode */
+.bg-\[\#f5f2e8\] {
   background-color: var(--background) !important;
+}
+.bg-\[\#f5f2e8\]\/50 {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+.dark .bg-\[\#f5f2e8\]\/50 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
 }
 .dark .bg-white {
   background-color: var(--card) !important;
@@ -330,12 +336,6 @@ h1, h2, h3, h4, h5, h6 {
 .dark .border-border\/40 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
-.dark .bg-\[\#f5f2e8\]\/50 {
-  background-color: rgba(255, 255, 255, 0.02) !important;
-}
 .dark .bg-white\/95 {
   background-color: rgba(20, 20, 25, 0.95) !important;
-}
-.dark .bg-\[\#f5f2e8\] {
-  background-color: var(--background) !important;
 }
