@@ -53,7 +53,7 @@
   --chart-4: oklch(0.55 0.15 27);
   --chart-5: oklch(0.6 0.12 60);
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
+  --background: #e9ecf0;
   --foreground: oklch(0.2 0.02 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 250);
@@ -319,7 +319,7 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--background) !important;
 }
 .bg-\[\#f5f2e8\]\/50 {
-  background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: color-mix(in srgb, var(--background) 50%, transparent) !important;
 }
 .dark .bg-\[\#f5f2e8\]\/50 {
   background-color: rgba(255, 255, 255, 0.02) !important;
