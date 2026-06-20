@@ -340,9 +340,9 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(20, 20, 25, 0.95) !important;
 }
 
-/* Corrigir contraste de abas ativas sobre o novo fundo cinza bandeirante */
+/* Destaque premium para as abas ativas (verde militar no modo claro, dourado no modo escuro) */
 button[role="tab"][data-state="active"] {
-  background-color: var(--card) !important;
-  color: var(--foreground) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: 0 4px 12px rgba(26, 58, 42, 0.15) !important;
 }
