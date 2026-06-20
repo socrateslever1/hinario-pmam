@@ -64,6 +64,42 @@ async function ensureStudentSessionSchema() {
             "UPDATE pmam_students SET desk_number = CAST(numerica AS SIGNED) WHERE desk_number IS NULL AND numerica REGEXP '^[0-9]+$'"
           );
         }
+
+        const [studentColumns] = await connection.execute("SHOW COLUMNS FROM pmam_students");
+        const columns = studentColumns as any[];
+        const hasColumn = (name: string) => columns.some((col) => col.Field === name);
+
+        const profileColumns: Array<{ name: string; ddl: string }> = [
+          { name: "cpf", ddl: "ALTER TABLE pmam_students ADD COLUMN cpf VARCHAR(32) NULL" },
+          { name: "phone", ddl: "ALTER TABLE pmam_students ADD COLUMN phone VARCHAR(64) NULL" },
+          { name: "address", ddl: "ALTER TABLE pmam_students ADD COLUMN address LONGTEXT NULL" },
+          { name: "birth_date", ddl: "ALTER TABLE pmam_students ADD COLUMN birth_date VARCHAR(16) NULL" },
+          { name: "blood_type", ddl: "ALTER TABLE pmam_students ADD COLUMN blood_type VARCHAR(16) NULL" },
+          { name: "emergency_contact", ddl: "ALTER TABLE pmam_students ADD COLUMN emergency_contact VARCHAR(255) NULL" },
+          { name: "emergency_phone", ddl: "ALTER TABLE pmam_students ADD COLUMN emergency_phone VARCHAR(64) NULL" },
+        ];
+
+        for (const column of profileColumns) {
+          if (!hasColumn(column.name)) {
+            await connection.execute(column.ddl);
+          }
+        }
+
+        const profileTypeFixes = [
+          "ALTER TABLE pmam_students MODIFY COLUMN foto_url LONGTEXT NULL",
+          "ALTER TABLE pmam_students MODIFY COLUMN nome_completo VARCHAR(512) NULL",
+          "ALTER TABLE pmam_students MODIFY COLUMN rg VARCHAR(64) NULL",
+          "ALTER TABLE pmam_students MODIFY COLUMN email VARCHAR(255) NULL",
+          "ALTER TABLE pmam_students MODIFY COLUMN address LONGTEXT NULL",
+        ];
+
+        for (const ddl of profileTypeFixes) {
+          try {
+            await connection.execute(ddl);
+          } catch (error) {
+            console.warn("[StudentDB] Could not widen profile column:", ddl, error);
+          }
+        }
       } finally {
         connection.release();
       }
@@ -89,6 +125,13 @@ export interface StudentData {
   nomeCompleto?: string;
   rg?: string;
   email?: string;
+  cpf?: string;
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+  bloodType?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
   condition?: string;
   deskNumber?: number | null;
 }
@@ -146,7 +189,7 @@ export async function getStudentByNumerica(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -200,7 +243,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE id = ?
       LIMIT 1
@@ -221,7 +264,7 @@ export async function getAllStudents(): Promise<StudentData[]> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       ORDER BY numerica ASC
     `;
@@ -241,6 +284,55 @@ export async function updateStudentDeskNumber(studentId: number, deskNumber: num
     await connection.execute(
       "UPDATE pmam_students SET desk_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       [deskNumber, studentId]
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateStudentRosterData(
+  id: number,
+  data: {
+    numerica?: string;
+    nomeGuerra?: string;
+    companhia?: number;
+    peloton?: number;
+    deskNumber?: number | null;
+  }
+): Promise<void> {
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    const updates: string[] = [];
+    const params: any[] = [];
+    if (data.numerica !== undefined) {
+      updates.push("numerica = ?");
+      params.push(data.numerica);
+    }
+    if (data.nomeGuerra !== undefined) {
+      updates.push("nome_guerra = ?");
+      params.push(data.nomeGuerra);
+    }
+    if (data.companhia !== undefined) {
+      updates.push("companhia = ?");
+      params.push(data.companhia);
+    }
+    if (data.peloton !== undefined) {
+      updates.push("peloton = ?");
+      params.push(data.peloton);
+    }
+    if (data.deskNumber !== undefined) {
+      updates.push("desk_number = ?");
+      params.push(data.deskNumber);
+    }
+    if (!updates.length) return;
+
+    updates.push("updated_at = CURRENT_TIMESTAMP");
+    params.push(id);
+    await connection.execute(
+      `UPDATE pmam_students SET ${updates.join(", ")} WHERE id = ?`,
+      params
     );
   } finally {
     connection.release();
@@ -320,6 +412,13 @@ export async function updateStudentProfile(
     rg?: string | null;
     email?: string | null;
     fotoUrl?: string | null;
+    cpf?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    birthDate?: string | null;
+    bloodType?: string | null;
+    emergencyContact?: string | null;
+    emergencyPhone?: string | null;
     senha?: string;
   }
 ): Promise<void> {
@@ -345,6 +444,34 @@ export async function updateStudentProfile(
     if (data.email !== undefined) {
       updates.push("email = ?");
       params.push(data.email);
+    }
+    if (data.cpf !== undefined) {
+      updates.push("cpf = ?");
+      params.push(data.cpf);
+    }
+    if (data.phone !== undefined) {
+      updates.push("phone = ?");
+      params.push(data.phone);
+    }
+    if (data.address !== undefined) {
+      updates.push("address = ?");
+      params.push(data.address);
+    }
+    if (data.birthDate !== undefined) {
+      updates.push("birth_date = ?");
+      params.push(data.birthDate);
+    }
+    if (data.bloodType !== undefined) {
+      updates.push("blood_type = ?");
+      params.push(data.bloodType);
+    }
+    if (data.emergencyContact !== undefined) {
+      updates.push("emergency_contact = ?");
+      params.push(data.emergencyContact);
+    }
+    if (data.emergencyPhone !== undefined) {
+      updates.push("emergency_phone = ?");
+      params.push(data.emergencyPhone);
     }
     let syncedPasswordHash: string | undefined;
     if (data.fotoUrl !== undefined) {

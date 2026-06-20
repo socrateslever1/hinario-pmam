@@ -296,13 +296,38 @@ export async function ensureServiceScaleTables() {
           companhia INT NOT NULL,
           peloton INT NOT NULL,
           type ENUM('positive','negative','neutral') NOT NULL DEFAULT 'neutral',
-          note TEXT NOT NULL,
+          note LONGTEXT NOT NULL,
           created_by INT NULL,
+          validation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+          validated_by INT NULL,
+          validated_at TIMESTAMP NULL,
+          validation_note VARCHAR(500) NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           KEY idx_pmam_student_observations_student (student_id, created_at),
-          KEY idx_pmam_student_observations_scope (companhia, peloton)
+          KEY idx_pmam_student_observations_scope (companhia, peloton),
+          KEY idx_pmam_student_observations_validation (validation_status, created_at)
         )
       `);
+
+      const observationCols = await query("SHOW COLUMNS FROM pmam_student_observations");
+      const hasObservationCol = (name: string) => observationCols.some((col: any) => col.Field === name);
+      if (!hasObservationCol("validation_status")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN validation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved' AFTER created_by");
+      }
+      if (!hasObservationCol("validated_by")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN validated_by INT NULL AFTER validation_status");
+      }
+      if (!hasObservationCol("validated_at")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN validated_at TIMESTAMP NULL AFTER validated_by");
+      }
+      if (!hasObservationCol("validation_note")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN validation_note VARCHAR(500) NULL AFTER validated_at");
+      }
+      try {
+        await query("ALTER TABLE pmam_student_observations MODIFY COLUMN note LONGTEXT NOT NULL");
+      } catch (error) {
+        console.warn("[ServiceScaleDB] Could not widen pmam_student_observations.note:", error);
+      }
 
       await query(`
         CREATE TABLE IF NOT EXISTS pmam_student_highlights (
@@ -1168,27 +1193,98 @@ export async function createStudentObservation(input: {
   type: "positive" | "negative" | "neutral";
   note: string;
   createdBy: number;
+  validationStatus?: "pending" | "approved" | "rejected";
+  validatedBy?: number | null;
+  validatedAt?: Date | null;
 }): Promise<number> {
   await ensureServiceScaleTables();
   const result = await query(
     `INSERT INTO pmam_student_observations
-      (student_id, companhia, peloton, type, note, created_by)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [input.studentId, input.companhia, input.peloton, input.type, input.note, input.createdBy]
+      (student_id, companhia, peloton, type, note, created_by, validation_status, validated_by, validated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.studentId,
+      input.companhia,
+      input.peloton,
+      input.type,
+      input.note,
+      input.createdBy,
+      input.validationStatus ?? "pending",
+      input.validatedBy ?? null,
+      input.validatedAt ?? null,
+    ]
   );
   return (result as any).insertId;
 }
 
-export async function listStudentObservations(studentId: number): Promise<any[]> {
+export async function listStudentObservations(studentId: number, options?: { onlyVisibleToStudent?: boolean }): Promise<any[]> {
   await ensureServiceScaleTables();
+  const where = ["o.student_id = ?"];
+  const params: any[] = [studentId];
+  if (options?.onlyVisibleToStudent) {
+    where.push("o.type IN ('positive','negative')");
+    where.push("o.validation_status = 'approved'");
+  }
   return query(
-    `SELECT o.*, u.name AS created_by_name
+    `SELECT o.*, u.name AS created_by_name, vu.name AS validated_by_name
      FROM pmam_student_observations o
      LEFT JOIN pmam_users u ON u.id = o.created_by
-     WHERE o.student_id = ?
-     ORDER BY o.created_at DESC
-     LIMIT 50`,
-    [studentId]
+     LEFT JOIN pmam_users vu ON vu.id = o.validated_by
+     WHERE ${where.join(" AND ")}
+     ORDER BY o.created_at DESC`,
+    params
+  );
+}
+
+export async function listPendingStudentObservations(scope?: { companhia?: number | null; peloton?: number | null }): Promise<any[]> {
+  await ensureServiceScaleTables();
+  const where = ["o.validation_status = 'pending'", "o.type IN ('positive','negative')"];
+  const params: any[] = [];
+  if (scope?.companhia) {
+    where.push("o.companhia = ?");
+    params.push(scope.companhia);
+  }
+  if (scope?.peloton) {
+    where.push("o.peloton = ?");
+    params.push(scope.peloton);
+  }
+  return query(
+    `SELECT o.*, s.numerica, s.nome_guerra, u.name AS created_by_name
+     FROM pmam_student_observations o
+     INNER JOIN pmam_students s ON s.id = o.student_id
+     LEFT JOIN pmam_users u ON u.id = o.created_by
+     WHERE ${where.join(" AND ")}
+     ORDER BY o.created_at ASC
+     LIMIT 200`,
+    params
+  );
+}
+
+export async function getStudentObservation(id: number): Promise<any | null> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT o.*, s.numerica, s.nome_guerra
+     FROM pmam_student_observations o
+     INNER JOIN pmam_students s ON s.id = o.student_id
+     WHERE o.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
+export async function validateStudentObservation(input: {
+  id: number;
+  status: "approved" | "rejected";
+  validatedBy: number;
+  validationNote?: string | null;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_student_observations
+     SET validation_status = ?, validated_by = ?, validated_at = CURRENT_TIMESTAMP, validation_note = ?
+     WHERE id = ?`,
+    [input.status, input.validatedBy, input.validationNote ?? null, input.id]
   );
 }
 

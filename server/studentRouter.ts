@@ -2,6 +2,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as studentDb from "./studentDb";
+import * as serviceScaleDb from "./serviceScaleDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import * as db from "./db";
 import { sdk } from "./_core/sdk";
@@ -173,6 +174,24 @@ export const studentRouter = router({
       };
     }),
 
+  observations: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+      return serviceScaleDb.listStudentObservations(input.id, { onlyVisibleToStudent: true });
+    }),
+
   updateProfile: publicProcedure
     .input(
       z.object({
@@ -183,6 +202,13 @@ export const studentRouter = router({
         rg: z.string().trim().optional(),
         email: z.string().trim().email().or(z.literal("")).optional(),
         fotoUrl: z.string().optional(),
+        cpf: z.string().trim().optional(),
+        phone: z.string().trim().optional(),
+        address: z.string().trim().optional(),
+        birthDate: z.string().trim().optional(),
+        bloodType: z.string().trim().optional(),
+        emergencyContact: z.string().trim().optional(),
+        emergencyPhone: z.string().trim().optional(),
         senha: z.string().min(6).optional(),
       })
     )
@@ -201,6 +227,13 @@ export const studentRouter = router({
         rg: input.rg,
         email: input.email === "" ? null : input.email,
         fotoUrl: input.fotoUrl,
+        cpf: input.cpf || null,
+        phone: input.phone || null,
+        address: input.address || null,
+        birthDate: input.birthDate || null,
+        bloodType: input.bloodType || null,
+        emergencyContact: input.emergencyContact || null,
+        emergencyPhone: input.emergencyPhone || null,
         senha: input.senha,
       });
 

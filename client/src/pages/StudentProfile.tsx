@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Camera, Save, User, Shield, KeyRound, Loader2 } from "lucide-react";
+import { Award, Camera, Save, User, Shield, KeyRound, Loader2, MinusCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,10 @@ export default function StudentProfilePage() {
 
   // TRPC Hooks
   const profileQuery = trpc.student.getProfile.useQuery(
+    { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
+    { enabled: !!session }
+  );
+  const observationsQuery = trpc.student.observations.useQuery(
     { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
     { enabled: !!session }
   );
@@ -66,6 +70,13 @@ export default function StudentProfilePage() {
         nomeGuerra: profileQuery.data.nomeGuerra || current.nomeGuerra,
         rg: profileQuery.data.rg || current.rg,
         email: profileQuery.data.email || current.email,
+        cpf: profileQuery.data.cpf || current.cpf,
+        phone: profileQuery.data.phone || current.phone,
+        address: profileQuery.data.address || current.address,
+        birthDate: profileQuery.data.birthDate || current.birthDate,
+        bloodType: profileQuery.data.bloodType || current.bloodType,
+        emergencyContact: profileQuery.data.emergencyContact || current.emergencyContact,
+        emergencyPhone: profileQuery.data.emergencyPhone || current.emergencyPhone,
         photoDataUrl: profileQuery.data.fotoUrl || current.photoDataUrl,
       }));
     }
@@ -151,6 +162,13 @@ export default function StudentProfilePage() {
         rg: profile.rg,
         email: profile.email,
         fotoUrl: profile.photoDataUrl,
+        cpf: profile.cpf,
+        phone: profile.phone,
+        address: profile.address,
+        birthDate: profile.birthDate,
+        bloodType: profile.bloodType,
+        emergencyContact: profile.emergencyContact,
+        emergencyPhone: profile.emergencyPhone,
         senha: senhaNova || undefined,
       });
 
@@ -280,6 +298,48 @@ export default function StudentProfilePage() {
                       className="h-9 text-sm"
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
+                  <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-2">
+                    <Award className="h-4 w-4 text-[#c4a84b]" />
+                    FO+ / FO-
+                  </CardTitle>
+                  <CardDescription className="text-[10px]">
+                    Anotações validadas pelo Xerife Geral.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="max-h-96 space-y-2 overflow-auto p-4">
+                  {observationsQuery.isLoading ? (
+                    <div className="flex h-16 items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#1a3a2a]" />
+                    </div>
+                  ) : observationsQuery.data?.length ? (
+                    observationsQuery.data.map((item: any) => {
+                      const isPositive = item.type === "positive";
+                      return (
+                        <div key={item.id} className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-black ${isPositive ? "bg-green-600/10 text-green-700 dark:text-green-300" : "bg-red-600/10 text-red-700 dark:text-red-300"}`}>
+                              {isPositive ? <CheckCircle2 className="h-3 w-3" /> : <MinusCircle className="h-3 w-3" />}
+                              {isPositive ? "FO+" : "FO-"}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.created_at ? new Date(item.created_at).toLocaleDateString("pt-BR") : ""}
+                            </span>
+                          </div>
+                          <p className="whitespace-pre-wrap text-muted-foreground">{item.note}</p>
+                          <p className="mt-2 text-[10px] text-muted-foreground">
+                            Validado por {item.validated_by_name || "Xerife Geral"}
+                          </p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhuma FO+ ou FO- validada na ficha.</p>
+                  )}
                 </CardContent>
               </Card>
             </div>

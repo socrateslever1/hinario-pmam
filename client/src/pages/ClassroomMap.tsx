@@ -28,7 +28,7 @@ import {
   ArrowLeft, LayoutGrid, User, Laptop, Crown, Shield, 
   CalendarDays, FileText, History, ExternalLink, Star, 
   Save, Trash2, Check, UserCog, Users, ClipboardList,
-  Minus, Plus, Inbox, Send, Upload, X, Award
+  Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
@@ -106,6 +106,10 @@ const weekdays = [
   { value: 5, label: "Sexta-feira" },
 ];
 
+function cleanNumerica(value: string) {
+  return value.replace(/\D/g, "").slice(0, 4);
+}
+
 function getMonday(date = new Date()) {
   const copy = new Date(date);
   const day = copy.getDay();
@@ -159,6 +163,15 @@ export default function ClassroomMap() {
   const [noticeStudentId, setNoticeStudentId] = useState("all");
   const [observationByStudent, setObservationByStudent] = useState<Record<number, string>>({});
   const [observationTypeByStudent, setObservationTypeByStudent] = useState<Record<number, "positive" | "negative" | "neutral">>({});
+  const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [editStudentForm, setEditStudentForm] = useState({
+    numerica: "",
+    nomeGuerra: "",
+    companhia: "",
+    peloton: "",
+    deskNumber: "",
+  });
 
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
@@ -198,6 +211,11 @@ export default function ClassroomMap() {
   const xerifeHistoryQuery = trpc.serviceScale.getXerifeHistory.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
     { enabled: Boolean(selectedCompanhia && selectedPeloton) }
+  );
+
+  const pendingObservationsQuery = trpc.serviceScale.pendingStudentObservations.useQuery(
+    { companhia: selectedCompanhia, peloton: selectedPeloton },
+    { enabled: Boolean(access?.isGeneral && selectedCompanhia && selectedPeloton) }
   );
 
   // Sync capacity from DB
@@ -331,6 +349,40 @@ export default function ClassroomMap() {
     onSuccess: (_data, variables) => {
       toast.success("Anotação registrada");
       setObservationByStudent((current) => ({ ...current, [variables.studentId]: "" }));
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const validateStudentObservation = trpc.serviceScale.validateStudentObservation.useMutation({
+    onSuccess: async () => {
+      toast.success("FO validada");
+      await pendingObservationsQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createRosterStudent = trpc.serviceScale.createRosterStudent.useMutation({
+    onSuccess: async () => {
+      toast.success("Aluno adicionado ao efetivo");
+      setNewStudentForm({ numerica: "", nomeGuerra: "", senha: "" });
+      await platoonPublicQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateRosterStudent = trpc.serviceScale.updateRosterStudent.useMutation({
+    onSuccess: async () => {
+      toast.success("Dados do aluno atualizados");
+      setEditingStudent(null);
+      await Promise.all([platoonPublicQuery.refetch(), activeXerifesQuery.refetch()]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteRosterStudent = trpc.serviceScale.deleteRosterStudent.useMutation({
+    onSuccess: async () => {
+      toast.success("Aluno removido do efetivo");
+      await platoonPublicQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -715,6 +767,43 @@ export default function ClassroomMap() {
       title: title.trim(),
       description: description?.trim() || null,
     });
+  };
+
+  const openEditStudent = (student: any) => {
+    setEditingStudent(student);
+    setEditStudentForm({
+      numerica: student.numerica || "",
+      nomeGuerra: student.nomeGuerra || "",
+      companhia: String(student.companhia || selectedCompanhia),
+      peloton: String(student.peloton || selectedPeloton),
+      deskNumber: student.deskNumber ? String(student.deskNumber) : "",
+    });
+  };
+
+  const handleCreateRosterStudent = () => {
+    createRosterStudent.mutate({
+      numerica: cleanNumerica(newStudentForm.numerica),
+      nomeGuerra: newStudentForm.nomeGuerra.trim(),
+      senha: newStudentForm.senha,
+    });
+  };
+
+  const handleUpdateRosterStudent = () => {
+    if (!editingStudent) return;
+    updateRosterStudent.mutate({
+      studentId: editingStudent.id,
+      numerica: cleanNumerica(editStudentForm.numerica),
+      nomeGuerra: editStudentForm.nomeGuerra.trim(),
+      companhia: Number(editStudentForm.companhia),
+      peloton: Number(editStudentForm.peloton),
+      deskNumber: editStudentForm.deskNumber ? Number(editStudentForm.deskNumber) : null,
+    });
+  };
+
+  const handleDeleteRosterStudent = (student: any) => {
+    const confirmed = window.confirm(`Remover ${student.nomeGuerra} do efetivo? Esta ação remove o cadastro do aluno e seus dados vinculados.`);
+    if (!confirmed) return;
+    deleteRosterStudent.mutate({ studentId: student.id });
   };
 
   const roleOptions = useMemo(() => students.map((student: any) => ({

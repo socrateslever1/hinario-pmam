@@ -1685,6 +1685,91 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    createRosterStudent: scaleManagerProcedure.input(
+      z.object({
+        numerica: z.string().trim().length(4),
+        nomeGuerra: z.string().trim().min(2).max(255),
+        senha: z.string().min(6),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const validation = validateNumerica(input.numerica);
+      if (!validation.isValid) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: validation.error || "Numérica inválida" });
+      }
+      await requireServiceScaleAccess(ctx.user, validation.companhia, validation.peloton);
+      if (await studentDb.studentExists(input.numerica)) {
+        throw new TRPCError({ code: "CONFLICT", message: "Aluno com esta numérica já existe" });
+      }
+      const student = await studentDb.createStudent(
+        input.numerica,
+        input.nomeGuerra,
+        input.senha,
+        validation.companhia,
+        validation.peloton
+      );
+      if (!student) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar aluno" });
+      }
+      return student;
+    }),
+
+    updateRosterStudent: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        numerica: z.string().trim().length(4).optional(),
+        nomeGuerra: z.string().trim().min(2).max(255).optional(),
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+        deskNumber: z.number().int().nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+
+      let nextCompanhia = input.companhia ?? student.companhia;
+      let nextPeloton = input.peloton ?? student.peloton;
+
+      if (input.numerica && input.numerica !== student.numerica) {
+        const validation = validateNumerica(input.numerica);
+        if (!validation.isValid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: validation.error || "Numérica inválida" });
+        }
+        const existing = await studentDb.getStudentByNumerica(input.numerica);
+        if (existing && existing.id !== student.id) {
+          throw new TRPCError({ code: "CONFLICT", message: "Aluno com esta numérica já existe" });
+        }
+        nextCompanhia = input.companhia ?? validation.companhia;
+        nextPeloton = input.peloton ?? validation.peloton;
+      }
+
+      await requireServiceScaleAccess(ctx.user, nextCompanhia, nextPeloton);
+      await studentDb.updateStudentRosterData(input.studentId, {
+        numerica: input.numerica,
+        nomeGuerra: input.nomeGuerra,
+        companhia: nextCompanhia,
+        peloton: nextPeloton,
+        deskNumber: input.deskNumber,
+      });
+      return { success: true };
+    }),
+
+    deleteRosterStudent: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      await studentDb.deleteStudent(input.studentId);
+      return { success: true };
+    }),
+
     generateRotation: scaleManagerProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5),
@@ -1882,12 +1967,14 @@ export const appRouter = router({
       z.object({
         studentId: z.number().int(),
         type: z.enum(["positive", "negative", "neutral"]).default("neutral"),
-        note: z.string().trim().min(1).max(4000),
+        note: z.string().trim().min(1).max(200000),
       })
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const general = await isXerifeGeral(ctx.user);
+      const needsValidation = input.type === "positive" || input.type === "negative";
       const id = await serviceScaleDb.createStudentObservation({
         studentId: student.id,
         companhia: student.companhia,
@@ -1895,8 +1982,55 @@ export const appRouter = router({
         type: input.type,
         note: input.note,
         createdBy: ctx.user.id,
+        validationStatus: needsValidation && !general ? "pending" : "approved",
+        validatedBy: needsValidation && general ? ctx.user.id : null,
+        validatedAt: needsValidation && general ? new Date() : null,
       });
       return { id };
+    }),
+
+    studentObservations: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+      })
+    ).query(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      return serviceScaleDb.listStudentObservations(input.studentId);
+    }),
+
+    pendingStudentObservations: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      if (input?.companhia) {
+        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      }
+      return serviceScaleDb.listPendingStudentObservations(input);
+    }),
+
+    validateStudentObservation: masterProcedure.input(
+      z.object({
+        id: z.number().int(),
+        status: z.enum(["approved", "rejected"]),
+        validationNote: z.string().trim().max(500).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const observation = await serviceScaleDb.getStudentObservation(input.id);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Anotação não encontrada" });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      await serviceScaleDb.validateStudentObservation({
+        id: input.id,
+        status: input.status,
+        validatedBy: ctx.user.id,
+        validationNote: input.validationNote ?? null,
+      });
+      return { success: true };
     }),
 
     createStudentHighlight: masterProcedure.input(
