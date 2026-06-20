@@ -4,7 +4,7 @@
  * Este componente controla frequencia, fechamento, chegada tardia, justificativas e assinatura do Peculio.
  * Mudancas aqui devem preservar regras de negocio, permissoes do Xerife Geral/Xerife nomeado e auditoria por aluno.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock, FileText, Lock, Printer, Save, ShieldCheck, UnlockKeyhole, Users } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -91,6 +91,9 @@ export function PeculioTab({
   // Student statuses state
   const [studentStatuses, setStudentStatuses] = useState<Record<number, StudentStatusState>>({});
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveInProgressRef = useRef(false);
 
   const selectedCompanhia = Number(companhia);
   const selectedPeloton = Number(peloton);
@@ -110,7 +113,11 @@ export function PeculioTab({
   // Load Peculio Report for selected date
   const peculioQuery = trpc.peculio.get.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton, date },
-    { enabled: Boolean(selectedCompanhia && selectedPeloton && date) }
+    {
+      enabled: Boolean(selectedCompanhia && selectedPeloton && date),
+      refetchInterval: hasLocalChanges ? false : 5000,
+      refetchOnWindowFocus: true,
+    }
   );
 
   const students = studentsQuery.data ?? [];
@@ -120,6 +127,7 @@ export function PeculioTab({
   const canEdit = lock?.canEdit !== false;
 
   useEffect(() => {
+    if (hasLocalChanges) return;
     if (peculioQuery.data) {
       const { report, statuses } = peculioQuery.data;
 
@@ -146,14 +154,21 @@ export function PeculioTab({
       }
       setStudentStatuses(nextStatuses);
     }
-  }, [peculioQuery.data, students]);
+  }, [hasLocalChanges, peculioQuery.data, students]);
 
   const savePeculio = trpc.peculio.save.useMutation({
     onSuccess: async () => {
-      toast.success("Pecúlio salvo com sucesso!");
+      if (!autosaveInProgressRef.current) {
+        toast.success("Peculio salvo com sucesso!");
+      }
+      autosaveInProgressRef.current = false;
+      setHasLocalChanges(false);
       await peculioQuery.refetch();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => {
+      autosaveInProgressRef.current = false;
+      toast.error(error.message);
+    },
   });
   const releasePeculio = trpc.peculio.release.useMutation({
     onSuccess: async () => {
@@ -194,6 +209,7 @@ export function PeculioTab({
 
   const handleStatusChange = (studentId: number, status: string) => {
     if (!canEdit) return;
+    setHasLocalChanges(true);
     setStudentStatuses((current) => ({
       ...current,
       [studentId]: {
@@ -208,6 +224,7 @@ export function PeculioTab({
 
   const handleObservacaoChange = (studentId: number, observacao: string) => {
     if (!canEdit) return;
+    setHasLocalChanges(true);
     setStudentStatuses((current) => ({
       ...current,
       [studentId]: {
@@ -244,11 +261,47 @@ export function PeculioTab({
     statuses: buildStatusesPayload(),
   });
 
+  useEffect(() => {
+    if (!hasLocalChanges || !canEdit || !students.length || savePeculio.isPending) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveInProgressRef.current = true;
+      savePeculio.mutate(buildPeculioPayload());
+    }, 4000);
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [
+    hasLocalChanges,
+    canEdit,
+    students.length,
+    studentStatuses,
+    instrucaoLocal,
+    instrucaoDisciplina,
+    instrucaoExterna,
+    chefeTurma,
+    subchefeTurma,
+    cmtPel,
+    entryTime,
+    selectedCompanhia,
+    selectedPeloton,
+    date,
+    savePeculio.isPending,
+  ]);
+
   const handleSave = () => {
     if (!canEdit) {
       toast.error("Pecúlio fechado. Solicite liberação ao Xerife Geral.");
       return;
     }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveInProgressRef.current = false;
     savePeculio.mutate(buildPeculioPayload());
   };
 
@@ -395,7 +448,10 @@ export function PeculioTab({
                 <Input
                   type="time"
                   value={entryTime}
-                  onChange={(e) => setEntryTime(e.target.value || "05:00")}
+                  onChange={(e) => {
+                    setHasLocalChanges(true);
+                    setEntryTime(e.target.value || "05:00");
+                  }}
                   disabled={!canEdit}
                   className="h-11 text-base sm:h-10 sm:text-sm"
                 />
@@ -776,15 +832,15 @@ export function PeculioTab({
             <div className="grid gap-3 md:grid-cols-3">
               <div>
                 <Label>Local da Instrução</Label>
-                <Input value={instrucaoLocal} onChange={(e) => setInstrucaoLocal(e.target.value)} placeholder="Ex.: Stand de Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
+                <Input value={instrucaoLocal} onChange={(e) => { setHasLocalChanges(true); setInstrucaoLocal(e.target.value); }} placeholder="Ex.: Stand de Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
               </div>
               <div>
                 <Label>Disciplina / Instrução</Label>
-                <Input value={instrucaoDisciplina} onChange={(e) => setInstrucaoDisciplina(e.target.value)} placeholder="Ex.: Armamento e Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
+                <Input value={instrucaoDisciplina} onChange={(e) => { setHasLocalChanges(true); setInstrucaoDisciplina(e.target.value); }} placeholder="Ex.: Armamento e Tiro" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
               </div>
               <div className="flex flex-col justify-end md:pb-2">
                 <div className="flex min-h-11 items-center gap-2 rounded-md border border-border/50 px-3 py-2 md:border-0 md:px-0 md:py-0">
-                  <Switch id="instrucao-externa" checked={instrucaoExterna} onCheckedChange={setInstrucaoExterna} disabled={!canEdit} />
+                  <Switch id="instrucao-externa" checked={instrucaoExterna} onCheckedChange={(value) => { setHasLocalChanges(true); setInstrucaoExterna(value); }} disabled={!canEdit} />
                   <Label htmlFor="instrucao-externa" className="cursor-pointer text-sm leading-snug">Possui Instrução Externa?</Label>
                 </div>
               </div>
@@ -793,15 +849,15 @@ export function PeculioTab({
             <div className="grid gap-3 pt-2 md:grid-cols-3">
               <div>
                 <Label>Chefe de Turma</Label>
-                <Input value={chefeTurma} onChange={(e) => setChefeTurma(e.target.value)} placeholder="Nome do Chefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
+                <Input value={chefeTurma} onChange={(e) => { setHasLocalChanges(true); setChefeTurma(e.target.value); }} placeholder="Nome do Chefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
               </div>
               <div>
                 <Label>Subchefe de Turma</Label>
-                <Input value={subchefeTurma} onChange={(e) => setSubchefeTurma(e.target.value)} placeholder="Nome do Subchefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
+                <Input value={subchefeTurma} onChange={(e) => { setHasLocalChanges(true); setSubchefeTurma(e.target.value); }} placeholder="Nome do Subchefe de Turma" disabled={!canEdit} className="h-11 text-base sm:h-10 sm:text-sm" />
               </div>
               <div>
                 <Label>CMT de Pelotão</Label>
-                <Input value={cmtPel} onChange={(e) => setCmtPel(e.target.value)} placeholder="Nome do CMT do Pelotão" className="h-11 text-base sm:h-10 sm:text-sm" />
+                <Input value={cmtPel} onChange={(e) => { setHasLocalChanges(true); setCmtPel(e.target.value); }} placeholder="Nome do CMT do Pelotão" className="h-11 text-base sm:h-10 sm:text-sm" />
               </div>
             </div>
           </CardContent>

@@ -422,7 +422,7 @@ export default function Cfap2026() {
         <div className="container text-center">
           <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1
-            className="text-3xl font-bold text-[#1a3a2a] md:text-4xl dark:text-[#c4a84b]"
+            className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             CFAP 2026

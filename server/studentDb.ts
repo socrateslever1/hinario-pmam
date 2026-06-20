@@ -185,6 +185,7 @@ export async function getStudentByNumerica(
   numerica: string
 ): Promise<StudentData | null> {
   const pool = await getPool();
+  await ensureStudentSessionSchema();
   const connection = await pool.getConnection();
 
   try {
@@ -239,6 +240,7 @@ export async function studentExists(numerica: string): Promise<boolean> {
 
 export async function getStudentById(id: number): Promise<StudentData | null> {
   const pool = await getPool();
+  await ensureStudentSessionSchema();
   const connection = await pool.getConnection();
 
   try {
@@ -260,6 +262,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
 export async function getAllStudents(): Promise<StudentData[]> {
   const pool = await getPool();
+  await ensureStudentSessionSchema();
   const connection = await pool.getConnection();
 
   try {
@@ -536,6 +539,10 @@ export async function deleteStudent(id: number): Promise<void> {
   try {
     await connection.beginTransaction();
     await connection.execute("DELETE FROM pmam_student_grades WHERE student_id = ?", [id]);
+    await connection.execute("DELETE FROM pmam_student_observations WHERE student_id = ?", [id]);
+    await connection.execute("DELETE FROM pmam_seat_change_requests WHERE student_id = ?", [id]);
+    await connection.execute("DELETE FROM pmam_notice_reads WHERE student_id = ?", [id]);
+    await connection.execute("DELETE FROM pmam_peculio_student_statuses WHERE student_id = ?", [id]);
     await connection.execute("DELETE FROM pmam_students WHERE id = ?", [id]);
     await connection.commit();
   } catch (error) {
