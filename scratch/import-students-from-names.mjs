@@ -66,9 +66,11 @@ function parseStudents(text) {
 
     const numerica = entry[1];
     const nomeCompleto = titleFromFullName(entry[2]);
+    const parts = nomeCompleto.trim().split(/\s+/);
+    const nomeGuerra = parts.length > 1 ? parts[parts.length - 1] : nomeCompleto;
     students.push({
       numerica,
-      nomeGuerra: nomeCompleto,
+      nomeGuerra,
       nomeCompleto,
       companhia,
       peloton,

@@ -125,6 +125,31 @@ function addDays(date: string, days: number) {
   return value.toISOString().slice(0, 10);
 }
 
+const TRANSGRESSIONS_LIST = [
+  "Atraso para formaturas ou instruções",
+  "Fardamento incorreto ou desalinhado",
+  "Falta de zelo ou dano ao material de instrução",
+  "Postura inadequada ou desatenção em instrução",
+  "Conversas paralelas durante a instrução",
+  "Utilização de celular sem autorização",
+  "Dormir durante a instrução ou serviço",
+  "Faltar com a verdade ou omitir fatos",
+  "Descumprimento de ordens ou prescrições dos manuais",
+  "Falta de asseio pessoal ou de higiene",
+];
+
+const ELOGIOS_LIST = [
+  "Destaque intelectual em avaliações ou trabalhos",
+  "Destaque em instrução de Ordem Unida ou Treinamento",
+  "Espírito de corpo exemplar e cooperação ativa",
+  "Honestidade ou ato de probidade militar exemplar",
+  "Presteza e dedicação excepcional no serviço",
+  "Iniciativa positiva na resolução de problemas do pelotão",
+  "Asseio impecável e alinhamento de fardamento exemplar",
+  "Desempenho exemplar como Xerife ou função de liderança",
+  "Conduta exemplar dentro e fora das dependências",
+];
+
 export default function ClassroomMap() {
   const studentSession = getStudentSession();
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
@@ -133,8 +158,16 @@ export default function ClassroomMap() {
 
   const subview = location.split("/")[2] || "map"; // map, peculio, efetivo, escala, aditamentos, historico
 
-  const [companhia, setCompanhia] = useState("4");
-  const [peloton, setPeloton] = useState("1");
+  const [companhia, setCompanhia] = useState(() => localStorage.getItem("selected_companhia") || "4");
+  const [peloton, setPeloton] = useState(() => localStorage.getItem("selected_peloton") || "1");
+
+  useEffect(() => {
+    localStorage.setItem("selected_companhia", companhia);
+  }, [companhia]);
+
+  useEffect(() => {
+    localStorage.setItem("selected_peloton", peloton);
+  }, [peloton]);
   const [capacity, setCapacity] = useState(51);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
@@ -162,13 +195,21 @@ export default function ClassroomMap() {
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeMessage, setNoticeMessage] = useState("");
   const [noticeStudentId, setNoticeStudentId] = useState("all");
-  const [observationByStudent, setObservationByStudent] = useState<Record<number, string>>({});
-  const [observationTypeByStudent, setObservationTypeByStudent] = useState<Record<number, "positive" | "negative" | "neutral">>({});
+  
+  // FO (Fatos Observados) Modal States
+  const [foModalOpen, setFoModalOpen] = useState(false);
+  const [foSelectedStudentIds, setFoSelectedStudentIds] = useState<number[]>([]);
+  const [foType, setFoType] = useState<"positive" | "negative">("negative");
+  const [foReason, setFoReason] = useState("");
+  const [foDetails, setFoDetails] = useState("");
+  const [foIsAllSelected, setFoIsAllSelected] = useState(false);
+
   const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [editStudentForm, setEditStudentForm] = useState({
     numerica: "",
     nomeGuerra: "",
+    nomeCompleto: "",
     companhia: "",
     peloton: "",
     deskNumber: "",
@@ -176,6 +217,9 @@ export default function ClassroomMap() {
 
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
+    if (access === undefined) {
+      return;
+    }
     if (access?.isGeneral) {
       return;
     }
@@ -237,6 +281,7 @@ export default function ClassroomMap() {
     return students.filter((student: any) => 
       student.nomeGuerra.toLowerCase().includes(query) ||
       student.numerica.includes(query) ||
+      (student.nomeCompleto && student.nomeCompleto.toLowerCase().includes(query)) ||
       String(student.peloton).includes(query)
     );
   }, [students, searchQuery]);
@@ -749,17 +794,69 @@ export default function ClassroomMap() {
     });
   };
 
-  const handleAddObservation = (studentId: number) => {
-    const note = observationByStudent[studentId]?.trim();
-    if (!note) {
-      toast.error("Escreva a observação antes de registrar.");
+  const openLaunchFOModal = (student?: any) => {
+    setFoType("negative");
+    setFoReason("");
+    setFoDetails("");
+    setFoIsAllSelected(false);
+    if (student) {
+      setFoSelectedStudentIds([student.id]);
+    } else {
+      setFoSelectedStudentIds([]);
+    }
+    setFoModalOpen(true);
+  };
+
+  const handleLaunchFO = async () => {
+    let idsToSend = [...foSelectedStudentIds];
+    if (foIsAllSelected && isXerifeGeral) {
+      idsToSend = students.map((s: any) => s.id);
+    }
+
+    if (idsToSend.length === 0) {
+      toast.error("Selecione pelo menos um aluno");
       return;
     }
-    addStudentObservation.mutate({
-      studentId,
-      type: observationTypeByStudent[studentId] || "neutral",
-      note,
-    });
+
+    if (!foReason) {
+      toast.error("Selecione o fato observado (elogio ou transgressão)");
+      return;
+    }
+
+    let finalNote = "";
+    if (foReason === "outro") {
+      if (!foDetails.trim()) {
+        toast.error("Descreva o fato no campo de observação");
+        return;
+      }
+      finalNote = foDetails.trim();
+    } else {
+      finalNote = foReason;
+      if (foDetails.trim()) {
+        finalNote += ` - Detalhes: ${foDetails.trim()}`;
+      }
+    }
+
+    try {
+      toast.loading("Registrando Fato Observado...", { id: "fo-launch" });
+      
+      // Envia as mutações em lote usando Promise.all
+      await Promise.all(
+        idsToSend.map((studentId) =>
+          addStudentObservation.mutateAsync({
+            studentId,
+            type: foType,
+            note: finalNote,
+          })
+        )
+      );
+
+      toast.success("Fato Observado registrado com sucesso!", { id: "fo-launch" });
+      setFoModalOpen(false);
+      await pendingObservationsQuery.refetch();
+    } catch (err: any) {
+      toast.error(`Erro ao lançar FO: ${err.message}`, { id: "fo-launch" });
+    }
   };
 
   const handleCreateHighlight = (student: any) => {
@@ -778,6 +875,7 @@ export default function ClassroomMap() {
     setEditStudentForm({
       numerica: student.numerica || "",
       nomeGuerra: student.nomeGuerra || "",
+      nomeCompleto: student.nomeCompleto || "",
       companhia: String(student.companhia || selectedCompanhia),
       peloton: String(student.peloton || selectedPeloton),
       deskNumber: student.deskNumber ? String(student.deskNumber) : "",
@@ -798,6 +896,7 @@ export default function ClassroomMap() {
       studentId: editingStudent.id,
       numerica: cleanNumerica(editStudentForm.numerica),
       nomeGuerra: editStudentForm.nomeGuerra.trim(),
+      nomeCompleto: editStudentForm.nomeCompleto.trim(),
       companhia: Number(editStudentForm.companhia),
       peloton: Number(editStudentForm.peloton),
       deskNumber: editStudentForm.deskNumber ? Number(editStudentForm.deskNumber) : null,
@@ -1346,6 +1445,8 @@ export default function ClassroomMap() {
               </DialogContent>
             </Dialog>
 
+
+
           </div>
         ) : (
           /* ================= SUBVIEW ROUTING SYSTEM ================= */
@@ -1365,13 +1466,16 @@ export default function ClassroomMap() {
             </div>
 
             {subview === "peculio" && (
-              /* PECULIO SUBVIEW (XERIFE ONLY) */
-              !isAdminOrXerifeAdmin ? (
-                <Card className="p-8 text-center max-w-md mx-auto"><CardContent><p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife.</p></CardContent></Card>
-              ) : isXerifeGeral ? (
+              isXerifeGeral ? (
                 <PeculioOverview />
               ) : (
-                <PeculioTab companhia={companhia} setCompanhia={setCompanhia} peloton={peloton} setPeloton={setPeloton} />
+                <PeculioTab
+                  companhia={companhia}
+                  setCompanhia={setCompanhia}
+                  peloton={peloton}
+                  setPeloton={setPeloton}
+                  isAdmin={isAdminOrXerifeAdmin}
+                />
               )
             )}
 
@@ -1391,11 +1495,33 @@ export default function ClassroomMap() {
               ) : (
                 <Card className="border-border/50">
                   <CardContent className="p-5 bg-white dark:bg-zinc-900 rounded-lg">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-[#c4a84b]" />
-                      <div>
-                        <h2 className="text-lg font-bold text-foreground">Gerenciamento do Efetivo do Pelotão</h2>
-                        <p className="text-xs text-muted-foreground">Controle de condições em sala de aula e nomeação de Xerifes</p>
+                    <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b pb-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-[#c4a84b]" />
+                        <div>
+                          <h2 className="text-lg font-bold text-foreground">Gerenciamento do Efetivo do Pelotão</h2>
+                          <p className="text-xs text-muted-foreground">Controle de condições em sala de aula e nomeação de Xerifes</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0 justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8 bg-amber-600 text-white hover:bg-amber-700 text-xs gap-1.5 font-bold shadow-sm"
+                          onClick={() => openLaunchFOModal()}
+                        >
+                          <ClipboardList className="h-3.5 w-3.5" />
+                          Lançar FO Coletivo / Lote
+                        </Button>
+                        <div className="w-full md:w-48">
+                          <Input
+                            type="text"
+                            placeholder="Buscar no efetivo..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="h-8 text-xs bg-white dark:bg-zinc-800"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="mb-4 rounded-lg border bg-muted/10 p-3">
@@ -1480,7 +1606,7 @@ export default function ClassroomMap() {
                     ) : null}
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {students.map((student: any) => (
+                      {filteredStudents.map((student: any) => (
                         <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
                           <div className="space-y-1">
                             <div className="flex items-center justify-between gap-2">
@@ -1534,48 +1660,17 @@ export default function ClassroomMap() {
                             </Select>
                           </div>
 
-                          <div className="mt-3 space-y-2 rounded-lg border bg-muted/10 p-2">
-                            <div className="flex gap-2">
-                              <Select
-                                value={observationTypeByStudent[student.id] || "neutral"}
-                                onValueChange={(value) =>
-                                  setObservationTypeByStudent((current) => ({
-                                    ...current,
-                                    [student.id]: value as "positive" | "negative" | "neutral",
-                                  }))
-                                }
-                              >
-                                <SelectTrigger className="h-8 text-[11px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="positive">FO+</SelectItem>
-                                  <SelectItem value="neutral">Neutra</SelectItem>
-                                  <SelectItem value="negative">FO-</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-8 shrink-0 text-[11px]"
-                                onClick={() => handleAddObservation(student.id)}
-                                disabled={addStudentObservation.isPending}
-                              >
-                                Registrar
-                              </Button>
-                            </div>
-                            <textarea
-                              value={observationByStudent[student.id] || ""}
-                              onChange={(event) =>
-                                setObservationByStudent((current) => ({
-                                  ...current,
-                                  [student.id]: event.target.value,
-                                }))
-                              }
-                              placeholder="Observação positiva ou negativa"
-                              className="flex min-h-[56px] w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            />
+                          <div className="mt-3 border-t pt-2.5">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="w-full h-8 text-[11px] border-amber-500/30 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:border-amber-500/20 dark:text-amber-400 dark:hover:bg-amber-500/5 dark:hover:text-amber-300"
+                              onClick={() => openLaunchFOModal(student)}
+                            >
+                              <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                              Registrar Fato Observado (FO)
+                            </Button>
                           </div>
 
                           <div className="mt-3 flex items-center justify-between border-t pt-2 gap-2">
@@ -1919,6 +2014,272 @@ export default function ClassroomMap() {
 
           </div>
         )}
+
+        {/* Edit Student Dialog global */}
+        <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
+          <DialogContent className="sm:max-w-[450px] bg-white dark:bg-zinc-900 border border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle>Editar Cadastro do Aluno</DialogTitle>
+              <DialogDescription>Atualize as informações cadastrais do aluno no efetivo.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="edit-numerica">Numérica</Label>
+                  <Input
+                    id="edit-numerica"
+                    value={editStudentForm.numerica}
+                    onChange={(e) => setEditStudentForm(curr => ({ ...curr, numerica: cleanNumerica(e.target.value) }))}
+                    className="mt-1 bg-white dark:bg-zinc-800"
+                    maxLength={4}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-nome-guerra">Nome de Guerra</Label>
+                  <Input
+                    id="edit-nome-guerra"
+                    value={editStudentForm.nomeGuerra}
+                    onChange={(e) => setEditStudentForm(curr => ({ ...curr, nomeGuerra: e.target.value }))}
+                    className="mt-1 bg-white dark:bg-zinc-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-nome-completo">Nome Completo</Label>
+                <Input
+                  id="edit-nome-completo"
+                  value={editStudentForm.nomeCompleto}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, nomeCompleto: e.target.value }))}
+                  className="mt-1 bg-white dark:bg-zinc-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="edit-companhia">Companhia</Label>
+                  <select
+                    id="edit-companhia"
+                    value={editStudentForm.companhia}
+                    onChange={(e) => setEditStudentForm(curr => ({ ...curr, companhia: e.target.value }))}
+                    className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {[1, 2, 3, 4, 5].map((c) => (
+                      <option key={c} value={String(c)}>{c}ª Cia</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-peloton">Pelotão</Label>
+                  <select
+                    id="edit-peloton"
+                    value={editStudentForm.peloton}
+                    onChange={(e) => setEditStudentForm(curr => ({ ...curr, peloton: e.target.value }))}
+                    className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {[1, 2].map((p) => (
+                      <option key={p} value={String(p)}>{p}º Pel</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-desk">Carteira</Label>
+                  <Input
+                    id="edit-desk"
+                    value={editStudentForm.deskNumber}
+                    onChange={(e) => setEditStudentForm(curr => ({ ...curr, deskNumber: e.target.value.replace(/\D/g, "") }))}
+                    placeholder="Ex: 45"
+                    className="mt-1 bg-white dark:bg-zinc-800"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (window.confirm(`ATENÇÃO: Deseja realmente REMOVER ${editingStudent.nomeGuerra} do efetivo?\nEsta ação é irreversível e excluirá todo o cadastro do aluno, histórico de notas e frequências!`)) {
+                    deleteRosterStudent.mutate({ studentId: editingStudent.id });
+                  }
+                }}
+                disabled={deleteRosterStudent.isPending}
+              >
+                Excluir Aluno
+              </Button>
+              <div className="flex gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setEditingStudent(null)} className="mr-2">Cancelar</Button>
+                <Button
+                  className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
+                  onClick={handleUpdateRosterStudent}
+                  disabled={updateRosterStudent.isPending}
+                >
+                  {updateRosterStudent.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* FO (Fatos Observados) Dialog global */}
+        <Dialog open={foModalOpen} onOpenChange={setFoModalOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white dark:bg-zinc-900 border border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
+                Lançar Fato Observado (FO)
+              </DialogTitle>
+              <DialogDescription>
+                Selecione o tipo de fato, escolha os alunos e detalhe o ocorrido de acordo com o manual.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3">
+              {/* Tipo de FO: Positivo (+) ou Negativo (-) */}
+              <div>
+                <Label>Tipo de Fato</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                  <Button
+                    type="button"
+                    variant={foType === "positive" ? "default" : "outline"}
+                    className={foType === "positive" ? "bg-green-700 text-white hover:bg-green-800" : ""}
+                    onClick={() => {
+                      setFoType("positive");
+                      setFoReason("");
+                    }}
+                  >
+                    FO+ (Elogio)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={foType === "negative" ? "default" : "outline"}
+                    className={foType === "negative" ? "bg-red-700 text-white hover:bg-red-800" : ""}
+                    onClick={() => {
+                      setFoType("negative");
+                      setFoReason("");
+                    }}
+                  >
+                    FO- (Transgressão)
+                  </Button>
+                </div>
+              </div>
+
+              {/* Seleção de Alunos */}
+              <div>
+                <Label>Alunos Selecionados</Label>
+                {foSelectedStudentIds.length === 1 && !foIsAllSelected ? (
+                  // Caso aberto individualmente para um único aluno
+                  <div className="mt-1.5 p-2 bg-muted/30 rounded border text-xs font-semibold flex justify-between items-center">
+                    <span>
+                      {students.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {students.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">(Lançamento Individual)</span>
+                  </div>
+                ) : (
+                  // Lançamento Coletivo ou em Massa
+                  <div className="mt-1.5 space-y-2">
+                    {isXerifeGeral && (
+                      <div className="flex items-center space-x-2 border-b pb-2 mb-2">
+                        <Checkbox
+                          id="select-all-students"
+                          checked={foIsAllSelected}
+                          onCheckedChange={(checked) => {
+                            setFoIsAllSelected(Boolean(checked));
+                            if (checked) {
+                              setFoSelectedStudentIds(students.map((s: any) => s.id));
+                            } else {
+                              setFoSelectedStudentIds([]);
+                            }
+                          }}
+                        />
+                        <Label htmlFor="select-all-students" className="text-xs font-bold text-red-600 dark:text-red-400 cursor-pointer">
+                          Marcar toda a turma (Fato Coletivo - Apenas Xerife Master)
+                        </Label>
+                      </div>
+                    )}
+
+                    <div className="max-h-36 overflow-y-auto border rounded p-2 bg-muted/5 space-y-1.5">
+                      {students.map((student: any) => {
+                        const isChecked = foSelectedStudentIds.includes(student.id);
+                        return (
+                          <div key={student.id} className="flex items-center space-x-2 text-xs">
+                            <Checkbox
+                              id={`fo-student-${student.id}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                setFoIsAllSelected(false);
+                                if (checked) {
+                                  setFoSelectedStudentIds((curr) => [...curr, student.id]);
+                                } else {
+                                  setFoSelectedStudentIds((curr) => curr.filter((id) => id !== student.id));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`fo-student-${student.id}`} className="cursor-pointer">
+                              {student.numerica} - {student.nomeGuerra}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {foSelectedStudentIds.length} aluno(s) selecionado(s) para este fato.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Fato / Causa (Dropdown) */}
+              <div>
+                <Label htmlFor="fo-reason-select">Fato Observado (Manual do Aluno)</Label>
+                <select
+                  id="fo-reason-select"
+                  value={foReason}
+                  onChange={(e) => setFoReason(e.target.value)}
+                  className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">-- Selecione o fato --</option>
+                  {(foType === "positive" ? ELOGIOS_LIST : TRANSGRESSIONS_LIST).map((reason, idx) => (
+                    <option key={idx} value={reason}>{reason}</option>
+                  ))}
+                  <option value="outro">Outro / Especificar</option>
+                </select>
+              </div>
+
+              {/* Detalhes / Especificação */}
+              <div>
+                <Label htmlFor="fo-details-textarea">
+                  {foReason === "outro" ? "Especificação do Fato (Obrigatório)" : "Detalhes Complementares (Opcional)"}
+                </Label>
+                <textarea
+                  id="fo-details-textarea"
+                  value={foDetails}
+                  onChange={(e) => setFoDetails(e.target.value)}
+                  placeholder={
+                    foReason === "outro"
+                      ? "Descreva por completo o fato observado, atitudes e transgressão/elogio correspondente..."
+                      : "Detalhe o ocorrido (data, hora, local, conluio ou circunstâncias adicionais)..."
+                  }
+                  className="mt-1.5 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFoModalOpen(false)}>Cancelar</Button>
+              <Button
+                className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
+                onClick={handleLaunchFO}
+                disabled={addStudentObservation.isPending}
+              >
+                {addStudentObservation.isPending ? "Registrando..." : "Registrar Fato"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </main>
     </div>

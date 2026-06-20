@@ -11,7 +11,6 @@ function getPool() {
   }
 
   if (!pool) {
-    console.log('[MySQL] Initializing connection pool for TiDB...');
     pool = mysql.createPool({
       host: ENV.tidbHost,
       port: ENV.tidbPort,
@@ -23,6 +22,10 @@ function getPool() {
       },
       waitForConnections: true,
       connectionLimit: 10,
+      maxIdle: 10,
+      idleTimeout: 30000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       queueLimit: 0,
     });
   }

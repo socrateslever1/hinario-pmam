@@ -5,7 +5,7 @@
  * Mudancas aqui devem preservar regras de negocio, permissoes do Xerife Geral/Xerife nomeado e auditoria por aluno.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock, FileText, Lock, Printer, Save, ShieldCheck, UnlockKeyhole, Users } from "lucide-react";
+import { Check, Clock, FileText, Lock, Pencil, Printer, Save, ShieldCheck, Trash2, UnlockKeyhole, Users } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const statusList = [
   { value: "pronto", label: "PRONTO", color: "bg-green-700 text-white hover:bg-green-800" },
@@ -57,6 +65,7 @@ interface PeculioTabProps {
   setCompanhia?: (val: string) => void;
   peloton?: string;
   setPeloton?: (val: string) => void;
+  isAdmin?: boolean;
 }
 
 export function PeculioTab({
@@ -64,6 +73,7 @@ export function PeculioTab({
   setCompanhia: propSetCompanhia,
   peloton: propPeloton,
   setPeloton: propSetPeloton,
+  isAdmin = false,
 }: PeculioTabProps = {}) {
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
 
@@ -95,6 +105,29 @@ export function PeculioTab({
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveInProgressRef = useRef(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [editStudentForm, setEditStudentForm] = useState({
+    numerica: "",
+    nomeGuerra: "",
+    nomeCompleto: "",
+    companhia: "",
+    peloton: "",
+    deskNumber: "",
+  });
+
+  const openEditStudent = (student: any) => {
+    setEditingStudent(student);
+    setEditStudentForm({
+      numerica: student.numerica || "",
+      nomeGuerra: student.nomeGuerra || "",
+      nomeCompleto: student.nomeCompleto || "",
+      companhia: String(student.companhia || selectedCompanhia),
+      peloton: String(student.peloton || selectedPeloton),
+      deskNumber: student.deskNumber ? String(student.deskNumber) : "",
+    });
+  };
+
   const selectedCompanhia = Number(companhia);
   const selectedPeloton = Number(peloton);
 
@@ -121,10 +154,19 @@ export function PeculioTab({
   );
 
   const students = studentsQuery.data ?? [];
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students;
+    const query = searchQuery.toLowerCase();
+    return students.filter((student) =>
+      student.nomeGuerra.toLowerCase().includes(query) ||
+      student.numerica.includes(query) ||
+      (student.nomeCompleto && student.nomeCompleto.toLowerCase().includes(query))
+    );
+  }, [students, searchQuery]);
   const lock = peculioQuery.data?.lock;
   const isLocked = Boolean(lock?.isLocked);
-  const canRelease = Boolean(lock?.canRelease);
-  const canEdit = lock?.canEdit !== false;
+  const canRelease = Boolean(lock?.canRelease) && isAdmin;
+  const canEdit = (lock?.canEdit !== false) && isAdmin;
 
   useEffect(() => {
     if (hasLocalChanges) return;
@@ -206,6 +248,52 @@ export function PeculioTab({
     },
     onError: (error) => toast.error(error.message),
   });
+
+  const updateRosterStudent = trpc.serviceScale.updateRosterStudent.useMutation({
+    onSuccess: async () => {
+      toast.success("Dados do aluno atualizados");
+      setEditingStudent(null);
+      await Promise.all([
+        studentsQuery.refetch(),
+        peculioQuery.refetch()
+      ]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteRosterStudent = trpc.serviceScale.deleteRosterStudent.useMutation({
+    onSuccess: async () => {
+      toast.success("Aluno removido do efetivo");
+      setEditingStudent(null);
+      await Promise.all([
+        studentsQuery.refetch(),
+        peculioQuery.refetch()
+      ]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleDeleteRosterStudent = (studentId: number, nomeGuerra: string) => {
+    const confirmed = window.confirm(
+      `ATENÇÃO: Deseja realmente REMOVER ${nomeGuerra} do efetivo?\n` +
+      `Esta ação é irreversível e excluirá todo o cadastro do aluno, histórico de notas e frequências!`
+    );
+    if (!confirmed) return;
+    deleteRosterStudent.mutate({ studentId });
+  };
+
+  const handleUpdateRosterStudent = () => {
+    if (!editingStudent) return;
+    updateRosterStudent.mutate({
+      studentId: editingStudent.id,
+      numerica: editStudentForm.numerica.replace(/\D/g, "").slice(0, 4),
+      nomeGuerra: editStudentForm.nomeGuerra.trim(),
+      nomeCompleto: editStudentForm.nomeCompleto.trim(),
+      companhia: Number(editStudentForm.companhia),
+      peloton: Number(editStudentForm.peloton),
+      deskNumber: editStudentForm.deskNumber ? Number(editStudentForm.deskNumber) : null,
+    });
+  };
 
   const handleStatusChange = (studentId: number, status: string) => {
     if (!canEdit) return;
@@ -421,23 +509,40 @@ export function PeculioTab({
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
-                <Button className="min-h-11 flex-1 gap-2 bg-[#1a3a2a] text-white touch-manipulation" onClick={handleSave} disabled={savePeculio.isPending || !canEdit}>
-                  <Save className="h-4 w-4" />
-                  Salvar Pecúlio
-                </Button>
-                <Button
-                  className="min-h-11 flex-1 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation"
-                  onClick={handleClose}
-                  disabled={savePeculio.isPending || closePeculio.isPending || !canEdit}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Fechar
-                </Button>
+                {isAdmin && (
+                  <>
+                    <Button className="min-h-11 flex-1 gap-2 bg-[#1a3a2a] text-white touch-manipulation" onClick={handleSave} disabled={savePeculio.isPending || !canEdit}>
+                      <Save className="h-4 w-4" />
+                      Salvar Pecúlio
+                    </Button>
+                    <Button
+                      className="min-h-11 flex-1 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation"
+                      onClick={handleClose}
+                      disabled={savePeculio.isPending || closePeculio.isPending || !canEdit}
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Fechar
+                    </Button>
+                  </>
+                )}
                 <Button variant="outline" className="min-h-11 gap-2 touch-manipulation" onClick={handlePrint}>
                   <Printer className="h-4 w-4" />
                   Imprimir
                 </Button>
               </div>
+            </div>
+          </div>
+          {/* Barra de Pesquisa no Pecúlio */}
+          <div className="border-t pt-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 print:hidden">
+            <span className="text-xs font-bold text-muted-foreground">Filtro de Frequência:</span>
+            <div className="w-full sm:w-80">
+              <Input
+                type="text"
+                placeholder="Pesquisar por nome ou numérica..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 text-xs bg-white dark:bg-zinc-800"
+              />
             </div>
           </div>
         </CardContent>
@@ -517,13 +622,25 @@ export function PeculioTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => {
+                {filteredStudents.map((student) => {
                   const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
                   return (
                     <TableRow key={student.id} className="hover:bg-muted/20 h-9">
                       <TableCell className="text-center text-xs font-semibold py-1 px-2">{student.numerica}</TableCell>
                       <TableCell className="text-xs font-bold py-1 px-2 text-[#1a3a2a] dark:text-green-400">
-                        {student.nomeGuerra}
+                        <div className="flex items-center gap-1.5">
+                          <span>{student.nomeGuerra}</span>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => openEditStudent(student)}
+                              className="p-1 text-muted-foreground hover:text-[#c4a84b] opacity-50 hover:opacity-100 transition-all rounded hover:bg-muted"
+                              title="Editar Aluno"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                       {statusList.map((st) => {
                         const isSelected = entry.status === st.value;
@@ -563,7 +680,7 @@ export function PeculioTab({
                           </div>
                         )}
                         <div className="flex flex-wrap gap-1">
-                          {lock?.canRegisterArrival && (
+                          {isAdmin && lock?.canRegisterArrival && (
                             <Button
                               type="button"
                               size="sm"
@@ -575,7 +692,7 @@ export function PeculioTab({
                               Chegada
                             </Button>
                           )}
-                          {!canEdit && (
+                          {isAdmin && !canEdit && (
                             <Button
                               type="button"
                               size="sm"
@@ -587,7 +704,7 @@ export function PeculioTab({
                               Justificar
                             </Button>
                           )}
-                          {canRelease && entry.justificationStatus === "pending" && (
+                          {isAdmin && canRelease && entry.justificationStatus === "pending" && (
                             <>
                               <Button
                                 type="button"
@@ -631,7 +748,7 @@ export function PeculioTab({
 
       {/* 2. Frequency list - Mobile View */}
       <div className="xl:hidden space-y-2">
-        {students.map((student) => {
+        {filteredStudents.map((student) => {
           const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
           const isExpanded = expandedStudentId === student.id;
 
@@ -663,8 +780,21 @@ export function PeculioTab({
                     <span className="shrink-0 text-[10px] font-semibold text-muted-foreground bg-muted dark:bg-zinc-800 px-1.5 py-0.5 rounded">
                       Nº {student.numerica}
                     </span>
-                    <span className="min-w-0 truncate text-sm font-bold text-[#1a3a2a] dark:text-green-400">
-                      {student.nomeGuerra}
+                    <span className="min-w-0 truncate text-sm font-bold text-[#1a3a2a] dark:text-green-400 flex items-center gap-1.5">
+                      <span>{student.nomeGuerra}</span>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditStudent(student);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-[#c4a84b] rounded hover:bg-muted transition-all"
+                          title="Editar Aluno"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -710,7 +840,7 @@ export function PeculioTab({
                         className="mt-1 h-9 text-xs"
                       />
                     </div>
-                    {(entry.arrivalTime || entry.justificationStatus || lock?.canRegisterArrival || !canEdit) && (
+                    {(entry.arrivalTime || entry.justificationStatus || (isAdmin && (lock?.canRegisterArrival || !canEdit))) && (
                       <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-2.5 text-xs">
                         {entry.arrivalTime && (
                           <div className="flex items-center gap-1 text-muted-foreground">
@@ -724,7 +854,7 @@ export function PeculioTab({
                           </div>
                         )}
                         <div className="flex flex-wrap gap-2">
-                          {lock?.canRegisterArrival && (
+                          {isAdmin && lock?.canRegisterArrival && (
                             <Button
                               type="button"
                               size="sm"
@@ -736,7 +866,7 @@ export function PeculioTab({
                               Registrar chegada
                             </Button>
                           )}
-                          {!canEdit && (
+                          {isAdmin && !canEdit && (
                             <Button
                               type="button"
                               size="sm"
@@ -748,7 +878,7 @@ export function PeculioTab({
                               Justificar correção
                             </Button>
                           )}
-                          {canRelease && entry.justificationStatus === "pending" && (
+                          {isAdmin && canRelease && entry.justificationStatus === "pending" && (
                             <>
                               <Button
                                 type="button"
@@ -1024,6 +1154,111 @@ export function PeculioTab({
           </div>
         </div>
       </div>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
+        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-zinc-900 border border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Editar Cadastro do Aluno (Pecúlio)</DialogTitle>
+            <DialogDescription>Atualize as informações cadastrais do aluno.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-numerica">Numérica</Label>
+                <Input
+                  id="edit-numerica"
+                  value={editStudentForm.numerica}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, numerica: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                  className="mt-1 bg-white dark:bg-zinc-800"
+                  maxLength={4}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-nome-guerra">Nome de Guerra</Label>
+                <Input
+                  id="edit-nome-guerra"
+                  value={editStudentForm.nomeGuerra}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, nomeGuerra: e.target.value }))}
+                  className="mt-1 bg-white dark:bg-zinc-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-nome-completo">Nome Completo</Label>
+              <Input
+                id="edit-nome-completo"
+                value={editStudentForm.nomeCompleto}
+                onChange={(e) => setEditStudentForm(curr => ({ ...curr, nomeCompleto: e.target.value }))}
+                className="mt-1 bg-white dark:bg-zinc-800"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="edit-companhia">Companhia</Label>
+                <select
+                  id="edit-companhia"
+                  value={editStudentForm.companhia}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, companhia: e.target.value }))}
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {[1, 2, 3, 4, 5].map((c) => (
+                    <option key={c} value={String(c)}>{c}ª Cia</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="edit-peloton">Pelotão</Label>
+                <select
+                  id="edit-peloton"
+                  value={editStudentForm.peloton}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, peloton: e.target.value }))}
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {[1, 2].map((p) => (
+                    <option key={p} value={String(p)}>{p}º Pel</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="edit-desk">Carteira</Label>
+                <Input
+                  id="edit-desk"
+                  value={editStudentForm.deskNumber}
+                  onChange={(e) => setEditStudentForm(curr => ({ ...curr, deskNumber: e.target.value.replace(/\D/g, "") }))}
+                  placeholder="Ex: 45"
+                  className="mt-1 bg-white dark:bg-zinc-800"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full sm:w-auto"
+              onClick={() => handleDeleteRosterStudent(editingStudent.id, editingStudent.nomeGuerra)}
+              disabled={deleteRosterStudent.isPending}
+            >
+              Excluir Aluno
+            </Button>
+            <div className="flex gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setEditingStudent(null)} className="mr-2">Cancelar</Button>
+              <Button
+                className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
+                onClick={handleUpdateRosterStudent}
+                disabled={updateRosterStudent.isPending}
+              >
+                {updateRosterStudent.isPending ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

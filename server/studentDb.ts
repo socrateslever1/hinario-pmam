@@ -298,6 +298,7 @@ export async function updateStudentRosterData(
   data: {
     numerica?: string;
     nomeGuerra?: string;
+    nomeCompleto?: string | null;
     companhia?: number;
     peloton?: number;
     deskNumber?: number | null;
@@ -316,6 +317,10 @@ export async function updateStudentRosterData(
     if (data.nomeGuerra !== undefined) {
       updates.push("nome_guerra = ?");
       params.push(data.nomeGuerra);
+    }
+    if (data.nomeCompleto !== undefined) {
+      updates.push("nome_completo = ?");
+      params.push(data.nomeCompleto);
     }
     if (data.companhia !== undefined) {
       updates.push("companhia = ?");
@@ -337,6 +342,16 @@ export async function updateStudentRosterData(
       `UPDATE pmam_students SET ${updates.join(", ")} WHERE id = ?`,
       params
     );
+
+    // Sync name to pmam_users if they have a mirrored account and nomeGuerra changed
+    if (data.nomeGuerra !== undefined) {
+      const userSyncQuery = `
+        UPDATE pmam_users
+        SET name = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE student_id = ?
+      `;
+      await connection.execute(userSyncQuery, [data.nomeGuerra, id]);
+    }
   } finally {
     connection.release();
   }

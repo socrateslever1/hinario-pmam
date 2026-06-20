@@ -32,7 +32,7 @@ export function PeculioOverview() {
   const [date, setDate] = useState(getToday);
   const [selectedScope, setSelectedScope] = useState<SelectedScope>(null);
 
-  const summariesQuery = trpc.peculio.list.useQuery({ date });
+  const summariesQuery = trpc.peculio.list.useQuery({ date }, { refetchInterval: 5000 });
 
   const closePeculio = trpc.peculio.close.useMutation({
     onSuccess: async () => {

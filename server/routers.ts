@@ -1718,6 +1718,7 @@ export const appRouter = router({
         studentId: z.number().int(),
         numerica: z.string().trim().length(4).optional(),
         nomeGuerra: z.string().trim().min(2).max(255).optional(),
+        nomeCompleto: z.string().trim().optional(),
         companhia: z.number().int().min(1).max(5).optional(),
         peloton: z.number().int().min(1).max(2).optional(),
         deskNumber: z.number().int().nullable().optional(),
@@ -1749,6 +1750,7 @@ export const appRouter = router({
       await studentDb.updateStudentRosterData(input.studentId, {
         numerica: input.numerica,
         nomeGuerra: input.nomeGuerra,
+        nomeCompleto: input.nomeCompleto,
         companhia: nextCompanhia,
         peloton: nextPeloton,
         deskNumber: input.deskNumber,
