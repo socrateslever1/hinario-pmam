@@ -132,6 +132,7 @@ export default function ClassroomMap() {
   const [companhia, setCompanhia] = useState("4");
   const [peloton, setPeloton] = useState("1");
   const [capacity, setCapacity] = useState(51);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("none");
@@ -210,6 +211,17 @@ export default function ClassroomMap() {
   const students = platoonPublicQuery.data?.students ?? [];
   const activeRoles = platoonPublicQuery.data?.roles;
   const weeklyScale = platoonPublicQuery.data?.week;
+
+  // Filtrar alunos por nome, número ou pelotão
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students;
+    const query = searchQuery.toLowerCase();
+    return students.filter((student: any) => 
+      student.nomeGuerra.toLowerCase().includes(query) ||
+      student.numerica.includes(query) ||
+      String(student.peloton).includes(query)
+    );
+  }, [students, searchQuery]);
 
   // Sync roles and scale parameters
   useEffect(() => {
@@ -871,6 +883,22 @@ export default function ClassroomMap() {
                         MESA DO INSTRUTOR / QUADRO (FRENTE)
                       </span>
                     </div>
+                  </div>
+
+                  {/* Barra de Pesquisa */}
+                  <div className="flex flex-col gap-2.5 bg-white/60 dark:bg-zinc-900/40 border border-border/40 p-3 rounded-lg shadow-sm">
+                    <Input
+                      type="text"
+                      placeholder="Pesquisar por nome, número ou pelotão..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-9 text-sm bg-white dark:bg-zinc-800 border-border/50"
+                    />
+                    {searchQuery && (
+                      <div className="text-xs text-muted-foreground">
+                        {filteredStudents.length} aluno(s) encontrado(s)
+                      </div>
+                    )}
                   </div>
 
                   {/* Capacity control (Xerife only) */}
