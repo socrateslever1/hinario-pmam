@@ -28,7 +28,8 @@ import {
   ArrowLeft, LayoutGrid, User, Laptop, Crown, Shield,
   CalendarDays, FileText, History, ExternalLink, Star,
   Save, Trash2, Check, UserCog, Users, ClipboardList,
-  Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus
+  Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus,
+  Search, BadgeCheck
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
@@ -201,8 +202,10 @@ export default function ClassroomMap() {
   const [foSelectedStudentIds, setFoSelectedStudentIds] = useState<number[]>([]);
   const [foType, setFoType] = useState<"positive" | "negative">("negative");
   const [foReason, setFoReason] = useState("");
+  const [foCustomReason, setFoCustomReason] = useState("");
   const [foDetails, setFoDetails] = useState("");
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
+  const [operationalStudent, setOperationalStudent] = useState<any | null>(null);
 
   const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
@@ -241,6 +244,19 @@ export default function ClassroomMap() {
     { enabled: Boolean(selectedCompanhia && selectedPeloton) }
   );
 
+  const isXerifeGeral = Boolean(access?.isGeneral);
+  const currentRoles = platoonPublicQuery.data?.roles;
+  const isCurrentStudentActiveXerife = Boolean(studentSession && currentRoles &&
+    (studentSession.id === currentRoles.xerifeId || studentSession.id === currentRoles.subXerifeId));
+  const isAdminOrXerifeAdmin = isXerifeGeral ||
+    Boolean(access?.assignment &&
+      (access.assignment.level === "principal" ||
+        (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
+        (access.assignment.level === "pelotao" &&
+          access.assignment.companhia === selectedCompanhia &&
+          access.assignment.peloton === selectedPeloton))) ||
+    isCurrentStudentActiveXerife;
+
   const capacityQuery = trpc.serviceScale.getPlatoonCapacity.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
     { enabled: Boolean(selectedCompanhia && selectedPeloton) }
@@ -261,6 +277,19 @@ export default function ClassroomMap() {
   const pendingObservationsQuery = trpc.serviceScale.pendingStudentObservations.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
     { enabled: Boolean(access?.isGeneral && selectedCompanhia && selectedPeloton) }
+  );
+
+  const foReasonsQuery = trpc.serviceScale.foReasons.useQuery(undefined, {
+    enabled: Boolean(isAdminOrXerifeAdmin),
+  });
+
+  const pendingFoReasonsQuery = trpc.serviceScale.pendingFoReasons.useQuery(undefined, {
+    enabled: Boolean(access?.isGeneral),
+  });
+
+  const studentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
+    { studentId: operationalStudent?.id ?? 0 },
+    { enabled: Boolean(operationalStudent?.id && isAdminOrXerifeAdmin) }
   );
 
   // Sync capacity from DB
@@ -403,9 +432,8 @@ export default function ClassroomMap() {
   });
 
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       toast.success("Anotação registrada");
-      setObservationByStudent((current) => ({ ...current, [variables.studentId]: "" }));
     },
     onError: (err) => toast.error(err.message),
   });
@@ -414,6 +442,29 @@ export default function ClassroomMap() {
     onSuccess: async () => {
       toast.success("FO validada");
       await pendingObservationsQuery.refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const suggestFoReason = trpc.serviceScale.suggestFoReason.useMutation({
+    onSuccess: async (result) => {
+      if (result.status === "approved") {
+        toast.success("Novo fato incluído na lista oficial.");
+      } else {
+        toast.success("Novo fato enviado para validação do Xerife Master.");
+      }
+      await Promise.all([
+        foReasonsQuery.refetch(),
+        access?.isGeneral ? pendingFoReasonsQuery.refetch() : Promise.resolve(),
+      ]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const validateFoReason = trpc.serviceScale.validateFoReason.useMutation({
+    onSuccess: async () => {
+      toast.success("Lista de fatos atualizada.");
+      await Promise.all([foReasonsQuery.refetch(), pendingFoReasonsQuery.refetch()]);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -456,20 +507,6 @@ export default function ClassroomMap() {
     },
     onError: (err) => toast.error(err.message),
   });
-
-  // Access validation
-  const isXerifeGeral = Boolean(access?.isGeneral);
-  const isCurrentStudentActiveXerife = studentSession && activeRoles &&
-    (studentSession.id === activeRoles.xerifeId || studentSession.id === activeRoles.subXerifeId);
-
-  const isAdminOrXerifeAdmin = isXerifeGeral ||
-    (access?.assignment &&
-      (access.assignment.level === "principal" ||
-        (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
-        (access.assignment.level === "pelotao" &&
-          access.assignment.companhia === selectedCompanhia &&
-          access.assignment.peloton === selectedPeloton))) ||
-    Boolean(isCurrentStudentActiveXerife);
 
   const canChangeClassroomScope = isXerifeGeral;
 
@@ -565,8 +602,12 @@ export default function ClassroomMap() {
         key={role}
         onClick={() => {
           if (isAdminOrXerifeAdmin) {
-            toast.info(`Para gerenciar o ${roleTitle}, vá para a sub-rota de Efetivo.`);
-            setLocation("/sala-de-aula/efetivo");
+            if (occupant) {
+              setOperationalStudent(occupant);
+            } else {
+              toast.info(`Defina o ${roleTitle} em Efetivo do Pelotão.`);
+              setLocation("/sala-de-aula/efetivo");
+            }
           }
         }}
         className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
@@ -639,14 +680,18 @@ export default function ClassroomMap() {
       });
       return;
     }
-    setSelectedSeat(seatNumber);
     const occupant = students.find((s: any) => s.deskNumber === seatNumber);
+    if (occupant) {
+      setOperationalStudent(occupant);
+      return;
+    }
+    setSelectedSeat(seatNumber);
 
     // If we already pre-selected a student from the unassigned list
     if (selectedStudentId !== "none" && !students.find(s => s.id === Number(selectedStudentId))?.deskNumber) {
       // Keep it pre-selected
     } else {
-      setSelectedStudentId(occupant ? String(occupant.id) : "none");
+      setSelectedStudentId("none");
     }
     setAssignmentModalOpen(true);
   };
@@ -794,9 +839,10 @@ export default function ClassroomMap() {
     });
   };
 
-  const openLaunchFOModal = (student?: any) => {
-    setFoType("negative");
+  const openLaunchFOModal = (student?: any, initialType: "positive" | "negative" = "negative") => {
+    setFoType(initialType);
     setFoReason("");
+    setFoCustomReason("");
     setFoDetails("");
     setFoIsAllSelected(false);
     if (student) {
@@ -823,22 +869,27 @@ export default function ClassroomMap() {
       return;
     }
 
-    let finalNote = "";
+    let selectedReason = foReason;
     if (foReason === "outro") {
-      if (!foDetails.trim()) {
-        toast.error("Descreva o fato no campo de observação");
+      if (foCustomReason.trim().length < 3) {
+        toast.error("Informe o novo elogio ou transgressão");
         return;
       }
-      finalNote = foDetails.trim();
-    } else {
-      finalNote = foReason;
-      if (foDetails.trim()) {
-        finalNote += ` - Detalhes: ${foDetails.trim()}`;
-      }
+      selectedReason = foCustomReason.trim();
     }
+    const finalNote = foDetails.trim()
+      ? `${selectedReason} - Detalhes: ${foDetails.trim()}`
+      : selectedReason;
 
     try {
       toast.loading("Registrando Fato Observado...", { id: "fo-launch" });
+
+      if (foReason === "outro") {
+        await suggestFoReason.mutateAsync({
+          type: foType,
+          label: selectedReason,
+        });
+      }
       
       // Envia as mutações em lote usando Promise.all
       await Promise.all(
@@ -853,7 +904,11 @@ export default function ClassroomMap() {
 
       toast.success("Fato Observado registrado com sucesso!", { id: "fo-launch" });
       setFoModalOpen(false);
-      await pendingObservationsQuery.refetch();
+      setFoCustomReason("");
+      await Promise.all([
+        pendingObservationsQuery.refetch(),
+        operationalStudent?.id ? studentObservationsQuery.refetch() : Promise.resolve(),
+      ]);
     } catch (err: any) {
       toast.error(`Erro ao lançar FO: ${err.message}`, { id: "fo-launch" });
     }
@@ -1067,16 +1122,49 @@ export default function ClassroomMap() {
 
                   {/* Barra de Pesquisa */}
                   <div className="flex flex-col gap-2.5 bg-white/60 dark:bg-zinc-900/40 border border-border/40 p-3 rounded-lg shadow-sm">
-                    <Input
-                      type="text"
-                      placeholder="Pesquisar por nome, número ou pelotão..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-9 text-sm bg-white dark:bg-zinc-800 border-border/50"
-                    />
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Pesquisar por nome, número ou pelotão..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-9 border-border/50 bg-white pl-9 text-sm dark:bg-zinc-800"
+                      />
+                    </div>
                     {searchQuery && (
-                      <div className="text-xs text-muted-foreground">
-                        {filteredStudents.length} aluno(s) encontrado(s)
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          {filteredStudents.length} aluno(s) encontrado(s)
+                        </div>
+                        <div className="grid max-h-48 gap-1.5 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+                          {filteredStudents.slice(0, 12).map((student: any) => (
+                            <button
+                              key={student.id}
+                              type="button"
+                              className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-left transition-colors hover:border-[#c4a84b]/60 hover:bg-[#c4a84b]/5"
+                              onClick={() => {
+                                if (isAdminOrXerifeAdmin) {
+                                  setOperationalStudent(student);
+                                } else {
+                                  toast.info(student.deskNumber ? `${student.nomeGuerra}: carteira ${student.deskNumber}` : `${student.nomeGuerra}: sem carteira definida`);
+                                }
+                              }}
+                            >
+                              {student.fotoUrl ? (
+                                <img src={student.fotoUrl} alt="" className="h-8 w-8 shrink-0 rounded-full border object-cover" />
+                              ) : (
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a] dark:text-green-300">
+                                  {student.nomeGuerra.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                              <span className="min-w-0">
+                                <span className="block truncate text-xs font-bold text-foreground">{student.nomeGuerra}</span>
+                                <span className="block text-[10px] text-muted-foreground">{student.numerica} · {student.deskNumber ? `Carteira ${student.deskNumber}` : "Sem carteira"}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1514,13 +1602,16 @@ export default function ClassroomMap() {
                           Lançar FO Coletivo / Lote
                         </Button>
                         <div className="w-full md:w-48">
-                          <Input
-                            type="text"
-                            placeholder="Buscar no efetivo..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-8 text-xs bg-white dark:bg-zinc-800"
-                          />
+                          <div className="relative">
+                            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              type="text"
+                              placeholder="Buscar no efetivo..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="h-8 bg-white pl-8 text-xs dark:bg-zinc-800"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1605,18 +1696,79 @@ export default function ClassroomMap() {
                       </div>
                     ) : null}
 
+                    {access?.isGeneral && pendingFoReasonsQuery.data?.length ? (
+                      <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-bold text-blue-800 dark:text-blue-200">
+                          <BadgeCheck className="h-4 w-4" />
+                          Novos fatos aguardando inclusão na lista
+                        </div>
+                        <div className="space-y-2">
+                          {pendingFoReasonsQuery.data.map((item: any) => (
+                            <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background/80 p-2 text-xs md:flex-row md:items-center md:justify-between">
+                              <div className="min-w-0">
+                                <p className={`font-black ${item.type === "positive" ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}`}>
+                                  {item.type === "positive" ? "FO+ · Elogio" : "FO- · Transgressão"}
+                                </p>
+                                <p className="mt-1 break-words font-semibold text-foreground">{item.label}</p>
+                                <p className="mt-1 text-[10px] text-muted-foreground">Sugerido por {item.created_by_name || "xerife"}</p>
+                              </div>
+                              <div className="flex shrink-0 gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 bg-[#1a3a2a] text-white"
+                                  onClick={() => validateFoReason.mutate({ id: item.id, status: "approved" })}
+                                  disabled={validateFoReason.isPending}
+                                >
+                                  Incluir na lista
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8"
+                                  onClick={() => validateFoReason.mutate({ id: item.id, status: "rejected" })}
+                                  disabled={validateFoReason.isPending}
+                                >
+                                  Rejeitar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {filteredStudents.map((student: any) => (
                         <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</p>
-                              <Badge className={`border text-[10px] font-semibold px-2 py-0.5 ${getConditionBadgeStyle(student.condition)}`}>
-                                {conditionLabels[student.condition || "pronto"]}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Cia / {student.peloton}º Pel</p>
-                          </div>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-[#c4a84b]"
+                            onClick={() => setOperationalStudent(student)}
+                          >
+                            {student.fotoUrl ? (
+                              <img
+                                src={student.fotoUrl}
+                                alt={`Foto de ${student.nomeGuerra}`}
+                                className="h-12 w-12 shrink-0 rounded-md border border-[#c4a84b]/40 object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border bg-[#1a3a2a]/10 text-sm font-black text-[#1a3a2a] dark:text-green-300">
+                                {student.nomeGuerra.slice(0, 2).toUpperCase()}
+                              </span>
+                            )}
+                            <span className="min-w-0 flex-1 space-y-1">
+                              <span className="flex items-start justify-between gap-2">
+                                <span className="block truncate font-bold text-[#1a3a2a] dark:text-green-400">{student.nomeGuerra}</span>
+                                <Badge className={`shrink-0 border px-2 py-0.5 text-[10px] font-semibold ${getConditionBadgeStyle(student.condition)}`}>
+                                  {conditionLabels[student.condition || "pronto"]}
+                                </Badge>
+                              </span>
+                              <span className="block text-xs text-muted-foreground">{student.numerica} - {student.companhia}ª Cia / {student.peloton}º Pel</span>
+                              <span className="block text-[10px] font-semibold text-[#b39740]">Abrir ficha operacional</span>
+                            </span>
+                          </button>
 
                           <div className="mt-2 flex justify-end gap-1">
                             <Button
@@ -2015,6 +2167,119 @@ export default function ClassroomMap() {
           </div>
         )}
 
+        {/* Student operational record */}
+        <Dialog open={Boolean(operationalStudent)} onOpenChange={(open) => !open && setOperationalStudent(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto border border-border bg-white text-foreground dark:bg-zinc-900 sm:max-w-[680px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
+                Ficha Operacional do Aluno
+              </DialogTitle>
+              <DialogDescription>Cadastro, situação e histórico de fatos observados.</DialogDescription>
+            </DialogHeader>
+
+            {operationalStudent && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 rounded-lg border bg-muted/10 p-3">
+                  {operationalStudent.fotoUrl ? (
+                    <img
+                      src={operationalStudent.fotoUrl}
+                      alt={`Foto de ${operationalStudent.nomeGuerra}`}
+                      className="h-20 w-20 shrink-0 rounded-md border border-[#c4a84b]/50 object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-md border bg-[#1a3a2a]/10 text-xl font-black text-[#1a3a2a] dark:text-green-300">
+                      {operationalStudent.nomeGuerra.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-lg font-black text-[#1a3a2a] dark:text-green-300">{operationalStudent.nomeGuerra}</p>
+                    {operationalStudent.nomeCompleto && operationalStudent.nomeCompleto !== operationalStudent.nomeGuerra && (
+                      <p className="break-words text-xs text-muted-foreground">{operationalStudent.nomeCompleto}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline">Nº {operationalStudent.numerica}</Badge>
+                      <Badge variant="outline">{operationalStudent.companhia}ª Cia / {operationalStudent.peloton}º Pel</Badge>
+                      <Badge variant="outline">{operationalStudent.deskNumber ? `Carteira ${operationalStudent.deskNumber}` : "Sem carteira"}</Badge>
+                      <Badge className={`border ${getConditionBadgeStyle(operationalStudent.condition)}`}>
+                        {conditionLabels[operationalStudent.condition || "pronto"]}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <Button
+                    type="button"
+                    className="bg-green-700 text-white hover:bg-green-800"
+                    onClick={() => {
+                      const student = operationalStudent;
+                      setOperationalStudent(null);
+                      openLaunchFOModal(student, "positive");
+                    }}
+                  >
+                    FO+ Elogio
+                  </Button>
+                  <Button
+                    type="button"
+                    className="bg-red-700 text-white hover:bg-red-800"
+                    onClick={() => {
+                      const student = operationalStudent;
+                      setOperationalStudent(null);
+                      openLaunchFOModal(student, "negative");
+                    }}
+                  >
+                    FO- Transgressão
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="col-span-2 sm:col-span-1"
+                    onClick={() => {
+                      const student = operationalStudent;
+                      setOperationalStudent(null);
+                      openEditStudent(student);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" /> Editar cadastro
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border">
+                  <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
+                    <p className="text-sm font-black">Histórico de FO</p>
+                    <Badge variant="outline">{studentObservationsQuery.data?.length ?? 0} registro(s)</Badge>
+                  </div>
+                  <div className="max-h-72 space-y-2 overflow-y-auto p-3">
+                    {studentObservationsQuery.isLoading && (
+                      <p className="py-4 text-center text-xs text-muted-foreground">Carregando histórico...</p>
+                    )}
+                    {studentObservationsQuery.data?.map((item: any) => (
+                      <div key={item.id} className="rounded-md border bg-background p-2.5 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className={`font-black ${item.type === "positive" ? "text-green-700 dark:text-green-300" : item.type === "negative" ? "text-red-700 dark:text-red-300" : "text-foreground"}`}>
+                            {item.type === "positive" ? "FO+ · Elogio" : item.type === "negative" ? "FO- · Transgressão" : "Observação"}
+                          </p>
+                          <Badge variant="outline" className="text-[9px]">
+                            {item.validation_status === "approved" ? "Validado" : item.validation_status === "rejected" ? "Rejeitado" : "Aguardando validação"}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-foreground">{item.note}</p>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          {new Date(item.created_at).toLocaleString("pt-BR")} · Por {item.created_by_name || "xerife"}
+                        </p>
+                      </div>
+                    ))}
+                    {!studentObservationsQuery.isLoading && !studentObservationsQuery.data?.length && (
+                      <p className="py-4 text-center text-xs text-muted-foreground">Nenhum fato observado registrado.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Edit Student Dialog global */}
         <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
           <DialogContent className="sm:max-w-[450px] bg-white dark:bg-zinc-900 border border-border text-foreground">
@@ -2149,6 +2414,7 @@ export default function ClassroomMap() {
                     onClick={() => {
                       setFoType("positive");
                       setFoReason("");
+                      setFoCustomReason("");
                     }}
                   >
                     FO+ (Elogio)
@@ -2160,6 +2426,7 @@ export default function ClassroomMap() {
                     onClick={() => {
                       setFoType("negative");
                       setFoReason("");
+                      setFoCustomReason("");
                     }}
                   >
                     FO- (Transgressão)
@@ -2245,24 +2512,46 @@ export default function ClassroomMap() {
                   {(foType === "positive" ? ELOGIOS_LIST : TRANSGRESSIONS_LIST).map((reason, idx) => (
                     <option key={idx} value={reason}>{reason}</option>
                   ))}
+                  {foReasonsQuery.data
+                    ?.filter((item: any) => item.type === foType)
+                    .map((item: any) => (
+                      <option key={`custom-${item.id}`} value={item.label}>{item.label}</option>
+                    ))}
                   <option value="outro">Outro / Especificar</option>
                 </select>
               </div>
 
+              {foReason === "outro" && (
+                <div>
+                  <Label htmlFor="fo-custom-reason">
+                    {foType === "positive" ? "Novo elogio" : "Nova transgressão"}
+                  </Label>
+                  <Input
+                    id="fo-custom-reason"
+                    value={foCustomReason}
+                    onChange={(event) => setFoCustomReason(event.target.value)}
+                    maxLength={500}
+                    placeholder={foType === "positive" ? "Escreva o elogio que deverá entrar na lista" : "Escreva a transgressão que deverá entrar na lista"}
+                    className="mt-1.5 h-10 text-sm"
+                  />
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {isXerifeGeral
+                      ? "Como Xerife Master, a nova opção será incluída imediatamente."
+                      : "A nova opção entrará na lista após validação do Xerife Master."}
+                  </p>
+                </div>
+              )}
+
               {/* Detalhes / Especificação */}
               <div>
                 <Label htmlFor="fo-details-textarea">
-                  {foReason === "outro" ? "Especificação do Fato (Obrigatório)" : "Detalhes Complementares (Opcional)"}
+                  Detalhes Complementares (Opcional)
                 </Label>
                 <textarea
                   id="fo-details-textarea"
                   value={foDetails}
                   onChange={(e) => setFoDetails(e.target.value)}
-                  placeholder={
-                    foReason === "outro"
-                      ? "Descreva por completo o fato observado, atitudes e transgressão/elogio correspondente..."
-                      : "Detalhe o ocorrido (data, hora, local, conluio ou circunstâncias adicionais)..."
-                  }
+                  placeholder="Detalhe o ocorrido: data, hora, local e circunstâncias adicionais..."
                   className="mt-1.5 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>

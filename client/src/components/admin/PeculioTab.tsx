@@ -572,9 +572,18 @@ export function PeculioTab({
                   </p>
                 )}
                 {lock.closedAt && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Fechado por {lock.closedByName || "usuário autenticado"} em {new Date(lock.closedAt).toLocaleString("pt-BR")}
-                  </p>
+                  <div className="mt-2 rounded-md border border-[#c4a84b]/35 bg-[#c4a84b]/10 px-3 py-2">
+                    <p className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                      <ShieldCheck className="h-3.5 w-3.5 text-[#c4a84b]" />
+                      Assinatura digital do fechamento
+                    </p>
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
+                      Responsável: <strong className="text-foreground">{lock.closedByName || "usuário autenticado"}</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Autenticado em {new Date(lock.closedAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
                 )}
                 {lock.releaseReason && <p className="mt-1 text-xs text-muted-foreground">Motivo: {lock.releaseReason}</p>}
               </div>
@@ -1153,6 +1162,25 @@ export function PeculioTab({
             <span className="text-[8px] text-gray-500 italic">{cmtPel || "Assinatura"}</span>
           </div>
         </div>
+
+        {lock?.closedAt && (
+          <div className="mt-8 border border-black px-4 py-3 text-center">
+            <p className="text-[9px] font-black uppercase tracking-wider">Assinatura digital do fechamento</p>
+            <p className="mt-1 text-[9px]">
+              Pecúlio fechado e autenticado por <strong>{lock.closedByName || "usuário autenticado"}</strong>
+            </p>
+            <p className="text-[8px]">
+              Data e hora da autenticação: {new Date(lock.closedAt).toLocaleString("pt-BR")}
+            </p>
+            <p className="mt-1 text-[8px] font-bold">
+              Registro: PEC-{date.replaceAll("-", "")}-{companhia}{peloton}
+              {peculioQuery.data?.report?.id ? `-${peculioQuery.data.report.id}` : ""}
+            </p>
+            <p className="mt-1 text-[7px] italic">
+              Registro eletrônico vinculado ao usuário autenticado no momento do fechamento.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Edit Student Dialog */}

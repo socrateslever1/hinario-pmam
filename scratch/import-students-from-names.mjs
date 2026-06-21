@@ -20,7 +20,7 @@ function parseDatabaseUrl(url) {
       port: Number(parsed.port || 4000),
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
-      database: parsed.pathname.replace("/", ""),
+      database: parsed.pathname.replace(/^\//, ""),
     };
   } catch {
     return null;
@@ -38,11 +38,10 @@ function dbConfig() {
   };
 }
 
-function titleFromFullName(fullName) {
-  return fullName
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/\b([a-zà-ú])/gi, (letter) => letter.toLocaleUpperCase("pt-BR"));
+function normalizeSourceName(value) {
+  // The source file is authoritative. Do not title-case Unicode names here:
+  // ASCII word boundaries split words after accents (for example, Gusmão -> GusmÃO).
+  return value.trim().replace(/\s+/g, " ").normalize("NFC");
 }
 
 function parseStudents(text) {
@@ -61,16 +60,14 @@ function parseStudents(text) {
       continue;
     }
 
-    const entry = line.match(/^(\d{4})\s+[–-]\s+(.+)$/);
+    const entry = line.match(/^(\d{4})\s+[\u2013-]\s+(.+)$/u);
     if (!entry || !companhia || !peloton) continue;
 
     const numerica = entry[1];
-    const nomeCompleto = titleFromFullName(entry[2]);
-    const parts = nomeCompleto.trim().split(/\s+/);
-    const nomeGuerra = parts.length > 1 ? parts[parts.length - 1] : nomeCompleto;
+    const nomeCompleto = normalizeSourceName(entry[2]);
     students.push({
       numerica,
-      nomeGuerra,
+      nomeGuerra: nomeCompleto,
       nomeCompleto,
       companhia,
       peloton,
@@ -101,14 +98,14 @@ async function main() {
   const text = fs.readFileSync(absolutePath, "utf8");
   const students = parseStudents(text);
   const duplicates = findDuplicateNumericas(students);
-  const uniqueStudents = [...new Map(students.map((student) => [student.numerica, student])).values()];
+  if (duplicates.length) {
+    throw new Error(`Numéricas duplicadas no arquivo: ${duplicates.join(", ")}`);
+  }
+  const uniqueStudents = students;
 
   console.log(`Arquivo: ${absolutePath}`);
   console.log(`Registros lidos: ${students.length}`);
   console.log(`Numéricas únicas: ${uniqueStudents.length}`);
-  if (duplicates.length) {
-    console.log(`Numéricas duplicadas ignoradas no import: ${duplicates.join(", ")}`);
-  }
 
   const byScope = new Map();
   for (const student of uniqueStudents) {
@@ -132,6 +129,7 @@ async function main() {
   const connection = await mysql.createConnection({
     ...cfg,
     ssl: { rejectUnauthorized: true },
+    connectTimeout: 15000,
   });
 
   try {
@@ -190,6 +188,13 @@ async function main() {
       if (result.affectedRows === 1) inserted += 1;
       else updated += 1;
     }
+
+    await connection.execute(`
+      UPDATE pmam_users u
+      INNER JOIN pmam_students s ON s.id = u.student_id
+      SET u.name = s.nome_guerra, u.updated_at = CURRENT_TIMESTAMP
+      WHERE u.name <> s.nome_guerra OR u.name IS NULL
+    `);
 
     await connection.commit();
     console.log(`Importação concluída. Inseridos: ${inserted}. Atualizados: ${updated}.`);

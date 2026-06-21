@@ -18,6 +18,7 @@ export interface ServiceStudent {
   id: number;
   numerica: string;
   nomeGuerra: string;
+  nomeCompleto?: string | null;
   companhia: number;
   peloton: number;
   condition?: string;
@@ -309,6 +310,23 @@ export async function ensureServiceScaleTables() {
         )
       `);
 
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_fo_reasons (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          type ENUM('positive','negative') NOT NULL,
+          label VARCHAR(500) NOT NULL,
+          normalized_label VARCHAR(500) NOT NULL,
+          validation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+          created_by INT NULL,
+          validated_by INT NULL,
+          validated_at TIMESTAMP NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pmam_fo_reasons_type_label (type, normalized_label),
+          KEY idx_pmam_fo_reasons_status (validation_status, type, label)
+        )
+      `);
+
       const observationCols = await query("SHOW COLUMNS FROM pmam_student_observations");
       const hasObservationCol = (name: string) => observationCols.some((col: any) => col.Field === name);
       if (!hasObservationCol("validation_status")) {
@@ -475,7 +493,7 @@ export async function listStudents(scope?: { companhia?: number; peloton?: numbe
   }
 
   const rows = await query(`
-    SELECT id, numerica, nome_guerra AS nomeGuerra, companhia, peloton, \`condition\`, desk_number AS deskNumber, foto_url AS fotoUrl
+    SELECT id, numerica, nome_guerra AS nomeGuerra, nome_completo AS nomeCompleto, companhia, peloton, \`condition\`, desk_number AS deskNumber, foto_url AS fotoUrl
     FROM pmam_students
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY companhia ASC, peloton ASC, numerica ASC
@@ -1285,6 +1303,89 @@ export async function validateStudentObservation(input: {
      SET validation_status = ?, validated_by = ?, validated_at = CURRENT_TIMESTAMP, validation_note = ?
      WHERE id = ?`,
     [input.status, input.validatedBy, input.validationNote ?? null, input.id]
+  );
+}
+
+export type FoReasonType = "positive" | "negative";
+export type FoReasonStatus = "pending" | "approved" | "rejected";
+
+function normalizeFoReasonLabel(label: string): { label: string; normalizedLabel: string } {
+  const cleanLabel = label.trim().replace(/\s+/g, " ").normalize("NFC");
+  return {
+    label: cleanLabel,
+    normalizedLabel: cleanLabel.toLocaleLowerCase("pt-BR"),
+  };
+}
+
+export async function listFoReasons(status: FoReasonStatus = "approved"): Promise<any[]> {
+  await ensureServiceScaleTables();
+  return query(
+    `SELECT r.*, creator.name AS created_by_name, validator.name AS validated_by_name
+     FROM pmam_fo_reasons r
+     LEFT JOIN pmam_users creator ON creator.id = r.created_by
+     LEFT JOIN pmam_users validator ON validator.id = r.validated_by
+     WHERE r.validation_status = ?
+     ORDER BY r.type ASC, r.label ASC`,
+    [status]
+  );
+}
+
+export async function suggestFoReason(input: {
+  type: FoReasonType;
+  label: string;
+  createdBy: number;
+  approveImmediately?: boolean;
+}): Promise<{ id: number; status: FoReasonStatus }> {
+  await ensureServiceScaleTables();
+  const normalized = normalizeFoReasonLabel(input.label);
+  const requestedStatus: FoReasonStatus = input.approveImmediately ? "approved" : "pending";
+
+  await query(
+    `INSERT INTO pmam_fo_reasons
+      (type, label, normalized_label, validation_status, created_by, validated_by, validated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       label = VALUES(label),
+       created_by = VALUES(created_by),
+       validated_by = IF(validation_status = 'approved', validated_by, VALUES(validated_by)),
+       validated_at = IF(validation_status = 'approved', validated_at, VALUES(validated_at)),
+       validation_status = IF(validation_status = 'approved', 'approved', VALUES(validation_status)),
+       updated_at = CURRENT_TIMESTAMP`,
+    [
+      input.type,
+      normalized.label,
+      normalized.normalizedLabel,
+      requestedStatus,
+      input.createdBy,
+      input.approveImmediately ? input.createdBy : null,
+      input.approveImmediately ? new Date() : null,
+    ]
+  );
+
+  const rows = await query(
+    `SELECT id, validation_status
+     FROM pmam_fo_reasons
+     WHERE type = ? AND normalized_label = ?
+     LIMIT 1`,
+    [input.type, normalized.normalizedLabel]
+  );
+  return {
+    id: Number(rows[0].id),
+    status: rows[0].validation_status as FoReasonStatus,
+  };
+}
+
+export async function validateFoReason(input: {
+  id: number;
+  status: "approved" | "rejected";
+  validatedBy: number;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_fo_reasons
+     SET validation_status = ?, validated_by = ?, validated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [input.status, input.validatedBy, input.id]
   );
 }
 

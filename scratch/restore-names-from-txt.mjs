@@ -6,6 +6,7 @@ import mysql from "mysql2/promise";
 dotenv.config();
 
 const inputPath = "C:\\Users\\LEVER\\Desktop\\Nomes_260619_204939.txt";
+const shouldApply = process.argv.includes("--apply");
 
 function parseDatabaseUrl(url) {
   try {
@@ -15,7 +16,7 @@ function parseDatabaseUrl(url) {
       port: Number(parsed.port || 4000),
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
-      database: parsed.pathname.replace("/", ""),
+      database: parsed.pathname.replace(/^\//, ""),
     };
   } catch {
     return null;
@@ -33,15 +34,15 @@ function dbConfig() {
   };
 }
 
-function titleFromFullName(fullName) {
-  return fullName
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/\b([a-zà-ú])/gi, (letter) => letter.toLocaleUpperCase("pt-BR"));
+function normalizeSourceName(value) {
+  // The source file already has the authoritative spelling and capitalization.
+  // NFC only unifies composed accents; it does not alter names or particles.
+  return value.trim().replace(/\s+/g, " ").normalize("NFC");
 }
 
 function parseStudents(text) {
   const students = [];
+  const seen = new Set();
   let companhia = null;
   let peloton = null;
 
@@ -56,18 +57,18 @@ function parseStudents(text) {
       continue;
     }
 
-    const entry = line.match(/^(\d{4})\s+[–-]\s+(.+)$/);
+    const entry = line.match(/^(\d{4})\s+[\u2013-]\s+(.+)$/u);
     if (!entry || !companhia || !peloton) continue;
 
     const numerica = entry[1];
-    const nomeCompleto = titleFromFullName(entry[2]);
-    const parts = nomeCompleto.trim().split(/\s+/);
-    const nomeGuerra = parts.length > 1 ? parts[parts.length - 1] : nomeCompleto;
+    if (seen.has(numerica)) {
+      throw new Error(`Numérica duplicada no arquivo: ${numerica}`);
+    }
+    seen.add(numerica);
 
     students.push({
       numerica,
-      nomeGuerra,
-      nomeCompleto,
+      nomeCompleto: normalizeSourceName(entry[2]),
       companhia,
       peloton,
     });
@@ -79,52 +80,117 @@ function parseStudents(text) {
 async function main() {
   const absolutePath = path.resolve(inputPath);
   if (!fs.existsSync(absolutePath)) {
-    throw new Error(`Arquivo de origem não encontrado em: ${absolutePath}`);
+    throw new Error(`Arquivo de origem não encontrado: ${absolutePath}`);
   }
 
-  console.log(`Lendo arquivo: ${absolutePath}`);
-  const text = fs.readFileSync(absolutePath, "utf8");
-  const students = parseStudents(text);
-
-  console.log(`Registros parseados no arquivo: ${students.length}`);
+  const students = parseStudents(fs.readFileSync(absolutePath, "utf8"));
+  if (students.length !== 492) {
+    throw new Error(`Esperados 492 alunos no arquivo, encontrados ${students.length}.`);
+  }
 
   const cfg = dbConfig();
-  console.log(`Conectando ao banco de dados: ${cfg.database} em ${cfg.host}...`);
+  if (!cfg.host || !cfg.user || !cfg.password || !cfg.database) {
+    throw new Error("Configuração do banco ausente. Verifique o arquivo .env.");
+  }
+
   const connection = await mysql.createConnection({
     ...cfg,
     ssl: { rejectUnauthorized: true },
+    connectTimeout: 15000,
   });
 
   try {
-    await connection.beginTransaction();
-    let updatedCount = 0;
-
-    for (const student of students) {
-      // 1. Atualizar o nome_completo e nome_guerra na tabela pmam_students
-      const [result] = await connection.execute(
-        "UPDATE pmam_students SET nome_completo = ?, nome_guerra = ? WHERE numerica = ?",
-        [student.nomeCompleto, student.nomeGuerra, student.numerica]
-      );
-
-      if (result.affectedRows > 0) {
-        // 2. Atualizar o name correspondente na tabela pmam_users
-        await connection.execute(
-          "UPDATE pmam_users SET name = ? WHERE email = ?",
-          [student.nomeGuerra, `${student.numerica}@pmam.com`]
-        );
-        updatedCount++;
+    const [currentRows] = await connection.execute(
+      "SELECT id, numerica, nome_guerra, nome_completo FROM pmam_students"
+    );
+    const currentByNumerica = new Map(currentRows.map(row => [String(row.numerica), row]));
+    const missing = students.filter(student => !currentByNumerica.has(student.numerica));
+    const changes = students.flatMap(student => {
+      const current = currentByNumerica.get(student.numerica);
+      if (!current) return [];
+      if (
+        current.nome_guerra === student.nomeCompleto &&
+        current.nome_completo === student.nomeCompleto
+      ) {
+        return [];
       }
+      return [{ student, current }];
+    });
+
+    console.log(`Fonte validada: ${students.length} alunos.`);
+    console.log(`Encontrados na base: ${students.length - missing.length}.`);
+    console.log(`Nomes que precisam de correção: ${changes.length}.`);
+    if (missing.length) {
+      console.log(`Numéricas ausentes na base: ${missing.map(item => item.numerica).join(", ")}`);
     }
 
-    await connection.commit();
-    console.log(`\nSucesso! Nome completo restaurado e nome de guerra corrigido para ${updatedCount} alunos.`);
+    for (const { student, current } of changes.slice(0, 20)) {
+      console.log(
+        `${student.numerica}: "${current.nome_guerra}" / "${current.nome_completo ?? ""}" -> "${student.nomeCompleto}"`
+      );
+    }
+    if (changes.length > 20) {
+      console.log(`... e mais ${changes.length - 20} correções.`);
+    }
 
-  } catch (error) {
-    await connection.rollback();
-    console.error("Erro na transação:", error);
+    if (!shouldApply) {
+      console.log("Simulação concluída. Use --apply para gravar as correções.");
+      return;
+    }
+
+    const backupPath = path.join(
+      process.env.TEMP || "C:\\tmp",
+      `pmam-student-names-before-restore-${Date.now()}.json`
+    );
+    fs.writeFileSync(backupPath, JSON.stringify(currentRows, null, 2), "utf8");
+    console.log(`Cópia dos nomes atuais criada em: ${backupPath}`);
+
+    await connection.beginTransaction();
+    try {
+      const batchSize = 100;
+      for (let offset = 0; offset < changes.length; offset += batchSize) {
+        const batch = changes.slice(offset, offset + batchSize);
+        const cases = batch.map(() => "WHEN ? THEN ?").join(" ");
+        const numericas = batch.map(({ student }) => student.numerica);
+        const caseParams = batch.flatMap(({ student }) => [student.numerica, student.nomeCompleto]);
+        const wherePlaceholders = batch.map(() => "?").join(", ");
+
+        await connection.execute(
+          `UPDATE pmam_students
+             SET nome_guerra = CASE numerica ${cases} ELSE nome_guerra END,
+                 nome_completo = CASE numerica ${cases} ELSE nome_completo END,
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE numerica IN (${wherePlaceholders})`,
+          [...caseParams, ...caseParams, ...numericas]
+        );
+        console.log(`Lote ${Math.floor(offset / batchSize) + 1}: ${batch.length} alunos atualizados.`);
+      }
+
+      await connection.execute(`
+        UPDATE pmam_users u
+        INNER JOIN pmam_students s ON s.id = u.student_id
+        SET u.name = s.nome_guerra, u.updated_at = CURRENT_TIMESTAMP
+        WHERE u.name <> s.nome_guerra OR u.name IS NULL
+      `);
+      await connection.execute(`
+        UPDATE pmam_users u
+        INNER JOIN pmam_students s ON u.email = CONCAT(s.numerica, '@pmam.com')
+        SET u.name = s.nome_guerra, u.student_id = COALESCE(u.student_id, s.id), u.updated_at = CURRENT_TIMESTAMP
+        WHERE u.name <> s.nome_guerra OR u.name IS NULL OR u.student_id IS NULL
+      `);
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+
+    console.log(`Correção concluída: ${changes.length} registros atualizados.`);
   } finally {
     await connection.end();
   }
 }
 
-main().catch(console.error);
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

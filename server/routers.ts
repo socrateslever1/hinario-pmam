@@ -2035,6 +2035,43 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    foReasons: scaleManagerProcedure.query(async () => {
+      return serviceScaleDb.listFoReasons("approved");
+    }),
+
+    pendingFoReasons: masterProcedure.query(async () => {
+      return serviceScaleDb.listFoReasons("pending");
+    }),
+
+    suggestFoReason: scaleManagerProcedure.input(
+      z.object({
+        type: z.enum(["positive", "negative"]),
+        label: z.string().trim().min(3).max(500),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      return serviceScaleDb.suggestFoReason({
+        type: input.type,
+        label: input.label,
+        createdBy: ctx.user.id,
+        approveImmediately: general,
+      });
+    }),
+
+    validateFoReason: masterProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        status: z.enum(["approved", "rejected"]),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await serviceScaleDb.validateFoReason({
+        id: input.id,
+        status: input.status,
+        validatedBy: ctx.user.id,
+      });
+      return { success: true };
+    }),
+
     createStudentHighlight: masterProcedure.input(
       z.object({
         studentId: z.number().int(),
