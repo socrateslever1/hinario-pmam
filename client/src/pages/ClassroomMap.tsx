@@ -554,25 +554,30 @@ export default function ClassroomMap() {
         </div>
 
         {isOccupied ? (
-          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5">
+          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 relative">
+            {cond === "falta" && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <X className="h-8 w-8 text-red-500 font-bold stroke-[3]" />
+              </div>
+            )}
             {occupant.fotoUrl ? (
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
                 className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
-                  }`}
+                  } ${cond === "falta" ? "opacity-30" : ""}`}
               />
             ) : (
               <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
-                }`}>
+                } ${cond === "falta" ? "opacity-30" : ""}`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
             )}
             <span className={`w-full truncate px-0.5 text-[8px] font-bold ${isAbsent ? "text-red-500 dark:text-red-400" : "text-[#1a3a2a] dark:text-green-400"
-              }`}>
+              } ${cond === "falta" ? "opacity-30" : ""}`}>
               {occupant.nomeGuerra}
             </span>
-            <span className="text-[7px] text-muted-foreground">
+            <span className={`text-[7px] text-muted-foreground ${cond === "falta" ? "opacity-30" : ""}`}>
               {occupant.numerica} {isAbsent && `[${conditionShorts[cond]}]`}
             </span>
           </div>
@@ -1168,6 +1173,22 @@ export default function ClassroomMap() {
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Resumo do Peculio do Pelotão */}
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center">
+                      <div className="text-2xl font-black text-red-500">0</div>
+                      <div className="text-xs font-bold text-muted-foreground mt-1">Faltas</div>
+                    </div>
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-center">
+                      <div className="text-2xl font-black text-amber-500">0</div>
+                      <div className="text-xs font-bold text-muted-foreground mt-1">Atrasos</div>
+                    </div>
+                    <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-center">
+                      <div className="text-2xl font-black text-purple-500">0</div>
+                      <div className="text-xs font-bold text-muted-foreground mt-1">Alterações</div>
+                    </div>
                   </div>
 
                   {/* Capacity control (Xerife only) */}
