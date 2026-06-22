@@ -159,8 +159,7 @@ export function PeculioTab({
     const query = searchQuery.toLowerCase();
     return students.filter((student) =>
       student.nomeGuerra.toLowerCase().includes(query) ||
-      student.numerica.includes(query) ||
-      (student.nomeCompleto && student.nomeCompleto.toLowerCase().includes(query))
+      student.numerica.includes(query)
     );
   }, [students, searchQuery]);
   const lock = peculioQuery.data?.lock;

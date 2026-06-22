@@ -340,7 +340,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   const updateMut = trpc.hymns.update.useMutation({
     onSuccess: async () => {
       clearStoredDraft();
-      toast.success("Sincronizacao salva com sucesso.");
+      toast.success("Sincronização salva com sucesso.");
       await Promise.all([
         utils.hymns.list.invalidate(),
         utils.hymns.listAll.invalidate(),
@@ -501,7 +501,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
     const nextSyncData = buildAutomaticLyricsSyncLines(hymn.title, hymn.lyrics, duration);
 
     if (!hasLyricsSyncData(nextSyncData)) {
-      toast.error("Nao foi possivel gerar uma sincronizacao automatica para este hino.");
+      toast.error("Não foi possível gerar uma sincronização automática para este hino.");
       return;
     }
 
@@ -515,7 +515,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       seekTo(firstTimedLine.time);
     }
 
-    toast.success("Sincronizacao automatica gerada. Revise os tempos e finalize no rodape quando estiver tudo certo.");
+    toast.success("Sincronização automática gerada. Revise os tempos e finalize no rodapé quando estiver tudo certo.");
   };
 
   const handleUndo = () => {
@@ -536,7 +536,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   };
 
   const resetSync = () => {
-    if (!confirm("Deseja resetar toda a sincronizacao?")) {
+    if (!confirm("Deseja resetar toda a sincronização?")) {
       return;
     }
 
@@ -854,7 +854,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600 shadow-inner sm:h-20 sm:w-20">
               <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12" />
             </div>
-            <h2 className="text-xl font-black text-[#1a3a2a] sm:text-2xl">Sincronizacao finalizada</h2>
+            <h2 className="text-xl font-black text-[#1a3a2a] sm:text-2xl">Sincronização finalizada</h2>
             <p className="text-sm text-slate-400">Revise as marcacoes abaixo e use o salvar no final do editor.</p>
           </div>
         )}
@@ -872,7 +872,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             {hasLocalDraft && <span className="text-[#1a3a2a]">Rascunho salvo {draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}</span>}
           </div>
           <p className="text-sm text-slate-500">
-            O rascunho local ja fica salvo automaticamente. Use este botao so quando quiser publicar a sincronizacao oficial do hino.
+            O rascunho local já fica salvo automaticamente. Use este botão só quando quiser publicar a sincronização oficial do hino.
           </p>
         </div>
 
@@ -887,7 +887,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             onClick={handleSave}
             disabled={updateMut.isPending || !hasLyricsSyncData(syncData)}
           >
-            {updateMut.isPending ? "Salvando..." : "Salvar sincronizacao"}
+            {updateMut.isPending ? "Salvando..." : "Salvar sincronização"}
           </Button>
         </div>
       </CardContent>
