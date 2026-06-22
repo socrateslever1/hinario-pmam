@@ -29,7 +29,7 @@ import {
   CalendarDays, FileText, History, ExternalLink, Star,
   Save, Trash2, Check, UserCog, Users, ClipboardList,
   Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus,
-  Search, BadgeCheck
+  Search, BadgeCheck, Clock, Video
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
@@ -432,8 +432,9 @@ export default function ClassroomMap() {
   });
 
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Anotação registrada");
+      await pendingObservationsQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
   });
@@ -1331,15 +1332,15 @@ export default function ClassroomMap() {
                     {/* other active roles */}
                     <div className="space-y-2 pt-2 border-t text-xs">
                       <div className="flex justify-between items-center py-1">
-                        <span className="text-muted-foreground font-medium">Homem-Hora:</span>
+                        <span className="text-muted-foreground font-medium flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> HH Homem-Hora:</span>
                         <span className="font-bold text-foreground">{activeRoles?.homemHoraName || "Não definido"}</span>
                       </div>
                       <div className="flex justify-between items-center py-1">
-                        <span className="text-muted-foreground font-medium">Aluno de Ligação:</span>
+                        <span className="text-muted-foreground font-medium flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Aluno de Ligação:</span>
                         <span className="font-bold text-foreground">{activeRoles?.alunoLigacaoName || "Não definido"}</span>
                       </div>
                       <div className="flex justify-between items-center py-1">
-                        <span className="text-muted-foreground font-medium">P5 (Filmmaker):</span>
+                        <span className="text-muted-foreground font-medium flex items-center gap-2"><Video className="h-3.5 w-3.5" /> P5 / Mídia:</span>
                         <span className="font-bold text-foreground">{activeRoles?.p5FilmmakerName || "Não definido"}</span>
                       </div>
                     </div>

@@ -289,7 +289,21 @@ export default function PlaylistPlayer({
           ? "Video online"
           : "Audio online";
 
+  // Armazenar tempo atual antes de mudar de variante
+  const timeBeforeVariantChange = useRef<number>(0);
+
   useEffect(() => {
+    // Quando a URL de mídia muda, restaurar o tempo se for a mesma música
+    if (playerRef.current && Number.isFinite(timeBeforeVariantChange.current)) {
+      // Usar setTimeout para garantir que o player esteja pronto
+      const timer = setTimeout(() => {
+        if (playerRef.current) {
+          playerRef.current.currentTime = timeBeforeVariantChange.current;
+          setCurrentTime(timeBeforeVariantChange.current);
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
     setCurrentTime(0);
     setDuration(0);
   }, [currentMediaUrl]);
@@ -416,7 +430,13 @@ export default function PlaylistPlayer({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setAudioVariant(variant)}
+            onClick={() => {
+              // Salvar tempo atual antes de mudar a variante
+              if (playerRef.current && Number.isFinite(playerRef.current.currentTime)) {
+                timeBeforeVariantChange.current = playerRef.current.currentTime;
+              }
+              setAudioVariant(variant);
+            }}
             className={`h-10 rounded-md px-3 text-[11px] font-black uppercase tracking-[0.12em] ${
               isActive
                 ? "bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90"

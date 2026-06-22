@@ -11,6 +11,7 @@ import multer from "multer";
 import { storagePut } from "../storage";
 import crypto from "crypto";
 import { getVersionInfo } from "./version";
+import cors from "cors";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,6 +35,15 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer(): Promise<{ app: express.Application; server: any; port: number }> {
   const app = express();
   const server = createServer(app);
+  
+  // Configure CORS to allow credentials
+  app.use(cors({
+    origin: true, // Allow all origins in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-student-id', 'x-student-token'],
+  }));
+  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
