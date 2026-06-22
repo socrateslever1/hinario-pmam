@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -29,6 +29,7 @@ import { SettingsTab } from "@/components/admin/SettingsTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
 import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
+import { CfapPersonnelTab } from "@/components/admin/CfapPersonnelTab";
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -231,6 +232,7 @@ export default function Admin() {
                   <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
+                  <TabsTrigger value="cfap_personnel" className="gap-2"><Building2 className="h-4 w-4" /> Efetivo CFAP</TabsTrigger>
                 </>
               )}
               {canManagePlatoonContent && (
@@ -526,6 +528,12 @@ export default function Admin() {
             {canManageGlobalContent && (
               <TabsContent value="grades">
                 <GradeAdminTab />
+              </TabsContent>
+            )}
+
+            {canManageGlobalContent && (
+              <TabsContent value="cfap_personnel">
+                <CfapPersonnelTab />
               </TabsContent>
             )}
 

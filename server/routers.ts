@@ -16,6 +16,7 @@ import * as gradeDb from "./gradeDb";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
+import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -24,6 +25,21 @@ const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage()
 
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
+});
+
+const cfapPersonnelInputSchema = z.object({
+  category: z.enum(["comando", "administracao", "corpo_alunos", "apoio"]),
+  rank: z.string().trim().min(2).max(60),
+  fullName: z.string().trim().min(3).max(255),
+  ci: z.string().trim().max(40).nullable().optional(),
+  permanentFunction: z.string().trim().min(2).max(255),
+  section: z.string().trim().max(120).nullable().optional(),
+  companhia: z.number().int().min(1).max(5).nullable().optional(),
+  peloton: z.number().int().min(1).max(2).nullable().optional(),
+  isActive: z.boolean().optional(),
+  sourceDocument: z.string().trim().max(255).nullable().optional(),
+  sourceDate: z.string().trim().max(10).nullable().optional(),
+  notes: z.string().trim().max(4000).nullable().optional(),
 });
 
 
@@ -1371,6 +1387,38 @@ export const appRouter = router({
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
       }
       return gradeDb.getGradeRanking({ companhia, peloton });
+    }),
+  }),
+
+  cfapPersonnel: router({
+    summary: masterProcedure.query(async () => {
+      return cfapPersonnelDb.getCfapPersonnelSummary();
+    }),
+
+    list: masterProcedure.input(
+      z.object({
+        includeInactive: z.boolean().optional(),
+        search: z.string().trim().max(120).optional(),
+      }).optional()
+    ).query(async ({ input }) => {
+      return cfapPersonnelDb.listCfapPersonnel(input);
+    }),
+
+    create: masterProcedure.input(cfapPersonnelInputSchema).mutation(async ({ ctx, input }) => {
+      const id = await cfapPersonnelDb.createCfapPersonnel(input, ctx.user.id);
+      return { success: true, id };
+    }),
+
+    update: masterProcedure.input(
+      cfapPersonnelInputSchema.extend({ id: z.number().int().positive() })
+    ).mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await cfapPersonnelDb.updateCfapPersonnel(id, data, ctx.user.id);
+      return { success: true };
+    }),
+
+    seedInitial: masterProcedure.mutation(async ({ ctx }) => {
+      return cfapPersonnelDb.seedInitialCfapPersonnel(ctx.user.id);
     }),
   }),
 
