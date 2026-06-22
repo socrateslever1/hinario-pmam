@@ -164,6 +164,7 @@ export function PeculioTab({
   }, [students, searchQuery]);
   const lock = peculioQuery.data?.lock;
   const isLocked = Boolean(lock?.isLocked);
+  const isNotOpened = Boolean(lock?.notOpenedYet);
   const canRelease = Boolean(lock?.canRelease) && isAdmin;
   const canEdit = (lock?.canEdit !== false) && isAdmin;
 
@@ -548,11 +549,13 @@ export function PeculioTab({
       </Card>
 
       {lock && (
-        <Card className={`print:hidden border ${isLocked ? "border-red-500/30 bg-red-500/5" : lock.isReleased ? "border-amber-500/30 bg-amber-500/5" : "border-green-600/20 bg-green-600/5"}`}>
+        <Card className={`print:hidden border ${lock.closedAt ? "border-[#c4a84b]/30 bg-[#c4a84b]/5" : isNotOpened ? "border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/40" : isLocked ? "border-red-500/30 bg-red-500/5" : lock.isReleased ? "border-amber-500/30 bg-amber-500/5" : "border-green-600/20 bg-green-600/5"}`}>
           <CardContent className="flex min-w-0 flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               {lock.closedAt ? (
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#c4a84b]" />
+              ) : isNotOpened ? (
+                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400 dark:text-zinc-500" />
               ) : isLocked ? (
                 <Lock className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
               ) : (
@@ -560,10 +563,21 @@ export function PeculioTab({
               )}
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground">
-                  {lock.closedAt ? "Pecúlio fechado e autenticado" : isLocked ? "Pecúlio fechado para edição" : lock.isReleased ? "Pecúlio liberado temporariamente" : "Pecúlio aberto para edição"}
+                  {lock.closedAt 
+                    ? "Pecúlio fechado e autenticado" 
+                    : isNotOpened 
+                      ? "Pecúlio não aberto para preenchimento (Abertura 1h antes do fechamento)" 
+                      : isLocked 
+                        ? "Pecúlio fechado para edição" 
+                        : lock.isReleased 
+                          ? "Pecúlio liberado temporariamente" 
+                          : "Pecúlio aberto para edição"}
                 </p>
                 <p className="break-words text-xs leading-relaxed text-muted-foreground">
-                  Entrada: {lock.entryTime || entryTime} | Fechamento automático: {new Date(lock.lockedAt).toLocaleString("pt-BR")}{lock.unlockedUntil ? ` | Liberado até: ${new Date(lock.unlockedUntil).toLocaleString("pt-BR")}` : ""}
+                  Entrada: {lock.entryTime || entryTime} 
+                  {lock.openedAt && ` | Abertura: ${new Date(lock.openedAt).toLocaleString("pt-BR")}`} 
+                  {` | Fechamento automático: ${new Date(lock.lockedAt).toLocaleString("pt-BR")}`}
+                  {lock.unlockedUntil ? ` | Liberado até: ${new Date(lock.unlockedUntil).toLocaleString("pt-BR")}` : ""}
                 </p>
                 {lock.lateArrivalUntil && (
                   <p className="mt-1 text-xs text-muted-foreground">

@@ -30,6 +30,7 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
 import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
 import { CfapPersonnelTab } from "@/components/admin/CfapPersonnelTab";
+import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -233,6 +234,7 @@ export default function Admin() {
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                   <TabsTrigger value="cfap_personnel" className="gap-2"><Building2 className="h-4 w-4" /> Efetivo CFAP</TabsTrigger>
+                  <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>
               )}
               {canManagePlatoonContent && (
@@ -532,9 +534,14 @@ export default function Admin() {
             )}
 
             {canManageGlobalContent && (
-              <TabsContent value="cfap_personnel">
-                <CfapPersonnelTab />
-              </TabsContent>
+              <>
+                <TabsContent value="cfap_personnel">
+                  <CfapPersonnelTab />
+                </TabsContent>
+                <TabsContent value="documents">
+                  <OfficialDocumentsTab />
+                </TabsContent>
+              </>
             )}
 
             {/* SERVICE SCALE TAB */}

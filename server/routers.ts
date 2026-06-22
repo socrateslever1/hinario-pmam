@@ -17,6 +17,7 @@ import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
+import * as officialDocumentsDb from "./officialDocumentsDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -41,6 +42,12 @@ const cfapPersonnelInputSchema = z.object({
   sourceDate: z.string().trim().max(10).nullable().optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
 });
+
+const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+  "odt", "ods", "txt", "png", "jpg", "jpeg",
+]);
+const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 
 
 async function requireStudentSession(studentId: number, sessionToken: string) {
@@ -111,31 +118,38 @@ async function getPeculioLockState(
 ) {
   const now = new Date();
   const entryTime = report?.entryTime || "05:00";
+  const openedAt = peculioDb.getPeculioOpenedAt(date, entryTime);
   const lockedAt = peculioDb.getPeculioLockedAt(date, entryTime);
   const lateArrivalUntil = peculioDb.getPeculioLateArrivalUntil(date, entryTime);
   const unlock = await peculioDb.getPeculioUnlock(companhia, peloton, date);
   const unlockedUntil = unlock?.unlockedUntil ? new Date(unlock.unlockedUntil) : null;
   const isReleased = Boolean(unlockedUntil && unlockedUntil.getTime() > now.getTime());
-  const lockedByTime = now.getTime() >= lockedAt.getTime();
+  
+  const notOpenedYet = now.getTime() < openedAt.getTime();
+  const alreadyPassed = now.getTime() >= lockedAt.getTime();
+  const lockedByTime = alreadyPassed || notOpenedYet;
+
   const closedAt = report?.closedAt ? new Date(report.closedAt) : null;
   const manuallyClosed = Boolean(closedAt);
   const general = await isXerifeGeral(user);
 
   return {
     entryTime,
+    openedAt: openedAt.toISOString(),
     lockedAt: lockedAt.toISOString(),
     lateArrivalUntil: lateArrivalUntil.toISOString(),
     closedAt: closedAt?.toISOString() ?? null,
     closedBy: report?.closedBy ?? null,
     closedByName: report?.closedByName ?? null,
     isManuallyClosed: manuallyClosed,
+    notOpenedYet,
     isLocked: (lockedByTime || manuallyClosed) && !isReleased && !general,
     isReleased,
     unlockedUntil: unlockedUntil?.toISOString() ?? null,
     releaseReason: unlock?.reason ?? null,
     canRelease: general,
     canEdit: (!lockedByTime && !manuallyClosed) || isReleased || general,
-    canRegisterArrival: (lockedByTime || manuallyClosed) && !isReleased && !general,
+    canRegisterArrival: (alreadyPassed || manuallyClosed) && !isReleased && !general,
   };
 }
 
@@ -1387,6 +1401,70 @@ export const appRouter = router({
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
       }
       return gradeDb.getGradeRanking({ companhia, peloton });
+    }),
+  }),
+
+  officialDocuments: router({
+    list: publicProcedure.query(async () => {
+      return officialDocumentsDb.listOfficialDocuments(true);
+    }),
+
+    listAll: masterProcedure.query(async () => {
+      return officialDocumentsDb.listOfficialDocuments(false);
+    }),
+
+    upload: masterProcedure.input(z.object({
+      title: z.string().trim().min(3).max(180),
+      description: z.string().trim().max(500).nullable().optional(),
+      fileName: z.string().trim().min(1).max(255),
+      mimeType: z.string().trim().min(1).max(120),
+      fileBase64: z.string().min(1).max(21_000_000),
+    })).mutation(async ({ ctx, input }) => {
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "";
+      if (!OFFICIAL_DOCUMENT_EXTENSIONS.has(extension)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Formato não permitido. Envie PDF, documento Office, OpenDocument, texto ou imagem.",
+        });
+      }
+
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      if (buffer.length === 0 || buffer.length > MAX_OFFICIAL_DOCUMENT_SIZE) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "O arquivo deve ter no máximo 15 MB.",
+        });
+      }
+
+      const safeFileName = input.fileName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `documento.${extension}`;
+      const fileKey = `official-documents/${Date.now()}-${nanoid(8)}-${safeFileName}`;
+      const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      const id = await officialDocumentsDb.createOfficialDocument({
+        title: input.title,
+        description: input.description || null,
+        fileName: input.fileName,
+        fileUrl: url,
+        fileKey: key,
+        mimeType: input.mimeType,
+        fileSize: buffer.length,
+        uploadedBy: ctx.user.id,
+      });
+
+      return { success: true, id };
+    }),
+
+    delete: masterProcedure.input(
+      z.object({ id: z.number().int().positive() }),
+    ).mutation(async ({ input }) => {
+      const deleted = await officialDocumentsDb.deleteOfficialDocument(input.id);
+      if (!deleted) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Documento não encontrado" });
+      }
+      return { success: true };
     }),
   }),
 

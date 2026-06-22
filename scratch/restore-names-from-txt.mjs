@@ -31,7 +31,7 @@ function dbConfig() {
     user: process.env.TIDB_USER || fromUrl?.user,
     password: process.env.TIDB_PASSWORD || fromUrl?.password,
     database: process.env.TIDB_DATABASE || fromUrl?.database,
-  };
+  }; l
 }
 
 function normalizeSourceName(value) {

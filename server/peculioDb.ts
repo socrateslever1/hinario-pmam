@@ -142,6 +142,12 @@ export function getPeculioLockedAt(date: string, entryTime?: string | null): Dat
   return close;
 }
 
+export function getPeculioOpenedAt(date: string, entryTime?: string | null): Date {
+  const open = getPeculioLockedAt(date, entryTime);
+  open.setHours(open.getHours() - 1);
+  return open;
+}
+
 export function getPeculioEntryAt(date: string, entryTime?: string | null): Date {
   return getManausDateTime(date, normalizeEntryTime(entryTime));
 }

@@ -25,9 +25,8 @@ import { toast } from "sonner";
 import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
-const BRASAO_URL = "/documents/images/pmam-brasao.png";
-const PMAM_HEADER_URL = "/documents/images/pmam-brasao.png";
-const CFAP_HEADER_URL = "/documents/images/cfap-brasao.jpg";
+const PMAM_HEADER_URL = "/logo/IMG_7728.PNG";
+const CFAP_HEADER_URL = "/documents/images/cfap-brasao.png";
 
 type DocType = "parte" | "requerimento" | "defesa" | "guia";
 
@@ -225,19 +224,28 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
 
   return (
     <div
-      className="official-document-sheet relative flex w-full flex-col pb-[16mm] text-[12px] leading-[1.45] [color-scheme:light]"
-      style={{ height: "257mm", minHeight: "257mm" }}
+      className="official-document-sheet relative flex h-full min-h-0 w-full flex-col text-[12px] leading-[1.45] [color-scheme:light]"
     >
-      <header className="relative mb-8 min-h-[31mm] text-center font-serif">
-        <img src={PMAM_HEADER_URL} alt="Brasão PMAM" className="absolute left-0 top-0 h-[24mm] w-[24mm] object-contain" />
+      <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
+        <img
+          src={PMAM_HEADER_URL}
+          alt="Brasão PMAM"
+          className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
+          style={{ imageRendering: "-webkit-optimize-contrast" }}
+        />
         <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
           <p>POLÍCIA MILITAR DO AMAZONAS</p>
           <p>DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</p>
           <p>CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</p>
           <p className="text-[24px] font-bold leading-none">CFAP</p>
         </div>
-        <img src={CFAP_HEADER_URL} alt="Brasão CFAP" className="absolute right-0 top-0 h-[23mm] w-[27mm] object-contain" />
-      </header>
+        <img
+          src={CFAP_HEADER_URL}
+          alt="Brasão CFAP"
+          className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
+          style={{ imageRendering: "-webkit-optimize-contrast" }}
+        />
+      </div>
 
       <section className="grid grid-cols-2 gap-8">
         <p>Parte S/Nº/2026</p>
@@ -261,17 +269,17 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
         <p className="mt-10 indent-[15mm]">{fecho}</p>
       </main>
 
-      <section className="mb-8 flex flex-col items-center text-center">
-        <div className="mb-2 h-px w-[80mm] bg-black" />
+      <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center">
+        <div className="mb-2 w-[80mm] border-t border-black" />
         <p className="font-bold uppercase">{remetente}</p>
         <p>Solicitante</p>
       </section>
 
-      <footer className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
+      <div className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
         <p className="font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP</p>
         <p>Rua Benjamin Constant, 2150 - Petrópolis, Manaus - AM, CEP: 69063-010</p>
         <p>cfap@pm.am.gov.br</p>
-      </footer>
+      </div>
     </div>
   );
 }
@@ -293,6 +301,7 @@ export default function Documents() {
     { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
     { enabled: !!session }
   );
+  const officialDocumentsQuery = trpc.officialDocuments.list.useQuery();
 
   // Carregar dados salvos do localStorage ou mesclar com o perfil oficial
   useEffect(() => {
@@ -412,75 +421,42 @@ window.print();
               </CardContent>
             </Card>
 
-            {/* Downloads Section */}
-            <Card className="border-border/50 bg-white text-foreground shadow-md">
-              <CardContent className="p-6 flex flex-col gap-4">
-                <div className="flex items-center gap-2 border-b pb-3">
-                  <Download className="h-5 w-5 text-[#c4a84b]" />
-                  <h3 className="font-bold text-[#1a3a2a] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
-                    Downloads Oficiais (Modelos)
-                  </h3>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {/* Pecúlio Card */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-950/40 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-xs shrink-0">
-                        PDF
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-sm text-foreground truncate">Pecúlio CFSD 2026</span>
-                        <span className="text-[10px] text-muted-foreground truncate">Regulamento 4ª Cia 1º Pel</span>
-                      </div>
-                    </div>
-                    <a href="/documents/peculio_cfsd_2026.pdf" download="PECULIO_CFSD_2026_4CIA_1PEL.pdf" className="shrink-0">
-                      <Button size="sm" variant="outline" className="h-8 gap-1 bg-white hover:bg-muted text-foreground border-border">
-                        <Download className="h-3.5 w-3.5" />
-                        Baixar
-                      </Button>
-                    </a>
+            {officialDocumentsQuery.data && officialDocumentsQuery.data.length > 0 && (
+              <Card className="border-border/50 bg-white text-foreground shadow-md">
+                <CardContent className="flex flex-col gap-4 p-6">
+                  <div className="flex items-center gap-2 border-b pb-3">
+                    <Download className="h-5 w-5 text-[#c4a84b]" />
+                    <h3 className="text-base font-bold text-[#1a3a2a]" style={{ fontFamily: "Inter, sans-serif" }}>
+                      Documentos oficiais
+                    </h3>
                   </div>
-
-                  {/* Modelo de Parte Card */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs shrink-0">
-                        DOCX
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-sm text-foreground truncate">Modelo de Parte</span>
-                        <span className="text-[10px] text-muted-foreground truncate">Estrutura oficial editável (.docx)</span>
-                      </div>
-                    </div>
-                    <a href="/documents/modelo_de_parte.docx" download="Modelo_de_Parte.docx" className="shrink-0">
-                      <Button size="sm" variant="outline" className="h-8 gap-1 bg-white hover:bg-muted text-foreground border-border">
-                        <Download className="h-3.5 w-3.5" />
-                        Baixar
-                      </Button>
-                    </a>
+                  <div className="flex flex-col gap-2">
+                    {officialDocumentsQuery.data.map((item) => {
+                      const extension = item.fileName.split(".").pop()?.toUpperCase() || "DOC";
+                      return (
+                        <div key={item.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a]">
+                            {extension.slice(0, 4)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                            <p className="truncate text-[11px] text-muted-foreground">
+                              {item.description || item.fileName}
+                            </p>
+                          </div>
+                          <Button asChild size="sm" variant="outline" className="h-8 shrink-0 gap-1 bg-white text-foreground">
+                            <a href={item.fileUrl} target="_blank" rel="noreferrer" download={item.fileName}>
+                              <Download className="h-3.5 w-3.5" />
+                              Baixar
+                            </a>
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  {/* Matriz Curricular Card */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs shrink-0">
-                        DOCX
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-sm text-foreground truncate">Matriz Curricular CFSD</span>
-                        <span className="text-[10px] text-muted-foreground truncate">Grade de disciplinas 2025 (.docx)</span>
-                      </div>
-                    </div>
-                    <a href="/documents/matriz_curricular_cfsd2025.docx" download="Matriz_Curricular_CFSD_2025.docx" className="shrink-0">
-                      <Button size="sm" variant="outline" className="h-8 gap-1 bg-white hover:bg-muted text-foreground border-border">
-                        <Download className="h-3.5 w-3.5" />
-                        Baixar
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Inputs Editor */}
             <Card className="flex-1 border-border/50 bg-white text-foreground shadow-md">
@@ -755,12 +731,13 @@ window.print();
           <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"}`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start border border-gray-200 p-[30mm] pb-[20mm] pt-[20mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:w-[210mm] print:min-h-[297mm] print:border-none print:bg-white print:p-0 print:shadow-none"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
                 height: "297mm",
                 minHeight: "297mm",
+                boxSizing: "border-box",
               }}
             >
               {/* Estilos CSS específicos de impressão injetados */}
@@ -793,13 +770,21 @@ window.print();
                   }
                   #military-document-print {
                     width: 210mm !important;
+                    height: 297mm !important;
                     min-height: 297mm !important;
                     padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais: Esquerda 3cm, Direita 2cm, Superior 3cm, Inferior 2cm */
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
                     border: none !important;
                     box-shadow: none !important;
                     position: absolute !important;
                     left: 0 !important;
                     top: 0 !important;
+                  }
+                  #military-document-print img {
+                    image-rendering: auto !important;
+                    print-color-adjust: exact !important;
+                    -webkit-print-color-adjust: exact !important;
                   }
                 }
               `}} />
@@ -814,6 +799,7 @@ window.print();
                   src={PMAM_HEADER_URL} 
                   alt="Brasão PMAM" 
                   className="w-[18mm] h-[18mm] object-contain mb-1" 
+                  style={{ imageRendering: "-webkit-optimize-contrast" }}
                 />
                 <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
                   ESTADO DO AMAZONAS
