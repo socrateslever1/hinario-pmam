@@ -728,15 +728,15 @@ window.print();
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
-          <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} overflow-x-auto max-h-[calc(100vh-200px)] lg:max-h-none`}>
+          <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-200px)] lg:max-h-none`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none lg:scale-100 scale-75 origin-top-left lg:origin-center"
+              className="official-document-sheet flex h-auto lg:h-[297mm] lg:min-h-[297mm] w-full lg:w-[210mm] flex-col items-center justify-start overflow-visible lg:overflow-hidden border border-gray-200 pb-4 lg:pb-[20mm] pl-4 lg:pl-[30mm] pr-4 lg:pr-[20mm] pt-4 lg:pt-[30mm] font-serif text-[11px] lg:text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
-                width: "210mm",
-                height: "297mm",
-                minHeight: "297mm",
+                width: "100%",
+                height: "auto",
+                minHeight: "auto",
                 boxSizing: "border-box",
               }}
             >
