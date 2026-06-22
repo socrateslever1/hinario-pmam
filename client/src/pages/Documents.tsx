@@ -26,7 +26,7 @@ import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
 const PMAM_HEADER_URL = "/logo/IMG_7728.PNG";
-const CFAP_HEADER_URL = "/documents/images/cfap-brasao.png";
+const CFAP_HEADER_URL = "/manus-storage/cfap-brasao_808f7c9a.png";
 
 type DocType = "parte" | "requerimento" | "defesa" | "guia";
 
