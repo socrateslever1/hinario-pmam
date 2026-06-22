@@ -375,8 +375,8 @@ window.print();
       </section>
 
       {/* Main Panel */}
-      <main className="container flex-1 px-4 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
+      <main className="container flex-1 px-0 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 print:block px-4 md:px-0">
           
           {/* Form Side */}
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
@@ -728,10 +728,10 @@ window.print();
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
-          <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"}`}>
+          <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} overflow-x-auto max-h-[calc(100vh-200px)] lg:max-h-none`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none lg:scale-100 scale-75 origin-top-left lg:origin-center"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
