@@ -432,14 +432,9 @@ export default function ClassroomMap() {
   });
 
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
-<<<<<<< Updated upstream
-    onSuccess: () => {
-      toast.success("Anotação registrada");
-=======
     onSuccess: async () => {
       toast.success("Anotação registrada");
       await pendingObservationsQuery.refetch();
->>>>>>> Stashed changes
     },
     onError: (err) => toast.error(err.message),
   });
