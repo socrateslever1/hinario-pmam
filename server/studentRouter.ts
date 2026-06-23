@@ -38,22 +38,37 @@ export const studentRouter = router({
       }
 
       // Verificar se aluno já existe
-      const exists = await studentDb.studentExists(input.numerica);
-      if (exists) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Aluno com esta numérica já existe",
-        });
-      }
+      const existingStudent = await studentDb.getStudentByNumerica(input.numerica);
+      let student: any = null;
 
-      // Criar aluno
-      const student = await studentDb.createStudent(
-        input.numerica,
-        input.nomeGuerra,
-        input.senha,
-        validation.companhia,
-        validation.peloton
-      );
+      if (existingStudent) {
+        // Se aluno já existe (pré-cadastrado no mapa/efetivo), atualizamos a senha e o nome de guerra para ativar a conta
+        await studentDb.updateStudentProfile(existingStudent.id, {
+          nomeGuerra: input.nomeGuerra,
+          senha: input.senha,
+        });
+        
+        // Rotacionar token de sessão para logá-los
+        const sessionToken = await studentDb.rotateStudentSessionToken(existingStudent.id);
+        
+        student = {
+          id: existingStudent.id,
+          numerica: existingStudent.numerica,
+          nomeGuerra: input.nomeGuerra,
+          companhia: existingStudent.companhia,
+          peloton: existingStudent.peloton,
+          sessionToken,
+        };
+      } else {
+        // Criar novo aluno se não existir
+        student = await studentDb.createStudent(
+          input.numerica,
+          input.nomeGuerra,
+          input.senha,
+          validation.companhia,
+          validation.peloton
+        );
+      }
 
       if (!student) {
         throw new TRPCError({

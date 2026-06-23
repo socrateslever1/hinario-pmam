@@ -29,12 +29,13 @@ import {
   CalendarDays, FileText, History, ExternalLink, Star,
   Save, Trash2, Check, UserCog, Users, ClipboardList,
   Minus, Plus, Inbox, Send, Upload, X, Award, Pencil, UserPlus,
-  Search, BadgeCheck, Clock, Video
+  Search, BadgeCheck, Clock, Video, FileSignature
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { PeculioTab } from "@/components/admin/PeculioTab";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { ClassroomCargosTab } from "@/components/admin/ClassroomCargosTab";
+import { RenderSavedDocument } from "./Documents";
 import { toast } from "sonner";
 
 const conditionLabels: Record<string, string> = {
@@ -218,6 +219,12 @@ export default function ClassroomMap() {
     deskNumber: "",
   });
 
+  // Partes states
+  const [selectedParte, setSelectedParte] = useState<any | null>(null);
+  const [parteFilter, setParteFilter] = useState<'todos' | 'enviado' | 'aceito' | 'recusado' | 'negociacao'>('todos');
+  const [despachoText, setDespachoText] = useState("");
+  const [parteModalOpen, setParteModalOpen] = useState(false);
+
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
     if (access === undefined) {
@@ -291,6 +298,24 @@ export default function ClassroomMap() {
     { studentId: operationalStudent?.id ?? 0 },
     { enabled: Boolean(operationalStudent?.id && isAdminOrXerifeAdmin) }
   );
+
+  const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery(undefined, {
+    enabled: Boolean(isAdminOrXerifeAdmin),
+  });
+
+  const responderParteMutation = trpc.documentosParte.responderParte.useMutation({
+    onSuccess: () => {
+      toast.success("Documento despachado com sucesso!");
+      partesQuery.refetch();
+      aditamentosQuery.refetch();
+      setParteModalOpen(false);
+      setSelectedParte(null);
+      setDespachoText("");
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao despachar documento: ${err.message}`);
+    }
+  });
 
   // Sync capacity from DB
   useEffect(() => {
@@ -980,6 +1005,7 @@ export default function ClassroomMap() {
     { title: "Frequência (Pecúlio)", mobileTitle: "Frequência", desc: "Lançar e auditar faltas ou dispensas", mobileDesc: "Pecúlio diário", icon: ClipboardList, path: "/sala-de-aula/peculio", adminOnly: true },
     { title: "Funções e Cargos", mobileTitle: "Funções", desc: "Criar funções, nomear membros e tesouraria", mobileDesc: "Cargos e tesouraria", icon: Users, path: "/sala-de-aula/cargos", adminOnly: true },
     { title: "Efetivo do Pelotão", mobileTitle: "Efetivo", desc: "Ver condições e promover lideranças", mobileDesc: "Alunos e liderança", icon: Users, path: "/sala-de-aula/efetivo", adminOnly: true },
+    { title: "Partes Recebidas", mobileTitle: "Partes", desc: "Analisar e despachar partes dos discentes", mobileDesc: "Partes enviadas", icon: FileSignature, path: "/sala-de-aula/partes", adminOnly: true },
     { title: "Escalas de Limpeza", mobileTitle: "Limpeza", desc: "Visualizar e gerenciar faxina semanal", mobileDesc: "Faxina semanal", icon: CalendarDays, path: "/sala-de-aula/escala", adminOnly: false },
     { title: "Aditamentos Vigentes", mobileTitle: "Aditamentos", desc: "Acessar informativos e PDFs oficiais", mobileDesc: "PDFs oficiais", icon: FileText, path: "/sala-de-aula/aditamentos", adminOnly: false },
     { title: "Histórico de Xerifado", mobileTitle: "Histórico", desc: "Arquivo histórico de promoções", mobileDesc: "Promoções", icon: History, path: "/sala-de-aula/historico", adminOnly: false }
@@ -2186,6 +2212,146 @@ export default function ClassroomMap() {
               </Card>
             )}
 
+            {subview === "partes" && (
+              /* PARTES SUBVIEW (XERIFE ONLY) */
+              !isAdminOrXerifeAdmin ? (
+                <Card className="p-8 text-center max-w-md mx-auto">
+                  <CardContent>
+                    <p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife Geral e Administradores.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-border/50 bg-white dark:bg-zinc-900 rounded-lg">
+                  <CardContent className="p-5">
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-4">
+                      <div className="flex items-center gap-2">
+                        <FileSignature className="h-5 w-5 text-[#c4a84b]" />
+                        <div>
+                          <h2 className="text-lg font-bold text-foreground">Trâmite de Partes e Documentos</h2>
+                          <p className="text-xs text-muted-foreground">Analise as solicitações, justificativas e dispensas dos alunos</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {['todos', 'enviado', 'aceito', 'recusado', 'negociacao'].map((filter) => (
+                          <Button
+                            key={filter}
+                            variant={parteFilter === filter ? "default" : "outline"}
+                            size="sm"
+                            className={`text-xs font-semibold capitalize ${
+                              parteFilter === filter 
+                                ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" 
+                                : "text-muted-foreground hover:bg-muted"
+                            }`}
+                            onClick={() => setParteFilter(filter as any)}
+                          >
+                            {filter === 'todos' ? 'Todos' : 
+                             filter === 'enviado' ? 'Pendentes' : 
+                             filter === 'aceito' ? 'Acatados' : 
+                             filter === 'recusado' ? 'Recusados' : 'Em Ajuste'}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/30 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            <th className="p-3">Remetente</th>
+                            <th className="p-3">Pelotão</th>
+                            <th className="p-3">Tipo</th>
+                            <th className="p-3">Assunto</th>
+                            <th className="p-3">Enviado em</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {(() => {
+                            const rawDocs = partesQuery.data || [];
+                            // Filter by scope companhia & peloton if selected
+                            const scopedDocs = rawDocs.filter((doc: any) => 
+                              doc.companhia === selectedCompanhia && 
+                              doc.peloton === selectedPeloton
+                            );
+                            
+                            // Filter by status tab selection
+                            const filteredDocs = scopedDocs.filter((doc: any) => 
+                              parteFilter === 'todos' || doc.status === parteFilter
+                            );
+
+                            if (filteredDocs.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan={7} className="text-center text-muted-foreground py-8">
+                                    Nenhum documento pendente ou cadastrado para este escopo.
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return filteredDocs.map((doc: any) => {
+                              const tipoLabel = doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : 
+                                                doc.tipoDocumento === 'requerimento' ? 'Requerimento' :
+                                                doc.tipoDocumento === 'defesa' ? 'Defesa Escrita' : 'Guia de Trânsito';
+
+                              const statusBadge = 
+                                doc.status === 'enviado' ? (
+                                  <Badge className="bg-yellow-500/10 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/10">Pendente</Badge>
+                                ) : doc.status === 'aceito' ? (
+                                  <Badge className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/10">Acatado</Badge>
+                                ) : doc.status === 'recusado' ? (
+                                  <Badge className="bg-red-500/10 text-red-600 border border-red-500/30 hover:bg-red-500/10">Recusado</Badge>
+                                ) : (
+                                  <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/10">Ajustar</Badge>
+                                );
+
+                              return (
+                                <tr key={doc.id} className="hover:bg-muted/10 transition-colors">
+                                  <td className="p-3 font-bold text-foreground">
+                                    AL SD PM {doc.nomeGuerra || doc.remetente} ({doc.numerica})
+                                  </td>
+                                  <td className="p-3 text-muted-foreground text-xs">
+                                    {doc.companhia}ª Cia / {doc.peloton}º Pel
+                                  </td>
+                                  <td className="p-3 text-xs font-semibold text-foreground">
+                                    {tipoLabel}
+                                  </td>
+                                  <td className="p-3 max-w-[200px] truncate text-muted-foreground" title={doc.assunto}>
+                                    {doc.assunto}
+                                  </td>
+                                  <td className="p-3 text-xs text-muted-foreground">
+                                    {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
+                                  </td>
+                                  <td className="p-3">
+                                    {statusBadge}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="font-bold text-xs bg-white dark:bg-zinc-900"
+                                      onClick={() => {
+                                        setSelectedParte(doc);
+                                        setDespachoText(doc.observacaoXerife || "");
+                                        setParteModalOpen(true);
+                                      }}
+                                    >
+                                      {doc.status === 'enviado' ? 'Analisar' : 'Visualizar'}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            )}
+
           </div>
         )}
 
@@ -2588,6 +2754,129 @@ export default function ClassroomMap() {
               >
                 {addStudentObservation.isPending ? "Registrando..." : "Registrar Fato"}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Document view/dispatch dialog */}
+        <Dialog open={parteModalOpen} onOpenChange={(open) => !open && setParteModalOpen(false)}>
+          <DialogContent className="max-h-[95vh] overflow-y-auto border border-border bg-white text-foreground dark:bg-zinc-900 sm:max-w-[850px] p-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSignature className="h-5 w-5 text-[#c4a84b]" />
+                Análise de Documento Oficial
+              </DialogTitle>
+              <DialogDescription>
+                Visualize a formatação em folha A4 e emita o despacho administrativo correspondente.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedParte && (
+              <div className="space-y-6">
+                {/* Visual A4 Preview Container */}
+                <div className="w-full overflow-auto flex justify-center bg-zinc-100 dark:bg-zinc-800 p-2 md:p-6 rounded-lg border">
+                  <div className="bg-white p-8 shadow-md border rounded text-black shrink-0" style={{ width: "210mm", minHeight: "297mm" }}>
+                    <RenderSavedDocument doc={selectedParte} />
+                  </div>
+                </div>
+
+                {/* Dispatch form if pending ('enviado') */}
+                {selectedParte.status === 'enviado' ? (
+                  <div className="space-y-4 rounded-lg border border-[#c4a84b]/30 bg-[#c4a84b]/5 p-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="despacho-textarea" className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">
+                        Parecer / Observação do Despacho (Opcional)
+                      </Label>
+                      <textarea
+                        id="despacho-textarea"
+                        value={despachoText}
+                        onChange={(e) => setDespachoText(e.target.value)}
+                        placeholder="Ex: Deferido conforme normas regulamentares do CFAP / Solicito ajuste no relato dos fatos..."
+                        className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3a2a]"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="bg-white border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 font-bold"
+                        onClick={() => {
+                          if (confirm("Deseja realmente RECUSAR este documento?")) {
+                            responderParteMutation.mutate({
+                              id: selectedParte.id,
+                              status: 'recusado',
+                              observacaoXerife: despachoText.trim() || null
+                            });
+                          }
+                        }}
+                        disabled={responderParteMutation.isPending}
+                      >
+                        Recusar / Indeferir
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-bold"
+                        onClick={() => {
+                          if (!despachoText.trim()) {
+                            toast.error("Para devolver para negociação, explique o que precisa ser ajustado.");
+                            return;
+                          }
+                          if (confirm("Deseja enviar este documento de volta para ajuste/negociação?")) {
+                            responderParteMutation.mutate({
+                              id: selectedParte.id,
+                              status: 'negociacao',
+                              observacaoXerife: despachoText.trim()
+                            });
+                          }
+                        }}
+                        disabled={responderParteMutation.isPending}
+                      >
+                        Solicitar Negociação
+                      </Button>
+
+                      <Button
+                        type="button"
+                        className="bg-[#1a3a2a] text-white hover:bg-[#214936] font-bold"
+                        onClick={() => {
+                          if (confirm("Confirmar deferimento? Isto publicará automaticamente um aditamento para o pelotão.")) {
+                            responderParteMutation.mutate({
+                              id: selectedParte.id,
+                              status: 'aceito',
+                              observacaoXerife: despachoText.trim() || null
+                            });
+                          }
+                        }}
+                        disabled={responderParteMutation.isPending}
+                      >
+                        Acatar / Deferir
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // Read-only status block
+                  <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-2">
+                    <p className="font-bold flex items-center gap-1.5 text-foreground">
+                      Status da Análise: 
+                      {selectedParte.status === 'aceito' && <span className="text-green-600 font-black">Acatado / Deferido</span>}
+                      {selectedParte.status === 'recusado' && <span className="text-red-600 font-black">Recusado / Indeferido</span>}
+                      {selectedParte.status === 'negociacao' && <span className="text-blue-600 font-black">Solicitado Ajuste / Negociação</span>}
+                    </p>
+                    {selectedParte.observacaoXerife && (
+                      <div className="text-muted-foreground bg-muted/30 p-2.5 rounded border">
+                        <p className="font-semibold text-xs text-foreground mb-1">Observação do Despacho:</p>
+                        <p className="whitespace-pre-wrap">{selectedParte.observacaoXerife}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="border-t pt-4">
+              <Button variant="outline" onClick={() => setParteModalOpen(false)}>Fechar Visualização</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

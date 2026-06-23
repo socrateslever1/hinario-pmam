@@ -18,6 +18,7 @@ import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
+import * as documentosParteDb from "./documentosParteDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -2554,6 +2555,87 @@ export const appRouter = router({
       await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
       await serviceScaleDb.deleteTreasuryEntry(input.id);
       return { success: true };
+    }),
+  }),
+
+  documentosParte: router({
+    criarEEnviar: publicProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        sessionToken: z.string(),
+        tipoDocumento: z.string(),
+        tipoParte: z.string(),
+        remetente: z.string(),
+        destinatario: z.string(),
+        assunto: z.string(),
+        anexo: z.string().nullable(),
+        localData: z.string(),
+        conteudoJson: z.string(),
+        imagemCabecalhoEsq: z.string().nullable(),
+        imagemCabecalhoDir: z.string().nullable(),
+        assinaturaDigital: z.string().nullable(),
+      })
+    ).mutation(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      const id = await documentosParteDb.criarDocumentoParte(input);
+      return { success: true, id };
+    }),
+
+    listarMinhasPartes: publicProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        sessionToken: z.string(),
+      })
+    ).query(async ({ input }) => {
+      await requireStudentSession(input.studentId, input.sessionToken);
+      return documentosParteDb.listarDocumentosEstudante(input.studentId);
+    }),
+
+    listarPartesPendentes: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      let level = "principal";
+      let companhia: number | null = null;
+      let peloton: number | null = null;
+      
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        if (!assignment) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores ou xerifes" });
+        }
+        level = assignment.level;
+        companhia = assignment.companhia;
+        peloton = assignment.peloton;
+      }
+      
+      return documentosParteDb.listarDocumentosXerife({ level, companhia, peloton });
+    }),
+
+    responderParte: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int(),
+        status: z.enum(['aceito', 'recusado', 'negociacao']),
+        observacaoXerife: z.string().nullable(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const doc = await documentosParteDb.obterDocumentoParte(input.id);
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Documento não encontrado" });
+      }
+      
+      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+        if (!serviceScaleDb.canAccessScope(ctx.user, assignment, doc.companhia || 1, doc.peloton)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      }
+      
+      const success = await documentosParteDb.responderDocumentoParte(
+        input.id,
+        input.status,
+        input.observacaoXerife,
+        ctx.user.name || "Administrador"
+      );
+      
+      return { success };
     }),
   }),
 

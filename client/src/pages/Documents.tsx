@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,6 +40,11 @@ interface DocumentData {
   assunto: string;
   anexo: string;
   localData: string;
+  imagemCabecalhoEsq?: string | null;
+  imagemCabecalhoDir?: string | null;
+  assinaturaDigital?: string | null;
+  assinadoEm?: string | Date | null;
+  tipoParte?: string;
   
   // Específicos para Parte
   parteFatoData: string;
@@ -170,7 +177,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   }
 };
 
-function formatParteDate(localData: string) {
+export function formatParteDate(localData: string) {
   const cleaned = localData.replace(/^Manaus\s*-\s*AM,\s*/i, "").trim();
   return cleaned || new Date().toLocaleDateString("pt-BR", {
     day: "numeric",
@@ -215,7 +222,7 @@ function normalizeDocumentData(type: DocType, data: Partial<DocumentData>) {
   return normalized;
 }
 
-function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
+export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
   const remetente = docData.remetente || "AL SD PM (1111) FULANO (CI 11111)";
   const destinatario = docData.destinatario || "CAP QOPM Cmt do CAL";
   const assunto = docData.assunto || "Solicitação (FAZ)";
@@ -226,9 +233,9 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
     <div
       className="official-document-sheet relative flex h-full min-h-0 w-full flex-col text-[12px] leading-[1.45] [color-scheme:light]"
     >
-      <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
+      <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif text-black">
         <img
-          src={PMAM_HEADER_URL}
+          src={docData.imagemCabecalhoEsq || PMAM_HEADER_URL}
           alt="Brasão PMAM"
           className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
           style={{ imageRendering: "-webkit-optimize-contrast" }}
@@ -240,26 +247,26 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
           <p className="text-[24px] font-bold leading-none">CFAP</p>
         </div>
         <img
-          src={CFAP_HEADER_URL}
+          src={docData.imagemCabecalhoDir || CFAP_HEADER_URL}
           alt="Brasão CFAP"
           className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
           style={{ imageRendering: "-webkit-optimize-contrast" }}
         />
       </div>
 
-      <section className="grid grid-cols-2 gap-8">
+      <section className="grid grid-cols-2 gap-8 text-black">
         <p>Parte S/Nº/2026</p>
         <p>Quartel em Manaus-AM, {formatParteDate(docData.localData)}.</p>
       </section>
 
-      <section className="ml-auto mt-4 w-[50%] leading-[1.35]">
+      <section className="ml-auto mt-4 w-[50%] leading-[1.35] text-black">
         <p><strong>Do:</strong> {remetente}</p>
         <p><strong>Ao:</strong> {destinatario}</p>
         <p><strong>Assunto:</strong> {assunto}</p>
         <p><strong>Anexo:</strong> {docData.anexo || "___ (Se houver)"}</p>
       </section>
 
-      <main className="mt-10 flex-1 whitespace-pre-line text-justify">
+      <main className="mt-10 flex-1 whitespace-pre-line text-justify text-black">
         <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
         {relato.split(/\n\s*\n/).map((paragraph, index) => (
           <p key={index} className="mb-3 indent-[15mm]">
@@ -269,10 +276,19 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
         <p className="mt-10 indent-[15mm]">{fecho}</p>
       </main>
 
-      <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center">
+      <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center text-black relative">
         <div className="mb-2 w-[80mm] border-t border-black" />
         <p className="font-bold uppercase">{remetente}</p>
         <p>Solicitante</p>
+        {docData.assinaturaDigital && (
+          <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
+            <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5">
+              🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+            </span>
+            <span>{docData.assinaturaDigital}</span>
+            {docData.assinadoEm && <span>Data/Hora: {new Date(docData.assinadoEm).toLocaleString("pt-BR")}</span>}
+          </div>
+        )}
       </section>
 
       <div className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
@@ -282,6 +298,213 @@ function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
       </div>
     </div>
   );
+}
+
+export function RenderSavedDocument({ doc }: { doc: any }) {
+  let data: any = {};
+  try {
+    data = JSON.parse(doc.conteudoJson);
+  } catch (e) {
+    data = {};
+  }
+  
+  if (doc.tipoDocumento === 'parte') {
+    return (
+      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left">
+        <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
+          <img
+            src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL}
+            alt="Brasão PMAM"
+            className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
+          />
+          <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
+            <p>POLÍCIA MILITAR DO AMAZONAS</p>
+            <p>DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</p>
+            <p>CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</p>
+            <p className="text-[24px] font-bold leading-none">CFAP</p>
+          </div>
+          <img
+            src={doc.imagemCabecalhoDir || CFAP_HEADER_URL}
+            alt="Brasão CFAP"
+            className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
+          />
+        </div>
+
+        <section className="grid grid-cols-2 gap-8">
+          <p>Parte S/Nº/2026</p>
+          <p>Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
+        </section>
+
+        <section className="ml-auto mt-4 w-[50%] leading-[1.35]">
+          <p><strong>Do:</strong> {doc.remetente}</p>
+          <p><strong>Ao:</strong> {doc.destinatario}</p>
+          <p><strong>Assunto:</strong> {doc.assunto}</p>
+          <p><strong>Anexo:</strong> {doc.anexo || "___ (Se houver)"}</p>
+        </section>
+
+        <main className="mt-10 flex-1 whitespace-pre-line text-justify">
+          <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
+          {(data.parteRelato || "").split(/\n\s*\n/).map((paragraph: string, index: number) => (
+            <p key={index} className="mb-3 indent-[15mm]">
+              {paragraph}
+            </p>
+          ))}
+          <p className="mt-10 indent-[15mm]">{data.parteFecho || "Respeitosamente,"}</p>
+        </main>
+
+        <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
+          <div className="mb-2 w-[80mm] border-t border-black" />
+          <p className="font-bold uppercase">{doc.remetente}</p>
+          <p>Solicitante</p>
+          {doc.assinaturaDigital && (
+            <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
+              <span className="font-bold tracking-wider uppercase text-green-900">
+                🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+              </span>
+              <span>{doc.assinaturaDigital}</span>
+              {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+            </div>
+          )}
+        </section>
+
+        <div className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
+          <p className="font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP</p>
+          <p>Rua Benjamin Constant, 2150 - Petrópolis, Manaus - AM, CEP: 69063-010</p>
+          <p>cfap@pm.am.gov.br</p>
+        </div>
+      </div>
+    );
+  } else {
+    return (
+      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left">
+        <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
+          <img 
+            src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL} 
+            alt="Brasão PMAM" 
+            className="w-[18mm] h-[18mm] object-contain mb-1" 
+          />
+          <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+            ESTADO DO AMAZONAS
+          </h2>
+          <h3 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+            POLÍCIA MILITAR DO AMAZONAS
+          </h3>
+          <h4 className="text-[11px] font-bold tracking-wider uppercase m-0 leading-tight">
+            CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP
+          </h4>
+        </div>
+
+        <div className="w-full mt-8 flex flex-col items-center">
+          <span className="font-bold text-[14px] uppercase tracking-widest decoration-dotted underline underline-offset-4">
+            {doc.tipoDocumento === "requerimento" && "REQUERIMENTO ADMINISTRATIVO"}
+            {doc.tipoDocumento === "defesa" && "JUSTIFICATIVA E APRESENTAÇÃO DE DEFESA"}
+            {doc.tipoDocumento === "guia" && "SOLICITAÇÃO DE GUIA DE TRÂNSITO"}
+          </span>
+          <span className="text-[11px] text-gray-600 mt-1">
+            Cód: {doc.tipoDocumento.toUpperCase()}-CFAP-{new Date(doc.createdAt).getFullYear()}
+          </span>
+        </div>
+
+        <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[13px] leading-relaxed">
+          <div className="flex flex-col gap-1.5">
+            <div>
+              <span className="font-bold">De: </span>
+              <span className="uppercase">{doc.remetente}</span>
+            </div>
+            <div>
+              <span className="font-bold">Para: </span>
+              <span className="uppercase font-semibold">{doc.destinatario}</span>
+            </div>
+            <div>
+              <span className="font-bold">Assunto: </span>
+              <span>{doc.assunto}</span>
+            </div>
+          </div>
+
+          <div className="w-full h-[1px] bg-gray-200 my-2" />
+
+          {doc.tipoDocumento === "requerimento" && (
+            <div className="flex flex-col gap-4">
+              <p className="indent-8 leading-relaxed text-justify">
+                O requerente <span className="font-bold uppercase">{data.reqNomeCompleto || "________________________"}</span>, 
+                inscrito sob matrícula/RG <span className="font-bold">{data.reqMatricula || "___________"}</span>, 
+                atualmente discente lotado no <span className="font-bold">{data.reqPelotao || "___________"}</span>, 
+                vem mui respeitosamente, por meio deste instrumento, requerer a Vossa Senhoria o que segue:
+              </p>
+              <p className="font-bold text-center text-[13px] my-2 bg-gray-100 p-2 uppercase">
+                {data.reqSolicitacao || "NENHUMA SOLICITAÇÃO ESPECIFICADA"}
+              </p>
+              <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Fundamentação / Justificativa:</p>
+              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                {data.reqJustificativa}
+              </p>
+              <p className="indent-8 leading-relaxed text-justify">
+                Nestes termos, pede e aguarda deferimento.
+              </p>
+            </div>
+          )}
+
+          {doc.tipoDocumento === "defesa" && (
+            <div className="flex flex-col gap-4">
+              <p className="indent-8 leading-relaxed text-justify">
+                1. Em atenção à notificação de fato apontado sob registro sob número 
+                <span className="font-bold"> {data.defesaFatoRef}</span>, o discente acima qualificado apresenta tempestivamente suas alegações de defesa e justificativa de conduta, nos termos que seguem:
+              </p>
+              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                {data.defesaTexto}
+              </p>
+              <p className="indent-8 leading-relaxed text-justify">
+                2. Diante do exposto, solicita-se a análise do Colegiado Escolar ou do Comando de Companhia para acolhimento das justificativas apresentadas, visando a desconsideração ou mitigação dos pontos na Ficha de Conduta Escolar.
+              </p>
+            </div>
+          )}
+
+          {doc.tipoDocumento === "guia" && (
+            <div className="flex flex-col gap-4">
+              <p className="indent-8 leading-relaxed text-justify">
+                1. Solicito a V.S.ª a emissão de Guia de Trânsito para viagem regulamentar com destino à cidade de 
+                <span className="font-bold"> {data.guiaDestino}</span>, 
+                com afastamento previsto a iniciar no dia <span className="font-bold">{data.guiaIda}</span> 
+                e retorno previsto para o dia <span className="font-bold">{data.guiaVolta}</span>, 
+                utilizando para tanto o seguinte meio de locomoção: <span className="font-bold">{data.guiaTransporte}</span>.
+              </p>
+              <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Motivo do Deslocamento:</p>
+              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                {data.guiaMotivo}
+              </p>
+              <p className="indent-8 leading-relaxed text-justify">
+                2. Declaro estar ciente dos preceitos disciplinares e de apresentação individual do CFAP durante todo o trânsito, comprometendo-me a portar a referida Guia de Trânsito assinada durante o deslocamento.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="w-full flex flex-col items-center gap-10 mt-12">
+          <div className="w-full text-right font-medium">
+            {doc.localData || "Manaus - AM"}
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="w-[80mm] h-[1px] bg-black" />
+            <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
+              {doc.remetente}
+            </span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+              Signatário
+            </span>
+            {doc.assinaturaDigital && (
+              <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
+                <span className="font-bold tracking-wider uppercase text-green-900">
+                  🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+                </span>
+                <span>{doc.assinaturaDigital}</span>
+                {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 function formatSender(numerica: string, nomeGuerra: string, rg: string) {
@@ -294,6 +517,7 @@ export default function Documents() {
   const [docType, setDocType] = useState<DocType>("parte");
   const [docData, setDocData] = useState<DocumentData>(defaultValues.parte);
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  const [activeTab, setActiveTab] = useState("editor");
   const parteConsiderandoCount = countParteConsiderandos(docData.parteRelato);
 
   const session = getStudentSession();
@@ -302,6 +526,22 @@ export default function Documents() {
     { enabled: !!session }
   );
   const officialDocumentsQuery = trpc.officialDocuments.list.useQuery();
+
+  const minhasPartesQuery = trpc.documentosParte.listarMinhasPartes.useQuery(
+    { studentId: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
+    { enabled: !!session }
+  );
+
+  const enviarParteMutation = trpc.documentosParte.criarEEnviar.useMutation({
+    onSuccess: () => {
+      toast.success("Documento enviado via sistema com sucesso!");
+      minhasPartesQuery.refetch();
+      setActiveTab("enviados");
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao enviar documento: ${err.message}`);
+    }
+  });
 
   // Carregar dados salvos do localStorage ou mesclar com o perfil oficial
   useEffect(() => {
@@ -374,8 +614,25 @@ window.print();
         <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      {/* Main Panel */}
-      <main className="container flex-1 px-4 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col print:block">
+        <div className="bg-white border-b border-border/40 py-2 print:hidden">
+          <div className="container flex justify-center">
+            <TabsList className="grid w-full max-w-[400px] grid-cols-2 bg-[#f5f2e8]/80">
+              <TabsTrigger value="editor" className="gap-2">
+                <Edit2 className="h-4 w-4" />
+                Criar Documento
+              </TabsTrigger>
+              <TabsTrigger value="enviados" className="gap-2" disabled={!session}>
+                <ClipboardList className="h-4 w-4" />
+                Partes Enviadas
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
+
+        <TabsContent value="editor" className="flex-1 flex flex-col m-0 p-0">
+          {/* Main Panel */}
+          <main className="container flex-1 px-4 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
           
           {/* Form Side */}
@@ -725,6 +982,177 @@ window.print();
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Customization & Electronic Signature Card */}
+            <Card className="border-border/50 bg-white text-foreground shadow-md">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-1.5">
+                  <Shield className="h-4.5 w-4.5 text-[#c4a84b]" />
+                  Recursos do Sistema
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Personalize o cabeçalho, assine eletronicamente e envie via trâmite oficial.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-5">
+                {/* 1. Header Customisation */}
+                <div className="space-y-3">
+                  <span className="text-xs font-bold text-muted-foreground block">
+                    Brasões Personalizados (Opcional)
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Esquerdo (PMAM)</label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const base64 = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.readAsDataURL(file);
+                          });
+                          handleFieldChange("imagemCabecalhoEsq", base64);
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Direito (CFAP)</label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const base64 = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.readAsDataURL(file);
+                          });
+                          handleFieldChange("imagemCabecalhoDir", base64);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {(docData.imagemCabecalhoEsq || docData.imagemCabecalhoDir) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-8 font-semibold"
+                      onClick={() => {
+                        const updated = { ...docData };
+                        delete updated.imagemCabecalhoEsq;
+                        delete updated.imagemCabecalhoDir;
+                        setDocData(updated);
+                        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+                      }}
+                    >
+                      Restaurar Brasões Originais
+                    </Button>
+                  )}
+                </div>
+
+                <div className="border-t border-dashed my-3" />
+
+                {/* 2. Digital Signature */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-muted-foreground block">
+                    Assinatura Eletrônica
+                  </span>
+
+                  {docData.assinaturaDigital ? (
+                    <div className="rounded border border-green-200 bg-green-50/50 p-3 space-y-2">
+                      <p className="text-[10px] text-green-800 font-mono font-bold uppercase tracking-wider text-center">
+                        ✓ Documento Assinado Digitalmente
+                      </p>
+                      <p className="text-[9px] text-green-700 font-mono break-all text-center">
+                        {docData.assinaturaDigital}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 h-7"
+                        onClick={() => {
+                          const updated = { ...docData };
+                          delete updated.assinaturaDigital;
+                          delete updated.assinadoEm;
+                          setDocData(updated);
+                          localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+                        }}
+                      >
+                        Remover Assinatura
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-dashed text-xs font-bold text-foreground bg-white"
+                      disabled={!session}
+                      onClick={() => {
+                        if (!session) {
+                          toast.error("Você precisa estar logado para assinar.");
+                          return;
+                        }
+                        const hash = `CFAP-ASS-${session.numerica}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+                        const signedAt = new Date().toISOString();
+                        
+                        const updated = { 
+                          ...docData, 
+                          assinaturaDigital: hash,
+                          assinadoEm: signedAt
+                        };
+                        setDocData(updated);
+                        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+                        toast.success("Documento assinado com sucesso!");
+                      }}
+                    >
+                      {!session ? "Faça login para assinar" : "Assinar Digitalmente"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="border-t border-dashed my-3" />
+
+                {/* 3. Send via System */}
+                <Button
+                  className="w-full bg-[#1a3a2a] hover:bg-[#214936] text-white font-bold gap-2"
+                  disabled={!session || !docData.assinaturaDigital || enviarParteMutation.isPending}
+                  onClick={() => {
+                    if (!session) return;
+                    enviarParteMutation.mutate({
+                      studentId: session.id,
+                      sessionToken: session.sessionToken,
+                      tipoDocumento: docType,
+                      tipoParte: docType === "parte" ? docData.tipoParte || "dispensa" : docType,
+                      remetente: docData.remetente,
+                      destinatario: docData.destinatario,
+                      assunto: docData.assunto,
+                      anexo: docData.anexo || null,
+                      localData: docData.localData,
+                      conteudoJson: JSON.stringify(docData),
+                      imagemCabecalhoEsq: docData.imagemCabecalhoEsq || null,
+                      imagemCabecalhoDir: docData.imagemCabecalhoDir || null,
+                      assinaturaDigital: docData.assinaturaDigital || null,
+                    });
+                  }}
+                >
+                  {enviarParteMutation.isPending ? "Enviando..." : "Enviar via Sistema"}
+                </Button>
+                {!docData.assinaturaDigital && (
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    * Assine digitalmente antes de enviar via sistema.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
@@ -926,8 +1354,128 @@ window.print();
 
         </div>
       </main>
+    </TabsContent>
 
-      <Footer />
-    </div>
+    <TabsContent value="enviados" className="flex-1 container py-6 print:hidden">
+      <Card className="border-border/50 bg-white text-foreground shadow-md">
+        <CardHeader>
+          <CardTitle className="text-[#1a3a2a]">Minhas Partes e Solicitações</CardTitle>
+          <CardDescription>Acompanhe o status de trâmite das suas partes enviadas ao Xerife Geral.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {minhasPartesQuery.isLoading ? (
+            <div className="text-center py-8 text-muted-foreground font-semibold">Carregando documentos...</div>
+          ) : !minhasPartesQuery.data || minhasPartesQuery.data.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground font-semibold">Você ainda não enviou nenhum documento pelo sistema.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b bg-muted/40 text-black">
+                    <th className="p-3 text-left font-semibold">Tipo</th>
+                    <th className="p-3 text-left font-semibold">Assunto</th>
+                    <th className="p-3 text-left font-semibold">Data de Envio</th>
+                    <th className="p-3 text-left font-semibold">Status</th>
+                    <th className="p-3 text-left font-semibold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {minhasPartesQuery.data.map((doc: any) => {
+                    const statusColors: Record<string, string> = {
+                      enviado: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                      aceito: "bg-green-100 text-green-800 border-green-200",
+                      recusado: "bg-red-100 text-red-800 border-red-200",
+                      negociacao: "bg-orange-100 text-orange-800 border-orange-200",
+                    };
+                    const statusLabels: Record<string, string> = {
+                      enviado: "Enviado",
+                      aceito: "Aceito (Aditado)",
+                      recusado: "Recusado",
+                      negociacao: "Em Negociação",
+                    };
+                    const dateFormatted = new Date(doc.createdAt).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    });
+                    return (
+                      <tr key={doc.id} className="border-b hover:bg-muted/10 text-black">
+                        <td className="p-3 font-medium uppercase">{doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : doc.tipoDocumento}</td>
+                        <td className="p-3">{doc.assunto}</td>
+                        <td className="p-3 text-muted-foreground">{dateFormatted}</td>
+                        <td className="p-3">
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColors[doc.status] || "bg-gray-100"}`}>
+                            {statusLabels[doc.status] || doc.status}
+                          </span>
+                          {doc.observacaoXerife && (
+                            <p className="text-[11px] text-muted-foreground mt-1 max-w-[250px] italic">
+                              Obs: {doc.observacaoXerife}
+                            </p>
+                          )}
+                        </td>
+                        <td className="p-3 flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="gap-1">
+                                <Eye className="h-3.5 w-3.5" /> Ver
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-[850px] max-h-[90vh] overflow-y-auto bg-[#d8d5cd] p-4 rounded-md">
+                              <div className="flex justify-center my-4">
+                                <div 
+                                  className="official-document-sheet relative border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shadow-2xl bg-white text-black"
+                                  style={{
+                                    fontFamily: "'Times New Roman', Times, serif",
+                                    width: "210mm",
+                                    minHeight: "297mm",
+                                    boxSizing: "border-box",
+                                    fontSize: "13px",
+                                    lineHeight: "1.45"
+                                  }}
+                                >
+                                  <RenderSavedDocument doc={doc} />
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+
+                          {(doc.status === 'negociacao' || doc.status === 'recusado') && (
+                            <Button 
+                              size="sm" 
+                              variant="secondary"
+                              className="gap-1 bg-[#1a3a2a] text-white hover:bg-[#11271b]"
+                              onClick={() => {
+                                try {
+                                  const parsed = JSON.parse(doc.conteudoJson);
+                                  setDocData(parsed);
+                                  setDocType(doc.tipoDocumento as any);
+                                  toast.success("Documento carregado no editor! Faça os ajustes e reenvie.");
+                                  const tabBtn = document.querySelector('[role="tab"][value="editor"]') as HTMLButtonElement;
+                                  tabBtn?.click();
+                                } catch (e) {
+                                  toast.error("Erro ao carregar documento no editor.");
+                                }
+                              }}
+                            >
+                              <Edit2 className="h-3.5 w-3.5" /> Ajustar
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
+
+  <Footer />
+</div>
   );
 }
