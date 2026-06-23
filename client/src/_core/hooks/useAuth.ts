@@ -50,8 +50,13 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      // Clear all tRPC cache to ensure no stale data is used
       utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
+      await utils.invalidate();
+      // Clear localStorage cache as well
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth-user-info");
+      }
     }
   }, [logoutMutation, utils]);
 

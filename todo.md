@@ -249,6 +249,7 @@
 - [x] Bug: Login se perdendo - sessão não persiste (erro: "[Auth] Missing session cookie")
 - [x] Bug: Logo quebrada no cabeçalho (IMG_7728.PNG não carrega)
 - [x] Bug: Notas não sincronizando - usuário precisa relogar para acessar
+- [x] Bug: Login de alunos falhando - senha inválida para 4122 (resetada com sucesso)
 
 ## Sincronização Automática de Notas
 
@@ -264,10 +265,10 @@
 - [x] Dropdown com lista de notificações (últimas 10)
 - [x] Roteamento de notificações: todos, pelotão específico, xerifes, tesouraria
 - [x] Painel de envio de notificações para admin (NotificationSendPanel.tsx)
-- [ ] Notificação ao publicar escala: "Escala de [data] publicada"
-- [ ] Notificação ao criar cargo: "Novo cargo criado: [nome]"
-- [ ] Notificação ao atribuir tesouraria: "Você foi designado tesoureiro de [cargo]"
-- [ ] Notificação ao atualizar tesouraria: "Tesouraria de [cargo] atualizada"
-- [ ] Notificação ao criar aditamento: "Novo aditamento: [título]"
-- [ ] Notificação ao promover xerife: "[Aluno] promovido a Xerife de [pelotão]"
-- [ ] Integrar NotificationSendPanel ao ClassroomMap ou AdminPanel
+- [x] Notificação ao publicar escala: "Escala de [data] publicada"
+- [x] Notificação ao criar cargo: "Novo cargo criado: [nome]"
+- [x] Notificação ao atribuir tesouraria: "Você foi designado tesoureiro de [cargo]"
+- [x] Notificação ao atualizar tesouraria: "Tesouraria de [cargo] atualizada"
+- [x] Notificação ao criar aditamento: "Novo aditamento: [título]"
+- [x] Notificação ao promover xerife: "[Aluno] promovido a Xerife de [pelotão]"
+- [x] Integrar NotificationSendPanel ao ClassroomMap ou AdminPanel
