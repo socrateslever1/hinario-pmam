@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -673,6 +674,16 @@ export function RenderDocumentAttachments({ anexos, remetente, docType }: { anex
 }
 
 export default function Documents() {
+  const [, setLocation] = useLocation();
+  const session = getStudentSession();
+
+  // Redireciona para o login caso o usuário tente acessar a página sem autenticação
+  useEffect(() => {
+    if (!session) {
+      setLocation("/entrar");
+    }
+  }, [session, setLocation]);
+
   const [docType, setDocType] = useState<DocType>("parte");
   const [docData, setDocData] = useState<DocumentData>(defaultValues.parte);
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
@@ -698,7 +709,7 @@ export default function Documents() {
   const [searchRgInput, setSearchRgInput] = useState("");
   const [searchRgQuery, setSearchRgQuery] = useState("");
 
-  const session = getStudentSession();
+  if (!session) return null;
   const profileQuery = trpc.student.getProfile.useQuery(
     { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
     { enabled: !!session }
