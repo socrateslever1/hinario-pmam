@@ -36,15 +36,14 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
   const app = express();
   const server = createServer(app);
   
+  // Trust proxy - required for correct cookie Secure flag behind reverse proxy
+  app.set('trust proxy', 1);
+  
   // Configure CORS to allow credentials
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests from same origin or specific domains
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('manus.computer')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Allow all for now
-      }
+      // Allow all origins - same-origin requests have no origin header
+      callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
