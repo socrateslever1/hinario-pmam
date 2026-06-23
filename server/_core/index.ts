@@ -38,7 +38,14 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
   
   // Configure CORS to allow credentials
   app.use(cors({
-    origin: true, // Allow all origins in development
+    origin: (origin, callback) => {
+      // Allow requests from same origin or specific domains
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('manus.computer')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all for now
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-student-id', 'x-student-token'],
