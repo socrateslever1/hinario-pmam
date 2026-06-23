@@ -28,7 +28,7 @@ import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
 
 const PMAM_HEADER_URL = "/logo/IMG_7728.PNG";
-const CFAP_HEADER_URL = "/documents/images/cfap-brasao.png";
+const CFAP_HEADER_URL = "/documents/images/brasao_cfap.png";
 
 type DocType = "parte" | "requerimento" | "defesa" | "guia";
 
@@ -632,8 +632,8 @@ window.print();
 
         <TabsContent value="editor" className="flex-1 flex flex-col m-0 p-0">
           {/* Main Panel */}
-          <main className="container flex-1 px-4 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 print:block">
+          <main className="container flex-1 px-0 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
+            <div className="grid grid-cols-1 gap-4 px-4 print:block md:px-0 lg:grid-cols-12 lg:gap-8">
           
           {/* Form Side */}
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
@@ -1156,10 +1156,10 @@ window.print();
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
-          <div className={`lg:col-span-7 flex justify-center print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"}`}>
+          <div className={`lg:col-span-7 flex justify-start lg:justify-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
