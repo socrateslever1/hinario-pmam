@@ -310,7 +310,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
   
   if (doc.tipoDocumento === 'parte') {
     return (
-      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left">
+      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left" style={{ minWidth: "210mm" }}>
         <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
           <img
             src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL}
@@ -376,7 +376,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
     );
   } else {
     return (
-      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left">
+      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left" style={{ minWidth: "210mm" }}>
         <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
           <img 
             src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL} 
@@ -1159,10 +1159,11 @@ window.print();
           <div className={`lg:col-span-7 flex justify-start lg:justify-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
+                minWidth: "210mm",
                 height: "297mm",
                 minHeight: "297mm",
                 boxSizing: "border-box",
@@ -1422,13 +1423,14 @@ window.print();
                                 <Eye className="h-3.5 w-3.5" /> Ver
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-[850px] max-h-[90vh] overflow-y-auto bg-[#d8d5cd] p-4 rounded-md">
+                            <DialogContent className="max-w-[850px] max-h-[90vh] overflow-auto bg-[#d8d5cd] p-4 rounded-md">
                               <div className="flex justify-center my-4">
                                 <div 
-                                  className="official-document-sheet relative border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shadow-2xl bg-white text-black"
+                                  className="official-document-sheet relative border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shadow-2xl bg-white text-black min-w-[210mm]"
                                   style={{
                                     fontFamily: "'Times New Roman', Times, serif",
                                     width: "210mm",
+                                    minWidth: "210mm",
                                     minHeight: "297mm",
                                     boxSizing: "border-box",
                                     fontSize: "13px",

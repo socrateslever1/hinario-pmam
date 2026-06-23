@@ -227,7 +227,14 @@ export async function verifyStudentPassword(
       return false;
     }
 
-    return bcrypt.compare(senha, students[0].senha);
+    const dbSenha = students[0].senha;
+    const isBcrypt = dbSenha.startsWith("$2a$") || dbSenha.startsWith("$2b$") || dbSenha.startsWith("$2y$");
+
+    if (!isBcrypt) {
+      return senha === dbSenha;
+    }
+
+    return bcrypt.compare(senha, dbSenha);
   } finally {
     connection.release();
   }

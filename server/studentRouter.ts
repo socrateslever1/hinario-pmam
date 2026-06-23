@@ -140,7 +140,7 @@ export const studentRouter = router({
     .input(
       z.object({
         numerica: z.string().trim().length(4),
-        senha: z.string().min(6),
+        senha: z.string().min(4),
       })
     )
     .mutation(async ({ input, ctx }) => {
