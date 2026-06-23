@@ -20,7 +20,7 @@ import {
 
 export const pmamUsers = mysqlTable("pmam_users", {
   id: int("id").autoincrement().primaryKey(),
-  openId: varchar("open_id", { length: 255 }).unique(),
+  openId: varchar("open_id", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).unique(),
   password: varchar("password", { length: 255 }),
