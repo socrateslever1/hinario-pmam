@@ -37,6 +37,7 @@ import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { ClassroomCargosTab } from "@/components/admin/ClassroomCargosTab";
 import { RenderSavedDocument } from "./Documents";
 import { toast } from "sonner";
+import { useModalHistory } from "@/hooks/useModalHistory";
 
 const conditionLabels: Record<string, string> = {
   pronto: "Pronto (PRONTO)",
@@ -224,6 +225,19 @@ export default function ClassroomMap() {
   const [parteFilter, setParteFilter] = useState<'todos' | 'enviado' | 'aceito' | 'recusado' | 'negociacao'>('todos');
   const [despachoText, setDespachoText] = useState("");
   const [parteModalOpen, setParteModalOpen] = useState(false);
+  const [partesPage, setPartesPage] = useState(1);
+
+  // Resetar a página para 1 sempre que trocar o filtro, companhia ou pelotão
+  useEffect(() => {
+    setPartesPage(1);
+  }, [parteFilter, companhia, peloton]);
+
+  // Gerenciamento unificado de modais com o histórico (botão voltar do celular/navegador) no painel
+  useModalHistory(foModalOpen, () => setFoModalOpen(false), "fo");
+  useModalHistory(parteModalOpen, () => setParteModalOpen(false), "parte");
+  useModalHistory(Boolean(operationalStudent), () => setOperationalStudent(null), "operational");
+  useModalHistory(Boolean(editingStudent), () => setEditingStudent(null), "editing");
+  useModalHistory(assignmentModalOpen, () => setAssignmentModalOpen(false), "assignment");
 
   // Sync initial scope from logged-in session or assignment
   useEffect(() => {
@@ -2253,100 +2267,132 @@ export default function ClassroomMap() {
                       </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm border-collapse">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/30 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            <th className="p-3">Remetente</th>
-                            <th className="p-3">Pelotão</th>
-                            <th className="p-3">Tipo</th>
-                            <th className="p-3">Assunto</th>
-                            <th className="p-3">Enviado em</th>
-                            <th className="p-3">Status</th>
-                            <th className="p-3 text-right">Ação</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {(() => {
-                            const rawDocs = partesQuery.data || [];
-                            // Filter by scope companhia & peloton if selected
-                            const scopedDocs = rawDocs.filter((doc: any) => 
-                              doc.companhia === selectedCompanhia && 
-                              doc.peloton === selectedPeloton
-                            );
-                            
-                            // Filter by status tab selection
-                            const filteredDocs = scopedDocs.filter((doc: any) => 
-                              parteFilter === 'todos' || doc.status === parteFilter
-                            );
+                    {(() => {
+                      const rawDocs = partesQuery.data || [];
+                      const scopedDocs = rawDocs.filter((doc: any) => 
+                        doc.companhia === selectedCompanhia && 
+                        doc.peloton === selectedPeloton
+                      );
+                      
+                      const filteredDocs = scopedDocs.filter((doc: any) => 
+                        parteFilter === 'todos' || doc.status === parteFilter
+                      );
 
-                            if (filteredDocs.length === 0) {
-                              return (
+                      const ITEMS_PER_PAGE = 8;
+                      const totalPages = Math.ceil(filteredDocs.length / ITEMS_PER_PAGE);
+                      const paginatedDocs = filteredDocs.slice(
+                        (partesPage - 1) * ITEMS_PER_PAGE,
+                        partesPage * ITEMS_PER_PAGE
+                      );
+
+                      return (
+                        <div className="overflow-x-auto flex flex-col gap-4">
+                          <table className="w-full text-left text-sm border-collapse">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/30 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                <th className="p-3">Remetente</th>
+                                <th className="p-3">Pelotão</th>
+                                <th className="p-3">Tipo</th>
+                                <th className="p-3">Assunto</th>
+                                <th className="p-3">Enviado em</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3 text-right">Ação</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {filteredDocs.length === 0 ? (
                                 <tr>
                                   <td colSpan={7} className="text-center text-muted-foreground py-8">
                                     Nenhum documento pendente ou cadastrado para este escopo.
                                   </td>
                                 </tr>
-                              );
-                            }
+                              ) : (
+                                paginatedDocs.map((doc: any) => {
+                                  const tipoLabel = doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : 
+                                                    doc.tipoDocumento === 'requerimento' ? 'Requerimento' :
+                                                    doc.tipoDocumento === 'defesa' ? 'Defesa Escrita' : 'Guia de Trânsito';
 
-                            return filteredDocs.map((doc: any) => {
-                              const tipoLabel = doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : 
-                                                doc.tipoDocumento === 'requerimento' ? 'Requerimento' :
-                                                doc.tipoDocumento === 'defesa' ? 'Defesa Escrita' : 'Guia de Trânsito';
+                                  const statusBadge = 
+                                    doc.status === 'enviado' ? (
+                                      <Badge className="bg-yellow-500/10 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/10">Pendente</Badge>
+                                    ) : doc.status === 'aceito' ? (
+                                      <Badge className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/10">Acatado</Badge>
+                                    ) : doc.status === 'recusado' ? (
+                                      <Badge className="bg-red-500/10 text-red-600 border border-red-500/30 hover:bg-red-500/10">Recusado</Badge>
+                                    ) : (
+                                      <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/10">Ajustar</Badge>
+                                    );
 
-                              const statusBadge = 
-                                doc.status === 'enviado' ? (
-                                  <Badge className="bg-yellow-500/10 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/10">Pendente</Badge>
-                                ) : doc.status === 'aceito' ? (
-                                  <Badge className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/10">Acatado</Badge>
-                                ) : doc.status === 'recusado' ? (
-                                  <Badge className="bg-red-500/10 text-red-600 border border-red-500/30 hover:bg-red-500/10">Recusado</Badge>
-                                ) : (
-                                  <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/10">Ajustar</Badge>
-                                );
+                                  return (
+                                    <tr key={doc.id} className="hover:bg-muted/10 transition-colors">
+                                      <td className="p-3 font-bold text-foreground">
+                                        AL SD PM {doc.nomeGuerra || doc.remetente} ({doc.numerica})
+                                      </td>
+                                      <td className="p-3 text-muted-foreground text-xs">
+                                        {doc.companhia}ª Cia / {doc.peloton}º Pel
+                                      </td>
+                                      <td className="p-3 text-xs font-semibold text-foreground">
+                                        {tipoLabel}
+                                      </td>
+                                      <td className="p-3 max-w-[200px] truncate text-muted-foreground" title={doc.assunto}>
+                                        {doc.assunto}
+                                      </td>
+                                      <td className="p-3 text-xs text-muted-foreground">
+                                        {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
+                                      </td>
+                                      <td className="p-3">
+                                        {statusBadge}
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="font-bold text-xs bg-white dark:bg-zinc-900"
+                                          onClick={() => {
+                                            setSelectedParte(doc);
+                                            setDespachoText(doc.observacaoXerife || "");
+                                            setParteModalOpen(true);
+                                          }}
+                                        >
+                                          {doc.status === 'enviado' ? 'Analisar' : 'Visualizar'}
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
 
-                              return (
-                                <tr key={doc.id} className="hover:bg-muted/10 transition-colors">
-                                  <td className="p-3 font-bold text-foreground">
-                                    AL SD PM {doc.nomeGuerra || doc.remetente} ({doc.numerica})
-                                  </td>
-                                  <td className="p-3 text-muted-foreground text-xs">
-                                    {doc.companhia}ª Cia / {doc.peloton}º Pel
-                                  </td>
-                                  <td className="p-3 text-xs font-semibold text-foreground">
-                                    {tipoLabel}
-                                  </td>
-                                  <td className="p-3 max-w-[200px] truncate text-muted-foreground" title={doc.assunto}>
-                                    {doc.assunto}
-                                  </td>
-                                  <td className="p-3 text-xs text-muted-foreground">
-                                    {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
-                                  </td>
-                                  <td className="p-3">
-                                    {statusBadge}
-                                  </td>
-                                  <td className="p-3 text-right">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="font-bold text-xs bg-white dark:bg-zinc-900"
-                                      onClick={() => {
-                                        setSelectedParte(doc);
-                                        setDespachoText(doc.observacaoXerife || "");
-                                        setParteModalOpen(true);
-                                      }}
-                                    >
-                                      {doc.status === 'enviado' ? 'Analisar' : 'Visualizar'}
-                                    </Button>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
+                          {/* Controles de Paginação */}
+                          {totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t pt-4 px-2 select-none">
+                              <span className="text-xs text-muted-foreground">
+                                Página {partesPage} de {totalPages} ({filteredDocs.length} documentos)
+                              </span>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={partesPage === 1}
+                                  onClick={() => setPartesPage(prev => Math.max(prev - 1, 1))}
+                                >
+                                  Anterior
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={partesPage === totalPages}
+                                  onClick={() => setPartesPage(prev => Math.min(prev + 1, totalPages))}
+                                >
+                                  Próximo
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               )
@@ -2774,10 +2820,8 @@ export default function ClassroomMap() {
             {selectedParte && (
               <div className="space-y-6">
                 {/* Visual A4 Preview Container */}
-                <div className="w-full overflow-auto flex justify-center bg-zinc-100 dark:bg-zinc-800 p-2 md:p-6 rounded-lg border">
-                  <div className="bg-white p-8 shadow-md border rounded text-black shrink-0" style={{ width: "210mm", minHeight: "297mm" }}>
-                    <RenderSavedDocument doc={selectedParte} />
-                  </div>
+                <div className="w-full overflow-auto flex flex-col items-center gap-6 bg-zinc-100 dark:bg-zinc-800 p-2 md:p-6 rounded-lg border max-h-[75vh]">
+                  <RenderSavedDocument doc={selectedParte} />
                 </div>
 
                 {/* Dispatch form if pending ('enviado') */}

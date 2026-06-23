@@ -596,3 +596,27 @@ export async function updateStudentCondition(id: number, condition: string): Pro
     connection.release();
   }
 }
+
+export async function getStudentByRg(
+  rg: string
+): Promise<StudentData | null> {
+  const pool = await getPool();
+  await ensureStudentSessionSchema();
+  const connection = await pool.getConnection();
+
+  try {
+    const query = `
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      FROM pmam_students
+      WHERE REPLACE(REPLACE(rg, '.', ''), '-', '') = REPLACE(REPLACE(?, '.', ''), '-', '')
+      LIMIT 1
+    `;
+
+    const [rows] = await connection.execute(query, [rg]);
+    const students = rows as any[];
+
+    return students[0] || null;
+  } finally {
+    connection.release();
+  }
+}

@@ -16,6 +16,7 @@ import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
+import { useModalHistory } from "@/hooks/useModalHistory";
 
 export const notifySessionChange = () => {
   if (typeof window !== "undefined") {
@@ -27,6 +28,8 @@ export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [isStudent, setIsStudent] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  useModalHistory(moreOpen, () => setMoreOpen(false), "moreOptions");
 
   useEffect(() => {
     const session = getStudentSession();

@@ -21,11 +21,13 @@ import {
   MapPin,
   ClipboardList,
   Check,
-  Download
+  Download,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import { getStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
+import { useModalHistory } from "@/hooks/useModalHistory";
 
 const PMAM_HEADER_URL = "/logo/IMG_7728.PNG";
 const CFAP_HEADER_URL = "/documents/images/brasao_cfap.png";
@@ -45,6 +47,7 @@ interface DocumentData {
   assinaturaDigital?: string | null;
   assinadoEm?: string | Date | null;
   tipoParte?: string;
+  anexosBase64?: string[];
   
   // Específicos para Parte
   parteFatoData: string;
@@ -98,7 +101,8 @@ const defaultValues: Record<DocType, DocumentData> = {
     guiaIda: "",
     guiaVolta: "",
     guiaMotivo: "",
-    guiaTransporte: ""
+    guiaTransporte: "",
+    anexosBase64: []
   },
   requerimento: {
     type: "requerimento",
@@ -123,7 +127,8 @@ const defaultValues: Record<DocType, DocumentData> = {
     guiaIda: "",
     guiaVolta: "",
     guiaMotivo: "",
-    guiaTransporte: ""
+    guiaTransporte: "",
+    anexosBase64: []
   },
   defesa: {
     type: "defesa",
@@ -148,7 +153,8 @@ const defaultValues: Record<DocType, DocumentData> = {
     guiaIda: "",
     guiaVolta: "",
     guiaMotivo: "",
-    guiaTransporte: ""
+    guiaTransporte: "",
+    anexosBase64: []
   },
   guia: {
     type: "guia",
@@ -174,6 +180,7 @@ const defaultValues: Record<DocType, DocumentData> = {
     guiaVolta: "15/06/2026",
     guiaMotivo: "Visita familiar durante o período de folga regulamentar de fim de semana prolongado.",
     guiaTransporte: "Transporte hidroviário de linha regular",
+    anexosBase64: []
   }
 };
 
@@ -282,10 +289,16 @@ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
         <p>Solicitante</p>
         {docData.assinaturaDigital && (
           <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
-            <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5">
+            <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5 mb-1">
               🛡️ ASSINATURA ELETRÔNICA REGISTRADA
             </span>
-            <span>{docData.assinaturaDigital}</span>
+            {docData.assinaturaDigital.includes(" | ") ? (
+              docData.assinaturaDigital.split(" | ").map((part: string, i: number) => (
+                <span key={i} className="block">{part}</span>
+              ))
+            ) : (
+              <span>{docData.assinaturaDigital}</span>
+            )}
             {docData.assinadoEm && <span>Data/Hora: {new Date(docData.assinadoEm).toLocaleString("pt-BR")}</span>}
           </div>
         )}
@@ -310,207 +323,353 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
   
   if (doc.tipoDocumento === 'parte') {
     return (
-      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left" style={{ minWidth: "210mm" }}>
-        <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
-          <img
-            src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL}
-            alt="Brasão PMAM"
-            className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
-          />
-          <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
-            <p>POLÍCIA MILITAR DO AMAZONAS</p>
-            <p>DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</p>
-            <p>CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</p>
-            <p className="text-[24px] font-bold leading-none">CFAP</p>
-          </div>
-          <img
-            src={doc.imagemCabecalhoDir || CFAP_HEADER_URL}
-            alt="Brasão CFAP"
-            className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
-          />
-        </div>
-
-        <section className="grid grid-cols-2 gap-8">
-          <p>Parte S/Nº/2026</p>
-          <p>Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
-        </section>
-
-        <section className="ml-auto mt-4 w-[50%] leading-[1.35]">
-          <p><strong>Do:</strong> {doc.remetente}</p>
-          <p><strong>Ao:</strong> {doc.destinatario}</p>
-          <p><strong>Assunto:</strong> {doc.assunto}</p>
-          <p><strong>Anexo:</strong> {doc.anexo || "___ (Se houver)"}</p>
-        </section>
-
-        <main className="mt-10 flex-1 whitespace-pre-line text-justify">
-          <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
-          {(data.parteRelato || "").split(/\n\s*\n/).map((paragraph: string, index: number) => (
-            <p key={index} className="mb-3 indent-[15mm]">
-              {paragraph}
-            </p>
-          ))}
-          <p className="mt-10 indent-[15mm]">{data.parteFecho || "Respeitosamente,"}</p>
-        </main>
-
-        <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
-          <div className="mb-2 w-[80mm] border-t border-black" />
-          <p className="font-bold uppercase">{doc.remetente}</p>
-          <p>Solicitante</p>
-          {doc.assinaturaDigital && (
-            <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
-              <span className="font-bold tracking-wider uppercase text-green-900">
-                🛡️ ASSINATURA ELETRÔNICA REGISTRADA
-              </span>
-              <span>{doc.assinaturaDigital}</span>
-              {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+      <>
+        <div 
+          className="official-document-sheet relative flex flex-col text-[12px] leading-[1.45] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
+          style={{
+            fontFamily: "'Times New Roman', Times, serif",
+            width: "210mm",
+            minWidth: "210mm",
+            height: "297mm",
+            minHeight: "297mm",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif">
+            <img
+              src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL}
+              alt="Brasão PMAM"
+              className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
+            />
+            <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
+              <p>POLÍCIA MILITAR DO AMAZONAS</p>
+              <p>DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</p>
+              <p>CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</p>
+              <p className="text-[24px] font-bold leading-none">CFAP</p>
             </div>
-          )}
-        </section>
-
-        <div className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
-          <p className="font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP</p>
-          <p>Rua Benjamin Constant, 2150 - Petrópolis, Manaus - AM, CEP: 69063-010</p>
-          <p>cfap@pm.am.gov.br</p>
-        </div>
-      </div>
-    );
-  } else {
-    return (
-      <div className="relative flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col text-[12px] leading-[1.45] text-black text-left" style={{ minWidth: "210mm" }}>
-        <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
-          <img 
-            src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL} 
-            alt="Brasão PMAM" 
-            className="w-[18mm] h-[18mm] object-contain mb-1" 
-          />
-          <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
-            ESTADO DO AMAZONAS
-          </h2>
-          <h3 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
-            POLÍCIA MILITAR DO AMAZONAS
-          </h3>
-          <h4 className="text-[11px] font-bold tracking-wider uppercase m-0 leading-tight">
-            CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP
-          </h4>
-        </div>
-
-        <div className="w-full mt-8 flex flex-col items-center">
-          <span className="font-bold text-[14px] uppercase tracking-widest decoration-dotted underline underline-offset-4">
-            {doc.tipoDocumento === "requerimento" && "REQUERIMENTO ADMINISTRATIVO"}
-            {doc.tipoDocumento === "defesa" && "JUSTIFICATIVA E APRESENTAÇÃO DE DEFESA"}
-            {doc.tipoDocumento === "guia" && "SOLICITAÇÃO DE GUIA DE TRÂNSITO"}
-          </span>
-          <span className="text-[11px] text-gray-600 mt-1">
-            Cód: {doc.tipoDocumento.toUpperCase()}-CFAP-{new Date(doc.createdAt).getFullYear()}
-          </span>
-        </div>
-
-        <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[13px] leading-relaxed">
-          <div className="flex flex-col gap-1.5">
-            <div>
-              <span className="font-bold">De: </span>
-              <span className="uppercase">{doc.remetente}</span>
-            </div>
-            <div>
-              <span className="font-bold">Para: </span>
-              <span className="uppercase font-semibold">{doc.destinatario}</span>
-            </div>
-            <div>
-              <span className="font-bold">Assunto: </span>
-              <span>{doc.assunto}</span>
-            </div>
+            <img
+              src={doc.imagemCabecalhoDir || CFAP_HEADER_URL}
+              alt="Brasão CFAP"
+              className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
+            />
           </div>
 
-          <div className="w-full h-[1px] bg-gray-200 my-2" />
+          <section className="grid grid-cols-2 gap-8">
+            <p>Parte S/Nº/2026</p>
+            <p>Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
+          </section>
 
-          {doc.tipoDocumento === "requerimento" && (
-            <div className="flex flex-col gap-4">
-              <p className="indent-8 leading-relaxed text-justify">
-                O requerente <span className="font-bold uppercase">{data.reqNomeCompleto || "________________________"}</span>, 
-                inscrito sob matrícula/RG <span className="font-bold">{data.reqMatricula || "___________"}</span>, 
-                atualmente discente lotado no <span className="font-bold">{data.reqPelotao || "___________"}</span>, 
-                vem mui respeitosamente, por meio deste instrumento, requerer a Vossa Senhoria o que segue:
-              </p>
-              <p className="font-bold text-center text-[13px] my-2 bg-gray-100 p-2 uppercase">
-                {data.reqSolicitacao || "NENHUMA SOLICITAÇÃO ESPECIFICADA"}
-              </p>
-              <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Fundamentação / Justificativa:</p>
-              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
-                {data.reqJustificativa}
-              </p>
-              <p className="indent-8 leading-relaxed text-justify">
-                Nestes termos, pede e aguarda deferimento.
-              </p>
-            </div>
-          )}
+          <section className="ml-auto mt-4 w-[50%] leading-[1.35]">
+            <p><strong>Do:</strong> {doc.remetente}</p>
+            <p><strong>Ao:</strong> {doc.destinatario}</p>
+            <p><strong>Assunto:</strong> {doc.assunto}</p>
+            <p><strong>Anexo:</strong> {doc.anexo || "___ (Se houver)"}</p>
+          </section>
 
-          {doc.tipoDocumento === "defesa" && (
-            <div className="flex flex-col gap-4">
-              <p className="indent-8 leading-relaxed text-justify">
-                1. Em atenção à notificação de fato apontado sob registro sob número 
-                <span className="font-bold"> {data.defesaFatoRef}</span>, o discente acima qualificado apresenta tempestivamente suas alegações de defesa e justificativa de conduta, nos termos que seguem:
+          <main className="mt-10 flex-1 whitespace-pre-line text-justify">
+            <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
+            {(data.parteRelato || "").split(/\n\s*\n/).map((paragraph: string, index: number) => (
+              <p key={index} className="mb-3 indent-[15mm]">
+                {paragraph}
               </p>
-              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
-                {data.defesaTexto}
-              </p>
-              <p className="indent-8 leading-relaxed text-justify">
-                2. Diante do exposto, solicita-se a análise do Colegiado Escolar ou do Comando de Companhia para acolhimento das justificativas apresentadas, visando a desconsideração ou mitigação dos pontos na Ficha de Conduta Escolar.
-              </p>
-            </div>
-          )}
+            ))}
+            <p className="mt-10 indent-[15mm]">{data.parteFecho || "Respeitosamente,"}</p>
+          </main>
 
-          {doc.tipoDocumento === "guia" && (
-            <div className="flex flex-col gap-4">
-              <p className="indent-8 leading-relaxed text-justify">
-                1. Solicito a V.S.ª a emissão de Guia de Trânsito para viagem regulamentar com destino à cidade de 
-                <span className="font-bold"> {data.guiaDestino}</span>, 
-                com afastamento previsto a iniciar no dia <span className="font-bold">{data.guiaIda}</span> 
-                e retorno previsto para o dia <span className="font-bold">{data.guiaVolta}</span>, 
-                utilizando para tanto o seguinte meio de locomoção: <span className="font-bold">{data.guiaTransporte}</span>.
-              </p>
-              <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Motivo do Deslocamento:</p>
-              <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
-                {data.guiaMotivo}
-              </p>
-              <p className="indent-8 leading-relaxed text-justify">
-                2. Declaro estar ciente dos preceitos disciplinares e de apresentação individual do CFAP durante todo o trânsito, comprometendo-me a portar a referida Guia de Trânsito assinada durante o deslocamento.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="w-full flex flex-col items-center gap-10 mt-12">
-          <div className="w-full text-right font-medium">
-            {doc.localData || "Manaus - AM"}
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-[80mm] h-[1px] bg-black" />
-            <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
-              {doc.remetente}
-            </span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
-              Signatário
-            </span>
+          <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
+            <div className="mb-2 w-[80mm] border-t border-black" />
+            <p className="font-bold uppercase">{doc.remetente}</p>
+            <p>Solicitante</p>
             {doc.assinaturaDigital && (
               <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
-                <span className="font-bold tracking-wider uppercase text-green-900">
+                <span className="font-bold tracking-wider uppercase text-green-900 mb-1">
                   🛡️ ASSINATURA ELETRÔNICA REGISTRADA
                 </span>
-                <span>{doc.assinaturaDigital}</span>
+                {doc.assinaturaDigital.includes(" | ") ? (
+                  doc.assinaturaDigital.split(" | ").map((part: string, i: number) => (
+                    <span key={i} className="block">{part}</span>
+                  ))
+                ) : (
+                  <span>{doc.assinaturaDigital}</span>
+                )}
                 {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
               </div>
             )}
+          </section>
+
+          <div className="absolute inset-x-0 bottom-0 border-t border-double border-black pt-1 text-center text-[9px] leading-tight text-gray-600">
+            <p className="font-bold">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP</p>
+            <p>Rua Benjamin Constant, 2150 - Petrópolis, Manaus - AM, CEP: 69063-010</p>
+            <p>cfap@pm.am.gov.br</p>
           </div>
         </div>
-      </div>
+        {data.anexosBase64 && data.anexosBase64.length > 0 && (
+          <RenderDocumentAttachments 
+            anexos={data.anexosBase64} 
+            remetente={doc.remetente} 
+            docType={doc.tipoDocumento} 
+          />
+        )}
+      </>
+    );
+  } else {
+    return (
+      <>
+        <div 
+          className="official-document-sheet relative flex flex-col text-[12px] leading-[1.45] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
+          style={{
+            fontFamily: "'Times New Roman', Times, serif",
+            width: "210mm",
+            minWidth: "210mm",
+            height: "297mm",
+            minHeight: "297mm",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
+            <img 
+              src={doc.imagemCabecalhoEsq || PMAM_HEADER_URL} 
+              alt="Brasão PMAM" 
+              className="w-[18mm] h-[18mm] object-contain mb-1" 
+            />
+            <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+              ESTADO DO AMAZONAS
+            </h2>
+            <h3 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+              POLÍCIA MILITAR DO AMAZONAS
+            </h3>
+            <h4 className="text-[11px] font-bold tracking-wider uppercase m-0 leading-tight">
+              CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP
+            </h4>
+          </div>
+
+          <div className="w-full mt-8 flex flex-col items-center">
+            <span className="font-bold text-[14px] uppercase tracking-widest decoration-dotted underline underline-offset-4">
+              {doc.tipoDocumento === "requerimento" && "REQUERIMENTO ADMINISTRATIVO"}
+              {doc.tipoDocumento === "defesa" && "JUSTIFICATIVA E APRESENTAÇÃO DE DEFESA"}
+              {doc.tipoDocumento === "guia" && "SOLICITAÇÃO DE GUIA DE TRÂNSITO"}
+            </span>
+            <span className="text-[11px] text-gray-600 mt-1">
+              Cód: {doc.tipoDocumento.toUpperCase()}-CFAP-{new Date(doc.createdAt).getFullYear()}
+            </span>
+          </div>
+
+          <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[13px] leading-relaxed">
+            <div className="flex flex-col gap-1.5">
+              <div>
+                <span className="font-bold">De: </span>
+                <span className="uppercase">{doc.remetente}</span>
+              </div>
+              <div>
+                <span className="font-bold">Para: </span>
+                <span className="uppercase font-semibold">{doc.destinatario}</span>
+              </div>
+              <div>
+                <span className="font-bold">Assunto: </span>
+                <span>{doc.assunto}</span>
+              </div>
+            </div>
+
+            <div className="w-full h-[1px] bg-gray-200 my-2" />
+
+            {doc.tipoDocumento === "requerimento" && (
+              <div className="flex flex-col gap-4">
+                <p className="indent-8 leading-relaxed text-justify">
+                  O requerente <span className="font-bold uppercase">{data.reqNomeCompleto || "________________________"}</span>, 
+                  inscrito sob matrícula/RG <span className="font-bold">{data.reqMatricula || "___________"}</span>, 
+                  atualmente discente lotado no <span className="font-bold">{data.reqPelotao || "___________"}</span>, 
+                  vem mui respeitosamente, por meio deste instrumento, requerer a Vossa Senhoria o que segue:
+                </p>
+                <p className="font-bold text-center text-[13px] my-2 bg-gray-100 p-2 uppercase">
+                  {data.reqSolicitacao || "NENHUMA SOLICITAÇÃO ESPECIFICADA"}
+                </p>
+                <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Fundamentação / Justificativa:</p>
+                <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                  {data.reqJustificativa}
+                </p>
+                <p className="indent-8 leading-relaxed text-justify">
+                  Nestes termos, pede e aguarda deferimento.
+                </p>
+              </div>
+            )}
+
+            {doc.tipoDocumento === "defesa" && (
+              <div className="flex flex-col gap-4">
+                <p className="indent-8 leading-relaxed text-justify">
+                  1. Em atenção à notificação de fato apontado sob registro sob número 
+                  <span className="font-bold"> {data.defesaFatoRef}</span>, o discente acima qualificado apresenta tempestivamente suas alegações de defesa e justificativa de conduta, nos termos que seguem:
+                </p>
+                <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                  {data.defesaTexto}
+                </p>
+                <p className="indent-8 leading-relaxed text-justify">
+                  2. Diante do exposto, solicita-se a análise do Colegiado Escolar ou do Comando de Companhia para acolhimento das justificativas apresentadas, visando a desconsideração ou mitigação dos pontos na Ficha de Conduta Escolar.
+                </p>
+              </div>
+            )}
+
+            {doc.tipoDocumento === "guia" && (
+              <div className="flex flex-col gap-4">
+                <p className="indent-8 leading-relaxed text-justify">
+                  1. Solicito a V.S.ª a emissão de Guia de Trânsito para viagem regulamentar com destino à cidade de 
+                  <span className="font-bold"> {data.guiaDestino}</span>, 
+                  com afastamento previsto a iniciar no dia <span className="font-bold">{data.guiaIda}</span> 
+                  e retorno previsto para o dia <span className="font-bold">{data.guiaVolta}</span>, 
+                  utilizando para tanto o seguinte meio de locomoção: <span className="font-bold">{data.guiaTransporte}</span>.
+                </p>
+                <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700">Motivo do Deslocamento:</p>
+                <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200">
+                  {data.guiaMotivo}
+                </p>
+                <p className="indent-8 leading-relaxed text-justify">
+                  2. Declaro estar ciente dos preceitos disciplinares e de apresentação individual do CFAP durante todo o trânsito, comprometendo-me a portar a referida Guia de Trânsito assinada durante o deslocamento.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="w-full flex flex-col items-center gap-10 mt-12">
+            <div className="w-full text-right font-medium">
+              {doc.localData || "Manaus - AM"}
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-[80mm] h-[1px] bg-black" />
+              <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
+                {doc.remetente}
+              </span>
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+                Signatário
+              </span>
+              {doc.assinaturaDigital && (
+                <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
+                  <span className="font-bold tracking-wider uppercase text-green-900">
+                    🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+                  </span>
+                  {doc.assinaturaDigital.includes(" | ") ? (
+                    doc.assinaturaDigital.split(" | ").map((part: string, i: number) => (
+                      <span key={i} className="block">{part}</span>
+                    ))
+                  ) : (
+                    <span>{doc.assinaturaDigital}</span>
+                  )}
+                  {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {data.anexosBase64 && data.anexosBase64.length > 0 && (
+          <RenderDocumentAttachments 
+            anexos={data.anexosBase64} 
+            remetente={doc.remetente} 
+            docType={doc.tipoDocumento} 
+          />
+        )}
+      </>
     );
   }
 }
 
-function formatSender(numerica: string, nomeGuerra: string, rg: string) {
-  const cleanNome = (nomeGuerra || "").toUpperCase();
+function formatSender(numerica: string, nomeCompleto: string, nomeGuerra: string, rg: string) {
+  const cleanNome = (nomeCompleto || nomeGuerra || "").toUpperCase();
   const cleanRg = rg ? ` (CI ${rg})` : "";
   return `AL SD PM (${numerica}) ${cleanNome}${cleanRg}`;
+}
+
+function getShortDeviceDesc(ua: string) {
+  let os = "OS Desconhecido";
+  if (/windows/i.test(ua)) os = "Windows";
+  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
+  else if (/android/i.test(ua)) os = "Android";
+  else if (/iphone|ipad|ipod/i.test(ua)) os = "iOS";
+  else if (/linux/i.test(ua)) os = "Linux";
+
+  let browser = "Navegador Desconhecido";
+  if (/chrome|crios/i.test(ua) && !/edge|edg/i.test(ua) && !/opr/i.test(ua)) browser = "Chrome";
+  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = "Safari";
+  else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
+  else if (/edge|edg/i.test(ua)) browser = "Edge";
+  else if (/opr/i.test(ua)) browser = "Opera";
+
+  return `${browser} no ${os}`;
+}
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Erro ao carregar imagem para compressão"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function RenderDocumentAttachments({ anexos, remetente, docType }: { anexos?: string[], remetente: string, docType: string }) {
+  if (!anexos || anexos.length === 0) return null;
+  return (
+    <>
+      {anexos.map((imgBase64, index) => (
+        <div
+          key={index}
+          className="official-document-sheet relative flex flex-col items-center justify-center p-[20mm] bg-white border border-gray-200 shadow-2xl min-w-[210mm] min-h-[297mm] w-[210mm] h-[297mm] break-before-page page-break-before-always text-black shrink-0 mt-6 print:mt-0 print:border-none print:shadow-none print:p-0"
+          style={{
+            fontFamily: "'Times New Roman', Times, serif",
+            width: "210mm",
+            height: "297mm",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="absolute top-[10mm] left-[30mm] right-[20mm] border-b pb-1 text-[11px] text-gray-500 font-sans flex justify-between items-center print:top-[30mm] print:left-[30mm] print:right-[20mm]">
+            <span className="font-bold uppercase">POLÍCIA MILITAR DO AMAZONAS — CFAP</span>
+            <span>ANEXO #{index + 1} AO DOCUMENTO ({docType.toUpperCase()})</span>
+          </div>
+          
+          <div className="w-full h-full flex items-center justify-center pt-8 pb-4">
+            <img
+              src={imgBase64}
+              alt={`Anexo ${index + 1}`}
+              className="max-w-full max-h-[230mm] object-contain border"
+            />
+          </div>
+          
+          <div className="absolute bottom-[10mm] left-[30mm] right-[20mm] border-t pt-1 text-[10px] text-gray-400 font-sans text-center print:bottom-[20mm] print:left-[30mm] print:right-[20mm]">
+            Signatário do Documento: {remetente}
+          </div>
+        </div>
+      ))}
+    </>
+  );
 }
 
 export default function Documents() {
@@ -519,6 +678,25 @@ export default function Documents() {
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
   const [activeTab, setActiveTab] = useState("editor");
   const parteConsiderandoCount = countParteConsiderandos(docData.parteRelato);
+
+  // Estado para controlar qual documento visualizar no Dialog de salvos
+  const [viewDoc, setViewDoc] = useState<any | null>(null);
+
+  // Escuta o botão voltar do navegador/celular para fechar o visualizador do documento sem fechar o PWA
+  useModalHistory(Boolean(viewDoc), () => setViewDoc(null), "viewDoc");
+
+  // Estado para controle de paginação na lista de enviados
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Resetar a página para 1 sempre que trocar o tipo de documento ou aba
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [docType, activeTab]);
+
+  // Estados de busca de alunos
+  const [searchNumerica, setSearchNumerica] = useState("");
+  const [searchRgInput, setSearchRgInput] = useState("");
+  const [searchRgQuery, setSearchRgQuery] = useState("");
 
   const session = getStudentSession();
   const profileQuery = trpc.student.getProfile.useQuery(
@@ -543,35 +721,103 @@ export default function Documents() {
     }
   });
 
+  // Query reativa para buscar aluno por numérica ou RG/CI
+  const searchStudentQuery = trpc.student.getByNumericaOrRg.useQuery(
+    {
+      numerica: searchNumerica || undefined,
+      rg: searchRgQuery || undefined
+    },
+    {
+      enabled: Boolean((searchNumerica && searchNumerica.length === 4) || (searchRgQuery && searchRgQuery.length >= 3)),
+      retry: false,
+    }
+  );
+
+  // Escutar sucesso na busca do discente
+  useEffect(() => {
+    if (searchStudentQuery.data) {
+      const student = searchStudentQuery.data;
+      const senderString = formatSender(
+        student.numerica,
+        student.nomeCompleto || "",
+        student.nomeGuerra,
+        student.rg || ""
+      );
+      
+      const updated = { ...docData };
+      updated.remetente = senderString;
+      
+      if (docType === "requerimento") {
+        updated.reqNomeCompleto = student.nomeCompleto || "";
+        updated.reqMatricula = student.rg || "";
+        updated.reqPelotao = `${student.peloton}º Pelotão - ${student.companhia}ª Companhia`;
+      }
+      
+      setDocData(updated);
+      localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+      toast.success(`Dados de ${student.nomeGuerra} importados com sucesso!`);
+      
+      // Limpar campos de busca
+      setSearchNumerica("");
+      setSearchRgInput("");
+      setSearchRgQuery("");
+    }
+  }, [searchStudentQuery.data]);
+
+  // Escutar erro na busca
+  useEffect(() => {
+    if (searchStudentQuery.error) {
+      toast.error("Nenhum discente encontrado com esses dados.");
+      setSearchNumerica("");
+      setSearchRgInput("");
+      setSearchRgQuery("");
+    }
+  }, [searchStudentQuery.error]);
+
   // Carregar dados salvos do localStorage ou mesclar com o perfil oficial
   useEffect(() => {
     const saved = localStorage.getItem(`pmam_doc_${docType}`);
+    let initialData: DocumentData;
+    
     if (saved) {
       try {
-        const normalized = normalizeDocumentData(docType, JSON.parse(saved));
-        setDocData(normalized);
-        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(normalized));
+        initialData = normalizeDocumentData(docType, JSON.parse(saved));
       } catch (e) {
-        setDocData(defaultValues[docType]);
+        initialData = { ...defaultValues[docType] };
       }
     } else {
-      const baseDefaults = { ...defaultValues[docType] };
-      if (session && profileQuery.data) {
-        const senderString = formatSender(
-          session.numerica,
-          profileQuery.data.nomeGuerra || session.nomeGuerra,
-          profileQuery.data.rg || ""
-        );
-        baseDefaults.remetente = senderString;
+      initialData = { ...defaultValues[docType] };
+    }
 
-        if (docType === "requerimento") {
-          baseDefaults.reqNomeCompleto = profileQuery.data.nomeCompleto || "";
-          baseDefaults.reqMatricula = profileQuery.data.rg || "";
-          baseDefaults.reqPelotao = `${session.peloton}º Pelotão - ${session.companhia}ª Companhia`;
+    if (session && profileQuery.data) {
+      const senderString = formatSender(
+        session.numerica,
+        profileQuery.data.nomeCompleto || "",
+        profileQuery.data.nomeGuerra || session.nomeGuerra,
+        profileQuery.data.rg || ""
+      );
+      
+      // Auto-preencher remetente se for o padrão ou se estiver vazio ou antigo
+      if (!initialData.remetente || initialData.remetente === defaultValues[docType].remetente || initialData.remetente.includes("1234 Silva")) {
+        initialData.remetente = senderString;
+      }
+
+      if (docType === "requerimento") {
+        if (!initialData.reqNomeCompleto || initialData.reqNomeCompleto === defaultValues.requerimento.reqNomeCompleto) {
+          initialData.reqNomeCompleto = profileQuery.data.nomeCompleto || "";
+        }
+        if (!initialData.reqMatricula || initialData.reqMatricula === defaultValues.requerimento.reqMatricula) {
+          initialData.reqMatricula = profileQuery.data.rg || "";
+        }
+        if (!initialData.reqPelotao || initialData.reqPelotao === defaultValues.requerimento.reqPelotao) {
+          initialData.reqPelotao = `${session.peloton}º Pelotão - ${session.companhia}ª Companhia`;
         }
       }
-      setDocData(normalizeDocumentData(docType, baseDefaults));
     }
+
+    const normalized = normalizeDocumentData(docType, initialData);
+    setDocData(normalized);
+    localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(normalized));
   }, [docType, profileQuery.data]);
 
   // Salvar no localStorage sempre que mudar
@@ -726,6 +972,51 @@ window.print();
                     <RotateCcw className="h-3.5 w-3.5" />
                     Limpar
                   </Button>
+                </div>
+
+                {/* Busca e Importação Rápida */}
+                <div className="flex flex-col gap-3 rounded-lg border border-[#c4a84b]/20 bg-[#c4a84b]/5 p-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#1a3a2a]">Busca e Importação Rápida</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-muted-foreground">Numérica (4 dígitos)</label>
+                      <Input
+                        placeholder="Ex: 4122"
+                        value={searchNumerica}
+                        maxLength={4}
+                        className="h-8 text-xs bg-white text-black"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setSearchNumerica(val);
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-muted-foreground">CI / RG</label>
+                      <Input
+                        placeholder="Ex: 27666"
+                        value={searchRgInput}
+                        className="h-8 text-xs bg-white text-black"
+                        onChange={(e) => setSearchRgInput(e.target.value)}
+                        onBlur={() => {
+                          if (searchRgInput.trim().length >= 3) {
+                            setSearchRgQuery(searchRgInput.trim());
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (searchRgInput.trim().length >= 3) {
+                              setSearchRgQuery(searchRgInput.trim());
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">
+                    * Ao preencher a numérica ou RG/CI, os campos da Parte e Requerimento serão atualizados automaticamente.
+                  </p>
                 </div>
 
                 <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
@@ -983,7 +1274,7 @@ window.print();
               </CardContent>
             </Card>
 
-            {/* Customization & Electronic Signature Card */}
+            {/* Customization, Attachments & Electronic Signature Card */}
             <Card className="border-border/50 bg-white text-foreground shadow-md">
               <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-1.5">
@@ -991,7 +1282,7 @@ window.print();
                   Recursos do Sistema
                 </CardTitle>
                 <CardDescription className="text-[11px]">
-                  Personalize o cabeçalho, assine eletronicamente e envie via trâmite oficial.
+                  Personalize o cabeçalho, adicione anexos, assine e envie via trâmite oficial.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 space-y-5">
@@ -1061,7 +1352,71 @@ window.print();
 
                 <div className="border-t border-dashed my-3" />
 
-                {/* 2. Digital Signature */}
+                {/* 2. Document Attachments */}
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-muted-foreground block">
+                    Anexos do Documento (Máximo 3 Imagens)
+                  </span>
+                  
+                  {docData.anexosBase64 && docData.anexosBase64.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 border p-2 bg-muted/10 rounded-md">
+                      {docData.anexosBase64.map((img, idx) => (
+                        <div key={idx} className="relative group border rounded-md overflow-hidden h-16 w-full bg-white">
+                          <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            className="absolute top-0 right-0 p-0.5 bg-red-600 text-white rounded-bl hover:bg-red-700"
+                            onClick={() => {
+                              const updatedAnexos = [...(docData.anexosBase64 || [])];
+                              updatedAnexos.splice(idx, 1);
+                              handleFieldChange("anexosBase64" as any, updatedAnexos as any);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {(!docData.anexosBase64 || docData.anexosBase64.length < 3) && (
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        id="document-attachment-file"
+                        className="text-xs h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          toast.promise(
+                            (async () => {
+                              const base64 = await compressImage(file);
+                              const currentAnexos = docData.anexosBase64 || [];
+                              const updatedAnexos = [...currentAnexos, base64];
+                              handleFieldChange("anexosBase64" as any, updatedAnexos as any);
+                              const inputEl = document.getElementById("document-attachment-file") as HTMLInputElement;
+                              if (inputEl) inputEl.value = "";
+                            })(),
+                            {
+                              loading: "Comprimindo e preparando anexo...",
+                              success: "Anexo anexado com sucesso!",
+                              error: "Falha ao anexar imagem."
+                            }
+                          );
+                        }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    * O Xerife Geral poderá visualizar e rolar as folhas adicionais com os anexos.
+                  </p>
+                </div>
+
+                <div className="border-t border-dashed my-3" />
+
+                {/* 3. Digital Signature */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-muted-foreground block">
                     Assinatura Eletrônica
@@ -1072,9 +1427,11 @@ window.print();
                       <p className="text-[10px] text-green-800 font-mono font-bold uppercase tracking-wider text-center">
                         ✓ Documento Assinado Digitalmente
                       </p>
-                      <p className="text-[9px] text-green-700 font-mono break-all text-center">
-                        {docData.assinaturaDigital}
-                      </p>
+                      <div className="text-[9px] text-green-700 font-mono break-words text-left space-y-0.5">
+                        {docData.assinaturaDigital.split(" | ").map((line, i) => (
+                          <p key={i} className="leading-tight">{line}</p>
+                        ))}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1101,17 +1458,68 @@ window.print();
                           toast.error("Você precisa estar logado para assinar.");
                           return;
                         }
-                        const hash = `CFAP-ASS-${session.numerica}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-                        const signedAt = new Date().toISOString();
-                        
-                        const updated = { 
-                          ...docData, 
-                          assinaturaDigital: hash,
-                          assinadoEm: signedAt
+
+                        const generateUniqueHash = () => {
+                          const rawStr = `${session.id}-${session.numerica}-${session.sessionToken}-${Date.now()}`;
+                          let hash = 0;
+                          for (let i = 0; i < rawStr.length; i++) {
+                            const char = rawStr.charCodeAt(i);
+                            hash = (hash << 5) - hash + char;
+                            hash |= 0;
+                          }
+                          return `CFAP-SIG-${Math.abs(hash).toString(36).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
                         };
-                        setDocData(updated);
-                        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
-                        toast.success("Documento assinado com sucesso!");
+
+                        const handleSigning = (lat?: number, lon?: number) => {
+                          const rgVal = profileQuery.data?.rg || "";
+                          const cpfVal = profileQuery.data?.cpf || "";
+                          const nomeCompleto = profileQuery.data?.nomeCompleto || session.nomeGuerra;
+                          
+                          const hash = generateUniqueHash();
+                          const signedAt = new Date().toISOString();
+                          const deviceDesc = getShortDeviceDesc(navigator.userAgent);
+                          const screenRes = `${window.screen.width}x${window.screen.height}`;
+                          const sessionTokenTrunc = session.sessionToken ? session.sessionToken.slice(0, 8) + "..." : "N/A";
+                          
+                          const locStr = (lat != null && lon != null) 
+                            ? `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}` 
+                            : "Não autorizada/indisponível";
+
+                          const auditSignature = [
+                            `Signatário: ${nomeCompleto.toUpperCase()}`,
+                            `CPF: ${cpfVal || "Não informado"}`,
+                            `CI: ${rgVal || "Não informado"}`,
+                            `Sessão: ${sessionTokenTrunc}`,
+                            `GPS: ${locStr}`,
+                            `Dispositivo: ${deviceDesc} (${screenRes})`,
+                            `Chave: ${hash}`
+                          ].join(" | ");
+
+                          const updated = { 
+                            ...docData, 
+                            assinaturaDigital: auditSignature,
+                            assinadoEm: signedAt
+                          };
+                          setDocData(updated);
+                          localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+                          toast.success("Documento assinado digitalmente com sucesso!");
+                        };
+
+                        if ("geolocation" in navigator) {
+                          toast.info("Solicitando permissão de geolocalização para auditoria...");
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              handleSigning(position.coords.latitude, position.coords.longitude);
+                            },
+                            (error) => {
+                              console.warn("[Signature] Geolocation failed:", error);
+                              handleSigning();
+                            },
+                            { timeout: 5000 }
+                          );
+                        } else {
+                          handleSigning();
+                        }
                       }}
                     >
                       {!session ? "Faça login para assinar" : "Assinar Digitalmente"}
@@ -1121,7 +1529,7 @@ window.print();
 
                 <div className="border-t border-dashed my-3" />
 
-                {/* 3. Send via System */}
+                {/* 4. Send via System */}
                 <Button
                   className="w-full bg-[#1a3a2a] hover:bg-[#214936] text-white font-bold gap-2"
                   disabled={!session || !docData.assinaturaDigital || enviarParteMutation.isPending}
@@ -1156,7 +1564,7 @@ window.print();
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
-          <div className={`lg:col-span-7 flex justify-start lg:justify-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
+          <div className={`lg:col-span-7 flex flex-col gap-6 items-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
               className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
@@ -1206,9 +1614,9 @@ window.print();
                     overflow: hidden !important;
                     border: none !important;
                     box-shadow: none !important;
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
+                    position: relative !important;
+                    page-break-after: always !important;
+                    break-after: page !important;
                   }
                   #military-document-print img {
                     image-rendering: auto !important;
@@ -1333,7 +1741,7 @@ window.print();
               </div>
 
               {/* Bottom Section / Signatures */}
-              <div className="w-full flex flex-col items-center gap-10 mt-12">
+              <div className="w-full flex flex-col items-center gap-10 mt-12 relative">
                 <div className="w-full text-right font-medium">
                   {docData.localData || "Manaus - AM"}
                 </div>
@@ -1346,11 +1754,33 @@ window.print();
                   <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
                     Signatário
                   </span>
+                  {docData.assinaturaDigital && (
+                    <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
+                      <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5 mb-1">
+                        🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+                      </span>
+                      {docData.assinaturaDigital.includes(" | ") ? (
+                        docData.assinaturaDigital.split(" | ").map((part: string, i: number) => (
+                          <span key={i} className="block">{part}</span>
+                        ))
+                      ) : (
+                        <span>{docData.assinaturaDigital}</span>
+                      )}
+                      {docData.assinadoEm && <span>Data/Hora: {new Date(docData.assinadoEm).toLocaleString("pt-BR")}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
                 </>
               )}
             </div>
+            {docData.anexosBase64 && docData.anexosBase64.length > 0 && (
+              <RenderDocumentAttachments 
+                anexos={docData.anexosBase64} 
+                remetente={docData.remetente} 
+                docType={docType} 
+              />
+            )}
           </div>
 
         </div>
@@ -1369,113 +1799,144 @@ window.print();
           ) : !minhasPartesQuery.data || minhasPartesQuery.data.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground font-semibold">Você ainda não enviou nenhum documento pelo sistema.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-black">
-                    <th className="p-3 text-left font-semibold">Tipo</th>
-                    <th className="p-3 text-left font-semibold">Assunto</th>
-                    <th className="p-3 text-left font-semibold">Data de Envio</th>
-                    <th className="p-3 text-left font-semibold">Status</th>
-                    <th className="p-3 text-left font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {minhasPartesQuery.data.map((doc: any) => {
-                    const statusColors: Record<string, string> = {
-                      enviado: "bg-yellow-100 text-yellow-800 border-yellow-200",
-                      aceito: "bg-green-100 text-green-800 border-green-200",
-                      recusado: "bg-red-100 text-red-800 border-red-200",
-                      negociacao: "bg-orange-100 text-orange-800 border-orange-200",
-                    };
-                    const statusLabels: Record<string, string> = {
-                      enviado: "Enviado",
-                      aceito: "Aceito (Aditado)",
-                      recusado: "Recusado",
-                      negociacao: "Em Negociação",
-                    };
-                    const dateFormatted = new Date(doc.createdAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    });
-                    return (
-                      <tr key={doc.id} className="border-b hover:bg-muted/10 text-black">
-                        <td className="p-3 font-medium uppercase">{doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : doc.tipoDocumento}</td>
-                        <td className="p-3">{doc.assunto}</td>
-                        <td className="p-3 text-muted-foreground">{dateFormatted}</td>
-                        <td className="p-3">
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColors[doc.status] || "bg-gray-100"}`}>
-                            {statusLabels[doc.status] || doc.status}
-                          </span>
-                          {doc.observacaoXerife && (
-                            <p className="text-[11px] text-muted-foreground mt-1 max-w-[250px] italic">
-                              Obs: {doc.observacaoXerife}
-                            </p>
-                          )}
-                        </td>
-                        <td className="p-3 flex gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="gap-1">
+            (() => {
+              const ITEMS_PER_PAGE = 8;
+              const totalPages = Math.ceil((minhasPartesQuery.data?.length || 0) / ITEMS_PER_PAGE);
+              const paginatedDocs = (minhasPartesQuery.data || []).slice(
+                (currentPage - 1) * ITEMS_PER_PAGE,
+                currentPage * ITEMS_PER_PAGE
+              );
+
+              return (
+                <div className="overflow-x-auto flex flex-col gap-4">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b bg-muted/40 text-black">
+                        <th className="p-3 text-left font-semibold">Tipo</th>
+                        <th className="p-3 text-left font-semibold">Assunto</th>
+                        <th className="p-3 text-left font-semibold">Data de Envio</th>
+                        <th className="p-3 text-left font-semibold">Status</th>
+                        <th className="p-3 text-left font-semibold">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedDocs.map((doc: any) => {
+                        const statusColors: Record<string, string> = {
+                          enviado: "bg-yellow-100 text-yellow-800 border-yellow-200",
+                          aceito: "bg-green-100 text-green-800 border-green-200",
+                          recusado: "bg-red-100 text-red-800 border-red-200",
+                          negociacao: "bg-orange-100 text-orange-800 border-orange-200",
+                        };
+                        const statusLabels: Record<string, string> = {
+                          enviado: "Enviado",
+                          aceito: "Aceito (Aditado)",
+                          recusado: "Recusado",
+                          negociacao: "Em Negociação",
+                        };
+                        const dateFormatted = new Date(doc.createdAt).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        });
+                        return (
+                          <tr key={doc.id} className="border-b hover:bg-muted/10 text-black">
+                            <td className="p-3 font-medium uppercase">{doc.tipoDocumento === 'parte' ? `Parte (${doc.tipoParte})` : doc.tipoDocumento}</td>
+                            <td className="p-3">{doc.assunto}</td>
+                            <td className="p-3 text-muted-foreground">{dateFormatted}</td>
+                            <td className="p-3">
+                              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColors[doc.status] || "bg-gray-100"}`}>
+                                {statusLabels[doc.status] || doc.status}
+                              </span>
+                              {doc.observacaoXerife && (
+                                <p className="text-[11px] text-muted-foreground mt-1 max-w-[250px] italic">
+                                  Obs: {doc.observacaoXerife}
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-3 flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="gap-1"
+                                onClick={() => setViewDoc(doc)}
+                              >
                                 <Eye className="h-3.5 w-3.5" /> Ver
                               </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-[850px] max-h-[90vh] overflow-auto bg-[#d8d5cd] p-4 rounded-md">
-                              <div className="flex justify-center my-4">
-                                <div 
-                                  className="official-document-sheet relative border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shadow-2xl bg-white text-black min-w-[210mm]"
-                                  style={{
-                                    fontFamily: "'Times New Roman', Times, serif",
-                                    width: "210mm",
-                                    minWidth: "210mm",
-                                    minHeight: "297mm",
-                                    boxSizing: "border-box",
-                                    fontSize: "13px",
-                                    lineHeight: "1.45"
+
+                              {(doc.status === 'negociacao' || doc.status === 'recusado') && (
+                                <Button 
+                                  size="sm" 
+                                  variant="secondary"
+                                  className="gap-1 bg-[#1a3a2a] text-white hover:bg-[#11271b]"
+                                  onClick={() => {
+                                    try {
+                                      const parsed = JSON.parse(doc.conteudoJson);
+                                      setDocData(parsed);
+                                      setDocType(doc.tipoDocumento as any);
+                                      toast.success("Documento carregado no editor! Faça os ajustes e reenvie.");
+                                      const tabBtn = document.querySelector('[role="tab"][value="editor"]') as HTMLButtonElement;
+                                      tabBtn?.click();
+                                    } catch (e) {
+                                      toast.error("Erro ao carregar documento no editor.");
+                                    }
                                   }}
                                 >
-                                  <RenderSavedDocument doc={doc} />
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                                  <Edit2 className="h-3.5 w-3.5" /> Ajustar
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
 
-                          {(doc.status === 'negociacao' || doc.status === 'recusado') && (
-                            <Button 
-                              size="sm" 
-                              variant="secondary"
-                              className="gap-1 bg-[#1a3a2a] text-white hover:bg-[#11271b]"
-                              onClick={() => {
-                                try {
-                                  const parsed = JSON.parse(doc.conteudoJson);
-                                  setDocData(parsed);
-                                  setDocType(doc.tipoDocumento as any);
-                                  toast.success("Documento carregado no editor! Faça os ajustes e reenvie.");
-                                  const tabBtn = document.querySelector('[role="tab"][value="editor"]') as HTMLButtonElement;
-                                  tabBtn?.click();
-                                } catch (e) {
-                                  toast.error("Erro ao carregar documento no editor.");
-                                }
-                              }}
-                            >
-                              <Edit2 className="h-3.5 w-3.5" /> Ajustar
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  {/* Controles de Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t pt-4 px-2 select-none text-black">
+                      <span className="text-xs text-muted-foreground">
+                        Página {currentPage} de {totalPages} ({minhasPartesQuery.data?.length} documentos)
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        >
+                          Anterior
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        >
+                          Próximo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </CardContent>
       </Card>
     </TabsContent>
   </Tabs>
+
+  <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
+    <DialogContent className="max-w-[850px] max-h-[90vh] overflow-auto bg-[#d8d5cd] p-6 rounded-md">
+      {viewDoc && (
+        <div className="flex flex-col items-center gap-6 my-4 w-full">
+          <RenderSavedDocument doc={viewDoc} />
+        </div>
+      )}
+    </DialogContent>
+  </Dialog>
 
   <Footer />
 </div>

@@ -1,0 +1,1116 @@
+﻿diff --git a/client/src/pages/Documents.tsx b/client/src/pages/Documents.tsx
+index 9009d32..bc299ef 100644
+--- a/client/src/pages/Documents.tsx
++++ b/client/src/pages/Documents.tsx
+@@ -222,6 +222,201 @@ function normalizeDocumentData(type: DocType, data: Partial<DocumentData>) {
+   return normalized;
+ }
+ 
++export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
++  const remetente = docData.remetente || "AL SD PM (1111) FULANO (CI 11111)";
++  const destinatario = docData.destinatario || "CAP QOPM Cmt do CAL";
++  const assunto = docData.assunto || "Solicita├º├úo (FAZ)";
++  const relato = docData.parteRelato || PARTE_DEFAULT_RELATO;
++  const fecho = docData.parteFecho || "Respeitosamente,";
++
++  return (
++    <div
++      className="official-document-sheet relative flex h-full min-h-0 w-full flex-col text-[12px] leading-[1.45] [color-scheme:light]"
++    >
++      <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif text-black">
++        <img
++          src={docData.imagemCabecalhoEsq || PMAM_HEADER_URL}
++          alt="Bras├úo PMAM"
++          className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
++          style={{ imageRendering: "-webkit-optimize-contrast" }}
++        />
++        <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
++          <p>POL├ìCIA MILITAR DO AMAZONAS</p>
++          <p>DIRETORIA DE CAPACITA├ç├âO E TREINAMENTO</p>
++          <p>CENTRO DE FORMA├ç├âO E APERFEI├çOAMENTO DE PRA├çAS</p>
++          <p className="text-[24px] font-bold leading-none">CFAP</p>
++        </div>
++        <img
++          src={docData.imagemCabecalhoDir || CFAP_HEADER_URL}
++          alt="Bras├úo CFAP"
++          className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
++          style={{ imageRendering: "-webkit-optimize-contrast" }}
++        />
++      </div>
++
++      <section className="grid grid-cols-2 gap-8 text-black">
++        <p>Parte S/N┬║/2026</p>
++        <p>Quartel em Manaus-AM, {formatParteDate(docData.localData)}.</p>
++      </section>
++
++      <section className="ml-auto mt-4 w-[50%] leading-[1.35] text-black">
++        <p><strong>Do:</strong> {remetente}</p>
++        <p><strong>Ao:</strong> {destinatario}</p>
++        <p><strong>Assunto:</strong> {assunto}</p>
++        <p><strong>Anexo:</strong> {docData.anexo || "___ (Se houver)"}</p>
++      </section>
++
++      <main className="mt-10 flex-1 whitespace-pre-line text-justify text-black">
++        <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
++        {relato.split(/\n\s*\n/).map((paragraph, index) => (
++          <p key={index} className="mb-3 indent-[15mm]">
++            {paragraph}
++          </p>
++        ))}
++    destinatario: "Ao Sr. Comandante da Companhia de Alunos do CFAP",
++    assunto: "Solicita├º├úo (FAZ)",
++    anexo: "___ (Se houver)",
++    localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
++    parteFatoData: new Date().toLocaleDateString("pt-BR"),
++    parteFatoHora: "08:30",
++    parteFatoLocal: "Sala de Instru├º├úo 03",
++    parteRelato: PARTE_DEFAULT_RELATO,
++    parteFecho: "Respeitosamente,",
++    reqNomeCompleto: "",
++    reqMatricula: "",
++    reqPelotao: "",
++    reqSolicitacao: "",
++    reqJustificativa: "",
++    defesaFatoRef: "",
++    defesaTexto: "",
++    guiaDestino: "",
++    guiaIda: "",
++    guiaVolta: "",
++    guiaMotivo: "",
++    guiaTransporte: ""
++  },
++  requerimento: {
++    type: "requerimento",
++    remetente: "ALUNO SOLDADO PM SILVA",
++    destinatario: "ILUSTR├ìSSIMO SENHOR DIRETOR DO CENTRO DE FORMA├ç├âO E APERFEI├çOAMENTO DE PRA├çAS",
++    assunto: "Requerimento Administrativo",
++    anexo: "",
++    localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
++    parteFatoData: "",
++    parteFatoHora: "",
++    parteFatoLocal: "",
++    parteRelato: "",
++    parteFecho: "",
++    reqNomeCompleto: "Felipe da Silva Santos",
++    reqMatricula: "123.456-7 A",
++    reqPelotao: "3┬║ Pelot├úo - 1┬¬ Companhia",
++    reqSolicitacao: "Realiza├º├úo de Segunda Chamada de Avalia├º├úo Pedag├│gica",
++    reqJustificativa: "Requer a V.S.┬¬ a autoriza├º├úo para a realiza├º├úo da prova de segunda chamada da disciplina de 'Regulamento Disciplinar da PMAM (RDPMAM)', realizada no dia 04 de junho de 2026, tendo em vista que este requerente encontrava-se impossibilitado de comparecer na data prevista devido a dispensa m├®dica devidamente homologada pela Policl├¡nica da PMAM, conforme atestado em anexo.",
++    defesaFatoRef: "",
++    defesaTexto: "",
++    guiaDestino: "",
++    guiaIda: "",
++    guiaVolta: "",
++    guiaMotivo: "",
++    guiaTransporte: ""
++  },
++  defesa: {
++    type: "defesa",
++    remetente: "Al. Sd. PM N┬║ 1234 Silva",
++    destinatario: "Ao Sr. Chefe da Se├º├úo de Justi├ºa e Disciplina do CFAP",
++    assunto: "Apresenta├º├úo de Justificativa de Fato Apontado",
++    anexo: "",
++    localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
++    parteFatoData: "",
++    parteFatoHora: "",
++    parteFatoLocal: "",
++    parteRelato: "",
++    parteFecho: "",
++    reqNomeCompleto: "",
++    reqMatricula: "",
++    reqPelotao: "",
++    reqSolicitacao: "",
++    reqJustificativa: "",
++    defesaFatoRef: "FAT-048/2026",
++    defesaTexto: "Em aten├º├úo ao fato apontado sob registro FAT-048/2026, referente ao suposto atraso de 10 minutos para a formatura matinal do dia 03 de junho de 2026, venho expor e justificar que o atraso ocorreu devido a uma pane mec├ónica no ve├¡culo particular deste discente a caminho do quartel. Salienta-se que, t├úo logo resolvido o imprevisto, o discente apresentou-se imediatamente ao oficial de dia, justificando o ocorrido e solicitando sua inclus├úo no dispositivo formado. Solicito a atenua├º├úo do fato sob os preceitos do Art. 22 do Manual do Aluno.",
++    guiaDestino: "",
++    guiaIda: "",
++    guiaVolta: "",
++    guiaMotivo: "",
++    guiaTransporte: ""
++  },
++  guia: {
++    type: "guia",
++    remetente: "Al. Sd. PM N┬║ 1234 Silva",
++    destinatario: "Ao Sr. Comandante do Corpo de Alunos do CFAP",
++    assunto: "Solicita├º├úo de Guia de Tr├ónsito",
++    anexo: "",
++    localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
++    parteFatoData: "",
++    parteFatoHora: "",
++    parteFatoLocal: "",
++    parteRelato: "",
++    parteFecho: "",
++    reqNomeCompleto: "",
++    reqMatricula: "",
++    reqPelotao: "",
++    reqSolicitacao: "",
++    reqJustificativa: "",
++    defesaFatoRef: "",
++    defesaTexto: "",
++    guiaDestino: "Parintins - AM",
++    guiaIda: "12/06/2026",
++    guiaVolta: "15/06/2026",
++    guiaMotivo: "Visita familiar durante o per├¡odo de folga regulamentar de fim de semana prolongado.",
++    guiaTransporte: "Transporte hidrovi├írio de linha regular",
++  }
++};
++
++export function formatParteDate(localData: string) {
++  const cleaned = localData.replace(/^Manaus\s*-\s*AM,\s*/i, "").trim();
++  return cleaned || new Date().toLocaleDateString("pt-BR", {
++    day: "numeric",
++    month: "long",
++    year: "numeric",
++  });
++}
++
++function countParteConsiderandos(text: string) {
++  const matches = text.match(/(^|\n)\s*considerando\b/gi);
++  return matches?.length ?? 0;
++}
++
++function normalizeDocumentData(type: DocType, data: Partial<DocumentData>) {
++  const normalized: DocumentData = {
++    ...defaultValues[type],
++    ...data,
++    type,
++  };
++
++  if (
++    type === "parte" &&
++    (!normalized.parteRelato ||
++      normalized.parteRelato.includes("aus├¬ncia imotivada") ||
++      normalized.parteRelato.includes("Participo a V.S.┬¬"))
++  ) {
++    normalized.parteRelato = PARTE_DEFAULT_RELATO;
++  }
++
++  if (type === "parte" && !normalized.anexo) {
++    normalized.anexo = "___ (Se houver)";
++  }
++
++  if (type === "parte" && !normalized.parteFecho) {
++    normalized.parteFecho = "Respeitosamente,";
++  }
++
++  if (type === "parte" && normalized.assunto === "Participa├º├úo de Ocorr├¬ncia Escolar") {
++    normalized.assunto = "Solicita├º├úo (FAZ)";
++  }
++
++  return normalized;
++}
++
+ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
+   const remetente = docData.remetente || "AL SD PM (1111) FULANO (CI 11111)";
+   const destinatario = docData.destinatario || "CAP QOPM Cmt do CAL";
+@@ -282,10 +477,16 @@ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
+         <p>Solicitante</p>
+         {docData.assinaturaDigital && (
+           <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
+-            <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5">
++            <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5 mb-1">
+               ­ƒøí´©Å ASSINATURA ELETR├öNICA REGISTRADA
+             </span>
+-            <span>{docData.assinaturaDigital}</span>
++            {docData.assinaturaDigital.includes(" | ") ? (
++              docData.assinaturaDigital.split(" | ").map((part: string, i: number) => (
++                <span key={i} className="block">{part}</span>
++              ))
++            ) : (
++              <span>{docData.assinaturaDigital}</span>
++            )}
+             {docData.assinadoEm && <span>Data/Hora: {new Date(docData.assinadoEm).toLocaleString("pt-BR")}</span>}
+           </div>
+         )}
+@@ -358,10 +559,16 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
+           <p>Solicitante</p>
+           {doc.assinaturaDigital && (
+             <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
+-              <span className="font-bold tracking-wider uppercase text-green-900">
++              <span className="font-bold tracking-wider uppercase text-green-900 mb-1">
+                 ­ƒøí´©Å ASSINATURA ELETR├öNICA REGISTRADA
+               </span>
+-              <span>{doc.assinaturaDigital}</span>
++              {doc.assinaturaDigital.includes(" | ") ? (
++                doc.assinaturaDigital.split(" | ").map((part: string, i: number) => (
++                  <span key={i} className="block">{part}</span>
++                ))
++              ) : (
++                <span>{doc.assinaturaDigital}</span>
++              )}
+               {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+             </div>
+           )}
+@@ -493,10 +700,16 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
+             </span>
+             {doc.assinaturaDigital && (
+               <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
+-                <span className="font-bold tracking-wider uppercase text-green-900">
++                <span className="font-bold tracking-wider uppercase text-green-900 mb-1">
+                   ­ƒøí´©Å ASSINATURA ELETR├öNICA REGISTRADA
+                 </span>
+-                <span>{doc.assinaturaDigital}</span>
++                {doc.assinaturaDigital.includes(" | ") ? (
++                  doc.assinaturaDigital.split(" | ").map((part: string, i: number) => (
++                    <span key={i} className="block">{part}</span>
++                  ))
++                ) : (
++                  <span>{doc.assinaturaDigital}</span>
++                )}
+                 {doc.assinadoEm && <span>Data/Hora: {new Date(doc.assinadoEm).toLocaleString("pt-BR")}</span>}
+               </div>
+             )}
+@@ -507,12 +720,30 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
+   }
+ }
+ 
+-function formatSender(numerica: string, nomeGuerra: string, rg: string) {
+-  const cleanNome = (nomeGuerra || "").toUpperCase();
++function formatSender(numerica: string, nomeCompleto: string, nomeGuerra: string, rg: string) {
++  const cleanNome = (nomeCompleto || nomeGuerra || "").toUpperCase();
+   const cleanRg = rg ? ` (CI ${rg})` : "";
+   return `AL SD PM (${numerica}) ${cleanNome}${cleanRg}`;
+ }
+ 
++function getShortDeviceDesc(ua: string) {
++  let os = "OS Desconhecido";
++  if (/windows/i.test(ua)) os = "Windows";
++  else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
++  else if (/android/i.test(ua)) os = "Android";
++  else if (/iphone|ipad|ipod/i.test(ua)) os = "iOS";
++  else if (/linux/i.test(ua)) os = "Linux";
++
++  let browser = "Navegador Desconhecido";
++  if (/chrome|crios/i.test(ua) && !/edge|edg/i.test(ua) && !/opr/i.test(ua)) browser = "Chrome";
++  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = "Safari";
++  else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
++  else if (/edge|edg/i.test(ua)) browser = "Edge";
++  else if (/opr/i.test(ua)) browser = "Opera";
++
++  return `${browser} no ${os}`;
++}
++
+ export default function Documents() {
+   const [docType, setDocType] = useState<DocType>("parte");
+   const [docData, setDocData] = useState<DocumentData>(defaultValues.parte);
+@@ -546,32 +777,47 @@ export default function Documents() {
+   // Carregar dados salvos do localStorage ou mesclar com o perfil oficial
+   useEffect(() => {
+     const saved = localStorage.getItem(`pmam_doc_${docType}`);
++    let initialData: DocumentData;
++    
+     if (saved) {
+       try {
+-        const normalized = normalizeDocumentData(docType, JSON.parse(saved));
+-        setDocData(normalized);
+-        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(normalized));
++        initialData = normalizeDocumentData(docType, JSON.parse(saved));
+       } catch (e) {
+-        setDocData(defaultValues[docType]);
++        initialData = { ...defaultValues[docType] };
+       }
+     } else {
+-      const baseDefaults = { ...defaultValues[docType] };
+-      if (session && profileQuery.data) {
+-        const senderString = formatSender(
+-          session.numerica,
+-          profileQuery.data.nomeGuerra || session.nomeGuerra,
+-          profileQuery.data.rg || ""
+-        );
+-        baseDefaults.remetente = senderString;
+-
+-        if (docType === "requerimento") {
+-          baseDefaults.reqNomeCompleto = profileQuery.data.nomeCompleto || "";
+-          baseDefaults.reqMatricula = profileQuery.data.rg || "";
+-          baseDefaults.reqPelotao = `${session.peloton}┬║ Pelot├úo - ${session.companhia}┬¬ Companhia`;
++      initialData = { ...defaultValues[docType] };
++    }
++
++    if (session && profileQuery.data) {
++      const senderString = formatSender(
++        session.numerica,
++        profileQuery.data.nomeCompleto || "",
++        profileQuery.data.nomeGuerra || session.nomeGuerra,
++        profileQuery.data.rg || ""
++      );
++      
++      // Auto-preencher remetente se for o padr├úo ou se estiver vazio ou antigo
++      if (!initialData.remetente || initialData.remetente === defaultValues[docType].remetente || initialData.remetente.includes("1234 Silva")) {
++        initialData.remetente = senderString;
++      }
++
++      if (docType === "requerimento") {
++        if (!initialData.reqNomeCompleto || initialData.reqNomeCompleto === defaultValues.requerimento.reqNomeCompleto) {
++          initialData.reqNomeCompleto = profileQuery.data.nomeCompleto || "";
++        }
++        if (!initialData.reqMatricula || initialData.reqMatricula === defaultValues.requerimento.reqMatricula) {
++          initialData.reqMatricula = profileQuery.data.rg || "";
++        }
++        if (!initialData.reqPelotao || initialData.reqPelotao === defaultValues.requerimento.reqPelotao) {
++          initialData.reqPelotao = `${session.peloton}┬║ Pelot├úo - ${session.companhia}┬¬ Companhia`;
+         }
+       }
+-      setDocData(normalizeDocumentData(docType, baseDefaults));
+     }
++
++    const normalized = normalizeDocumentData(docType, initialData);
++    setDocData(normalized);
++    localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(normalized));
+   }, [docType, profileQuery.data]);
+ 
+   // Salvar no localStorage sempre que mudar
+@@ -589,6 +835,32 @@ export default function Documents() {
+     }
+   };
+ 
++  const handleAutoFillProfile = () => {
++    if (!session || !profileQuery.data) {
++      toast.error("Nenhuma sess├úo ativa ou perfil carregado.");
++      return;
++    }
++    const senderString = formatSender(
++      session.numerica,
++      profileQuery.data.nomeCompleto || "",
++      profileQuery.data.nomeGuerra || session.nomeGuerra,
++      profileQuery.data.rg || ""
++    );
++    
++    const updated = { ...docData };
++    updated.remetente = senderString;
++    
++    if (docType === "requerimento") {
++      updated.reqNomeCompleto = profileQuery.data.nomeCompleto || "";
++      updated.reqMatricula = profileQuery.data.rg || "";
++      updated.reqPelotao = `${session.peloton}┬║ Pelot├úo - ${session.companhia}┬¬ Companhia`;
++    }
++    
++    setDocData(updated);
++    localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
++    toast.success("Dados do perfil importados com sucesso!");
++  };
++
+   const handlePrint = () => {
+     toast.info("Abrindo janela de impress├úo/salvamento PDF...");
+     setTimeout(() => {
+@@ -634,720 +906,6 @@ window.print();
+           {/* Main Panel */}
+           <main className="container flex-1 px-0 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
+             <div className="grid grid-cols-1 gap-4 px-4 print:block md:px-0 lg:grid-cols-12 lg:gap-8">
+-          
+-          {/* Form Side */}
+-          <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
+-            <Card className="border-border/50 bg-white text-foreground shadow-md">
+-              <CardContent className="p-6 flex flex-col gap-4">
+-                <div className="flex flex-col gap-2">
+-                  <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a]">Tipo de Documento</label>
+-                  <Select
+-                    value={docType}
+-                    onValueChange={(val: DocType) => setDocType(val)}
+-                  >
+-                    <SelectTrigger className="bg-muted/30">
+-                      <SelectValue placeholder="Selecione o documento" />
+-                    </SelectTrigger>
+-                    <SelectContent>
+-                      <SelectItem value="parte">­ƒôü Parte de Ocorr├¬ncia / Disciplinar</SelectItem>
+-                      <SelectItem value="requerimento">­ƒôØ Requerimento Administrativo</SelectItem>
+-                      <SelectItem value="defesa">­ƒøí´©Å Defesa Escrita / Justificativa</SelectItem>
+-                      <SelectItem value="guia">Ô£ê´©Å Guia de Tr├ónsito (Viagem)</SelectItem>
+-                    </SelectContent>
+-                  </Select>
+-                </div>
+-
+-                <div className="flex gap-2">
+-                  <Button 
+-                    variant={viewMode === "edit" ? "default" : "outline"} 
+-                    className={`flex-1 gap-2 ${viewMode === "edit" ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
+-                    onClick={() => setViewMode("edit")}
+-                  >
+-                    <Edit2 className="h-4 w-4" />
+-                    Editar
+-                  </Button>
+-                  <Button 
+-                    variant={viewMode === "preview" ? "default" : "outline"} 
+-                    className={`flex-1 gap-2 lg:hidden ${viewMode === "preview" ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
+-                    onClick={() => setViewMode("preview")}
+-                  >
+-                    <Eye className="h-4 w-4" />
+-                    Visualizar
+-                  </Button>
+-                </div>
+-              </CardContent>
+-            </Card>
+-
+-            {officialDocumentsQuery.data && officialDocumentsQuery.data.length > 0 && (
+-              <Card className="border-border/50 bg-white text-foreground shadow-md">
+-                <CardContent className="flex flex-col gap-4 p-6">
+-                  <div className="flex items-center gap-2 border-b pb-3">
+-                    <Download className="h-5 w-5 text-[#c4a84b]" />
+-                    <h3 className="text-base font-bold text-[#1a3a2a]" style={{ fontFamily: "Inter, sans-serif" }}>
+-                      Documentos oficiais
+-                    </h3>
+-                  </div>
+-                  <div className="flex flex-col gap-2">
+-                    {officialDocumentsQuery.data.map((item) => {
+-                      const extension = item.fileName.split(".").pop()?.toUpperCase() || "DOC";
+-                      return (
+-                        <div key={item.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
+-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a]">
+-                            {extension.slice(0, 4)}
+-                          </div>
+-                          <div className="min-w-0 flex-1">
+-                            <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+-                            <p className="truncate text-[11px] text-muted-foreground">
+-                              {item.description || item.fileName}
+-                            </p>
+-                          </div>
+-                          <Button asChild size="sm" variant="outline" className="h-8 shrink-0 gap-1 bg-white text-foreground">
+-                            <a href={item.fileUrl} target="_blank" rel="noreferrer" download={item.fileName}>
+-                              <Download className="h-3.5 w-3.5" />
+-                              Baixar
+-                            </a>
+-                          </Button>
+-                        </div>
+-                      );
+-                    })}
+-                  </div>
+-                </CardContent>
+-              </Card>
+-            )}
+-
+-            {/* Inputs Editor */}
+-            <Card className="flex-1 border-border/50 bg-white text-foreground shadow-md">
+-              <CardContent className="p-6 flex flex-col gap-5">
+-                <div className="flex items-center justify-between border-b pb-3">
+-                  <h3 className="font-bold text-[#1a3a2a] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
+-                    Preencher Dados
+-                  </h3>
+-                  <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8">
+-                    <RotateCcw className="h-3.5 w-3.5" />
+-                    Limpar
+-                  </Button>
+-                </div>
+-
+-                <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+-                  {/* Campos Comuns */}
+-                  <div className="flex flex-col gap-1.5">
+-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+-                      <User className="h-3 w-3" /> Remetente (Identidade Militar)
+-                    </label>
+-                    <Input 
+-                      value={docData.remetente}
+-                      onChange={(e) => handleFieldChange("remetente", e.target.value)}
+-                      placeholder="Ex: Al. Sd. PM N┬║ 1234 Silva"
+-                    />
+-                  </div>
+-
+-                  <div className="flex flex-col gap-1.5">
+-                    <label className="text-xs font-semibold text-muted-foreground">Destinat├írio</label>
+-                    <Input 
+-                      value={docData.destinatario}
+-                      onChange={(e) => handleFieldChange("destinatario", e.target.value)}
+-                      placeholder="Ex: Ao Sr. Comandante do CFAP"
+-                    />
+-                  </div>
+-
+-                  <div className="flex flex-col gap-1.5">
+-                    <label className="text-xs font-semibold text-muted-foreground">Assunto</label>
+-                    <Input
+-                      value={docData.assunto}
+-                      onChange={(e) => handleFieldChange("assunto", e.target.value)}
+-                      placeholder="Ex: Solicita├º├úo (FAZ)"
+-                    />
+-                  </div>
+-
+-                  {docType === "parte" && (
+-                    <div className="flex flex-col gap-1.5">
+-                      <label className="text-xs font-semibold text-muted-foreground">Anexo</label>
+-                      <Input
+-                        value={docData.anexo}
+-                        onChange={(e) => handleFieldChange("anexo", e.target.value)}
+-                        placeholder="___ (Se houver)"
+-                      />
+-                    </div>
+-                  )}
+-
+-                  <div className="flex flex-col gap-1.5">
+-                    <label className="text-xs font-semibold text-muted-foreground">Local e Data</label>
+-                    <Input 
+-                      value={docData.localData}
+-                      onChange={(e) => handleFieldChange("localData", e.target.value)}
+-                      placeholder="Manaus - AM, DD/MM/AAAA"
+-                    />
+-                  </div>
+-
+-                  {/* Campos espec├¡ficos da PARTE */}
+-                  {docType === "parte" && (
+-                    <>
+-                      <div className="grid grid-cols-2 gap-3">
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+-                            <Calendar className="h-3 w-3" /> Data do Fato
+-                          </label>
+-                          <Input 
+-                            value={docData.parteFatoData}
+-                            onChange={(e) => handleFieldChange("parteFatoData", e.target.value)}
+-                            placeholder="DD/MM/AAAA"
+-                          />
+-                        </div>
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground">Hora do Fato</label>
+-                          <Input 
+-                            value={docData.parteFatoHora}
+-                            onChange={(e) => handleFieldChange("parteFatoHora", e.target.value)}
+-                            placeholder="HH:MM"
+-                          />
+-                        </div>
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+-                          <MapPin className="h-3 w-3" /> Local do Fato
+-                        </label>
+-                        <Input 
+-                          value={docData.parteFatoLocal}
+-                          onChange={(e) => handleFieldChange("parteFatoLocal", e.target.value)}
+-                          placeholder="Ex: P├ítio do CFAP"
+-                        />
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+-                          <ClipboardList className="h-3 w-3" /> Considerando e solicita├º├úo
+-                        </label>
+-                        <Textarea 
+-                          value={docData.parteRelato}
+-                          onChange={(e) => handleFieldChange("parteRelato", e.target.value)}
+-                          placeholder="Digite o texto do considerando e da solicita├º├úo da parte..."
+-                          rows={8}
+-                        />
+-                        {parteConsiderandoCount > 5 && (
+-                          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+-                            A Parte ultrapassou 5 considerandos. Revise o texto antes de imprimir.
+-                          </p>
+-                        )}
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Fecho</label>
+-                        <Input
+-                          value={docData.parteFecho}
+-                          onChange={(e) => handleFieldChange("parteFecho", e.target.value)}
+-                          placeholder="Ex: Respeitosamente,"
+-                        />
+-                      </div>
+-                    </>
+-                  )}
+-
+-                  {/* Campos espec├¡ficos do REQUERIMENTO */}
+-                  {docType === "requerimento" && (
+-                    <>
+-                      <div className="grid grid-cols-2 gap-3">
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground">Nome Completo do Aluno</label>
+-                          <Input 
+-                            value={docData.reqNomeCompleto}
+-                            onChange={(e) => handleFieldChange("reqNomeCompleto", e.target.value)}
+-                            placeholder="Nome Completo"
+-                          />
+-                        </div>
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground">Matr├¡cula / RG</label>
+-                          <Input 
+-                            value={docData.reqMatricula}
+-                            onChange={(e) => handleFieldChange("reqMatricula", e.target.value)}
+-                            placeholder="XXX.XXX-X"
+-                          />
+-                        </div>
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Companhia / Pelot├úo</label>
+-                        <Input 
+-                          value={docData.reqPelotao}
+-                          onChange={(e) => handleFieldChange("reqPelotao", e.target.value)}
+-                          placeholder="Ex: 3┬║ Pelot├úo - 1┬¬ Companhia"
+-                        />
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground font-bold">Objeto do Requerimento</label>
+-                        <Input 
+-                          value={docData.reqSolicitacao}
+-                          onChange={(e) => handleFieldChange("reqSolicitacao", e.target.value)}
+-                          placeholder="Ex: Segunda chamada de prova"
+-                        />
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Exposi├º├úo de Motivos (Fundamenta├º├úo)</label>
+-                        <Textarea 
+-                          value={docData.reqJustificativa}
+-                          onChange={(e) => handleFieldChange("reqJustificativa", e.target.value)}
+-                          placeholder="Explique detalhadamente o pedido..."
+-                          rows={8}
+-                        />
+-                      </div>
+-                    </>
+-                  )}
+-
+-                  {/* Campos espec├¡ficos da DEFESA */}
+-                  {docType === "defesa" && (
+-                    <>
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Fato Apontado Referente (N┬║ do Registro)</label>
+-                        <Input 
+-                          value={docData.defesaFatoRef}
+-                          onChange={(e) => handleFieldChange("defesaFatoRef", e.target.value)}
+-                          placeholder="Ex: FAT-048/2026 ou Registro de Ocorr├¬ncia N┬║ 12/2026"
+-                        />
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Justificativa e Alega├º├Áes de Defesa</label>
+-                        <Textarea 
+-                          value={docData.defesaTexto}
+-                          onChange={(e) => handleFieldChange("defesaTexto", e.target.value)}
+-                          placeholder="Apresente suas alega├º├Áes de defesa baseadas nas circunst├óncias justificantes ou atenuantes..."
+-                          rows={10}
+-                        />
+-                      </div>
+-                    </>
+-                  )}
+-
+-                  {/* Campos espec├¡ficos da GUIA */}
+-                  {docType === "guia" && (
+-                    <>
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+-                          <MapPin className="h-3 w-3" /> Cidade e Estado de Destino
+-                        </label>
+-                        <Input 
+-                          value={docData.guiaDestino}
+-                          onChange={(e) => handleFieldChange("guiaDestino", e.target.value)}
+-                          placeholder="Ex: Parintins - AM"
+-                        />
+-                      </div>
+-
+-                      <div className="grid grid-cols-2 gap-3">
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground">Data de Ida</label>
+-                          <Input 
+-                            value={docData.guiaIda}
+-                            onChange={(e) => handleFieldChange("guiaIda", e.target.value)}
+-                            placeholder="DD/MM/AAAA"
+-                          />
+-                        </div>
+-                        <div className="flex flex-col gap-1.5">
+-                          <label className="text-xs font-semibold text-muted-foreground">Data de Volta</label>
+-                          <Input 
+-                            value={docData.guiaVolta}
+-                            onChange={(e) => handleFieldChange("guiaVolta", e.target.value)}
+-                            placeholder="DD/MM/AAAA"
+-                          />
+-                        </div>
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Meio de Transporte</label>
+-                        <Input 
+-                          value={docData.guiaTransporte}
+-                          onChange={(e) => handleFieldChange("guiaTransporte", e.target.value)}
+-                          placeholder="Ex: Transporte a├®reo / rodovi├írio / hidrovi├írio"
+-                        />
+-                      </div>
+-
+-                      <div className="flex flex-col gap-1.5">
+-                        <label className="text-xs font-semibold text-muted-foreground">Motivo do Deslocamento</label>
+-                        <Textarea 
+-                          value={docData.guiaMotivo}
+-                          onChange={(e) => handleFieldChange("guiaMotivo", e.target.value)}
+-                          placeholder="Exponha os motivos que ensejam a viagem..."
+-                          rows={6}
+-                        />
+-                      </div>
+-                    </>
+-                  )}
+-                </div>
+-
+-                <Button 
+-                  onClick={handlePrint} 
+-                  className="bg-[#c4a84b] hover:bg-[#b39740] text-[#1a1a1a] font-bold w-full gap-2 mt-4"
+-                >
+-                  <Printer className="h-5 w-5" />
+-                  Imprimir / Salvar PDF
+-                </Button>
+-              </CardContent>
+-            </Card>
+-
+-            {/* Customization & Electronic Signature Card */}
+-            <Card className="border-border/50 bg-white text-foreground shadow-md">
+-              <CardHeader className="pb-3 border-b">
+-                <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-1.5">
+-                  <Shield className="h-4.5 w-4.5 text-[#c4a84b]" />
+-                  Recursos do Sistema
+-                </CardTitle>
+-                <CardDescription className="text-[11px]">
+-                  Personalize o cabe├ºalho, assine eletronicamente e envie via tr├ómite oficial.
+-                </CardDescription>
+-              </CardHeader>
+-              <CardContent className="p-5 space-y-5">
+-                {/* 1. Header Customisation */}
+-                <div className="space-y-3">
+-                  <span className="text-xs font-bold text-muted-foreground block">
+-                    Bras├Áes Personalizados (Opcional)
+-                  </span>
+-                  
+-                  <div className="grid grid-cols-2 gap-3">
+-                    <div className="flex flex-col gap-1">
+-                      <label className="text-[10px] text-muted-foreground font-semibold">Bras├úo Esquerdo (PMAM)</label>
+-                      <Input
+-                        type="file"
+-                        accept="image/*"
+-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+-                        onChange={async (e) => {
+-                          const file = e.target.files?.[0];
+-                          if (!file) return;
+-                          const base64 = await new Promise<string>((resolve) => {
+-                            const reader = new FileReader();
+-                            reader.onload = () => resolve(reader.result as string);
+-                            reader.readAsDataURL(file);
+-                          });
+-                          handleFieldChange("imagemCabecalhoEsq", base64);
+-                        }}
+-                      />
+-                    </div>
+-
+-                    <div className="flex flex-col gap-1">
+-                      <label className="text-[10px] text-muted-foreground font-semibold">Bras├úo Direito (CFAP)</label>
+-                      <Input
+-                        type="file"
+-                        accept="image/*"
+-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+-                        onChange={async (e) => {
+-                          const file = e.target.files?.[0];
+-                          if (!file) return;
+-                          const base64 = await new Promise<string>((resolve) => {
+-                            const reader = new FileReader();
+-                            reader.onload = () => resolve(reader.result as string);
+-                            reader.readAsDataURL(file);
+-                          });
+-                          handleFieldChange("imagemCabecalhoDir", base64);
+-                        }}
+-                      />
+-                    </div>
+-                  </div>
+-
+-                  {(docData.imagemCabecalhoEsq || docData.imagemCabecalhoDir) && (
+-                    <Button
+-                      variant="ghost"
+-                      size="sm"
+-                      className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-8 font-semibold"
+-                      onClick={() => {
+-                        const updated = { ...docData };
+-                        delete updated.imagemCabecalhoEsq;
+-                        delete updated.imagemCabecalhoDir;
+-                        setDocData(updated);
+-                        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+-                      }}
+-                    >
+-                      Restaurar Bras├Áes Originais
+-                    </Button>
+-                  )}
+-                </div>
+-
+-                <div className="border-t border-dashed my-3" />
+-
+-                {/* 2. Digital Signature */}
+-                <div className="space-y-2">
+-                  <span className="text-xs font-bold text-muted-foreground block">
+-                    Assinatura Eletr├┤nica
+-                  </span>
+-
+-                  {docData.assinaturaDigital ? (
+-                    <div className="rounded border border-green-200 bg-green-50/50 p-3 space-y-2">
+-                      <p className="text-[10px] text-green-800 font-mono font-bold uppercase tracking-wider text-center">
+-                        Ô£ô Documento Assinado Digitalmente
+-                      </p>
+-                      <p className="text-[9px] text-green-700 font-mono break-all text-center">
+-                        {docData.assinaturaDigital}
+-                      </p>
+-                      <Button
+-                        variant="ghost"
+-                        size="sm"
+-                        className="w-full text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 h-7"
+-                        onClick={() => {
+-                          const updated = { ...docData };
+-                          delete updated.assinaturaDigital;
+-                          delete updated.assinadoEm;
+-                          setDocData(updated);
+-                          localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+-                        }}
+-                      >
+-                        Remover Assinatura
+-                      </Button>
+-                    </div>
+-                  ) : (
+-                    <Button
+-                      variant="outline"
+-                      size="sm"
+-                      className="w-full border-dashed text-xs font-bold text-foreground bg-white"
+-                      disabled={!session}
+-                      onClick={() => {
+-                        if (!session) {
+-                          toast.error("Voc├¬ precisa estar logado para assinar.");
+-                          return;
+-                        }
+-                        const hash = `CFAP-ASS-${session.numerica}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+-                        const signedAt = new Date().toISOString();
+-                        
+-                        const updated = { 
+-                          ...docData, 
+-                          assinaturaDigital: hash,
+-                          assinadoEm: signedAt
+-                        };
+-                        setDocData(updated);
+-                        localStorage.setItem(`pmam_doc_${docType}`, JSON.stringify(updated));
+-                        toast.success("Documento assinado com sucesso!");
+-                      }}
+-                    >
+-                      {!session ? "Fa├ºa login para assinar" : "Assinar Digitalmente"}
+-                    </Button>
+-                  )}
+-                </div>
+-
+-                <div className="border-t border-dashed my-3" />
+-
+-                {/* 3. Send via System */}
+-                <Button
+-                  className="w-full bg-[#1a3a2a] hover:bg-[#214936] text-white font-bold gap-2"
+-                  disabled={!session || !docData.assinaturaDigital || enviarParteMutation.isPending}
+-                  onClick={() => {
+-                    if (!session) return;
+-                    enviarParteMutation.mutate({
+-                      studentId: session.id,
+-                      sessionToken: session.sessionToken,
+-                      tipoDocumento: docType,
+-                      tipoParte: docType === "parte" ? docData.tipoParte || "dispensa" : docType,
+-                      remetente: docData.remetente,
+-                      destinatario: docData.destinatario,
+-                      assunto: docData.assunto,
+-                      anexo: docData.anexo || null,
+-                      localData: docData.localData,
+-                      conteudoJson: JSON.stringify(docData),
+-                      imagemCabecalhoEsq: docData.imagemCabecalhoEsq || null,
+-                      imagemCabecalhoDir: docData.imagemCabecalhoDir || null,
+-                      assinaturaDigital: docData.assinaturaDigital || null,
+-                    });
+-                  }}
+-                >
+-                  {enviarParteMutation.isPending ? "Enviando..." : "Enviar via Sistema"}
+-                </Button>
+-                {!docData.assinaturaDigital && (
+-                  <p className="text-[10px] text-muted-foreground text-center">
+-                    * Assine digitalmente antes de enviar via sistema.
+-                  </p>
+-                )}
+-              </CardContent>
+-            </Card>
+-          </div>
+-
+-          {/* Document Preview Side (A4 Sheet Simulation) */}
+-          <div className={`lg:col-span-7 flex justify-start lg:justify-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
+-            <div 
+-              id="military-document-print" 
+-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+-              style={{
+-                fontFamily: "'Times New Roman', Times, serif",
+-                width: "210mm",
+-                minWidth: "210mm",
+-                height: "297mm",
+-                minHeight: "297mm",
+-                boxSizing: "border-box",
+-              }}
+-            >
+-              {/* Estilos CSS espec├¡ficos de impress├úo injetados */}
+-              <style dangerouslySetInnerHTML={{__html: `
+-                @page {
+-                  size: A4 portrait;
+-                  margin: 0;
+-                }
+-                @media print {
+-                  html, body {
+-                    width: 210mm !important;
+-                    min-height: 297mm !important;
+-                  }
+-                  body {
+-                    background-color: white !important;
+-                    color: black !important;
+-                    font-family: 'Times New Roman', Times, serif !important;
+-                  }
+-                  header, footer, nav, button, .print\\:hidden, #nprogress {
+-                    display: none !important;
+-                  }
+-                  .container {
+-                    max-width: 100% !important;
+-                    padding: 0 !important;
+-                    margin: 0 !important;
+-                  }
+-                  main {
+-                    padding: 0 !important;
+-                    margin: 0 !important;
+-                  }
+-                  #military-document-print {
+-                    width: 210mm !important;
+-                    height: 297mm !important;
+-                    min-height: 297mm !important;
+-                    padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais: Esquerda 3cm, Direita 2cm, Superior 3cm, Inferior 2cm */
+-                    box-sizing: border-box !important;
+-                    overflow: hidden !important;
+-                    border: none !important;
+-                    box-shadow: none !important;
+-                    position: absolute !important;
+-                    left: 0 !important;
+-                    top: 0 !important;
+-                  }
+-                  #military-document-print img {
+-                    image-rendering: auto !important;
+-                    print-color-adjust: exact !important;
+-                    -webkit-print-color-adjust: exact !important;
+-                  }
+-                }
+-              `}} />
+-
+-              {docType === "parte" ? (
+-                <ParteOfficialPreview docData={docData} />
+-              ) : (
+-                <>
+-              {/* Top Section / Header */}
+-              <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
+-                <img 
+-                  src={PMAM_HEADER_URL} 
+-                  alt="Bras├úo PMAM" 
+-                  className="w-[18mm] h-[18mm] object-contain mb-1" 
+-                  style={{ imageRendering: "-webkit-optimize-contrast" }}
+-                />
+-                <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+-                  ESTADO DO AMAZONAS
+-                </h2>
+-                <h3 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
+-                  POL├ìCIA MILITAR DO AMAZONAS
+-                </h3>
+-                <h4 className="text-[11px] font-bold tracking-wider uppercase m-0 leading-tight">
+-                  CENTRO DE FORMA├ç├âO E APERFEI├çOAMENTO DE PRA├çAS - CFAP
+-                </h4>
+-              </div>
+-
+-              {/* Document Title / Meta */}
+-              <div className="w-full mt-8 flex flex-col items-center">
+-                <span className="font-bold text-[14px] uppercase tracking-widest decoration-dotted underline underline-offset-4">
+-                  {docType === "requerimento" && "REQUERIMENTO ADMINISTRATIVO"}
+-                  {docType === "defesa" && "JUSTIFICATIVA E APRESENTA├ç├âO DE DEFESA"}
+-                  {docType === "guia" && "SOLICITA├ç├âO DE GUIA DE TR├éNSITO"}
+-                </span>
+-                <span className="text-[11px] text-gray-600 mt-1">
+-                  C├│d: {docType.toUpperCase()}-CFAP-{new Date().getFullYear()}
+-                </span>
+-              </div>
+-
+-              {/* Document Body */}
+-              <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[13px] leading-relaxed">
+-                
+-                {/* Remetente & Destinat├írio Block */}
+-                <div className="flex flex-col gap-1.5">
+-                  <div>
+-                    <span className="font-bold">De: </span>
+-                    <span className="uppercase">{docData.remetente || "________________________"}</span>
+-                  </div>
+-                  <div>
+-                    <span className="font-bold">Para: </span>
+-                    <span className="uppercase font-semibold">{docData.destinatario || "________________________"}</span>
+-                  </div>
+-                  <div>
+-                    <span className="font-bold">Assunto: </span>
+-                    <span>{docData.assunto || "________________________"}</span>
+-                  </div>
+-                </div>
+-
+-                <div className="w-full h-[1px] bg-gray-200 my-2" />
+-
+-                {/* DYNAMIC TEXT BODY BASED ON DOC TYPE */}
+-                {docType === "requerimento" && (
+-                  <div className="flex flex-col gap-4">
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      O requerente <span className="font-bold uppercase">{docData.reqNomeCompleto || "________________________"}</span>, 
+-                      inscrito sob matr├¡cula/RG <span className="font-bold">{docData.reqMatricula || "___________"}</span>, 
+-                      atualmente discente lotado no <span className="font-bold">{docData.reqPelotao || "___________"}</span>, 
+-                      vem mui respeitosamente, por meio deste instrumento, requerer a Vossa Senhoria o que segue:
+-                    </p>
+-                    <p className="font-bold text-center text-[13px] my-2 bg-gray-100 p-2 uppercase print:bg-transparent print:border print:p-1">
+-                      {docData.reqSolicitacao || "NENHUMA SOLICITA├ç├âO ESPECIFICADA"}
+-                    </p>
+-                    <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700 print:text-black">Fundamenta├º├úo / Justificativa:</p>
+-                    <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200 print:bg-transparent print:border-none print:p-0">
+-                      {docData.reqJustificativa || "Preencha a exposi├º├úo de motivos no formul├írio ao lado."}
+-                    </p>
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      Nestes termos, pede e aguarda deferimento.
+-                    </p>
+-                  </div>
+-                )}
+-
+-                {docType === "defesa" && (
+-                  <div className="flex flex-col gap-4">
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      1. Em aten├º├úo ├á notifica├º├úo de fato apontado sob registro sob n├║mero 
+-                      <span className="font-bold"> {docData.defesaFatoRef || "______________"}</span>, o discente acima qualificado apresenta tempestivamente suas alega├º├Áes de defesa e justificativa de conduta, nos termos que seguem:
+-                    </p>
+-                    <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200 print:bg-transparent print:border-none print:p-0">
+-                      {docData.defesaTexto || "Insira o texto das alega├º├Áes de defesa no formul├írio de edi├º├úo."}
+-                    </p>
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      2. Diante do exposto, solicita-se a an├ílise do Colegiado Escolar ou do Comando de Companhia para acolhimento das justificativas apresentadas, visando a desconsidera├º├úo ou mitiga├º├úo dos pontos na Ficha de Conduta Escolar.
+-                    </p>
+-                  </div>
+-                )}
+-
+-                {docType === "guia" && (
+-                  <div className="flex flex-col gap-4">
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      1. Solicito a V.S.┬¬ a emiss├úo de Guia de Tr├ónsito para viagem regulamentar com destino ├á cidade de 
+-                      <span className="font-bold"> {docData.guiaDestino || "_______________"}</span>, 
+-                      com afastamento previsto a iniciar no dia <span className="font-bold">{docData.guiaIda || "__/__/____"}</span> 
+-                      e retorno previsto para o dia <span className="font-bold">{docData.guiaVolta || "__/__/____"}</span>, 
+-                      utilizando para tanto o seguinte meio de locomo├º├úo: <span className="font-bold">{docData.guiaTransporte || "_______________"}</span>.
+-                    </p>
+-                    <p className="font-bold uppercase text-[11px] tracking-wider mb-0 text-gray-700 print:text-black">Motivo do Deslocamento:</p>
+-                    <p className="indent-8 whitespace-pre-line leading-relaxed text-justify bg-gray-50/50 p-4 rounded border border-dashed border-gray-200 print:bg-transparent print:border-none print:p-0">
+-                      {docData.guiaMotivo || "Descreva o motivo da viagem no editor ao lado."}
+-                    </p>
+-                    <p className="indent-8 leading-relaxed text-justify">
+-                      2. Declaro estar ciente dos preceitos disciplinares e de apresenta├º├úo individual do CFAP durante todo o tr├ónsito, comprometendo-me a portar a referida Guia de Tr├ónsito assinada durante o deslocamento.
+-                    </p>
+-                  </div>
+-                )}
+-
+-              </div>
+-
+-              {/* Bottom Section / Signatures */}
+-              <div className="w-full flex flex-col items-center gap-10 mt-12">
+-                <div className="w-full text-right font-medium">
+-                  {docData.localData || "Manaus - AM"}
+-                </div>
+-                
+-                <div className="flex flex-col items-center">
+-                  <div className="w-[80mm] h-[1px] bg-black" />
+-                  <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
+-                    {docData.remetente || "Assinatura do Discente"}
+-                  </span>
+-                  <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+-                    Signat├írio
+-                  </span>
+-                </div>
+-              </div>
+                 </>
+               )}
+             </div>

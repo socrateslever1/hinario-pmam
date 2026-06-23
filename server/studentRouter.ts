@@ -44,13 +44,8 @@ export const studentRouter = router({
       let student: any = null;
 
       if (existingStudent) {
-        // Verificar se a conta já está ativada (se já tem token, email ou CPF/RG cadastrado)
-        const isAlreadyActivated = Boolean(
-          existingStudent.sessionToken ||
-          existingStudent.email ||
-          existingStudent.cpf ||
-          existingStudent.rg
-        );
+        // A conta só é considerada ativa se já tiver um sessionToken registrado (o que indica que o aluno já criou/entrou na conta pelo menos uma vez)
+        const isAlreadyActivated = Boolean(existingStudent.sessionToken);
 
         if (isAlreadyActivated) {
           // Normalizar CPFs e RGs para comparação
@@ -63,7 +58,7 @@ export const studentRouter = router({
           const matchesCpf = dbCpf && inputCpf && dbCpf === inputCpf;
           const matchesRg = dbRg && inputRg && dbRg === inputRg;
 
-          // Se a conta tem CPF/RG mas o input não bate, ou se a conta não tem CPF/RG salvos mas já está ativa
+          // Se a conta já ativa tem CPF ou RG, exige validação para redefinir
           if (!matchesCpf && !matchesRg) {
             if (!dbCpf && !dbRg) {
               throw new TRPCError({
@@ -73,7 +68,7 @@ export const studentRouter = router({
             } else {
               throw new TRPCError({
                 code: "CONFLICT",
-                message: "Esta numérica já está cadastrada. Para redefinir sua senha e assumir a conta, informe o CPF ou RG cadastrado corretos.",
+                message: "Esta numérica já está cadastrada e ativa. Para redefinir sua senha e reassumir a conta, informe o CPF ou RG cadastrado corretos.",
               });
             }
           }
@@ -311,6 +306,48 @@ export const studentRouter = router({
         ...updated,
         companhiaLabel: getCompanhiaLabel(updated.companhia),
         pelotonLabel: getPelotonLabel(updated.peloton),
+      };
+    }),
+
+  getByNumericaOrRg: publicProcedure
+    .input(
+      z.object({
+        numerica: z.string().trim().optional(),
+        rg: z.string().trim().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      if (!input.numerica && !input.rg) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Informe a numérica ou o RG/CI para busca",
+        });
+      }
+
+      let student = null;
+      if (input.numerica) {
+        student = await studentDb.getStudentByNumerica(input.numerica);
+      } else if (input.rg) {
+        student = await studentDb.getStudentByRg(input.rg);
+      }
+
+      if (!student) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Aluno não encontrado",
+        });
+      }
+
+      return {
+        id: student.id,
+        numerica: student.numerica,
+        nomeGuerra: student.nomeGuerra,
+        nomeCompleto: student.nomeCompleto || "",
+        rg: student.rg || "",
+        companhia: student.companhia,
+        peloton: student.peloton,
+        companhiaLabel: getCompanhiaLabel(student.companhia),
+        pelotonLabel: getPelotonLabel(student.peloton),
       };
     }),
 });
