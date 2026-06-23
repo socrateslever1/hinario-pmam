@@ -280,13 +280,14 @@ function InstitutionalGuidelines() {
           })}
 
           {oath && (
-            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4 relative">
-              <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-                backgroundImage: 'url(/manus-storage/bandeira-amazonas_31beb3aa.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
-              }} />
+            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4 relative" style={{
+              backgroundImage: 'url(/manus-storage/bandeira-amazonas_31beb3aa.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed'
+            }}>
+              <div className="absolute inset-0 bg-white/95 pointer-events-none" />
               <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
               <CardContent className="p-4 md:p-8 relative z-10">
                 <div className="mb-4 flex items-center gap-3 md:mb-6">
