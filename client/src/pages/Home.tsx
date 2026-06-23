@@ -280,9 +280,15 @@ function InstitutionalGuidelines() {
           })}
 
           {oath && (
-            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4">
+            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4 relative">
+              <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
+                backgroundImage: 'url(/manus-storage/bandeira-amazonas_31beb3aa.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }} />
               <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
-              <CardContent className="p-4 md:p-8">
+              <CardContent className="p-4 md:p-8 relative z-10">
                 <div className="mb-4 flex items-center gap-3 md:mb-6">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-white">
                     <Shield className="h-5 w-5 text-[#c4a84b]" />
@@ -292,7 +298,7 @@ function InstitutionalGuidelines() {
                     <h3 className="font-sans text-sm font-bold uppercase tracking-wider text-foreground md:text-sm">{institutionalCopy.oathTitle}</h3>
                   </div>
                 </div>
-                <p className="rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-justify text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75]" dangerouslySetInnerHTML={{ __html: `&quot;${oath.text.replace(/<strong>/g, '<strong class="font-bold">').replace(/<\/strong>/g, '</strong>')}&quot;` }} />
+                <p className="rounded-lg border border-[#1a3a2a]/10 bg-[#f5f2e8] p-4 text-justify text-sm font-semibold leading-[1.55] text-[#1a3a2a] md:p-6 md:text-base md:leading-[1.75] relative z-10" dangerouslySetInnerHTML={{ __html: `&quot;${oath.text.replace(/<strong>/g, '<strong class="font-bold">').replace(/<\/strong>/g, '</strong>')}&quot;` }} />
               </CardContent>
             </Card>
           )}
