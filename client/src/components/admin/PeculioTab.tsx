@@ -100,7 +100,6 @@ export function PeculioTab({
 
   // Student statuses state
   const [studentStatuses, setStudentStatuses] = useState<Record<number, StudentStatusState>>({});
-  const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveInProgressRef = useRef(false);
@@ -617,8 +616,8 @@ export function PeculioTab({
             )}
           </CardContent>
         </Card>
-      )}      {/* 2. Matriz de frequência - Desktop View */}
-      <Card className="hidden xl:block border-border/50 bg-white dark:bg-zinc-900 print:hidden">
+      )}      {/* 2. Matriz de frequência */}
+      <Card className="border-border/50 bg-white dark:bg-zinc-900 print:hidden">
         <CardContent className="p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -767,172 +766,6 @@ export function PeculioTab({
         </CardContent>
       </Card>
 
-
-      {/* 2. Frequency list - Mobile View */}
-      <div className="xl:hidden space-y-2">
-        {filteredStudents.map((student) => {
-          const entry = studentStatuses[student.id] || { status: "pronto", observacao: "", arrivalTime: null, justificationNote: "", justificationStatus: null };
-          const isExpanded = expandedStudentId === student.id;
-
-          const getStatusBadge = (status: string) => {
-            const match = statusList.find(s => s.value === status);
-            const label = conditionAbbrs[status] || status.toUpperCase();
-            if (status === "pronto") {
-              return (
-                <span className="shrink-0 rounded bg-green-100 dark:bg-green-950 px-2 py-0.5 text-[10px] font-black text-green-800 dark:text-green-300">
-                  {label}
-                </span>
-              );
-            }
-            return (
-              <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-black ${match ? match.color : "bg-muted text-muted-foreground"}`}>
-                {label}
-              </span>
-            );
-          };
-
-          return (
-            <Card key={student.id} className="min-w-0 border-border/50 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-              <CardContent className="p-0">
-                <div
-                  onClick={() => setExpandedStudentId(isExpanded ? null : student.id)}
-                  className="flex min-w-0 items-center justify-between gap-3 p-3 cursor-pointer hover:bg-muted/10 transition-colors"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="shrink-0 text-[10px] font-semibold text-muted-foreground bg-muted dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                      Nº {student.numerica}
-                    </span>
-                    <span className="min-w-0 truncate text-sm font-bold text-[#1a3a2a] dark:text-green-400 flex items-center gap-1.5">
-                      <span>{student.nomeGuerra}</span>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditStudent(student);
-                          }}
-                          className="p-1 text-muted-foreground hover:text-[#c4a84b] rounded hover:bg-muted transition-all"
-                          title="Editar Aluno"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {getStatusBadge(entry.status)}
-                    {entry.observacao.trim() && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Possui observação" />
-                    )}
-                    <span className="text-muted-foreground text-xs font-bold leading-none select-none pl-1">
-                      {isExpanded ? "▲" : "▼"}
-                    </span>
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="border-t border-border/40 p-3.5 space-y-3.5 bg-muted/5">
-                    <div>
-                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Status / Frequência</Label>
-                      <div className="mt-1 grid grid-cols-4 gap-1.5">
-                        {statusList.map((st) => {
-                          const isSelected = entry.status === st.value;
-                          return (
-                            <button
-                              key={st.value}
-                              type="button"
-                              onClick={() => handleStatusChange(student.id, st.value)}
-                              disabled={!canEdit}
-                              className={`min-h-9 rounded-lg px-1 py-1 text-xs font-black transition-all touch-manipulation ${isSelected ? st.color + " shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                                }`}
-                            >
-                              {st.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Situação / Observação</Label>
-                      <Input
-                        placeholder="Observação da alteração..."
-                        value={entry.observacao}
-                        onChange={(e) => handleObservacaoChange(student.id, e.target.value)}
-                        disabled={!canEdit}
-                        className="mt-1 h-9 text-xs"
-                      />
-                    </div>
-                    {(entry.arrivalTime || entry.justificationStatus || (isAdmin && (lock?.canRegisterArrival || !canEdit))) && (
-                      <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-2.5 text-xs">
-                        {entry.arrivalTime && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            Chegada: {formatDateTime(entry.arrivalTime)}
-                          </div>
-                        )}
-                        {entry.justificationStatus && (
-                          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-800 dark:text-amber-200">
-                            Justificativa: {entry.justificationStatus === "pending" ? "pendente" : entry.justificationStatus === "approved" ? "acatada" : "negada"}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          {isAdmin && lock?.canRegisterArrival && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="min-h-8 flex-1 text-xs"
-                              onClick={() => handleRegisterArrival(student.id)}
-                              disabled={registerArrival.isPending}
-                            >
-                              Registrar chegada
-                            </Button>
-                          )}
-                          {isAdmin && !canEdit && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="min-h-8 flex-1 text-xs"
-                              onClick={() => handleRequestJustification(student.id)}
-                              disabled={requestJustification.isPending}
-                            >
-                              Justificar correção
-                            </Button>
-                          )}
-                          {isAdmin && canRelease && entry.justificationStatus === "pending" && (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="min-h-8 flex-1 bg-[#1a3a2a] text-xs text-white"
-                                onClick={() => handleReviewJustification(student.id, true)}
-                                disabled={reviewJustification.isPending}
-                              >
-                                Acatar
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="destructive"
-                                className="min-h-8 flex-1 text-xs"
-                                onClick={() => handleReviewJustification(student.id, false)}
-                                disabled={reviewJustification.isPending}
-                              >
-                                Negar
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
       {/* 3. Header config, signatures, and legend (Web view) */}
       <div className="grid gap-6 print:hidden xl:grid-cols-[1.2fr_0.8fr]">
