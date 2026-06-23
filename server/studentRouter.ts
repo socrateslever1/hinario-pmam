@@ -17,6 +17,8 @@ export const studentRouter = router({
         nomeGuerra: z.string().trim().min(2).max(255),
         senha: z.string().min(6),
         confirmarSenha: z.string().min(6),
+        cpf: z.string().trim().optional(),
+        rg: z.string().trim().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -42,10 +44,47 @@ export const studentRouter = router({
       let student: any = null;
 
       if (existingStudent) {
-        // Se aluno já existe (pré-cadastrado no mapa/efetivo), atualizamos a senha e o nome de guerra para ativar a conta
+        // Verificar se a conta já está ativada (se já tem token, email ou CPF/RG cadastrado)
+        const isAlreadyActivated = Boolean(
+          existingStudent.sessionToken ||
+          existingStudent.email ||
+          existingStudent.cpf ||
+          existingStudent.rg
+        );
+
+        if (isAlreadyActivated) {
+          // Normalizar CPFs e RGs para comparação
+          const dbCpf = existingStudent.cpf ? existingStudent.cpf.replace(/\D/g, "") : "";
+          const dbRg = existingStudent.rg ? existingStudent.rg.replace(/\D/g, "") : "";
+
+          const inputCpf = input.cpf ? input.cpf.replace(/\D/g, "") : "";
+          const inputRg = input.rg ? input.rg.replace(/\D/g, "") : "";
+
+          const matchesCpf = dbCpf && inputCpf && dbCpf === inputCpf;
+          const matchesRg = dbRg && inputRg && dbRg === inputRg;
+
+          // Se a conta tem CPF/RG mas o input não bate, ou se a conta não tem CPF/RG salvos mas já está ativa
+          if (!matchesCpf && !matchesRg) {
+            if (!dbCpf && !dbRg) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Esta numérica já está cadastrada e ativa. Para recuperar sua conta, entre em contato com o Xerife do seu pelotão.",
+              });
+            } else {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: "Esta numérica já está cadastrada. Para redefinir sua senha e assumir a conta, informe o CPF ou RG cadastrado corretos.",
+              });
+            }
+          }
+        }
+
+        // Se passou na validação ou não estava ativo ainda, assume a conta
         await studentDb.updateStudentProfile(existingStudent.id, {
           nomeGuerra: input.nomeGuerra,
           senha: input.senha,
+          cpf: input.cpf || undefined,
+          rg: input.rg || undefined,
         });
         
         // Rotacionar token de sessão para logá-los
@@ -68,6 +107,14 @@ export const studentRouter = router({
           validation.companhia,
           validation.peloton
         );
+        
+        // Se CPF ou RG foram preenchidos, salvá-los no perfil recém-criado
+        if (student && (input.cpf || input.rg)) {
+          await studentDb.updateStudentProfile(student.id, {
+            cpf: input.cpf || undefined,
+            rg: input.rg || undefined,
+          });
+        }
       }
 
       if (!student) {

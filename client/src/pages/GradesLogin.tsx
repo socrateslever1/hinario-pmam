@@ -27,6 +27,8 @@ export default function GradesLogin() {
     numerica: "",
     senha: "",
     confirmarSenha: "",
+    cpf: "",
+    rg: "",
   });
 
   const loginMutation = trpc.student.login.useMutation();
@@ -184,6 +186,32 @@ export default function GradesLogin() {
                   <div className="space-y-2">
                     <Label>Pelotão</Label>
                     <Input value={numericaInfo.isValid ? `${numericaInfo.peloton}º` : ""} disabled />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="register-cpf">CPF (confirmação/recuperação)</Label>
+                    <Input
+                      id="register-cpf"
+                      placeholder="Somente números"
+                      value={registerData.cpf}
+                      onChange={(event) =>
+                        setRegisterData({ ...registerData, cpf: event.target.value.replace(/\D/g, "").slice(0, 11) })
+                      }
+                      disabled={isBusy}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-rg">RG (confirmação/recuperação)</Label>
+                    <Input
+                      id="register-rg"
+                      placeholder="Somente números"
+                      value={registerData.rg}
+                      onChange={(event) =>
+                        setRegisterData({ ...registerData, rg: event.target.value.replace(/\D/g, "") })
+                      }
+                      disabled={isBusy}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">

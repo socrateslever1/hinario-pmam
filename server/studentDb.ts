@@ -190,7 +190,7 @@ export async function getStudentByNumerica(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -245,7 +245,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE id = ?
       LIMIT 1
@@ -267,7 +267,7 @@ export async function getAllStudents(): Promise<StudentData[]> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       ORDER BY numerica ASC
     `;
