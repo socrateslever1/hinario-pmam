@@ -272,3 +272,9 @@
 - [x] Notificação ao criar aditamento: "Novo aditamento: [título]"
 - [x] Notificação ao promover xerife: "[Aluno] promovido a Xerife de [pelotão]"
 - [x] Integrar NotificationSendPanel ao ClassroomMap ou AdminPanel
+
+## 🆕 NOVAS FUNCIONALIDADES - JUNHO 2026
+
+- [x] Adicionar opção "Lembrar de mim" na tela de login para manter sessão ativa por mais tempo
+- [x] Corrigir contraste de cores no modo escuro (texto muito escuro em fundo escuro)
+- [x] Melhorar legibilidade de documentos PDF no modo escuro

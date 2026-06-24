@@ -278,10 +278,14 @@ h1, h2, h3, h4, h5, h6 {
   background-size: 14px 14px;
 }
 
-.official-document-sheet,
-.dark .official-document-sheet {
+.official-document-sheet {
   background-color: #ffffff !important;
   color: #000000 !important;
+}
+
+.dark .official-document-sheet {
+  background-color: #f5f2e8 !important;
+  color: #1a3a2a !important;
 }
 
 .official-document-sheet :is(p, span, strong, h1, h2, h3, h4, h5, h6, div),
@@ -289,29 +293,44 @@ h1, h2, h3, h4, h5, h6 {
   color: inherit;
 }
 
-.official-document-sheet .text-gray-700,
-.dark .official-document-sheet .text-gray-700 {
+.official-document-sheet .text-gray-700 {
   color: #374151 !important;
 }
 
-.official-document-sheet .text-gray-600,
-.dark .official-document-sheet .text-gray-600 {
+.dark .official-document-sheet .text-gray-700 {
+  color: #1f2937 !important;
+}
+
+.official-document-sheet .text-gray-600 {
   color: #4b5563 !important;
 }
 
-.official-document-sheet .text-gray-500,
-.dark .official-document-sheet .text-gray-500 {
+.dark .official-document-sheet .text-gray-600 {
+  color: #374151 !important;
+}
+
+.official-document-sheet .text-gray-500 {
   color: #6b7280 !important;
 }
 
-.official-document-sheet .bg-gray-100,
-.dark .official-document-sheet .bg-gray-100 {
+.dark .official-document-sheet .text-gray-500 {
+  color: #4b5563 !important;
+}
+
+.official-document-sheet .bg-gray-100 {
   background-color: #f3f4f6 !important;
 }
 
-.official-document-sheet .bg-gray-50\/50,
-.dark .official-document-sheet .bg-gray-50\/50 {
+.dark .official-document-sheet .bg-gray-100 {
+  background-color: #e5e7eb !important;
+}
+
+.official-document-sheet .bg-gray-50\/50 {
   background-color: rgba(249, 250, 251, 0.5) !important;
+}
+
+.dark .official-document-sheet .bg-gray-50\/50 {
+  background-color: rgba(229, 231, 235, 0.5) !important;
 }
 
 /* Global Helper Overrides for bg-[#f5f2e8] and Dark Mode */
@@ -345,4 +364,58 @@ button[role="tab"][data-state="active"] {
   background-color: var(--primary) !important;
   color: var(--primary-foreground) !important;
   box-shadow: 0 4px 12px rgba(26, 58, 42, 0.15) !important;
+}
+
+/* Melhorias adicionais de contraste no modo escuro */
+.dark table {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
+.dark table thead {
+  background-color: oklch(0.25 0.03 250);
+  color: var(--foreground);
+}
+
+.dark table tbody tr:hover {
+  background-color: oklch(0.22 0.025 250);
+}
+
+.dark table td,
+.dark table th {
+  color: var(--foreground);
+  border-color: oklch(1 0 0 / 15%);
+}
+
+/* Melhorar contraste de inputs no modo escuro */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: oklch(0.2 0.025 250);
+  color: var(--foreground);
+  border-color: oklch(1 0 0 / 20%);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: oklch(0.6 0.02 85);
+}
+
+/* Melhorar contraste de cards e modais no modo escuro */
+.dark [role="dialog"],
+.dark .card,
+.dark .modal {
+  background-color: oklch(0.2 0.025 250);
+  color: var(--foreground);
+  border-color: oklch(1 0 0 / 15%);
+}
+
+/* Melhorar contraste de texto em modo escuro geral */
+.dark :is(p, span, li, td, th, label, div):not(.official-document-sheet *) {
+  color: var(--foreground);
+}
+
+/* Melhorar contraste de títulos no modo escuro */
+.dark :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--foreground);
 }

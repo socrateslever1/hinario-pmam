@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -11,16 +12,50 @@ import type { User } from "@shared/types";
 
 const BRASAO_URL = "/logo/IMG_7728.PNG";
 
+const REMEMBER_ME_KEY = "hinario-remember-me";
+const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 dias em ms
+
 export default function Login() {
   const [, navigate] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Carregar credenciais salvas ao montar o componente
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_ME_KEY);
+    if (saved) {
+      try {
+        const { email: savedEmail, expiresAt } = JSON.parse(saved);
+        if (expiresAt > Date.now()) {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        } else {
+          // Expirou, limpar
+          localStorage.removeItem(REMEMBER_ME_KEY);
+        }
+      } catch (e) {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+      }
+    }
+  }, []);
 
   const utils = trpc.useUtils();
   const loginMut = trpc.auth.loginEmail.useMutation({
     onSuccess: (result) => {
       toast.success("Login realizado com sucesso!");
+      
+      // Salvar credenciais se "Lembrar de mim" foi marcado
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify({
+          email,
+          expiresAt: Date.now() + REMEMBER_ME_DURATION,
+        }));
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+      }
+      
       utils.auth.me.setData(undefined, (current): User => ({
         id: result.user.id,
         openId: current?.openId ?? `session-${result.user.id}`,
@@ -47,7 +82,7 @@ export default function Login() {
       toast.error("Preencha todos os campos");
       return;
     }
-    loginMut.mutate({ email, password });
+    loginMut.mutate({ email, password, rememberMe });
   };
 
   return (
@@ -115,6 +150,17 @@ export default function Login() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
+                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                  Lembrar de mim por 30 dias
+                </Label>
               </div>
 
               <Button

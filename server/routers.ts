@@ -209,6 +209,7 @@ export const appRouter = router({
     loginEmail: publicProcedure.input(z.object({
       email: z.string(),
       password: z.string().min(1),
+      rememberMe: z.boolean().optional().default(false),
     })).mutation(async ({ input, ctx }) => {
       let emailOrNumeric = input.email.trim();
       let normalizedEmail = emailOrNumeric.toLowerCase();
@@ -255,13 +256,15 @@ export const appRouter = router({
         console.warn(`[Auth] Login failed: Invalid password for user ${normalizedEmail}`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
-      // Create session token
+      // Create session token with adjusted expiration based on rememberMe
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+      const expiresInMs = input.rememberMe ? THIRTY_DAYS_MS : ONE_YEAR_MS;
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.name || user.email || "user",
-        expiresInMs: ONE_YEAR_MS,
+        expiresInMs,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: expiresInMs });
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
       return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
