@@ -11,12 +11,15 @@ import {
   User,
   Target,
   LayoutGrid,
+  ClipboardList,
+  Users,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 import { useModalHistory } from "@/hooks/useModalHistory";
+import { trpc } from "@/lib/trpc";
 
 export const notifySessionChange = () => {
   if (typeof window !== "undefined") {
@@ -28,6 +31,7 @@ export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [isStudent, setIsStudent] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const { data: user } = trpc.auth.me.useQuery();
 
   useModalHistory(moreOpen, () => setMoreOpen(false), "moreOptions");
 
@@ -50,24 +54,46 @@ export default function BottomNavigation() {
     };
   }, []);
 
-  const navItems = [
-    { icon: Home, label: "Início", path: "/" },
-    { icon: Music, label: "Hinos", path: "/hinos" },
-    { icon: BookOpen, label: "Estudos", path: "/estudos" },
-    { icon: FileText, label: "Notas", path: isStudent ? "/notas-do-curso" : "/entrar" },
-    { icon: MoreHorizontal, label: "Mais", path: "__more" },
-  ];
+  const isComandante = Boolean(
+    user?.role &&
+      ["comandante_corpo", "comandante_cfap", "comandante_cia", "comandante_pel"].includes(user.role)
+  );
 
-  const moreItems = [
-    { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
-    { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
-    { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
-    { icon: Target, label: "Ordem Unida", path: "/drill" },
-    { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
-    { icon: FileText, label: "Documentos", path: "/documentos" },
-    { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
-    { icon: Shield, label: "Área do Xerife", path: "/xerife" },
-  ];
+  const navItems = isComandante
+    ? [
+        { icon: Home, label: "Início", path: "/" },
+        { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
+        { icon: ClipboardList, label: "Pecúlio", path: "/sala-de-aula/peculio" },
+        { icon: Users, label: "Efetivo", path: "/sala-de-aula/efetivo" },
+        { icon: MoreHorizontal, label: "Mais", path: "__more" },
+      ]
+    : [
+        { icon: Home, label: "Início", path: "/" },
+        { icon: Music, label: "Hinos", path: "/hinos" },
+        { icon: BookOpen, label: "Estudos", path: "/estudos" },
+        { icon: FileText, label: "Notas", path: isStudent ? "/notas-do-curso" : "/entrar" },
+        { icon: MoreHorizontal, label: "Mais", path: "__more" },
+      ];
+
+  const moreItems = isComandante
+    ? [
+        { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
+        { icon: Target, label: "Ordem Unida", path: "/drill" },
+        { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
+        { icon: FileText, label: "Documentos", path: "/documentos" },
+        { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
+        { icon: Shield, label: "Área do Xerife", path: "/xerife" },
+      ]
+    : [
+        { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
+        { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
+        { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
+        { icon: Target, label: "Ordem Unida", path: "/drill" },
+        { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
+        { icon: FileText, label: "Documentos", path: "/documentos" },
+        { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
+        { icon: Shield, label: "Área do Xerife", path: "/xerife" },
+      ];
 
   const isActive = (path: string) => {
     if (path === "__more") {

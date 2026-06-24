@@ -12,6 +12,7 @@ import { Plus, Trash2, Save, KeyRound } from "lucide-react";
 
 export function UsersTab() {
   const { data: usersList } = trpc.users.list.useQuery();
+  const { data: assignments } = trpc.serviceScale.assignments.useQuery();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "admin" as "user" | "admin" });
   const [passwordByUser, setPasswordByUser] = useState<Record<number, string>>({});
@@ -82,9 +83,27 @@ export function UsersTab() {
                 <p className="font-medium text-foreground text-sm truncate">{u.name || "Sem nome"}</p>
                 <p className="text-xs text-muted-foreground">{u.email}</p>
               </div>
-              <Badge className={u.role === "master" ? "bg-[#c4a84b] text-[#1a1a1a]" : u.role === "admin" ? "bg-[#1a3a2a] text-white" : "bg-gray-200 text-gray-700"}>
-                {u.role === "master" ? "Xerife Master" : u.role === "admin" ? "Administrador" : "Usuário"}
-              </Badge>
+              {(() => {
+                if (u.role === "master") {
+                  return <Badge className="bg-[#c4a84b] text-[#1a1a1a]">Xerife Master</Badge>;
+                }
+                if (u.role === "admin") {
+                  return <Badge className="bg-[#1a3a2a] text-white">Administrador</Badge>;
+                }
+                const assignment = assignments?.find((a: any) => a.userId === u.id);
+                if (assignment) {
+                  let label = "Xerife";
+                  if (assignment.level === "principal") {
+                    label = "Xerife Geral";
+                  } else if (assignment.level === "companhia") {
+                    label = `Xerife ${assignment.companhia}ª Cia`;
+                  } else if (assignment.level === "pelotao") {
+                    label = `Xerife ${assignment.companhia}ª Cia / ${assignment.peloton}º Pel`;
+                  }
+                  return <Badge className="bg-amber-600 text-white border-amber-700">{label}</Badge>;
+                }
+                return <Badge className="bg-gray-200 text-gray-700">Usuário</Badge>;
+              })()}
               {u.role !== "master" && (
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
                   <Select value={u.role} onValueChange={v => updateRole.mutate({ id: u.id, role: v as any })}>

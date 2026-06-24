@@ -284,7 +284,17 @@ export default function ClassroomMap() {
   const currentRoles = platoonPublicQuery.data?.roles;
   const isCurrentStudentActiveXerife = Boolean(studentSession && currentRoles &&
     (studentSession.id === currentRoles.xerifeId || studentSession.id === currentRoles.subXerifeId));
+  const isComandanteScopeAdmin = Boolean(
+    access?.role && (
+      (access.role as string) === "comandante_corpo" ||
+      (access.role as string) === "comandante_cfap" ||
+      ((access.role as string) === "comandante_cia" && access.scope?.companhia === selectedCompanhia) ||
+      ((access.role as string) === "comandante_pel" && access.scope?.companhia === selectedCompanhia && access.scope?.peloton === selectedPeloton)
+    )
+  );
+
   const isAdminOrXerifeAdmin = isXerifeGeral ||
+    isComandanteScopeAdmin ||
     Boolean(access?.assignment &&
       (access.assignment.level === "principal" ||
         (access.assignment.level === "companhia" && access.assignment.companhia === selectedCompanhia) ||
@@ -570,7 +580,10 @@ export default function ClassroomMap() {
     onError: (err) => toast.error(err.message),
   });
 
-  const canChangeClassroomScope = isXerifeGeral;
+  const canChangeCompanhia = isXerifeGeral;
+  const canChangePelotao = isXerifeGeral || 
+    Boolean(access?.assignment && access.assignment.level === "companhia") ||
+    (access?.role as string) === "comandante_cia";
 
   const seatRequestsQuery = trpc.serviceScale.seatChangeRequests.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
@@ -1136,7 +1149,7 @@ export default function ClassroomMap() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-                <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeClassroomScope}>
+                <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeCompanhia}>
                   <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[150px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>
@@ -1145,7 +1158,7 @@ export default function ClassroomMap() {
                   </SelectContent>
                 </Select>
 
-                <Select value={peloton} onValueChange={setPeloton} disabled={!canChangeClassroomScope}>
+                <Select value={peloton} onValueChange={setPeloton} disabled={!canChangePelotao}>
                   <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[128px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>

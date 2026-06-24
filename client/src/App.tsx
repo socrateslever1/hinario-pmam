@@ -64,6 +64,9 @@ function Router() {
       <Route path="/documentos" component={Documents} />
       <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/alterar-senha" component={ChangePassword} />
+      <Route path="/gerenciar-acessos">
+        <AccessManagement />
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

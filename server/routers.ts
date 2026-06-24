@@ -1519,12 +1519,13 @@ export const appRouter = router({
         return null;
       }
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
-      const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || assignment?.level === "principal";
+      const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || (ctx.user.role as string) === "comandante_corpo" || (ctx.user.role as string) === "comandante_cfap" || assignment?.level === "principal";
       return {
         assignment,
         scope: serviceScaleDb.getDefaultScope(ctx.user, assignment),
         isMaster: ctx.user.role === "master",
         isGeneral,
+        role: ctx.user.role,
       };
     }),
 
@@ -2648,7 +2649,7 @@ export const appRouter = router({
       z.object({
         name: z.string().trim().min(2).max(255),
         email: z.string().email(),
-        role: z.enum(['comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
+        role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
       })
@@ -2675,14 +2676,14 @@ export const appRouter = router({
     }),
 
     listAccesses: masterProcedure.query(async () => {
-      return await db.listAccessUsers();
+      return await db.getAllUsers();
     }),
 
     updateAccess: masterProcedure.input(
       z.object({
         id: z.number().int(),
         name: z.string().trim().min(2).max(255).optional(),
-        role: z.enum(['comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']).optional(),
+        role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']).optional(),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
       })

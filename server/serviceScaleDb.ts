@@ -393,12 +393,20 @@ export async function ensureServiceScaleTables() {
 }
 
 export function canAccessScope(
-  user: { role?: string | null },
+  user: { role?: string | null; companhiaId?: number | null; pelotaoId?: number | null },
   assignment: XerifeAssignment | null,
   companhia: number,
   peloton?: number | null,
 ) {
   if (user.role === "master" || user.role === "admin") return true;
+  if (user.role === "comandante_corpo" || user.role === "comandante_cfap") return true;
+  if (user.role === "comandante_cia") {
+    return user.companhiaId === companhia;
+  }
+  if (user.role === "comandante_pel") {
+    return user.companhiaId === companhia && (peloton === undefined || peloton === null || user.pelotaoId === peloton);
+  }
+  
   if (!assignment) return false;
   if (assignment.level === "principal") return true;
   if (assignment.level === "companhia") return assignment.companhia === companhia;
@@ -406,12 +414,22 @@ export function canAccessScope(
 }
 
 export function getDefaultScope(
-  user: { role?: string | null },
+  user: { role?: string | null; companhiaId?: number | null; pelotaoId?: number | null },
   assignment: XerifeAssignment | null,
 ): { companhia?: number; peloton?: number; unrestricted: boolean } {
   if (user.role === "master" || user.role === "admin" || assignment?.level === "principal") {
     return { unrestricted: true };
   }
+  if (user.role === "comandante_corpo" || user.role === "comandante_cfap") {
+    return { unrestricted: true };
+  }
+  if (user.role === "comandante_cia" && user.companhiaId) {
+    return { companhia: user.companhiaId, unrestricted: false };
+  }
+  if (user.role === "comandante_pel" && user.companhiaId && user.pelotaoId) {
+    return { companhia: user.companhiaId, peloton: user.pelotaoId, unrestricted: false };
+  }
+
   if (assignment?.level === "companhia" && assignment.companhia) {
     return { companhia: assignment.companhia, unrestricted: false };
   }

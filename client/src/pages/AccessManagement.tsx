@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Trash2, Edit2, Copy, Check, Lock } from 'lucide-react';
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const ROLE_LABELS = {
+  admin: 'Administrador Global (Admin)',
+  master: 'Xerife Master',
   comandante_corpo: 'Comandante do Corpo de Alunos (CAL)',
   comandante_cfap: 'Comandante CFAP',
   comandante_cia: 'Comandante de Companhia',
@@ -27,14 +32,35 @@ const COMPANHIA_OPTIONS = [
   { value: '5', label: '5ª Companhia' },
 ];
 
-export function AccessManagement() {
+export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
+  const [, setLocation] = useLocation();
   const { data: user } = trpc.auth.me.useQuery();
+  const { data: myAccess } = trpc.serviceScale.myAccess.useQuery();
   const [isCreating, setIsCreating] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
   
-  const canManageAccess = user?.role === 'admin' || user?.role === 'master';
-  const canDeleteAccess = (access: any) => user?.role === 'admin' || user?.role === 'master';
-  const canEditAccess = (access: any) => user?.role === 'admin' || user?.role === 'master';
+  const canManageAccess = user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
+  const canDeleteAccess = (access: any) => {
+    if (access.role === 'master') return user?.role === 'master';
+    return user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
+  };
+  const canEditAccess = (access: any) => {
+    if (access.role === 'master') return user?.role === 'master';
+    return user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
+  };
+
+  useEffect(() => {
+    if (!isTab && user !== undefined && myAccess !== undefined) {
+      if (!user) {
+        setLocation("/entrar");
+      } else {
+        const canManage = user.role === 'admin' || user.role === 'master' || myAccess?.isGeneral;
+        if (!canManage) {
+          setLocation("/xerife");
+        }
+      }
+    }
+  }, [isTab, user, myAccess, setLocation]);
   
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -103,7 +129,7 @@ export function AccessManagement() {
     return COMPANHIA_OPTIONS.find(c => c.value === companhiaId.toString())?.label || '-';
   };
 
-  return (
+  const content = (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Acessos</h1>
@@ -149,6 +175,7 @@ export function AccessManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
                     <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
                     <SelectItem value="comandante_cfap">Comandante CFAP</SelectItem>
                     <SelectItem value="comandante_cia">Comandante de Companhia</SelectItem>
@@ -299,6 +326,18 @@ export function AccessManagement() {
           ))}
         </div>
       )}
+    </div>
+  );
+
+  if (isTab) return content;
+
+  return (
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#0c0c0e]">
+      <Navbar />
+      <main className="container mx-auto px-4 py-6 md:py-10 max-w-6xl">
+        {content}
+      </main>
+      <Footer />
     </div>
   );
 }

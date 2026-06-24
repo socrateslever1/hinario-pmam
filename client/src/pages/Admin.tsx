@@ -248,8 +248,7 @@ export default function Admin() {
               {canManageGlobalContent && (
                 <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               )}
-              {canManageGlobalContent && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
-              {canManageGlobalContent && <TabsTrigger value="access" className="gap-2"><Shield className="h-4 w-4" /> Acessos</TabsTrigger>}
+              {canManageGlobalContent && <TabsTrigger value="access" className="gap-2"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>}
             </TabsList>
 
             {/* HYMNS TAB */}
@@ -556,15 +555,10 @@ export default function Admin() {
               <SettingsTab />
             </TabsContent>
 
-            {/* USERS TAB (Master only) */}
-            {canManageGlobalContent && (
-              <TabsContent value="users">
-                <UsersTab />
-              </TabsContent>
-            )}
+            {/* USERS & ACCESS MANAGEMENT TAB */}
             {canManageGlobalContent && (
               <TabsContent value="access">
-                <AccessManagement />
+                <AccessManagement isTab={true} />
               </TabsContent>
             )}
           </Tabs>

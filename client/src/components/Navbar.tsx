@@ -18,6 +18,9 @@ import {
   Sun,
   Moon,
   User,
+  LayoutGrid,
+  ClipboardList,
+  Users,
 } from "lucide-react";
 import {
   clearStudentSession,
@@ -56,6 +59,23 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<StudentSession | null>(() => getStudentSession());
   const { theme, toggleTheme } = useTheme();
+
+  const { data: user } = trpc.auth.me.useQuery();
+  const isComandante = Boolean(
+    user?.role &&
+      ["comandante_corpo", "comandante_cfap", "comandante_cia", "comandante_pel"].includes(user.role)
+  );
+
+  const links = isComandante
+    ? [
+        { href: "/", label: "Página Inicial", icon: Shield },
+        { href: "/sala-de-aula", label: "Sala de Aula", icon: LayoutGrid },
+        { href: "/sala-de-aula/peculio", label: "Pecúlio", icon: ClipboardList },
+        { href: "/sala-de-aula/efetivo", label: "Efetivo", icon: Users },
+        { href: "/documentos", label: "Documentos", icon: FileText },
+        { href: "/sobre", label: "Sobre", icon: Info },
+      ]
+    : navLinks;
 
   const profileQuery = trpc.student.getProfile.useQuery(
     { id: student?.id ?? 0, sessionToken: student?.sessionToken ?? "" },
@@ -283,7 +303,7 @@ export default function Navbar() {
                   </Button>
                 )}
 
-                {navLinks.map((link) => {
+                {links.map((link) => {
                   const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
                   return (
                     <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
@@ -357,7 +377,7 @@ export default function Navbar() {
       {/* Bottom Row: Navigation Menu Bar (Desktop Only) */}
       <div className="hidden xl:flex justify-center border-t border-border/40 py-2 bg-muted/10 w-full dark:bg-[#1a1a24]/50">
         <nav className="flex items-center justify-center gap-1.5 w-full max-w-7xl overflow-x-auto px-4">
-          {navLinks.map((link) => {
+          {links.map((link) => {
             const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
             return (
               <Link key={link.href} href={link.href}>
