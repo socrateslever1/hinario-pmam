@@ -19,6 +19,7 @@ import * as peculioDb from "./peculioDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
+import * as foDb from "./foDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -2723,7 +2724,86 @@ export const appRouter = router({
     }),
   }),
 
+  /**
+   * Fato Observado (FO) - Upload de Provas (Fotos/Vídeos)
+   */
+  foProofs: router({
+    uploadProof: scaleManagerProcedure.input(
+      z.object({
+        fatoObservadoId: z.number().int(),
+        fileName: z.string().trim().min(1).max(255),
+        fileSize: z.number().int().min(1),
+        mimeType: z.string().trim().min(1).max(100),
+        fileData: z.string(), // Base64 encoded file data
+      })
+    ).mutation(async ({ ctx, input }) => {
+      // Validar tipo de arquivo
+      const validTypes = [
+        "image/jpeg", "image/png", "image/webp", "image/gif",
+        "video/mp4", "video/webm", "video/quicktime",
+        "audio/mpeg", "audio/wav", "audio/ogg",
+        "application/pdf", "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+      if (!validTypes.includes(input.mimeType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
+      }
+
+      // Validar tamanho (máx 50MB)
+      const maxSizeBytes = 50 * 1024 * 1024;
+      if (input.fileSize > maxSizeBytes) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo excede tamanho máximo de 50MB" });
+      }
+
+      // Converter base64 para Buffer
+      const buffer = Buffer.from(input.fileData, "base64");
+
+      // Determinar tipo de prova
+      let proofType: "foto" | "video" | "audio" | "documento" = "documento";
+      if (input.mimeType.startsWith("image/")) proofType = "foto";
+      else if (input.mimeType.startsWith("video/")) proofType = "video";
+      else if (input.mimeType.startsWith("audio/")) proofType = "audio";
+
+      // Upload para S3
+      const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${input.fileName}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+
+      // Salvar no banco de dados
+      const provaId = await foDb.createFatoObservadoProva({
+        fatoObservadoId: input.fatoObservadoId,
+        arquivoUrl: url,
+        tipo: proofType,
+        nomeArquivo: input.fileName,
+        tamanho: input.fileSize,
+        mimeType: input.mimeType,
+        criadoPor: ctx.user.id,
+      });
+
+      return { id: provaId, url };
+    }),
+
+    listProofs: scaleManagerProcedure.input(
+      z.object({
+        fatoObservadoId: z.number().int(),
+      })
+    ).query(async ({ input }) => {
+      return foDb.listFatoObservadoProvas(input.fatoObservadoId);
+    }),
+
+    deleteProof: scaleManagerProcedure.input(
+      z.object({
+        provaId: z.number().int(),
+      })
+    ).mutation(async ({ input }) => {
+      const prova = await foDb.getFatoObservadoProva(input.provaId);
+      if (!prova) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Prova não encontrada" });
+      }
+      await foDb.deleteFatoObservadoProva(input.provaId);
+      return { success: true };
+    }),
+  }),
+
   student: studentRouter,
 });
-
 export type AppRouter = typeof appRouter;

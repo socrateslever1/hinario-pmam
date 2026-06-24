@@ -36,8 +36,16 @@ import { PeculioTab } from "@/components/admin/PeculioTab";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { ClassroomCargosTab } from "@/components/admin/ClassroomCargosTab";
 import { RenderSavedDocument } from "./Documents";
+import { FOProofUploader } from "@/components/FOProofUploader";
 import { toast } from "sonner";
 import { useModalHistory } from "@/hooks/useModalHistory";
+
+interface ProofFile {
+  id: string;
+  file: File;
+  preview?: string;
+  type: "foto" | "video" | "audio" | "documento";
+}
 
 const conditionLabels: Record<string, string> = {
   pronto: "Pronto (PRONTO)",
@@ -207,6 +215,8 @@ export default function ClassroomMap() {
   const [foCustomReason, setFoCustomReason] = useState("");
   const [foDetails, setFoDetails] = useState("");
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
+  const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
+  const [foProofsUploading, setFoProofsUploading] = useState(false);
   const [operationalStudent, setOperationalStudent] = useState<any | null>(null);
 
   const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
@@ -233,7 +243,10 @@ export default function ClassroomMap() {
   }, [parteFilter, companhia, peloton]);
 
   // Gerenciamento unificado de modais com o histórico (botão voltar do celular/navegador) no painel
-  useModalHistory(foModalOpen, () => setFoModalOpen(false), "fo");
+  useModalHistory(foModalOpen, () => {
+    setFoModalOpen(false);
+    setFoProofs([]);
+  }, "fo");
   useModalHistory(parteModalOpen, () => setParteModalOpen(false), "parte");
   useModalHistory(Boolean(operationalStudent), () => setOperationalStudent(null), "operational");
   useModalHistory(Boolean(editingStudent), () => setEditingStudent(null), "editing");
@@ -499,6 +512,13 @@ export default function ClassroomMap() {
       ]);
     },
     onError: (err) => toast.error(err.message),
+  });
+
+  const uploadFoProof = trpc.foProofs.uploadProof.useMutation({
+    onSuccess: () => {
+      toast.success("Prova enviada com sucesso");
+    },
+    onError: (err) => toast.error(`Erro ao enviar prova: ${err.message}`),
   });
 
   const validateFoReason = trpc.serviceScale.validateFoReason.useMutation({
@@ -890,6 +910,7 @@ export default function ClassroomMap() {
     setFoCustomReason("");
     setFoDetails("");
     setFoIsAllSelected(false);
+    setFoProofs([]);
     if (student) {
       setFoSelectedStudentIds([student.id]);
     } else {
@@ -937,7 +958,7 @@ export default function ClassroomMap() {
       }
       
       // Envia as mutações em lote usando Promise.all
-      await Promise.all(
+      const foResults = await Promise.all(
         idsToSend.map((studentId) =>
           addStudentObservation.mutateAsync({
             studentId,
@@ -947,15 +968,43 @@ export default function ClassroomMap() {
         )
       );
 
+      // Upload de provas se houver
+      if (foProofs.length > 0 && foResults.length > 0) {
+        setFoProofsUploading(true);
+        const foId = foResults[0]?.id;
+        
+        for (const proof of foProofs) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              const base64Data = (e.target?.result as string)?.split(',')[1] || '';
+              uploadFoProof.mutate({
+                fatoObservadoId: foId,
+                fileName: proof.file.name,
+                fileSize: proof.file.size,
+                mimeType: proof.file.type,
+                fileData: base64Data,
+              });
+            };
+            reader.readAsDataURL(proof.file);
+          } catch (err) {
+            console.error(`Erro ao fazer upload de prova: ${err}`);
+          }
+        }
+        setFoProofsUploading(false);
+      }
+
       toast.success("Fato Observado registrado com sucesso!", { id: "fo-launch" });
       setFoModalOpen(false);
       setFoCustomReason("");
+      setFoProofs([]);
       await Promise.all([
         pendingObservationsQuery.refetch(),
         operationalStudent?.id ? studentObservationsQuery.refetch() : Promise.resolve(),
       ]);
     } catch (err: any) {
       toast.error(`Erro ao lançar FO: ${err.message}`, { id: "fo-launch" });
+      setFoProofsUploading(false);
     }
   };
 
@@ -2789,6 +2838,21 @@ export default function ClassroomMap() {
                   className="mt-1.5 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
+
+              {/* Upload de Provas (Fotos/Vídeos) */}
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold mb-2 block">
+                  📸 Provas (Fotos/Vídeos/Áudio)
+                </Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Anexe fotos, vídeos ou áudio como prova do fato observado.
+                </p>
+                <FOProofUploader
+                  onProofsChange={setFoProofs}
+                  maxFiles={5}
+                  maxSizeMB={50}
+                />
+              </div>
             </div>
 
             <DialogFooter>
@@ -2796,9 +2860,9 @@ export default function ClassroomMap() {
               <Button
                 className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
                 onClick={handleLaunchFO}
-                disabled={addStudentObservation.isPending}
+                disabled={addStudentObservation.isPending || foProofsUploading}
               >
-                {addStudentObservation.isPending ? "Registrando..." : "Registrar Fato"}
+                {addStudentObservation.isPending || foProofsUploading ? "Processando..." : "Registrar Fato"}
               </Button>
             </DialogFooter>
           </DialogContent>

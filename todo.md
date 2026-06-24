@@ -323,3 +323,13 @@
 - [ ] Testar login de Comandante CFAP
 - [ ] Testar restrições de visualização e edição
 - [ ] Testar obrigatoriedade de trocar senha no primeiro login
+
+
+## 📸 UPLOAD DE PROVAS PARA FATO OBSERVADO (FO+/FO-)
+
+- [ ] Criar tabela `fato_observado_provas` no banco de dados
+- [ ] Adicionar interface para carregar/tirar foto em FO+/FO-
+- [ ] Implementar procedures tRPC para upload de provas
+- [ ] Integrar com S3 para armazenar arquivos
+- [ ] Listar provas carregadas na interface
+- [ ] Testar upload de fotos/vídeos

@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   datetime,
+  decimal,
   int,
   json,
   longtext,
@@ -320,6 +321,39 @@ export const pmamStudentGrades = mysqlTable("pmam_student_grades", {
 export type PmamStudentGrade = typeof pmamStudentGrades.$inferSelect;
 export type InsertPmamStudentGrade = typeof pmamStudentGrades.$inferInsert;
 
+export const pmamFatoObservado = mysqlTable("pmam_fato_observado", {
+  id: int("id").autoincrement().primaryKey(),
+  studentId: int("student_id").notNull(),
+  tipo: mysqlEnum("tipo", ["positive", "negative"]).notNull(), // FO+ ou FO-
+  descricao: text("descricao").notNull(),
+  data: date("data").notNull(),
+  registradoPor: int("registrado_por").notNull(), // Xerife que registrou
+  validadoPor: int("validado_por"), // Xerife que validou (opcional)
+  status: mysqlEnum("status", ["pendente", "validado", "rejeitado"]).default("pendente"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamFatoObservado = typeof pmamFatoObservado.$inferSelect;
+export type InsertPmamFatoObservado = typeof pmamFatoObservado.$inferInsert;
+
+export const pmamFatoObservadoProvas = mysqlTable("pmam_fato_observado_provas", {
+  id: int("id").autoincrement().primaryKey(),
+  fatoObservadoId: int("fato_observado_id").notNull(),
+  arquivoUrl: longtext("arquivo_url").notNull(),
+  tipo: mysqlEnum("tipo", ["foto", "video", "audio", "documento"]).default("foto"),
+  nomeArquivo: varchar("nome_arquivo", { length: 255 }),
+  tamanho: int("tamanho"), // em bytes
+  mimeType: varchar("mime_type", { length: 100 }),
+  dataUpload: timestamp("data_upload").defaultNow(),
+  criadoPor: int("criado_por"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$inferSelect;
+export type InsertPmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -338,6 +372,8 @@ export const runtimeTables = {
   pmamStudents,
   pmamDisciplines,
   pmamStudentGrades,
+  pmamFatoObservado,
+  pmamFatoObservadoProvas,
 };
 
 
