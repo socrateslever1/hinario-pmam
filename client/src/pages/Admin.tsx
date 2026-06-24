@@ -55,7 +55,7 @@ export default function Admin() {
   const isXerife = Boolean(scaleAccess?.assignment);
   const isAuthorized = isAdminOrMaster || isXerife;
   const isXerifeGeral = Boolean(isAdminOrMaster || scaleAccess?.isGeneral);
-  const canManageGlobalContent = isXerifeGeral;
+  const canManageGlobalContent = isXerifeGeral || isAdminOrMaster;
   const canManagePlatoonContent = canManageGlobalContent || isXerife;
 
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
