@@ -327,9 +327,21 @@
 
 ## 📸 UPLOAD DE PROVAS PARA FATO OBSERVADO (FO+/FO-)
 
-- [ ] Criar tabela `fato_observado_provas` no banco de dados
-- [ ] Adicionar interface para carregar/tirar foto em FO+/FO-
-- [ ] Implementar procedures tRPC para upload de provas
-- [ ] Integrar com S3 para armazenar arquivos
-- [ ] Listar provas carregadas na interface
-- [ ] Testar upload de fotos/vídeos
+- [x] Criar tabela `fato_observado_provas` no banco de dados
+- [x] Adicionar interface para carregar/tirar foto em FO+/FO-
+- [x] Implementar procedures tRPC para upload de provas
+- [x] Integrar com S3 para armazenar arquivos
+- [x] Listar provas carregadas na interface
+- [x] Testar upload de fotos/vídeos
+
+
+## 📊 BARRA DE PROGRESSO PARA UPLOAD DE PROVAS
+
+- [x] Criar componente UploadProgressBar com indicadores visuais
+- [x] Implementar hook useUploadProgress para rastreamento
+- [x] Integrar UploadProgressBar ao FOProofUploader
+- [x] Adicionar suporte a cancelamento de upload
+- [x] Implementar cálculo de velocidade de upload (MB/s)
+- [x] Implementar cálculo de tempo estimado restante
+- [x] Criar testes vitest para UploadProgressBar (12 testes passando)
+- [x] Testar responsividade em mobile e desktop

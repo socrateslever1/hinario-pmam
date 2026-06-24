@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Upload, X, Image as ImageIcon, Video, FileAudio } from "lucide-react";
 import { toast } from "sonner";
+import { UploadProgressBar, type UploadItem } from "@/components/UploadProgressBar";
+import { useUploadProgress } from "@/hooks/useUploadProgress";
 
 interface ProofFile {
   id: string;
@@ -36,6 +38,7 @@ export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }
   const [proofs, setProofs] = useState<ProofFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  const { uploadItems, addItem, cancelUpload } = useUploadProgress();
 
   const getProofType = (file: File): "foto" | "video" | "audio" | "documento" | null => {
     const mimeType = file.type;
@@ -114,6 +117,10 @@ export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }
     const updatedProofs = proofs.filter((p) => p.id !== id);
     setProofs(updatedProofs);
     onProofsChange(updatedProofs);
+  };
+
+  const handleCancelUpload = (itemId: string) => {
+    cancelUpload(itemId);
   };
 
   const getProofIcon = (type: string) => {
@@ -238,6 +245,15 @@ export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }
       <p className="text-xs text-muted-foreground">
         Máximo de {maxFiles} arquivos, {maxSizeMB}MB cada. Suporta fotos, vídeos, áudio e documentos.
       </p>
+
+      {/* Upload Progress Bar */}
+      {uploadItems.length > 0 && (
+        <UploadProgressBar
+          items={uploadItems}
+          onCancel={handleCancelUpload}
+          showDetails={true}
+        />
+      )}
     </div>
   );
 }
