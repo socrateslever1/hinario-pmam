@@ -292,18 +292,18 @@
 ## 🔐 SISTEMA DE NÍVEIS DE ACESSO - JUNHO 2026
 
 ### Fase 1: Schema do Banco de Dados
-- [ ] Adicionar campo `role` na tabela `users` (enum: 'admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel', 'student')
-- [ ] Adicionar campo `pelotao_id` na tabela `users` (FK para pelotão)
-- [ ] Adicionar campo `companhia_id` na tabela `users` (FK para companhia)
-- [ ] Adicionar campo `forcePasswordChange` na tabela `users` (boolean, default true)
-- [ ] Executar migração com `pnpm db:push`
+- [x] Adicionar campo `role` na tabela `users` (enum: 'admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel', 'student')
+- [x] Adicionar campo `pelotao_id` na tabela `users` (FK para pelotão)
+- [x] Adicionar campo `companhia_id` na tabela `users` (FK para companhia)
+- [x] Adicionar campo `forcePasswordChange` na tabela `users` (boolean, default true)
+- [x] Executar migração com `pnpm db:push`
 
 ### Fase 2: Página de Gerenciamento de Acessos
-- [ ] Criar página `/xerife/acessos` no painel do Xerife
-- [ ] Implementar formulário para criar novo acesso (nome, email, role, pelotão, companhia)
-- [ ] Implementar listagem de acessos criados
+- [x] Criar página `/xerife/acessos` no painel do Xerife
+- [x] Implementar formulário para criar novo acesso (nome, email, role, pelotão, companhia)
+- [x] Implementar listagem de acessos criados
 - [ ] Implementar edição de acessos
-- [ ] Implementar exclusão de acessos
+- [x] Implementar exclusão de acessos
 
 ### Fase 3: Lógica de Restrição
 - [ ] Implementar visualização de pelotões baseada em role
@@ -312,9 +312,9 @@
 - [ ] Implementar anotações (positivas/negativas) para alunos
 
 ### Fase 4: Obrigatoriedade de Trocar Senha
-- [ ] Implementar verificação de `forcePasswordChange` no login
-- [ ] Redirecionar para página de trocar senha se necessário
-- [ ] Atualizar `forcePasswordChange` para false após trocar senha
+- [x] Implementar verificação de `forcePasswordChange` no login
+- [x] Redirecionar para página de trocar senha se necessário
+- [x] Atualizar `forcePasswordChange` para false após trocar senha
 
 ### Fase 5: Testes
 - [ ] Testar login de Comandante de Pelotão

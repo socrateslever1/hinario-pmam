@@ -33,6 +33,7 @@ import XerifeSystemDocs from "./pages/XerifeSystemDocs";
 import ServiceBoard from "./pages/ServiceBoard";
 import ClassroomMap from "./pages/ClassroomMap";
 import { ChangePassword } from "./pages/ChangePassword";
+import { AccessManagement } from "./pages/AccessManagement";
 import BottomNavigation from "./components/BottomNavigation";
 
 function Router() {
@@ -52,7 +53,7 @@ function Router() {
       <Route path="/xerife" component={Admin} />
       <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
-      <Route path="/entrar" component={GradesLogin} />
+      <Route path="/entrar" component={Login} />
       <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />

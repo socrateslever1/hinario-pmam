@@ -69,7 +69,16 @@ export default function Login() {
         lastSignedIn: new Date(),
       }));
       void utils.auth.me.invalidate();
-      navigate("/xerife");
+      
+      // Redirecionar baseado no role
+      const role = result.user.role;
+      if (role === 'student') {
+        navigate("/notas-do-curso");
+      } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
+        navigate("/xerife");
+      } else {
+        navigate("/");
+      }
     },
     onError: (e) => {
       toast.error(e.message || "Email ou senha inválidos");

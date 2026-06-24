@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Trash2, Edit2, Copy, Check } from 'lucide-react';
+import { Trash2, Edit2, Copy, Check, Lock } from 'lucide-react';
 
 const ROLE_LABELS = {
   comandante_corpo: 'Comandante do Corpo de Alunos (CAL)',
@@ -28,8 +28,13 @@ const COMPANHIA_OPTIONS = [
 ];
 
 export function AccessManagement() {
+  const { data: user } = trpc.auth.me.useQuery();
   const [isCreating, setIsCreating] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
+  
+  const canManageAccess = user?.role === 'admin' || user?.role === 'master';
+  const canDeleteAccess = (access: any) => user?.role === 'admin' || user?.role === 'master';
+  const canEditAccess = (access: any) => user?.role === 'admin' || user?.role === 'master';
   
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -102,10 +107,17 @@ export function AccessManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Acessos</h1>
-        <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogTrigger asChild>
-            <Button>+ Criar Novo Acesso</Button>
-          </DialogTrigger>
+        {!canManageAccess && (
+          <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-2 rounded">
+            <Lock className="w-4 h-4" />
+            <span className="text-sm">Você nao tem permissao para criar acessos</span>
+          </div>
+        )}
+        {canManageAccess && (
+          <Dialog open={isCreating} onOpenChange={setIsCreating}>
+            <DialogTrigger asChild>
+              <Button>+ Criar Novo Acesso</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Criar Novo Acesso</DialogTitle>
@@ -205,8 +217,9 @@ export function AccessManagement() {
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {listAccessesQuery.isLoading ? (
@@ -260,14 +273,26 @@ export function AccessManagement() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteAccess(access.id)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Deletar
-                  </Button>
+                  {canDeleteAccess(access) ? (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteAccess(access.id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Deletar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      title="Voce nao tem permissao para deletar acessos"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Deletar (Bloqueado)
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

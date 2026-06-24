@@ -31,6 +31,7 @@ import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
 import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
 import { CfapPersonnelTab } from "@/components/admin/CfapPersonnelTab";
 import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
+import { AccessManagement } from "./AccessManagement";
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -248,6 +249,7 @@ export default function Admin() {
                 <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
               )}
               {canManageGlobalContent && <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>}
+              {canManageGlobalContent && <TabsTrigger value="access" className="gap-2"><Shield className="h-4 w-4" /> Acessos</TabsTrigger>}
             </TabsList>
 
             {/* HYMNS TAB */}
@@ -558,6 +560,11 @@ export default function Admin() {
             {canManageGlobalContent && (
               <TabsContent value="users">
                 <UsersTab />
+              </TabsContent>
+            )}
+            {canManageGlobalContent && (
+              <TabsContent value="access">
+                <AccessManagement />
               </TabsContent>
             )}
           </Tabs>
