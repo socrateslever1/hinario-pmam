@@ -278,3 +278,12 @@
 - [x] Adicionar opção "Lembrar de mim" na tela de login para manter sessão ativa por mais tempo
 - [x] Corrigir contraste de cores no modo escuro (texto muito escuro em fundo escuro)
 - [x] Melhorar legibilidade de documentos PDF no modo escuro
+
+## 🔧 CORREÇÕES DE PWA E SERVICE WORKER
+
+- [x] Corrigir Service Worker para não cachear rotas de autenticação (auth.me, auth.login, auth.logout, auth.loginEmail)
+- [x] Corrigir Service Worker para não cachear rotas de sessão de aluno (study.ensureStudent, study.getStudentSession)
+- [x] Implementar Network-first para rotas de autenticação
+- [x] Atualizar versão do cache (v1 → v2) para forçar limpeza de cache antigo
+- [x] Testar login de Xerife após correção do PWA
+- [x] Testar login de aluno após correção do PWA
