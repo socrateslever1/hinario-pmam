@@ -287,3 +287,39 @@
 - [x] Atualizar versão do cache (v1 → v2) para forçar limpeza de cache antigo
 - [x] Testar login de Xerife após correção do PWA
 - [x] Testar login de aluno após correção do PWA
+
+
+## 🔐 SISTEMA DE NÍVEIS DE ACESSO - JUNHO 2026
+
+### Fase 1: Schema do Banco de Dados
+- [ ] Adicionar campo `role` na tabela `users` (enum: 'admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel', 'student')
+- [ ] Adicionar campo `pelotao_id` na tabela `users` (FK para pelotão)
+- [ ] Adicionar campo `companhia_id` na tabela `users` (FK para companhia)
+- [ ] Adicionar campo `forcePasswordChange` na tabela `users` (boolean, default true)
+- [ ] Executar migração com `pnpm db:push`
+
+### Fase 2: Página de Gerenciamento de Acessos
+- [ ] Criar página `/xerife/acessos` no painel do Xerife
+- [ ] Implementar formulário para criar novo acesso (nome, email, role, pelotão, companhia)
+- [ ] Implementar listagem de acessos criados
+- [ ] Implementar edição de acessos
+- [ ] Implementar exclusão de acessos
+
+### Fase 3: Lógica de Restrição
+- [ ] Implementar visualização de pelotões baseada em role
+- [ ] Implementar restrição de edição baseada em role
+- [ ] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
+- [ ] Implementar anotações (positivas/negativas) para alunos
+
+### Fase 4: Obrigatoriedade de Trocar Senha
+- [ ] Implementar verificação de `forcePasswordChange` no login
+- [ ] Redirecionar para página de trocar senha se necessário
+- [ ] Atualizar `forcePasswordChange` para false após trocar senha
+
+### Fase 5: Testes
+- [ ] Testar login de Comandante de Pelotão
+- [ ] Testar login de Comandante de Companhia
+- [ ] Testar login de Comandante do Corpo de Alunos
+- [ ] Testar login de Comandante CFAP
+- [ ] Testar restrições de visualização e edição
+- [ ] Testar obrigatoriedade de trocar senha no primeiro login

@@ -2642,6 +2642,87 @@ export const appRouter = router({
     }),
   }),
 
+  access: router({
+    createAccess: masterProcedure.input(
+      z.object({
+        name: z.string().trim().min(2).max(255),
+        email: z.string().email(),
+        role: z.enum(['comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
+        pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
+        companhiaId: z.number().int().min(1).max(5).nullable().optional(),
+      })
+    ).mutation(async ({ input }) => {
+      const existing = await db.getUserByEmail(input.email);
+      if (existing) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email ja cadastrado' });
+      }
+      
+      const result = await db.createAccessUser({
+        name: input.name,
+        email: input.email,
+        role: input.role,
+        pelotaoId: input.pelotaoId,
+        companhiaId: input.companhiaId,
+      });
+      
+      return {
+        success: true,
+        email: result.email,
+        tempPassword: result.tempPassword,
+        message: 'Acesso criado com sucesso. Compartilhe o email e senha temporaria com o usuario.',
+      };
+    }),
+
+    listAccesses: masterProcedure.query(async () => {
+      return await db.listAccessUsers();
+    }),
+
+    updateAccess: masterProcedure.input(
+      z.object({
+        id: z.number().int(),
+        name: z.string().trim().min(2).max(255).optional(),
+        role: z.enum(['comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']).optional(),
+        pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
+        companhiaId: z.number().int().min(1).max(5).nullable().optional(),
+      })
+    ).mutation(async ({ input }) => {
+      const { id, ...updates } = input;
+      await db.updateAccessUser(id, updates);
+      return { success: true, message: 'Acesso atualizado com sucesso' };
+    }),
+
+    deleteAccess: masterProcedure.input(
+      z.object({
+        id: z.number().int(),
+      })
+    ).mutation(async ({ input }) => {
+      await db.deleteUser(input.id);
+      return { success: true, message: 'Acesso deletado com sucesso' };
+    }),
+
+    changePassword: protectedProcedure.input(
+      z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(6).max(255),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user || !user.password) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuario nao encontrado' });
+      }
+      
+      const isValid = await bcrypt.compare(input.currentPassword, user.password);
+      if (!isValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha atual incorreta' });
+      }
+      
+      const hashedPassword = await bcrypt.hash(input.newPassword, 10);
+      await db.updateUserPassword(ctx.user.id, hashedPassword);
+      
+      return { success: true, message: 'Senha alterada com sucesso' };
+    }),
+  }),
+
   student: studentRouter,
 });
 

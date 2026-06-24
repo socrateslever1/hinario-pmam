@@ -455,6 +455,13 @@ function StudentHighlights() {
 
 export default function Home() {
   const { data: hymns } = trpc.hymns.list.useQuery();
+  const meQuery = trpc.auth.me.useQuery();
+
+  // Redirecionar para trocar senha se necessário
+  if (meQuery.data && (meQuery.data as any).forcePasswordChange) {
+    window.location.href = '/alterar-senha';
+    return null;
+  }
 
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">

@@ -15,6 +15,9 @@ function mapUser(u: any) {
     password: u.password,
     loginMethod: u.login_method,
     role: u.role,
+    pelotaoId: u.pelotao_id,
+    companhiaId: u.companhia_id,
+    forcePasswordChange: u.force_password_change === 1 || u.force_password_change === true,
     createdAt: u.created_at,
     updatedAt: u.updated_at,
     lastSignedIn: u.last_signed_in
@@ -1434,4 +1437,100 @@ export async function toggleBlogLike(postId: number, visitorId: string): Promise
   }
   const count = await getBlogLikesCount(postId);
   return { liked: existing.length === 0, count };
+}
+
+
+// ===== ACCESS MANAGEMENT =====
+export async function createAccessUser(input: {
+  name: string;
+  email: string;
+  role: string;
+  pelotaoId?: number | null;
+  companhiaId?: number | null;
+}) {
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const openId = `access-${nanoid(16)}`;
+  const tempPassword = nanoid(12);
+  
+  const sql = `
+    INSERT INTO pmam_users (open_id, name, email, password, login_method, role, pelotao_id, companhia_id, force_password_change)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  await query(sql, [
+    openId,
+    input.name,
+    normalizedEmail,
+    tempPassword,
+    'email',
+    input.role,
+    input.pelotaoId || null,
+    input.companhiaId || null,
+    true
+  ]);
+  
+  return { email: normalizedEmail, tempPassword };
+}
+
+export async function updateAccessUser(id: number, input: {
+  name?: string;
+  role?: string;
+  pelotaoId?: number | null;
+  companhiaId?: number | null;
+}) {
+  const updates: string[] = [];
+  const values: any[] = [];
+  
+  if (input.name !== undefined) {
+    updates.push('name = ?');
+    values.push(input.name);
+  }
+  if (input.role !== undefined) {
+    updates.push('role = ?');
+    values.push(input.role);
+  }
+  if (input.pelotaoId !== undefined) {
+    updates.push('pelotao_id = ?');
+    values.push(input.pelotaoId);
+  }
+  if (input.companhiaId !== undefined) {
+    updates.push('companhia_id = ?');
+    values.push(input.companhiaId);
+  }
+  
+  if (updates.length === 0) return;
+  
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+  
+  const sql = `UPDATE pmam_users SET ${updates.join(', ')} WHERE id = ? AND role <> 'master'`;
+  await query(sql, values);
+}
+
+export async function listAccessUsers() {
+  const rows = await query(
+    "SELECT id, name, email, role, pelotao_id, companhia_id, force_password_change, created_at FROM pmam_users WHERE role IN ('comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel') ORDER BY created_at DESC"
+  );
+  return rows.map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    role: r.role,
+    pelotaoId: r.pelotao_id,
+    companhiaId: r.companhia_id,
+    forcePasswordChange: r.force_password_change === 1 || r.force_password_change === true,
+    createdAt: r.created_at
+  }));
+}
+
+export async function getUserById(id: number) {
+  const rows = await query('SELECT * FROM pmam_users WHERE id = ? LIMIT 1', [id]);
+  return mapUser(rows[0]);
+}
+
+export async function updateUserPassword(id: number, hashedPassword: string) {
+  await query(
+    "UPDATE pmam_users SET password = ?, force_password_change = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [hashedPassword, id]
+  );
 }
