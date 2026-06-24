@@ -345,3 +345,14 @@
 - [x] Implementar cálculo de tempo estimado restante
 - [x] Criar testes vitest para UploadProgressBar (12 testes passando)
 - [x] Testar responsividade em mobile e desktop
+
+
+## 🔄 CORREÇÃO DE NAVEGAÇÃO E COMPORTAMENTO DE SAÍDA
+
+- [x] Remover recarregamento automático de página ao voltar
+- [x] Remover recarregamento por inatividade do background
+- [x] Remover interceptação do botão voltar como "sair"
+- [x] Botão voltar funciona normalmente para navegação
+- [x] Adicionar alerta ao sair do programa na última página (proofs)
+- [x] Criar testes para validar comportamento de inatividade (11 testes passando)
+- [x] Testar navegação sem recarregamento

@@ -218,6 +218,7 @@ export default function ClassroomMap() {
   const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
   const [foProofsUploading, setFoProofsUploading] = useState(false);
   const [operationalStudent, setOperationalStudent] = useState<any | null>(null);
+  const [foModalPage, setFoModalPage] = useState<"students" | "proofs">("students"); // Página do modal de FO
 
   const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
@@ -246,6 +247,7 @@ export default function ClassroomMap() {
   useModalHistory(foModalOpen, () => {
     setFoModalOpen(false);
     setFoProofs([]);
+    setFoModalPage("students");
   }, "fo");
   useModalHistory(parteModalOpen, () => setParteModalOpen(false), "parte");
   useModalHistory(Boolean(operationalStudent), () => setOperationalStudent(null), "operational");
@@ -2856,7 +2858,25 @@ export default function ClassroomMap() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setFoModalOpen(false)}>Cancelar</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (foModalPage === "proofs") {
+                    const confirmed = window.confirm("Você vai sair do programa. Deseja continuar?");
+                    if (confirmed) {
+                      setFoModalOpen(false);
+                      setFoModalPage("students");
+                      setFoProofs([]);
+                    }
+                  } else {
+                    setFoModalOpen(false);
+                    setFoModalPage("students");
+                    setFoProofs([]);
+                  }
+                }}
+              >
+                Cancelar
+              </Button>
               <Button
                 className="bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90"
                 onClick={handleLaunchFO}
