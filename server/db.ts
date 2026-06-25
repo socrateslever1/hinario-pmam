@@ -3,6 +3,7 @@ import { ENV } from './_core/env';
 import { nanoid } from "nanoid";
 import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent, StudyStudentSession } from "../shared/types";
 import { isValidStudyStudentNumber, normalizeStudyStudentNumber } from "../shared/study";
+import bcrypt from "bcryptjs";
 
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
@@ -1447,10 +1448,12 @@ export async function createAccessUser(input: {
   role: string;
   pelotaoId?: number | null;
   companhiaId?: number | null;
+  password?: string;
 }) {
   const normalizedEmail = input.email.trim().toLowerCase();
   const openId = `access-${nanoid(16)}`;
-  const tempPassword = nanoid(12);
+  const tempPassword = input.password || nanoid(12);
+  const hashedPassword = await bcrypt.hash(tempPassword, 12);
   
   const sql = `
     INSERT INTO pmam_users (open_id, name, email, password, login_method, role, pelotao_id, companhia_id, force_password_change)
@@ -1461,7 +1464,7 @@ export async function createAccessUser(input: {
     openId,
     input.name,
     normalizedEmail,
-    tempPassword,
+    hashedPassword,
     'email',
     input.role,
     input.pelotaoId || null,

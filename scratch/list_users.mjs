@@ -33,14 +33,12 @@ const config = {
 async function run() {
   const connection = await mysql.createConnection(config);
   try {
-      const [rows] = await connection.query(
-      "SELECT id, numerica, nome_guerra, senha, session_token FROM pmam_students"
+    const [rows] = await connection.query(
+      "SELECT id, name, email, role, password FROM pmam_users"
     );
-    
-    console.log("Analyzing first 15 accounts starting from index 0...");
-    for (let i = 0; i < 15 && i < rows.length; i++) {
-      const student = rows[i];
-      console.log(`ID: ${student.id}, Numerica: ${student.numerica}, Name: ${student.nome_guerra}, Senha: "${student.senha}", Token: "${student.session_token}"`);
+    console.log("USERS LIST:");
+    for (const u of rows) {
+      console.log(`ID: ${u.id}, Name: ${u.name}, Email: ${u.email}, Role: ${u.role}, Password: "${u.password}"`);
     }
   } finally {
     await connection.end();

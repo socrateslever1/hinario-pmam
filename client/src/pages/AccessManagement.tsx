@@ -68,6 +68,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
     role: 'comandante_pel',
     pelotaoId: '',
     companhiaId: '',
+    password: '',
   })
 
   const createAccessMutation = trpc.access.createAccess.useMutation();
@@ -82,6 +83,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
         role: formData.role,
         pelotaoId: formData.pelotaoId ? parseInt(formData.pelotaoId) : undefined,
         companhiaId: formData.companhiaId ? parseInt(formData.companhiaId) : undefined,
+        password: formData.password || undefined,
       });
       
       setFormData({
@@ -90,6 +92,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
         role: 'comandante_pel',
         pelotaoId: '',
         companhiaId: '',
+        password: '',
       });
       setIsCreating(false);
       listAccessesQuery.refetch();
@@ -132,21 +135,21 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const content = (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gerenciamento de Acessos</h1>
+        <h1 className="text-3xl font-bold">Usuários e Acessos</h1>
         {!canManageAccess && (
           <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-2 rounded">
             <Lock className="w-4 h-4" />
-            <span className="text-sm">Você nao tem permissao para criar acessos</span>
+            <span className="text-sm">Você nao tem permissao para gerenciar contas</span>
           </div>
         )}
         {canManageAccess && (
           <Dialog open={isCreating} onOpenChange={setIsCreating}>
             <DialogTrigger asChild>
-              <Button>+ Criar Novo Acesso</Button>
+              <Button>+ Criar Nova Conta</Button>
             </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Criar Novo Acesso</DialogTitle>
+              <DialogTitle>Criar Nova Conta de Comando / Admin</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -169,8 +172,30 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
               </div>
 
               <div>
+                <label className="text-sm font-medium">Senha Inicial (Opcional)</label>
+                <Input
+                  type="text"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Se vazio, gera temporária aleatória"
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-medium">Função</label>
-                <Select value={formData.role} onValueChange={(value: any) => setFormData({ ...formData, role: value })}>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value: any) => {
+                    const updatedData = { ...formData, role: value };
+                    if (value !== 'comandante_pel') {
+                      updatedData.pelotaoId = '';
+                    }
+                    if (value !== 'comandante_cia' && value !== 'comandante_pel') {
+                      updatedData.companhiaId = '';
+                    }
+                    setFormData(updatedData);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -184,7 +209,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                 </Select>
               </div>
 
-              {(formData.role === 'comandante_pel' || formData.role === 'comandante_cia' || formData.role === 'comandante_corpo' || formData.role === 'comandante_cfap') && (
+              {formData.role === 'comandante_pel' && (
                 <div>
                   <label className="text-sm font-medium">Pelotão</label>
                   <Select value={formData.pelotaoId} onValueChange={(value) => setFormData({ ...formData, pelotaoId: value })}>
@@ -200,7 +225,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                 </div>
               )}
 
-              {(formData.role === 'comandante_cia' || formData.role === 'comandante_pel' || formData.role === 'comandante_corpo') && (
+              {(formData.role === 'comandante_cia' || formData.role === 'comandante_pel') && (
                 <div>
                   <label className="text-sm font-medium">Companhia</label>
                   <Select value={formData.companhiaId} onValueChange={(value) => setFormData({ ...formData, companhiaId: value })}>
@@ -221,12 +246,12 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                 disabled={!formData.name || !formData.email || createAccessMutation.isPending}
                 className="w-full"
               >
-                {createAccessMutation.isPending ? 'Criando...' : 'Criar Acesso'}
+                {createAccessMutation.isPending ? 'Criando...' : 'Criar Conta'}
               </Button>
 
               {createAccessMutation.data && (
                 <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
-                  <p className="font-semibold text-green-900">Acesso criado com sucesso!</p>
+                  <p className="font-semibold text-green-900">Conta criada com sucesso!</p>
                   <p className="text-green-800 mt-1">Email: {createAccessMutation.data.email}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <code className="bg-white px-2 py-1 rounded text-xs flex-1 break-all">{createAccessMutation.data.tempPassword}</code>
@@ -250,11 +275,11 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
       </div>
 
       {listAccessesQuery.isLoading ? (
-        <div className="text-center py-8">Carregando acessos...</div>
+        <div className="text-center py-8">Carregando contas...</div>
       ) : listAccessesQuery.data?.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-gray-500">
-            Nenhum acesso criado ainda
+            Nenhuma conta de comando criada ainda
           </CardContent>
         </Card>
       ) : (

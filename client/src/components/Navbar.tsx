@@ -255,7 +255,7 @@ export default function Navbar() {
                 }`}
               >
                 <Star className="h-4 w-4" />
-                Área do Xerife
+                Posto de Comando
               </Button>
             </Link>
           </div>
@@ -365,7 +365,7 @@ export default function Navbar() {
                 <Link href="/xerife" onClick={() => setOpen(false)}>
                   <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]">
                     <Star className="h-4 w-4" />
-                    Área do Xerife
+                    Posto de Comando
                   </Button>
                 </Link>
               </div>

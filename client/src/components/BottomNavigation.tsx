@@ -82,7 +82,7 @@ export default function BottomNavigation() {
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
         { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
-        { icon: Shield, label: "Área do Xerife", path: "/xerife" },
+        { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ]
     : [
         { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
@@ -92,7 +92,7 @@ export default function BottomNavigation() {
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
         { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
-        { icon: Shield, label: "Área do Xerife", path: "/xerife" },
+        { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ];
 
   const isActive = (path: string) => {

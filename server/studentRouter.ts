@@ -44,8 +44,12 @@ export const studentRouter = router({
       let student: any = null;
 
       if (existingStudent) {
-        // A conta só é considerada ativa se já tiver um sessionToken registrado (o que indica que o aluno já criou/entrou na conta pelo menos uma vez)
-        const isAlreadyActivated = Boolean(existingStudent.sessionToken);
+        // A conta só é considerada ativa se já tiver um sessionToken real e se a senha não for a temporária "temp"
+        const isTempPassword = await studentDb.verifyStudentPassword(input.numerica, "temp");
+        const isAlreadyActivated = existingStudent.sessionToken && 
+                                   existingStudent.sessionToken !== "null" && 
+                                   existingStudent.sessionToken !== "undefined" && 
+                                   !isTempPassword;
 
         if (isAlreadyActivated) {
           // Normalizar CPFs e RGs para comparação

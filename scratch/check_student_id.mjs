@@ -33,15 +33,15 @@ const config = {
 async function run() {
   const connection = await mysql.createConnection(config);
   try {
-      const [rows] = await connection.query(
-      "SELECT id, numerica, nome_guerra, senha, session_token FROM pmam_students"
+    const [columns] = await connection.query("SHOW COLUMNS FROM pmam_users");
+    console.log("COLUMNS IN pmam_users:");
+    console.log(columns.map(c => c.Field));
+
+    const [rows] = await connection.query(
+      "SELECT id, name, email, student_id FROM pmam_users WHERE email LIKE '%4122%'"
     );
-    
-    console.log("Analyzing first 15 accounts starting from index 0...");
-    for (let i = 0; i < 15 && i < rows.length; i++) {
-      const student = rows[i];
-      console.log(`ID: ${student.id}, Numerica: ${student.numerica}, Name: ${student.nome_guerra}, Senha: "${student.senha}", Token: "${student.session_token}"`);
-    }
+    console.log("Users with email 4122:");
+    console.log(rows);
   } finally {
     await connection.end();
   }

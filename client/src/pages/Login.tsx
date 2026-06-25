@@ -102,7 +102,7 @@ export default function Login() {
         <div className="container text-center">
           <img src={BRASAO_URL} alt="Brasão PMAM" className="h-16 w-16 object-contain mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
-            Área do Xerife
+            Posto de Comando
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Painel de Gerenciamento — Hinário PMAM</p>
         </div>

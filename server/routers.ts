@@ -252,20 +252,44 @@ export const appRouter = router({
         console.warn(`[Auth] Login failed: User ${normalizedEmail} has no password set`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
-      const valid = await bcrypt.compare(input.password, user.password);
+      
+      const dbPassword = user.password;
+      const isBcrypt = dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$");
+      let valid = false;
+      if (isBcrypt) {
+        valid = await bcrypt.compare(input.password, dbPassword);
+      } else {
+        valid = input.password === dbPassword;
+      }
+      
+      if (!valid) {
+        // Se for um usuário associado a um aluno (studentId preenchido), tenta validar com a senha da tabela pmam_students
+        if (user.studentId) {
+          const student = await studentDb.getStudentById(user.studentId);
+          if (student) {
+            const isStudentPasswordValid = await studentDb.verifyStudentPassword(student.numerica, input.password);
+            if (isStudentPasswordValid) {
+              console.info(`[Auth] Synchronizing password for user ${normalizedEmail} from student table`);
+              const hashedPassword = await bcrypt.hash(input.password, 12);
+              await db.resetUserPassword(user.id, hashedPassword);
+              valid = true;
+            }
+          }
+        }
+      }
+
       if (!valid) {
         console.warn(`[Auth] Login failed: Invalid password for user ${normalizedEmail}`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
-      // Create session token with adjusted expiration based on rememberMe
-      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-      const expiresInMs = input.rememberMe ? THIRTY_DAYS_MS : ONE_YEAR_MS;
+      // Create session token with 10 years expiration (practically forever)
+      const TEN_YEARS_MS = 10 * 365 * 24 * 60 * 60 * 1000;
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.name || user.email || "user",
-        expiresInMs,
+        expiresInMs: TEN_YEARS_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: expiresInMs });
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: TEN_YEARS_MS });
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
       return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
@@ -2652,6 +2676,7 @@ export const appRouter = router({
         role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
+        password: z.string().min(4).max(255).optional(),
       })
     ).mutation(async ({ input }) => {
       const existing = await db.getUserByEmail(input.email);
@@ -2665,6 +2690,7 @@ export const appRouter = router({
         role: input.role,
         pelotaoId: input.pelotaoId,
         companhiaId: input.companhiaId,
+        password: input.password,
       });
       
       return {
@@ -2713,7 +2739,15 @@ export const appRouter = router({
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuario nao encontrado' });
       }
       
-      const isValid = await bcrypt.compare(input.currentPassword, user.password);
+      const dbPassword = user.password;
+      const isBcrypt = dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$");
+      let isValid = false;
+      if (isBcrypt) {
+        isValid = await bcrypt.compare(input.currentPassword, dbPassword);
+      } else {
+        isValid = input.currentPassword === dbPassword;
+      }
+      
       if (!isValid) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Senha atual incorreta' });
       }

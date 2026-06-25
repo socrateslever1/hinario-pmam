@@ -1177,7 +1177,7 @@ export default function ClassroomMap() {
                     <Crown className="h-6 w-6 text-[#c4a84b] fill-current shrink-0" />
                     <div>
                       <p className="text-sm font-bold">Atenção, Xerife/Sub-Xerife!</p>
-                      <p className="text-xs text-muted-foreground">Você possui atribuição de liderança. Entre na Área do Xerife para realizar alterações ou gerenciar escalas.</p>
+                      <p className="text-xs text-muted-foreground">Você possui atribuição de liderança. Entre no Posto de Comando para realizar alterações ou gerenciar escalas.</p>
                     </div>
                   </div>
                   <Link href="/xerife">

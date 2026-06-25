@@ -124,16 +124,16 @@ export default function Admin() {
             <CardContent className="p-8 text-center">
               <Star className="h-16 w-16 text-[#c4a84b] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Merriweather, serif' }}>
-                Área do Xerife
+                Posto de Comando
               </h2>
               <p className="text-muted-foreground mb-6">
-                Esta área é exclusiva para administradores do Hinário PMAM.
+                Esta área é exclusiva para comandantes e administradores do Hinário PMAM.
                 Faça login para acessar o painel de gerenciamento.
               </p>
               <Link href="/login">
                 <Button className="bg-[#1a3a2a] text-white gap-2 w-full">
                   <LogIn className="h-4 w-4" />
-                  Entrar como Xerife
+                  Acessar Comando
                 </Button>
               </Link>
               <Link href="/">
@@ -161,9 +161,9 @@ export default function Admin() {
               <Star className="h-8 w-8 text-[#c4a84b]" />
               <div>
                 <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
-                  Área do Xerife
+                  Posto de Comando
                 </h1>
-                <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Xerife"} {isXerifeGeral && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Xerife Geral</Badge>}</p>
+                <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Comandante"} {isXerifeGeral && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Xerife Geral</Badge>}</p>
               </div>
             </div>
             <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-foreground gap-2 sm:w-auto" onClick={handleLogout}>
