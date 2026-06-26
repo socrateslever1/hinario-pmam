@@ -945,6 +945,11 @@ export default function ClassroomMap() {
       return;
     }
 
+    if (foProofs.length > 0 && idsToSend.length > 1) {
+      toast.error("Anexos devem ser enviados em um Fato Observado individual.");
+      return;
+    }
+
     if (!foReason) {
       toast.error("Selecione o fato observado (elogio ou transgressão)");
       return;
@@ -983,29 +988,32 @@ export default function ClassroomMap() {
         )
       );
 
-      // Upload de provas se houver
+      // Um anexo é sempre vinculado a uma única observação do aluno.
       if (foProofs.length > 0 && foResults.length > 0) {
         setFoProofsUploading(true);
-        const foId = foResults[0]?.id;
-        
-        for (const proof of foProofs) {
-          try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              const base64Data = (e.target?.result as string)?.split(',')[1] || '';
-              uploadFoProof.mutate({
-                fatoObservadoId: foId,
-                fileName: proof.file.name,
-                fileSize: proof.file.size,
-                mimeType: proof.file.type,
-                fileData: base64Data,
-              });
-            };
-            reader.readAsDataURL(proof.file);
-          } catch (err) {
-            console.error(`Erro ao fazer upload de prova: ${err}`);
-          }
+        const studentObservationId = foResults[0]?.id;
+        if (!studentObservationId) {
+          throw new Error("Não foi possível identificar o Fato Observado criado.");
         }
+
+        await Promise.all(
+          foProofs.map(async (proof) => {
+            const fileData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+              reader.onerror = () => reject(reader.error || new Error("Erro ao ler o arquivo."));
+              reader.readAsDataURL(proof.file);
+            });
+
+            await uploadFoProof.mutateAsync({
+              studentObservationId,
+              fileName: proof.file.name,
+              fileSize: proof.file.size,
+              mimeType: proof.file.type,
+              fileData,
+            });
+          })
+        );
         setFoProofsUploading(false);
       }
 

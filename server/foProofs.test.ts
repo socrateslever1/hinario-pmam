@@ -19,7 +19,7 @@ describe("FO Proofs Database", () => {
       (query as any).mockResolvedValueOnce({ insertId: mockInsertId });
 
       const result = await foDb.createFatoObservadoProva({
-        fatoObservadoId: 1,
+        studentObservationId: 1,
         arquivoUrl: "https://s3.example.com/prova.jpg",
         tipo: "foto",
         nomeArquivo: "prova.jpg",
@@ -48,7 +48,7 @@ describe("FO Proofs Database", () => {
       (query as any).mockResolvedValueOnce({ insertId: mockInsertId });
 
       const result = await foDb.createFatoObservadoProva({
-        fatoObservadoId: 2,
+        studentObservationId: 2,
         arquivoUrl: "https://s3.example.com/video.mp4",
         tipo: "video",
       });
@@ -74,7 +74,7 @@ describe("FO Proofs Database", () => {
       const mockProvas = [
         {
           id: 1,
-          fato_observado_id: 10,
+          student_observation_id: 10,
           arquivo_url: "https://s3.example.com/prova1.jpg",
           tipo: "foto",
           nome_arquivo: "prova1.jpg",
@@ -87,7 +87,7 @@ describe("FO Proofs Database", () => {
         },
         {
           id: 2,
-          fato_observado_id: 10,
+          student_observation_id: 10,
           arquivo_url: "https://s3.example.com/prova2.mp4",
           tipo: "video",
           nome_arquivo: "prova2.mp4",
@@ -105,7 +105,7 @@ describe("FO Proofs Database", () => {
       const result = await foDb.listFatoObservadoProvas(10);
 
       expect(result).toHaveLength(2);
-      expect(result[0].fatoObservadoId).toBe(10);
+      expect(result[0].studentObservationId).toBe(10);
       expect(result[0].tipo).toBe("foto");
       expect(result[1].tipo).toBe("video");
       expect(query).toHaveBeenCalledWith(
@@ -128,7 +128,7 @@ describe("FO Proofs Database", () => {
     it("deve obter uma prova específica", async () => {
       const mockProva = {
         id: 1,
-        fato_observado_id: 10,
+        student_observation_id: 10,
         arquivo_url: "https://s3.example.com/prova.jpg",
         tipo: "foto",
         nome_arquivo: "prova.jpg",
@@ -178,7 +178,7 @@ describe("FO Proofs Database", () => {
       await foDb.deleteFatoObservadoProvas(10);
 
       expect(query).toHaveBeenCalledWith(
-        expect.stringContaining("DELETE FROM pmam_fato_observado_provas WHERE fato_observado_id = ?"),
+        expect.stringContaining("DELETE FROM pmam_fato_observado_provas WHERE student_observation_id = ?"),
         expect.arrayContaining([10])
       );
     });

@@ -29,8 +29,8 @@ const ACCEPTED_TYPES = {
 
 const ACCEPTED_EXTENSIONS = {
   foto: [".jpg", ".jpeg", ".png", ".webp", ".gif"],
-  video: [".mp4", ".webm", ".mov", ".avi"],
-  audio: [".mp3", ".wav", ".ogg", ".m4a"],
+  video: [".mp4", ".webm", ".mov"],
+  audio: [".mp3", ".wav", ".ogg"],
   documento: [".pdf", ".doc", ".docx"],
 };
 

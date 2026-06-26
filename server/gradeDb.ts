@@ -179,7 +179,7 @@ export async function getActiveDisciplineCatalog(companhia?: number, peloton?: n
         d.exam_date as global_exam_date,
         d.status as global_status
       FROM pmam_disciplines d
-      LEFT JOIN pmam_platoon_disciplines pd ON pd.discipline_id = d.id 
+      INNER JOIN pmam_platoon_disciplines pd ON pd.discipline_id = d.id
         AND pd.companhia = ? 
         AND pd.peloton = ?
       WHERE d.is_active = true 
@@ -207,6 +207,26 @@ export async function getActiveDisciplineCatalog(companhia?: number, peloton?: n
     );
     return rows.map(mapDisciplineCatalogItem).filter((d): d is DisciplineCatalogItem => d !== null);
   }
+}
+
+export async function isDisciplineAvailableForScope(
+  disciplineId: number,
+  companhia: number,
+  peloton: number,
+): Promise<boolean> {
+  await ensurePlatoonDisciplineTable();
+  const rows = await query(
+    `SELECT d.id
+     FROM pmam_disciplines d
+     INNER JOIN pmam_platoon_disciplines pd ON pd.discipline_id = d.id
+     WHERE d.id = ?
+       AND d.is_active = true
+       AND pd.companhia = ?
+       AND pd.peloton = ?
+     LIMIT 1`,
+    [disciplineId, companhia, peloton],
+  );
+  return rows.length > 0;
 }
 
 export async function upsertPlatoonDiscipline(
@@ -507,7 +527,7 @@ export async function getGradeRanking(filters?: {
     LEFT JOIN pmam_student_grades g ON g.student_id = s.id AND g.grade IS NOT NULL
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY s.id, s.nome_guerra, s.numerica, s.companhia, s.peloton
-    ORDER BY total_score DESC, discipline_count DESC, s.numerica ASC`,
+     ORDER BY avg_grade DESC, discipline_count DESC, s.numerica ASC`,
     params
   );
 

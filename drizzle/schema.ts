@@ -339,7 +339,7 @@ export type InsertPmamFatoObservado = typeof pmamFatoObservado.$inferInsert;
 
 export const pmamFatoObservadoProvas = mysqlTable("pmam_fato_observado_provas", {
   id: int("id").autoincrement().primaryKey(),
-  fatoObservadoId: int("fato_observado_id").notNull(),
+  studentObservationId: int("student_observation_id"),
   arquivoUrl: longtext("arquivo_url").notNull(),
   tipo: mysqlEnum("tipo", ["foto", "video", "audio", "documento"]).default("foto"),
   nomeArquivo: varchar("nome_arquivo", { length: 255 }),

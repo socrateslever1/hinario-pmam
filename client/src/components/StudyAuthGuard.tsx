@@ -59,9 +59,10 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
     }
 
     ensureStudent.mutate({
+      studentId: currentStudent.id,
+      sessionToken: currentStudent.sessionToken,
       studentNumber: currentStudent.numerica,
       displayName: currentStudent.nomeGuerra,
-      accessToken: null,
     });
   }, []);
 

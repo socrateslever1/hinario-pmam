@@ -4,10 +4,6 @@ import { z } from "zod";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
-import * as db from "./db";
-import { sdk } from "./_core/sdk";
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
 
 export const studentRouter = router({
   register: publicProcedure
@@ -142,7 +138,7 @@ export const studentRouter = router({
         senha: z.string().min(4),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       // Validar numérica
       const validation = validateNumerica(input.numerica);
       if (!validation.isValid) {
@@ -175,23 +171,6 @@ export const studentRouter = router({
       }
 
       const sessionToken = await studentDb.rotateStudentSessionToken(student.id);
-
-      // Se o aluno for xerife (tiver cadastro na tabela de usuários), loga ele também como usuário/xerife
-      try {
-        const email = `${student.numerica}@pmam.com`;
-        const user = await db.getUserByEmail(email);
-        if (user) {
-          const userSessionToken = await sdk.createSessionToken(user.openId, {
-            name: user.name || "",
-            expiresInMs: ONE_YEAR_MS,
-          });
-          const cookieOptions = getSessionCookieOptions(ctx.req);
-          ctx.res.cookie(COOKIE_NAME, userSessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-          await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
-        }
-      } catch (err) {
-        console.error("[StudentLogin] Failed to auto-login xerife user:", err);
-      }
 
       return {
         id: student.id,
@@ -316,11 +295,17 @@ export const studentRouter = router({
   getByNumericaOrRg: publicProcedure
     .input(
       z.object({
+        id: z.number().int().positive(),
+        sessionToken: z.string().min(16),
         numerica: z.string().trim().optional(),
         rg: z.string().trim().optional(),
       })
     )
     .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida ou expirada" });
+      }
       if (!input.numerica && !input.rg) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -328,18 +313,19 @@ export const studentRouter = router({
         });
       }
 
-      let student = null;
-      if (input.numerica) {
-        student = await studentDb.getStudentByNumerica(input.numerica);
-      } else if (input.rg) {
-        student = await studentDb.getStudentByRg(input.rg);
+      const student = await studentDb.getStudentById(input.id);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       }
 
-      if (!student) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Aluno não encontrado",
-        });
+      const requestedNumerica = input.numerica?.replace(/\D/g, "") || "";
+      const requestedRg = input.rg?.replace(/\D/g, "") || "";
+      const ownRg = student.rg?.replace(/\D/g, "") || "";
+      if (
+        (requestedNumerica && requestedNumerica !== student.numerica) ||
+        (requestedRg && requestedRg !== ownRg)
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Só é permitido importar os próprios dados" });
       }
 
       return {

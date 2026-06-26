@@ -735,6 +735,8 @@ export default function Documents() {
   // Query reativa para buscar aluno por numérica ou RG/CI
   const searchStudentQuery = trpc.student.getByNumericaOrRg.useQuery(
     {
+      id: session?.id ?? 0,
+      sessionToken: session?.sessionToken ?? "",
       numerica: searchNumerica || undefined,
       rg: searchRgQuery || undefined
     },

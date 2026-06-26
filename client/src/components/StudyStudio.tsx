@@ -30,7 +30,7 @@ type StudyStudioProps = {
 type StudyMode = "overview" | "study" | "exam" | "results";
 
 export default function StudyStudio({ module }: StudyStudioProps) {
-  const { session } = useStudyAuth();
+  const { session, student } = useStudyAuth();
   const [mode, setMode] = useState<StudyMode>("overview");
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [examAnswers, setExamAnswers] = useState<Record<string, string[]>>({});
@@ -40,9 +40,13 @@ export default function StudyStudio({ module }: StudyStudioProps) {
 
   // Carregar progresso inicial
   const { data: dashboardData } = trpc.study.dashboard.useQuery(
-    { studentNumber: session?.student.studentNumber || "", accessToken: session?.accessToken },
     {
-      enabled: !!session,
+      studentId: student?.id ?? 0,
+      sessionToken: student?.sessionToken ?? "",
+      studentNumber: session?.student.studentNumber || "",
+    },
+    {
+      enabled: !!session && !!student,
       staleTime: Infinity,
     }
   );
@@ -61,11 +65,12 @@ export default function StudyStudio({ module }: StudyStudioProps) {
   const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
 
   const handleSaveProgress = (newCompletedSections: string[], score: number | null) => {
-    if (!session) return;
+    if (!session || !student) return;
     if (saveProgressMutation?.mutate) {
       saveProgressMutation.mutate({
+        studentId: student.id,
+        sessionToken: student.sessionToken,
         studentNumber: session.student.studentNumber,
-        accessToken: session.accessToken,
         moduleSlug: module.slug,
         progress: {
           completedSectionIds: newCompletedSections,

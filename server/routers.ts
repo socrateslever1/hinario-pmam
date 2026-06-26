@@ -59,6 +59,40 @@ async function requireStudentSession(studentId: number, sessionToken: string) {
   }
 }
 
+async function requireStudyStudentSession(
+  studentId: number,
+  sessionToken: string,
+  studentNumber: string,
+) {
+  await requireStudentSession(studentId, sessionToken);
+  const student = await studentDb.getStudentById(studentId);
+  if (!student || student.numerica !== studentNumber) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Acesso ao progresso de estudos negado" });
+  }
+  return student;
+}
+
+async function requireStudentDisciplineScope(
+  studentId: number,
+  sessionToken: string,
+  disciplineId: number,
+) {
+  await requireStudentSession(studentId, sessionToken);
+  const student = await studentDb.getStudentById(studentId);
+  if (!student) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+  }
+  const isAvailable = await gradeDb.isDisciplineAvailableForScope(
+    disciplineId,
+    student.companhia,
+    student.peloton,
+  );
+  if (!isAvailable) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Disciplina indisponível para o seu pelotão" });
+  }
+  return student;
+}
+
 // Admin or Master can access
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin" && ctx.user.role !== "master") {
@@ -329,15 +363,17 @@ export const appRouter = router({
 
   study: router({
     ensureStudent: publicProcedure.input(z.object({
+      studentId: z.number().int().positive(),
+      sessionToken: z.string().min(16),
       studentNumber: studyStudentNumberSchema,
       displayName: z.string().trim().min(2).max(120).nullable().optional(),
-      accessToken: z.string().trim().max(128).nullable().optional(),
     })).mutation(async ({ input }) => {
       try {
+        await requireStudyStudentSession(input.studentId, input.sessionToken, input.studentNumber);
         return await db.ensureStudyStudentSession(
           input.studentNumber,
           input.displayName ?? null,
-          input.accessToken ?? null
+          null
         );
       } catch (error) {
         if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
@@ -347,11 +383,13 @@ export const appRouter = router({
       }
     }),
     dashboard: publicProcedure.input(z.object({
+      studentId: z.number().int().positive(),
+      sessionToken: z.string().min(16),
       studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().trim().max(128).nullable().optional(),
     })).query(async ({ input }) => {
       try {
-        return await db.getStudyDashboard(input.studentNumber, input.accessToken);
+        await requireStudyStudentSession(input.studentId, input.sessionToken, input.studentNumber);
+        return await db.getStudyDashboard(input.studentNumber, null);
       } catch (error) {
         if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
           throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
@@ -360,12 +398,14 @@ export const appRouter = router({
       }
     }),
     getModuleProgress: publicProcedure.input(z.object({
+      studentId: z.number().int().positive(),
+      sessionToken: z.string().min(16),
       studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().trim().max(128).nullable().optional(),
       moduleSlug: z.string().trim().min(1).max(96),
     })).query(async ({ input }) => {
       try {
-        return await db.getStudyModuleProgress(input.studentNumber, input.accessToken, input.moduleSlug);
+        await requireStudyStudentSession(input.studentId, input.sessionToken, input.studentNumber);
+        return await db.getStudyModuleProgress(input.studentNumber, null, input.moduleSlug);
       } catch (error) {
         if (error instanceof Error && error.message === "INVALID_STUDY_STUDENT_NUMBER") {
           throw new TRPCError({ code: "BAD_REQUEST", message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE });
@@ -374,8 +414,9 @@ export const appRouter = router({
       }
     }),
     saveModuleProgress: publicProcedure.input(z.object({
+      studentId: z.number().int().positive(),
+      sessionToken: z.string().min(16),
       studentNumber: studyStudentNumberSchema,
-      accessToken: z.string().trim().max(128).nullable().optional(),
       moduleSlug: z.string().trim().min(1).max(96),
       progress: z.object({
         completedSectionIds: z.array(z.string()),
@@ -386,9 +427,10 @@ export const appRouter = router({
       }),
     })).mutation(async ({ input }) => {
       try {
+        await requireStudyStudentSession(input.studentId, input.sessionToken, input.studentNumber);
         return await db.saveStudyModuleProgress(
           input.studentNumber,
-          input.accessToken,
+          null,
           input.moduleSlug,
           input.progress
         );
@@ -1168,7 +1210,7 @@ export const appRouter = router({
         observation: z.string().trim().max(2000).optional(),
       })
     ).mutation(async ({ input }) => {
-      await requireStudentSession(input.studentId, input.sessionToken);
+      await requireStudentDisciplineScope(input.studentId, input.sessionToken, input.disciplineId);
       return gradeDb.createStudentGradeEntry(
         input.studentId,
         input.disciplineId,
@@ -1192,6 +1234,9 @@ export const appRouter = router({
       })
     ).mutation(async ({ input }) => {
       await requireStudentSession(input.studentId, input.sessionToken);
+      if (input.disciplineId !== undefined) {
+        await requireStudentDisciplineScope(input.studentId, input.sessionToken, input.disciplineId);
+      }
       await gradeDb.updateStudentGradeEntry(
         input.id,
         input.studentId,
@@ -1216,90 +1261,10 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    login: publicProcedure.input(
-      z.object({
-        studentNumber: z.string().regex(/^\d{4}$/, "Número deve ter 4 dígitos").refine(
-          (val) => {
-            const num = parseInt(val);
-            return num >= 1111 && num <= 5252;
-          },
-          "Número deve estar entre 1111 e 5252"
-        ),
-        cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF deve estar no formato XXX.XXX.XXX-XX"),
-      })
-    ).mutation(async ({ input }) => {
-      const student = await gradeDb.getGradeStudentByNumberAndCpf(
-        input.studentNumber,
-        input.cpf
-      );
-
-      if (!student) {
-        const newStudent = await gradeDb.createGradeStudent(
-          input.studentNumber,
-          input.cpf
-        );
-        return { student: newStudent, isNewStudent: true };
-      }
-
-      return { student, isNewStudent: false };
-    }),
-
-    getDisciplines: publicProcedure.input(
-      z.object({
-        studentId: z.number(),
-      })
-    ).query(async ({ input }) => {
-      const disciplines = await gradeDb.getDisciplinesByStudentId(input.studentId);
-      const total = await gradeDb.calculateTotalGrade(input.studentId);
-      return { disciplines, total };
-    }),
-
-    createDiscipline: publicProcedure.input(
-      z.object({
-        studentId: z.number(),
-        disciplineName: z.string().min(1).max(255),
-        professorName: z.string().max(255).optional(),
-        grade: z.number().min(0).max(100).optional(),
-      })
-    ).mutation(async ({ input }) => {
-      const discipline = await gradeDb.createDiscipline(
-        input.studentId,
-        input.disciplineName,
-        input.professorName,
-        input.grade
-      );
-      return discipline;
-    }),
-
-    updateDiscipline: publicProcedure.input(
-      z.object({
-        id: z.number(),
-        disciplineName: z.string().min(1).max(255).optional(),
-        professorName: z.string().max(255).optional(),
-        grade: z.number().min(0).max(100).optional(),
-      })
-    ).mutation(async ({ input }) => {
-      await gradeDb.updateDiscipline(
-        input.id,
-        input.disciplineName,
-        input.professorName,
-        input.grade
-      );
-      return { success: true };
-    }),
-
-    deleteDiscipline: publicProcedure.input(
-      z.object({
-        id: z.number(),
-      })
-    ).mutation(async ({ input }) => {
-      await gradeDb.deleteDiscipline(input.id);
-      return { success: true };
-    }),
   }),
 
   gradeAdmin: router({
-    createDiscipline: masterProcedure.input(
+    createDiscipline: adminProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
         description: z.string().trim().max(2000).optional(),
@@ -1309,14 +1274,10 @@ export const appRouter = router({
         studyMaterialUrl: z.string().trim().nullable().optional(),
         studyMaterialName: z.string().trim().nullable().optional(),
         gaivotasLinks: z.string().trim().nullable().optional(),
-        companhia: z.number().int().min(1).max(5).optional(),
-        peloton: z.number().int().min(1).max(2).optional(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
       })
     ).mutation(async ({ input, ctx }) => {
-      if (input.companhia !== undefined && input.peloton !== undefined) {
-        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
-      }
-
       const disc = await gradeDb.createCatalogDiscipline(
         input.name,
         input.description,
@@ -1329,20 +1290,18 @@ export const appRouter = router({
         input.gaivotasLinks
       );
 
-      if (input.companhia !== undefined && input.peloton !== undefined) {
-        await gradeDb.upsertPlatoonDiscipline(
-          disc.id,
-          input.companhia,
-          input.peloton,
-          input.startDate,
-          input.examDate,
-          input.status
-        );
-      }
+      await gradeDb.upsertPlatoonDiscipline(
+        disc.id,
+        input.companhia,
+        input.peloton,
+        input.startDate,
+        input.examDate,
+        input.status
+      );
       return disc;
     }),
 
-    updateDiscipline: masterProcedure.input(
+    updateDiscipline: adminProcedure.input(
       z.object({
         id: z.number(),
         name: z.string().trim().min(2).max(255),
@@ -1353,14 +1312,10 @@ export const appRouter = router({
         studyMaterialUrl: z.string().trim().nullable().optional(),
         studyMaterialName: z.string().trim().nullable().optional(),
         gaivotasLinks: z.string().trim().nullable().optional(),
-        companhia: z.number().int().min(1).max(5).optional(),
-        peloton: z.number().int().min(1).max(2).optional(),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
       })
     ).mutation(async ({ input, ctx }) => {
-      if (input.companhia !== undefined && input.peloton !== undefined) {
-        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
-      }
-
       await gradeDb.updateCatalogDiscipline(
         input.id,
         input.name,
@@ -1373,20 +1328,18 @@ export const appRouter = router({
         input.gaivotasLinks
       );
 
-      if (input.companhia !== undefined && input.peloton !== undefined) {
-        await gradeDb.upsertPlatoonDiscipline(
-          input.id,
-          input.companhia,
-          input.peloton,
-          input.startDate,
-          input.examDate,
-          input.status
-        );
-      }
+      await gradeDb.upsertPlatoonDiscipline(
+        input.id,
+        input.companhia,
+        input.peloton,
+        input.startDate,
+        input.examDate,
+        input.status
+      );
       return { success: true };
     }),
 
-    deleteDiscipline: masterProcedure.input(
+    deleteDiscipline: adminProcedure.input(
       z.object({
         id: z.number(),
       })
@@ -1396,7 +1349,7 @@ export const appRouter = router({
     }),
 
 
-    createStudent: masterProcedure.input(
+    createStudent: adminProcedure.input(
       z.object({
         numerica: z.string().trim().length(4),
         nomeGuerra: z.string().trim().min(2).max(255),
@@ -1434,7 +1387,7 @@ export const appRouter = router({
       return student;
     }),
 
-    resetStudentPassword: masterProcedure.input(
+    resetStudentPassword: adminProcedure.input(
       z.object({
         studentId: z.number(),
         senha: z.string().min(6),
@@ -1444,7 +1397,7 @@ export const appRouter = router({
       return { success: true };
     }),
 
-    deleteStudent: masterProcedure.input(
+    deleteStudent: adminProcedure.input(
       z.object({
         studentId: z.number(),
       })
@@ -2194,11 +2147,9 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       const isComandante = ctx.user.role?.startsWith("comandante_");
       const general = await isXerifeGeral(ctx.user);
-      if (!isComandante && !general) {
-        await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
-      }
       const needsValidation = input.type === "positive" || input.type === "negative";
       const isApprovedDirectly = isComandante || general || !needsValidation;
       const id = await serviceScaleDb.createStudentObservation({
@@ -2222,11 +2173,7 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
-      const isComandante = ctx.user.role?.startsWith("comandante_");
-      const general = await isXerifeGeral(ctx.user);
-      if (!isComandante && !general) {
-        await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
-      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       return serviceScaleDb.listStudentObservations(input.studentId);
     }),
 
@@ -2849,18 +2796,25 @@ export const appRouter = router({
   foProofs: router({
     uploadProof: scaleManagerProcedure.input(
       z.object({
-        fatoObservadoId: z.number().int(),
+        studentObservationId: z.number().int(),
         fileName: z.string().trim().min(1).max(255),
         fileSize: z.number().int().min(1),
         mimeType: z.string().trim().min(1).max(100),
         fileData: z.string(), // Base64 encoded file data
       })
     ).mutation(async ({ ctx, input }) => {
+      await foDb.ensureFoProofSchema();
+      const observation = await serviceScaleDb.getStudentObservation(input.studentObservationId);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+
       // Validar tipo de arquivo
       const validTypes = [
         "image/jpeg", "image/png", "image/webp", "image/gif",
         "video/mp4", "video/webm", "video/quicktime",
-        "audio/mpeg", "audio/wav", "audio/ogg",
+        "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
         "application/pdf", "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ];
@@ -2876,6 +2830,9 @@ export const appRouter = router({
 
       // Converter base64 para Buffer
       const buffer = Buffer.from(input.fileData, "base64");
+      if (buffer.length === 0 || buffer.length > maxSizeBytes || buffer.length !== input.fileSize) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo inválido ou com tamanho divergente" });
+      }
 
       // Determinar tipo de prova
       let proofType: "foto" | "video" | "audio" | "documento" = "documento";
@@ -2884,12 +2841,15 @@ export const appRouter = router({
       else if (input.mimeType.startsWith("audio/")) proofType = "audio";
 
       // Upload para S3
-      const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${input.fileName}`;
+      const safeFileName = input.fileName
+        .replace(/[^a-zA-Z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "prova";
+      const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${safeFileName}`;
       const { url } = await storagePut(fileKey, buffer, input.mimeType);
 
       // Salvar no banco de dados
       const provaId = await foDb.createFatoObservadoProva({
-        fatoObservadoId: input.fatoObservadoId,
+        studentObservationId: input.studentObservationId,
         arquivoUrl: url,
         tipo: proofType,
         nomeArquivo: input.fileName,
@@ -2903,21 +2863,33 @@ export const appRouter = router({
 
     listProofs: scaleManagerProcedure.input(
       z.object({
-        fatoObservadoId: z.number().int(),
+        studentObservationId: z.number().int(),
       })
-    ).query(async ({ input }) => {
-      return foDb.listFatoObservadoProvas(input.fatoObservadoId);
+    ).query(async ({ ctx, input }) => {
+      await foDb.ensureFoProofSchema();
+      const observation = await serviceScaleDb.getStudentObservation(input.studentObservationId);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      return foDb.listFatoObservadoProvas(input.studentObservationId);
     }),
 
     deleteProof: scaleManagerProcedure.input(
       z.object({
         provaId: z.number().int(),
       })
-    ).mutation(async ({ input }) => {
+    ).mutation(async ({ ctx, input }) => {
+      await foDb.ensureFoProofSchema();
       const prova = await foDb.getFatoObservadoProva(input.provaId);
       if (!prova) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Prova não encontrada" });
       }
+      const observation = await serviceScaleDb.getStudentObservation(prova.studentObservationId);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
       await foDb.deleteFatoObservadoProva(input.provaId);
       return { success: true };
     }),

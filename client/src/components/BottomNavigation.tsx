@@ -12,7 +12,6 @@ import {
   Target,
   LayoutGrid,
   ClipboardList,
-  Users,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
@@ -64,7 +63,7 @@ export default function BottomNavigation() {
         { icon: Home, label: "Início", path: "/" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ClipboardList, label: "Pecúlio", path: "/sala-de-aula/peculio" },
-        { icon: Users, label: "Efetivo", path: "/sala-de-aula/efetivo" },
+        { icon: ClipboardList, label: "Anotar aluno", path: "/sala-de-aula/efetivo" },
         { icon: MoreHorizontal, label: "Mais", path: "__more" },
       ]
     : [
