@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 
@@ -33,13 +34,15 @@ const config = {
 async function run() {
   const connection = await mysql.createConnection(config);
   try {
-    const [rows] = await connection.query(
-      "SELECT id, name, email, role, password, created_at, force_password_change FROM pmam_users"
+    const testPassword = "pmam2026";
+    const hash = await bcrypt.hash(testPassword, 12);
+    
+    // Update 'teste' password
+    await connection.query(
+      "UPDATE pmam_users SET password = ? WHERE email = 'teste'",
+      [hash]
     );
-    console.log("USERS LIST:");
-    for (const u of rows) {
-      console.log(`ID: ${u.id}, Name: ${u.name}, Email: ${u.email}, Role: ${u.role}, Password: "${u.password}", CreatedAt: ${u.created_at}, ForceChange: ${u.force_password_change}`);
-    }
+    console.log("Successfully reset 'teste' password to 'pmam2026'!");
   } finally {
     await connection.end();
   }

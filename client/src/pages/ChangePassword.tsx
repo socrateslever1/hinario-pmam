@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ChangePassword() {
+  const [, navigate] = useLocation();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +22,7 @@ export function ChangePassword() {
     setError('');
     setSuccess(false);
 
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       setError('Por favor, preencha todos os campos');
       return;
     }
@@ -35,20 +39,50 @@ export function ChangePassword() {
 
     try {
       await changePasswordMutation.mutateAsync({
-        currentPassword: 'temp', // Senha temporária padrão
+        currentPassword,
         newPassword,
       });
 
       setSuccess(true);
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
       // Redirecionar após 2 segundos
       setTimeout(() => {
-        window.location.href = '/';
+        if (meQuery.data) {
+          const role = meQuery.data.role;
+          if (role === 'student') {
+            navigate('/notas-do-curso');
+          } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
+            navigate('/xerife');
+          } else {
+            navigate('/');
+          }
+        } else {
+          navigate('/');
+        }
       }, 2000);
     } catch (error: any) {
       setError(error.message || 'Erro ao alterar senha');
+    }
+  };
+
+  const handleSkip = () => {
+    sessionStorage.setItem("skip-password-change", "true");
+    toast.warning("Atenção: Troque sua senha provisória no seu perfil assim que possível.");
+    
+    if (meQuery.data) {
+      const role = meQuery.data.role;
+      if (role === 'student') {
+        navigate('/notas-do-curso');
+      } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
+        navigate('/xerife');
+      } else {
+        navigate('/');
+      }
+    } else {
+      navigate('/');
     }
   };
 
@@ -71,7 +105,7 @@ export function ChangePassword() {
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl">Alterar Senha</CardTitle>
           <p className="text-sm text-gray-600">
-            Você precisa alterar sua senha antes de continuar
+            Você precisa alterar sua senha provisória antes de continuar
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -88,6 +122,17 @@ export function ChangePassword() {
               Senha alterada com sucesso! Redirecionando...
             </div>
           )}
+
+          <div>
+            <label className="text-sm font-medium">Senha Atual ou Provisória</label>
+            <Input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Digite sua senha atual/provisória"
+              disabled={changePasswordMutation.isPending || success}
+            />
+          </div>
 
           <div>
             <label className="text-sm font-medium">Nova Senha</label>
@@ -113,10 +158,19 @@ export function ChangePassword() {
 
           <Button
             onClick={handleChangePassword}
-            disabled={changePasswordMutation.isPending || success || !newPassword || !confirmPassword}
+            disabled={changePasswordMutation.isPending || success || !currentPassword || !newPassword || !confirmPassword}
             className="w-full"
           >
             {changePasswordMutation.isPending ? 'Alterando...' : 'Alterar Senha'}
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={handleSkip}
+            disabled={changePasswordMutation.isPending || success}
+            className="w-full text-xs text-muted-foreground hover:text-foreground mt-2"
+          >
+            Sair e continuar com a senha padrão
           </Button>
         </CardContent>
       </Card>

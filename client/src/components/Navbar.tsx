@@ -191,7 +191,24 @@ export default function Navbar() {
 
           {/* Desktop-only Auth controls */}
           <div className="hidden xl:flex items-center gap-2">
-            {student ? (
+            {user ? (
+              <Link href="/xerife?tab=profile">
+                <Button variant="ghost" size="sm" className="gap-2 max-w-48 truncate text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
+                  {user.fotoUrl ? (
+                    <img
+                      src={user.fotoUrl}
+                      alt="Foto do Comandante"
+                      className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
+                    />
+                  ) : (
+                    <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
+                      <User className="h-3 w-3 text-[#c4a84b]" />
+                    </div>
+                  )}
+                  <span>{user.name || "Comandante"}</span>
+                </Button>
+              </Link>
+            ) : student ? (
               <>
                 <Link href="/notas-do-curso">
                   <Button
@@ -318,7 +335,24 @@ export default function Navbar() {
                   );
                 })}
 
-                {student ? (
+                {user ? (
+                  <Link href="/xerife?tab=profile" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
+                      {user.fotoUrl ? (
+                        <img
+                          src={user.fotoUrl}
+                          alt="Foto do Comandante"
+                          className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
+                        />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
+                          <User className="h-3 w-3 text-[#c4a84b]" />
+                        </div>
+                      )}
+                      <span>{user.name || "Comandante"}</span>
+                    </Button>
+                  </Link>
+                ) : student ? (
                   <>
                     <Link href="/notas-do-curso" onClick={() => setOpen(false)}>
                       <Button variant="ghost" className="w-full justify-start gap-3">

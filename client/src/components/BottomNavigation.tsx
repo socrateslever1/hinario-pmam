@@ -77,6 +77,7 @@ export default function BottomNavigation() {
 
   const moreItems = isComandante
     ? [
+        { icon: User, label: "Meu Perfil", path: "/xerife?tab=profile" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },

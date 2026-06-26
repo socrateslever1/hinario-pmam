@@ -64,15 +64,19 @@ export default function Login() {
         password: current?.password ?? null,
         loginMethod: current?.loginMethod ?? "email",
         role: result.user.role,
+        forcePasswordChange: (result.user as any).forcePasswordChange,
+        fotoUrl: (result.user as any).fotoUrl ?? null,
         createdAt: current?.createdAt ?? new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
       }));
       void utils.auth.me.invalidate();
       
-      // Redirecionar baseado no role
+      // Redirecionar baseado no role e na flag de primeiro acesso
       const role = result.user.role;
-      if (role === 'student') {
+      if ((result.user as any).forcePasswordChange) {
+        navigate("/alterar-senha");
+      } else if (role === 'student') {
         navigate("/notas-do-curso");
       } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
         navigate("/xerife");
@@ -125,13 +129,13 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">E-mail ou numérica</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Usuário ou Numérica</Label>
                 <Input
                   id="email"
                   type="text"
                   inputMode="text"
                   autoComplete="username"
-                  placeholder="seu.email@exemplo.com ou 0000"
+                  placeholder="Ex: cmt.pel1 ou 0000"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

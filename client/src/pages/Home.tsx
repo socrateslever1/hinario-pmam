@@ -23,6 +23,7 @@ import {
   Shield,
   Star,
   Target,
+  AlertCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { getStudentSession } from "@/lib/studentSession";
@@ -458,7 +459,7 @@ export default function Home() {
   const meQuery = trpc.auth.me.useQuery();
 
   // Redirecionar para trocar senha se necessário
-  if (meQuery.data && (meQuery.data as any).forcePasswordChange) {
+  if (meQuery.data && (meQuery.data as any).forcePasswordChange && !sessionStorage.getItem("skip-password-change")) {
     window.location.href = '/alterar-senha';
     return null;
   }
@@ -466,6 +467,14 @@ export default function Home() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
+
+      {meQuery.data?.forcePasswordChange && (
+        <div className="bg-amber-500 text-white font-semibold py-2.5 px-4 text-center text-xs md:text-sm flex items-center justify-center gap-2 shadow-inner">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Atenção: Você está usando a senha provisória padrão. Troque a senha no perfil!</span>
+        </div>
+      )}
+
       <HeroSection />
       <StudentNoticePanel />
       <div className="md:hidden">

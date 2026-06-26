@@ -54,7 +54,7 @@ function Router() {
       <Route path="/xerife" component={Admin} />
       <Route path="/admin/sync/:id" component={SyncStudio} />
       <Route path="/login" component={Login} />
-      <Route path="/entrar" component={Login} />
+      <Route path="/entrar" component={GradesLogin} />
       <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />

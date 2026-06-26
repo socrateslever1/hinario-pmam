@@ -68,7 +68,6 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
     role: 'comandante_pel',
     pelotaoId: '',
     companhiaId: '',
-    password: '',
   })
 
   const createAccessMutation = trpc.access.createAccess.useMutation();
@@ -83,7 +82,6 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
         role: formData.role,
         pelotaoId: formData.pelotaoId ? parseInt(formData.pelotaoId) : undefined,
         companhiaId: formData.companhiaId ? parseInt(formData.companhiaId) : undefined,
-        password: formData.password || undefined,
       });
       
       setFormData({
@@ -92,7 +90,6 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
         role: 'comandante_pel',
         pelotaoId: '',
         companhiaId: '',
-        password: '',
       });
       setIsCreating(false);
       listAccessesQuery.refetch();
@@ -162,22 +159,12 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
               </div>
               
               <div>
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Ex: joao@example.com"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Senha Inicial (Opcional)</label>
+                <label className="text-sm font-medium">Nome de Usuário (login)</label>
                 <Input
                   type="text"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Se vazio, gera temporária aleatória"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Ex: cmt.pel1"
                 />
               </div>
 
@@ -252,7 +239,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
               {createAccessMutation.data && (
                 <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
                   <p className="font-semibold text-green-900">Conta criada com sucesso!</p>
-                  <p className="text-green-800 mt-1">Email: {createAccessMutation.data.email}</p>
+                  <p className="text-green-800 mt-1">Usuário: {createAccessMutation.data.email}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <code className="bg-white px-2 py-1 rounded text-xs flex-1 break-all">{createAccessMutation.data.tempPassword}</code>
                     <button
@@ -293,7 +280,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                     <p className="font-semibold">{access.name}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="text-sm text-gray-600">Usuário</p>
                     <p className="font-semibold">{access.email}</p>
                   </div>
                   <div>

@@ -19,6 +19,7 @@ function mapUser(u: any) {
     pelotaoId: u.pelotao_id,
     companhiaId: u.companhia_id,
     forcePasswordChange: u.force_password_change === 1 || u.force_password_change === true,
+    fotoUrl: u.foto_url,
     createdAt: u.created_at,
     updatedAt: u.updated_at,
     lastSignedIn: u.last_signed_in
@@ -1452,7 +1453,7 @@ export async function createAccessUser(input: {
 }) {
   const normalizedEmail = input.email.trim().toLowerCase();
   const openId = `access-${nanoid(16)}`;
-  const tempPassword = input.password || nanoid(12);
+  const tempPassword = input.password || "pmam2026";
   const hashedPassword = await bcrypt.hash(tempPassword, 12);
   
   const sql = `
@@ -1536,4 +1537,29 @@ export async function updateUserPassword(id: number, hashedPassword: string) {
     "UPDATE pmam_users SET password = ?, force_password_change = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     [hashedPassword, id]
   );
+}
+
+export async function updateUserProfile(id: number, input: {
+  name?: string;
+  fotoUrl?: string | null;
+}) {
+  const updates: string[] = [];
+  const values: any[] = [];
+
+  if (input.name !== undefined) {
+    updates.push('name = ?');
+    values.push(input.name);
+  }
+  if (input.fotoUrl !== undefined) {
+    updates.push('foto_url = ?');
+    values.push(input.fotoUrl);
+  }
+
+  if (updates.length === 0) return;
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+
+  const sql = `UPDATE pmam_users SET ${updates.join(', ')} WHERE id = ?`;
+  await query(sql, values);
 }

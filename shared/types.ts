@@ -10,7 +10,9 @@ export interface User {
   email: string | null;
   password?: string | null;
   loginMethod: string | null;
-  role: 'user' | 'admin' | 'master';
+  role: 'user' | 'admin' | 'master' | string;
+  forcePasswordChange?: boolean;
+  fotoUrl?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   lastSignedIn: Date | string | null;

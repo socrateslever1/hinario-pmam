@@ -8,14 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -32,6 +32,8 @@ import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
 import { CfapPersonnelTab } from "@/components/admin/CfapPersonnelTab";
 import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
 import { AccessManagement } from "./AccessManagement";
+import { PeculioOverview } from "@/components/admin/PeculioOverview";
+import { UserProfileTab } from "@/components/admin/UserProfileTab";
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -53,13 +55,46 @@ export default function Admin() {
   });
 
   const isXerife = Boolean(scaleAccess?.assignment);
-  const isAuthorized = isAdminOrMaster || isXerife;
-  const isXerifeGeral = Boolean(isAdminOrMaster || scaleAccess?.isGeneral);
-  const canManageGlobalContent = isXerifeGeral || isAdminOrMaster;
+  const isComandante = isAuthenticated && Boolean(user?.role?.startsWith("comandante_"));
+  const isAuthorized = isAdminOrMaster || isXerife || isComandante;
+  
+  // Xerife Geral (strictly master, admin, or principal assignment; commanders excluded)
+  const isXerifeGeral = Boolean(
+    (isAdminOrMaster || scaleAccess?.assignment?.level === "principal") && 
+    !user?.role?.startsWith("comandante_")
+  );
+  
+  // Can manage global content (Xerife Geral + CAL & CFAP commanders)
+  const canManageGlobalContent = Boolean(
+    isXerifeGeral || 
+    user?.role === "comandante_corpo" || 
+    user?.role === "comandante_cfap"
+  );
+  
   const canManagePlatoonContent = canManageGlobalContent || isXerife;
 
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") || (isXerifeGeral ? "hymns" : "service_scale");
+  });
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", val);
+    window.history.replaceState({}, "", url.pathname + url.search);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [window.location.search]);
+
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
-  const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: canManageGlobalContent === true });
+  const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isXerifeGeral === true });
   const { data: missions } = trpc.missions.listAll.useQuery(undefined, { enabled: canManagePlatoonContent === true });
   const { data: drills } = trpc.drill.listAll.useQuery(undefined, { enabled: canManageGlobalContent === true });
 
@@ -115,6 +150,12 @@ export default function Admin() {
     );
   }
 
+  // Redirecionar para trocar senha se necessário no primeiro acesso
+  if (isAuthenticated && user && (user as any).forcePasswordChange && !sessionStorage.getItem("skip-password-change")) {
+    window.location.href = '/alterar-senha';
+    return null;
+  }
+
   if (!isAuthorized) {
     return (
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
@@ -153,6 +194,13 @@ export default function Admin() {
   return (
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       <Navbar />
+
+      {user?.forcePasswordChange && (
+        <div className="bg-amber-500 text-white font-semibold py-2.5 px-4 text-center text-xs md:text-sm flex items-center justify-center gap-2 shadow-inner">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Atenção: Você está usando a senha provisória padrão. Troque a senha no perfil!</span>
+        </div>
+      )}
 
       <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container">
@@ -226,33 +274,52 @@ export default function Admin() {
             </div>
           )}
 
-          <Tabs defaultValue={canManageGlobalContent ? "hymns" : "service_scale"}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 md:flex md:w-fit md:flex-wrap md:gap-0">
-              {canManageGlobalContent && (
+              {isXerifeGeral && (
                 <>
                   <TabsTrigger value="hymns" className="gap-2"><Music className="h-4 w-4" /> Hinos</TabsTrigger>
                   <TabsTrigger value="charlie_mike" className="gap-2"><Shield className="h-4 w-4" /> Charlie Mike</TabsTrigger>
+                </>
+              )}
+              
+              {(canManageGlobalContent || isComandante) && (
+                <>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
-                  <TabsTrigger value="cfap_personnel" className="gap-2"><Building2 className="h-4 w-4" /> Efetivo CFAP</TabsTrigger>
                   <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>
               )}
+              
+              <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Sala de Aula</TabsTrigger>
+              
+              {(canManageGlobalContent || isComandante || isXerife) && (
+                <TabsTrigger value="peculio" className="gap-2"><Clock className="h-4 w-4" /> Pecúlio</TabsTrigger>
+              )}
+              
+              {(canManageGlobalContent || isComandante) && (
+                <TabsTrigger value="cfap_personnel" className="gap-2"><Building2 className="h-4 w-4" /> Efetivo CFAP</TabsTrigger>
+              )}
+
               {canManagePlatoonContent && (
                 <>
                   <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" /> Missões CFAP</TabsTrigger>
                   <TabsTrigger value="blog" className="gap-2"><FileText className="h-4 w-4" /> Comunicados</TabsTrigger>
                 </>
               )}
-              <TabsTrigger value="service_scale" className="gap-2"><ClipboardList className="h-4 w-4" /> Sala de Aula</TabsTrigger>
+              
               {canManageGlobalContent && (
-                <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
+                <>
+                  <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
+                  <TabsTrigger value="access" className="gap-2"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>
+                </>
               )}
-              {canManageGlobalContent && <TabsTrigger value="access" className="gap-2"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>}
+              <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" /> Meu Perfil</TabsTrigger>
             </TabsList>
 
             {/* HYMNS TAB */}
-            <TabsContent value="hymns">
+            {isXerifeGeral && (
+              <TabsContent value="hymns">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Hinos</h2>
                 <Dialog open={hymnDialogOpen} onOpenChange={(o) => { setHymnDialogOpen(o); if (!o) setEditingHymn(null); }}>
@@ -328,10 +395,12 @@ export default function Admin() {
                   </Card>
                 ))}
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
 
             {/* CHARLIE MIKE TAB */}
-            <TabsContent value="charlie_mike">
+            {isXerifeGeral && (
+              <TabsContent value="charlie_mike">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Canções Charlie Mike (TFM)</h2>
                 <Dialog open={hymnDialogOpen} onOpenChange={(o) => { setHymnDialogOpen(o); if (!o) setEditingHymn(null); }}>
@@ -407,7 +476,8 @@ export default function Admin() {
                   </Card>
                 ))}
               </div>
-            </TabsContent>
+              </TabsContent>
+            )}
 
             {/* MISSIONS TAB */}
             <TabsContent value="missions">
@@ -527,40 +597,46 @@ export default function Admin() {
               <BlogManagementPanel />
             </TabsContent>
 
-            {/* GRADES TAB */}
             {canManageGlobalContent && (
               <TabsContent value="grades">
                 <GradeAdminTab />
               </TabsContent>
             )}
 
-            {canManageGlobalContent && (
-              <>
-                <TabsContent value="cfap_personnel">
-                  <CfapPersonnelTab />
-                </TabsContent>
-                <TabsContent value="documents">
-                  <OfficialDocumentsTab />
-                </TabsContent>
-              </>
+            {(canManageGlobalContent || isComandante) && (
+              <TabsContent value="cfap_personnel">
+                <CfapPersonnelTab />
+              </TabsContent>
             )}
 
-            {/* SERVICE SCALE TAB */}
+            {canManageGlobalContent && (
+              <TabsContent value="documents">
+                <OfficialDocumentsTab />
+              </TabsContent>
+            )}
+
+            {(canManageGlobalContent || isComandante || isXerife) && (
+              <TabsContent value="peculio">
+                <PeculioOverview />
+              </TabsContent>
+            )}
+
             <TabsContent value="service_scale">
               <ServiceScaleTab />
             </TabsContent>
 
-            {/* SETTINGS TAB */}
             <TabsContent value="settings">
               <SettingsTab />
             </TabsContent>
 
-            {/* USERS & ACCESS MANAGEMENT TAB */}
             {canManageGlobalContent && (
               <TabsContent value="access">
                 <AccessManagement isTab={true} />
               </TabsContent>
             )}
+            <TabsContent value="profile">
+              <UserProfileTab />
+            </TabsContent>
           </Tabs>
         </div>
       </section>

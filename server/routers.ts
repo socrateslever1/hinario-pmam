@@ -67,9 +67,13 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
-// Xerife Geral: master/admin or a user explicitly assigned as principal.
+// Xerife Geral: master/admin, a user explicitly assigned as principal, or any commander.
 const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user.role === "master" || ctx.user.role === "admin") {
+  if (
+    ctx.user.role === "master" ||
+    ctx.user.role === "admin" ||
+    ctx.user.role?.startsWith("comandante_")
+  ) {
     return next({ ctx });
   }
 
@@ -78,19 +82,23 @@ const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     return next({ ctx });
   }
 
-  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao Xerife Geral" });
+  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito ao comando ou Xerife Geral" });
 });
 
-// Allow master, admin, or any user with a xerife assignment
+// Allow master, admin, any commander, or any user with a xerife assignment
 const scaleManagerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user.role === "master" || ctx.user.role === "admin") {
+  if (
+    ctx.user.role === "master" ||
+    ctx.user.role === "admin" ||
+    ctx.user.role?.startsWith("comandante_")
+  ) {
     return next({ ctx });
   }
   const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
   if (assignment) {
     return next({ ctx });
   }
-  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores ou xerifes" });
+  throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a comandantes, administradores ou xerifes" });
 });
 
 async function requireServiceScaleAccess(
@@ -207,6 +215,29 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    updateProfile: protectedProcedure.input(
+      z.object({
+        name: z.string().trim().min(2).max(255).optional(),
+        fotoUrl: z.string().trim().nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await db.updateUserProfile(ctx.user.id, input);
+      return { success: true, message: 'Perfil atualizado com sucesso' };
+    }),
+    listCommandDirectory: protectedProcedure.query(async () => {
+      const commandRoles = ['admin', 'master', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel'];
+      const users = await db.getAllUsers();
+      return users
+        .filter(u => commandRoles.includes(u.role || ''))
+        .map(u => ({
+          id: u.id,
+          name: u.name,
+          role: u.role,
+          pelotaoId: u.pelotaoId,
+          companhiaId: u.companhiaId,
+          fotoUrl: u.fotoUrl,
+        }));
+    }),
     loginEmail: publicProcedure.input(z.object({
       email: z.string(),
       password: z.string().min(1),
@@ -292,7 +323,7 @@ export const appRouter = router({
       ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: TEN_YEARS_MS });
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
     }),
   }),
 
@@ -375,7 +406,8 @@ export const appRouter = router({
       return db.getActiveHymns();
     }),
     listAll: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       return db.getAllHymns();
@@ -411,7 +443,11 @@ export const appRouter = router({
       audioUrl: z.string().optional(),
       instrumentalAudioUrl: z.string().optional(),
       lyricsSync: z.any().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       await db.createHymn(input);
       return { success: true };
     }),
@@ -432,12 +468,20 @@ export const appRouter = router({
       instrumentalAudioUrl: z.string().nullable().optional(),
       lyricsSync: z.any().optional(),
       isActive: z.boolean().optional(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       const { id, ...data } = input;
       await db.updateHymn(id, data);
       return { success: true };
     }),
-    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       await db.deleteHymn(input.id);
       return { success: true };
     }),
@@ -446,7 +490,11 @@ export const appRouter = router({
       fileData: z.string(),
       fileName: z.string(),
       variant: z.enum(["voice", "instrumental"]).default("voice"),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       const validFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'];
       const ext = input.fileName.split('.').pop()?.toLowerCase() || '';
       if (!validFormats.includes(ext)) {
@@ -702,7 +750,12 @@ export const appRouter = router({
 
   admin: router({
     stats: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+      if (
+        ctx.user.role !== "master" &&
+        ctx.user.role !== "admin" &&
+        ctx.user.role !== "comandante_corpo" &&
+        ctx.user.role !== "comandante_cfap"
+      ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       return db.getStats();
@@ -712,7 +765,11 @@ export const appRouter = router({
       fileName: z.string(),
       fileBase64: z.string(),
       contentType: z.string(),
-    })).mutation(async ({ input }) => {
+    })).mutation(async ({ ctx, input }) => {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
+      }
       const buffer = Buffer.from(input.fileBase64, "base64");
       const fileKey = `hymns/audio/${input.hymnId}-${nanoid(8)}-${input.fileName}`;
       const { url } = await storagePut(fileKey, buffer, input.contentType);
@@ -1564,9 +1621,12 @@ export const appRouter = router({
       const companhia = input?.companhia ?? scope.companhia;
       const peloton = input?.peloton ?? scope.peloton;
 
-      if (companhia) {
+      const isComandante = ctx.user.role?.startsWith("comandante_");
+      const isGeneral = await isXerifeGeral(ctx.user);
+
+      if (!isComandante && !isGeneral && companhia) {
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
-      } else if (!scope.unrestricted) {
+      } else if (!isComandante && !isGeneral && !scope.unrestricted) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem escopo configurado" });
       }
 
@@ -1580,7 +1640,11 @@ export const appRouter = router({
         weekStart: z.string().trim().min(10).max(10),
       })
     ).query(async ({ ctx, input }) => {
-      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const isComandante = ctx.user.role?.startsWith("comandante_");
+      const isGeneral = await isXerifeGeral(ctx.user);
+      if (!isComandante && !isGeneral) {
+        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      }
       const [students, roles, week] = await Promise.all([
         serviceScaleDb.listStudents({ companhia: input.companhia, peloton: input.peloton }),
         serviceScaleDb.getPlatoonRoles(input.companhia, input.peloton),
@@ -2130,9 +2194,13 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
-      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const isComandante = ctx.user.role?.startsWith("comandante_");
       const general = await isXerifeGeral(ctx.user);
+      if (!isComandante && !general) {
+        await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      }
       const needsValidation = input.type === "positive" || input.type === "negative";
+      const isApprovedDirectly = isComandante || general || !needsValidation;
       const id = await serviceScaleDb.createStudentObservation({
         studentId: student.id,
         companhia: student.companhia,
@@ -2140,9 +2208,9 @@ export const appRouter = router({
         type: input.type,
         note: input.note,
         createdBy: ctx.user.id,
-        validationStatus: needsValidation && !general ? "pending" : "approved",
-        validatedBy: needsValidation && general ? ctx.user.id : null,
-        validatedAt: needsValidation && general ? new Date() : null,
+        validationStatus: isApprovedDirectly ? "approved" : "pending",
+        validatedBy: isApprovedDirectly && needsValidation ? ctx.user.id : null,
+        validatedAt: isApprovedDirectly && needsValidation ? new Date() : null,
       });
       return { id };
     }),
@@ -2154,7 +2222,11 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
-      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const isComandante = ctx.user.role?.startsWith("comandante_");
+      const general = await isXerifeGeral(ctx.user);
+      if (!isComandante && !general) {
+        await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      }
       return serviceScaleDb.listStudentObservations(input.studentId);
     }),
 
@@ -2164,10 +2236,24 @@ export const appRouter = router({
         peloton: z.number().int().min(1).max(2).optional(),
       }).optional()
     ).query(async ({ ctx, input }) => {
-      if (input?.companhia) {
-        await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia;
+      let peloton = input?.peloton;
+      if (!scope.unrestricted) {
+        if (scope.companhia) {
+          companhia = scope.companhia;
+        }
+        if (scope.peloton) {
+          peloton = scope.peloton;
+        }
+        if (!scope.companhia) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      } else if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
       }
-      return serviceScaleDb.listPendingStudentObservations(input);
+      return serviceScaleDb.listPendingStudentObservations({ companhia, peloton });
     }),
 
     validateStudentObservation: masterProcedure.input(
@@ -2672,16 +2758,15 @@ export const appRouter = router({
     createAccess: masterProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
-        email: z.string().email(),
+        email: z.string().trim().min(3).max(255),
         role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
-        password: z.string().min(4).max(255).optional(),
       })
     ).mutation(async ({ input }) => {
       const existing = await db.getUserByEmail(input.email);
       if (existing) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'Email ja cadastrado' });
+        throw new TRPCError({ code: 'CONFLICT', message: 'Usuario ja cadastrado' });
       }
       
       const result = await db.createAccessUser({
@@ -2690,14 +2775,13 @@ export const appRouter = router({
         role: input.role,
         pelotaoId: input.pelotaoId,
         companhiaId: input.companhiaId,
-        password: input.password,
       });
       
       return {
         success: true,
         email: result.email,
         tempPassword: result.tempPassword,
-        message: 'Acesso criado com sucesso. Compartilhe o email e senha temporaria com o usuario.',
+        message: 'Usuario de comando criado com sucesso. Compartilhe o usuario e senha temporaria.',
       };
     }),
 
