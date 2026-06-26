@@ -39,6 +39,7 @@ import { RenderSavedDocument } from "./Documents";
 import { FOProofUploader } from "@/components/FOProofUploader";
 import { toast } from "sonner";
 import { useModalHistory } from "@/hooks/useModalHistory";
+import { useUploadProgress } from "@/hooks/useUploadProgress";
 
 interface ProofFile {
   id: string;
@@ -217,6 +218,12 @@ export default function ClassroomMap() {
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
   const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
   const [foProofsUploading, setFoProofsUploading] = useState(false);
+  const {
+    uploadItems: foProofUploadItems,
+    addItem: addFoProofUpload,
+    uploadFile: uploadFoProofFile,
+    clearItems: clearFoProofUploads,
+  } = useUploadProgress();
   const [operationalStudent, setOperationalStudent] = useState<any | null>(null);
   const [foModalPage, setFoModalPage] = useState<"students" | "proofs">("students"); // Página do modal de FO
 
@@ -926,6 +933,7 @@ export default function ClassroomMap() {
     setFoDetails("");
     setFoIsAllSelected(false);
     setFoProofs([]);
+    clearFoProofUploads();
     if (student) {
       setFoSelectedStudentIds([student.id]);
     } else {
@@ -996,24 +1004,47 @@ export default function ClassroomMap() {
           throw new Error("Não foi possível identificar o Fato Observado criado.");
         }
 
-        await Promise.all(
+        foProofs.forEach((proof) => addFoProofUpload(proof.file, proof.id));
+        const uploadResults = await Promise.all(
           foProofs.map(async (proof) => {
-            const fileData = await new Promise<string>((resolve, reject) => {
+            const result = await uploadFoProofFile(proof.id, async (file, onProgress, isCancelled) => {
+              if (isCancelled()) return { success: false, error: "Upload cancelado pelo usuário" };
+
+              const fileData = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
-              reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+                reader.onprogress = (event) => {
+                  if (event.lengthComputable) {
+                    onProgress(Math.round((event.loaded / event.total) * 45), event.loaded);
+                  }
+                };
+                reader.onload = () => {
+                  onProgress(50, Math.round(file.size * 0.5));
+                  resolve(String(reader.result || "").split(",")[1] || "");
+                };
               reader.onerror = () => reject(reader.error || new Error("Erro ao ler o arquivo."));
               reader.readAsDataURL(proof.file);
-            });
+              });
 
-            await uploadFoProof.mutateAsync({
-              studentObservationId,
-              fileName: proof.file.name,
-              fileSize: proof.file.size,
-              mimeType: proof.file.type,
-              fileData,
+              if (isCancelled()) return { success: false, error: "Upload cancelado pelo usuário" };
+              onProgress(70, Math.round(file.size * 0.7));
+
+              await uploadFoProof.mutateAsync({
+                studentObservationId,
+                fileName: file.name,
+                fileSize: file.size,
+                mimeType: file.type,
+                fileData,
+              });
+              onProgress(95, Math.round(file.size * 0.95));
+              return { success: true };
             });
+            return result;
           })
         );
+        const failedUpload = uploadResults.find((result) => !result?.success);
+        if (failedUpload) {
+          throw new Error(failedUpload.error || "Não foi possível enviar uma das provas.");
+        }
         setFoProofsUploading(false);
       }
 
@@ -2872,6 +2903,8 @@ export default function ClassroomMap() {
                 </p>
                 <FOProofUploader
                   onProofsChange={setFoProofs}
+                  uploadItems={foProofUploadItems}
+                  isOpen={foModalOpen}
                   maxFiles={5}
                   maxSizeMB={50}
                 />

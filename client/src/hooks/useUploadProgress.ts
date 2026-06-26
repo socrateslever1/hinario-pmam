@@ -19,6 +19,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
     new Map()
   );
   const uploadsRef = useRef<Map<string, UploadRequest>>(new Map());
+  const cancelledRef = useRef<Set<string>>(new Set());
 
   const updateItem = useCallback(
     (itemId: string, updates: Partial<UploadItem>) => {
@@ -47,6 +48,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
       };
       setUploadItems((prev) => new Map(prev).set(itemId, item));
       uploadsRef.current.set(itemId, { file, itemId });
+      cancelledRef.current.delete(itemId);
     },
     []
   );
@@ -59,9 +61,11 @@ export function useUploadProgress(options: UploadOptions = {}) {
         onProgress: (progress: number, uploadedBytes: number) => void,
         onCancel: () => boolean
       ) => Promise<{ success: boolean; error?: string }>
-    ) => {
+    ): Promise<{ success: boolean; error?: string }> => {
       const uploadRequest = uploadsRef.current.get(itemId);
-      if (!uploadRequest) return;
+      if (!uploadRequest) {
+        return Promise.resolve({ success: false, error: "Arquivo não encontrado para envio" });
+      }
 
       const { file } = uploadRequest;
       const startTime = Date.now();
@@ -72,10 +76,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
       });
 
       try {
-        const isCancelled = () => {
-          const item = uploadItems.get(itemId);
-          return item?.status !== "uploading";
-        };
+        const isCancelled = () => cancelledRef.current.has(itemId);
 
         const onProgress = (progress: number, uploadedBytes: number) => {
           const elapsed = (Date.now() - startTime) / 1000;
@@ -92,6 +93,10 @@ export function useUploadProgress(options: UploadOptions = {}) {
 
         const result = await uploadFn(file, onProgress, isCancelled);
 
+        if (isCancelled()) {
+          return { success: false, error: "Upload cancelado pelo usuário" };
+        }
+
         if (result.success) {
           updateItem(itemId, {
             status: "completed",
@@ -100,6 +105,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
             estimatedTimeRemaining: 0,
           });
           options.onComplete?.(uploadItems.get(itemId)!);
+          return result;
         } else {
           const errorMsg = result.error || "Erro desconhecido durante upload";
           updateItem(itemId, {
@@ -107,6 +113,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
             error: errorMsg,
           });
           options.onError?.(uploadItems.get(itemId)!, errorMsg);
+          return { success: false, error: errorMsg };
         }
       } catch (error) {
         const errorMsg =
@@ -116,14 +123,16 @@ export function useUploadProgress(options: UploadOptions = {}) {
           error: errorMsg,
         });
         options.onError?.(uploadItems.get(itemId)!, errorMsg);
+        return { success: false, error: errorMsg };
       } finally {
         uploadsRef.current.delete(itemId);
       }
     },
-    [uploadItems, updateItem, options]
+    [updateItem, options]
   );
 
   const cancelUpload = useCallback((itemId: string) => {
+    cancelledRef.current.add(itemId);
     updateItem(itemId, { status: "error", error: "Upload cancelado pelo usuário" });
     uploadsRef.current.delete(itemId);
   }, [updateItem]);
@@ -131,6 +140,7 @@ export function useUploadProgress(options: UploadOptions = {}) {
   const clearItems = useCallback(() => {
     setUploadItems(new Map());
     uploadsRef.current.clear();
+    cancelledRef.current.clear();
   }, []);
 
   const getItems = useCallback(() => {

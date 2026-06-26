@@ -98,7 +98,9 @@ export function UploadProgressBar({
   const uploadingItems = items.filter((i) => i.status === "uploading").length;
 
   const overallProgress =
-    totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+    totalItems > 0
+      ? Math.round(items.reduce((total, item) => total + item.progress, 0) / totalItems)
+      : 0;
 
   if (totalItems === 0) return null;
 

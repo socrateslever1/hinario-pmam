@@ -1,11 +1,10 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Upload, X, Image as ImageIcon, Video, FileAudio } from "lucide-react";
 import { toast } from "sonner";
 import { UploadProgressBar, type UploadItem } from "@/components/UploadProgressBar";
-import { useUploadProgress } from "@/hooks/useUploadProgress";
 
 interface ProofFile {
   id: string;
@@ -16,6 +15,9 @@ interface ProofFile {
 
 interface FOProofUploaderProps {
   onProofsChange: (proofs: ProofFile[]) => void;
+  uploadItems?: UploadItem[];
+  onCancelUpload?: (itemId: string) => void;
+  isOpen?: boolean;
   maxFiles?: number;
   maxSizeMB?: number;
 }
@@ -34,11 +36,21 @@ const ACCEPTED_EXTENSIONS = {
   documento: [".pdf", ".doc", ".docx"],
 };
 
-export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }: FOProofUploaderProps) {
+export function FOProofUploader({
+  onProofsChange,
+  uploadItems = [],
+  onCancelUpload,
+  isOpen = true,
+  maxFiles = 5,
+  maxSizeMB = 50,
+}: FOProofUploaderProps) {
   const [proofs, setProofs] = useState<ProofFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  const { uploadItems, addItem, cancelUpload } = useUploadProgress();
+
+  useEffect(() => {
+    if (!isOpen) setProofs([]);
+  }, [isOpen]);
 
   const getProofType = (file: File): "foto" | "video" | "audio" | "documento" | null => {
     const mimeType = file.type;
@@ -117,10 +129,6 @@ export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }
     const updatedProofs = proofs.filter((p) => p.id !== id);
     setProofs(updatedProofs);
     onProofsChange(updatedProofs);
-  };
-
-  const handleCancelUpload = (itemId: string) => {
-    cancelUpload(itemId);
   };
 
   const getProofIcon = (type: string) => {
@@ -250,7 +258,7 @@ export function FOProofUploader({ onProofsChange, maxFiles = 5, maxSizeMB = 50 }
       {uploadItems.length > 0 && (
         <UploadProgressBar
           items={uploadItems}
-          onCancel={handleCancelUpload}
+          onCancel={onCancelUpload}
           showDetails={true}
         />
       )}
