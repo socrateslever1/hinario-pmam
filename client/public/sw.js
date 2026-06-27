@@ -3,7 +3,6 @@ const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/logo/IMG_7728.PNG",
 ];
 
 // Rotas de autenticação que NUNCA devem ser cacheadas
@@ -20,9 +19,19 @@ const SESSION_ROUTES = [
   "/api/trpc/study.getStudentSession",
 ];
 
+// Rotas críticas para offline (hinos, estudos, etc)
+const CRITICAL_ROUTES = [
+  "/api/trpc/hymns.list",
+  "/api/trpc/hymns.getById",
+  "/api/trpc/drill.list",
+  "/api/trpc/blog.list",
+];
+
 self.addEventListener("install", (event) => {
+  console.log("[SW] Installing...");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log("[SW] Caching assets:", ASSETS_TO_CACHE);
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -30,11 +39,13 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  console.log("[SW] Activating...");
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[SW] Deleting old cache:", key);
             return caches.delete(key);
           }
         })
@@ -55,6 +66,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => {
+        console.log("[SW] Navigation offline, returning index.html");
         return caches.match("/index.html") || caches.match("/");
       })
     );
@@ -71,6 +83,7 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .catch(() => {
           // If offline, return error response instead of cached data
+          console.log("[SW] Auth/session offline, returning error");
           return new Response(
             JSON.stringify({ error: "Offline - authentication unavailable" }),
             { status: 503, headers: { "Content-Type": "application/json" } }
@@ -89,12 +102,17 @@ self.addEventListener("fetch", (event) => {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
+              console.log("[SW] Cached API response:", url.pathname);
             });
           }
           return response;
         })
         .catch(() => {
-          return caches.match(request);
+          console.log("[SW] API offline, returning cached response:", url.pathname);
+          return caches.match(request) || new Response(
+            JSON.stringify({ error: "Offline" }),
+            { status: 503, headers: { "Content-Type": "application/json" } }
+          );
         })
     );
     return;
@@ -108,7 +126,10 @@ self.addEventListener("fetch", (event) => {
         fetch(request)
           .then((response) => {
             if (response.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, response);
+                console.log("[SW] Updated cached asset:", url.pathname);
+              });
             }
           })
           .catch(() => undefined);
@@ -121,10 +142,24 @@ self.addEventListener("fetch", (event) => {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
+            console.log("[SW] Cached new asset:", url.pathname);
           });
         }
         return response;
+      }).catch(() => {
+        console.log("[SW] Asset offline:", url.pathname);
+        return new Response("Offline", { status: 503 });
       });
     })
   );
+});
+
+// Handle messages from clients
+self.addEventListener("message", (event) => {
+  if (event.data.type === "CLEAR_CACHE") {
+    console.log("[SW] Clearing cache on request from client");
+    caches.delete(CACHE_NAME).then(() => {
+      event.ports[0].postMessage({ success: true });
+    });
+  }
 });

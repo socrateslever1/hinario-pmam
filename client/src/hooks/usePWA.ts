@@ -20,33 +20,33 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    const isLocalhost = Boolean(
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '[::1]' ||
-      window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
-    );
-
-    if ('serviceWorker' in navigator && !isLocalhost) {
+    // Registrar Service Worker em todos os ambientes (localhost e produção)
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => {
           console.log('[PWA] Service Worker registered:', reg);
           setState(prev => ({ ...prev, swReady: true }));
+          
+          // Verificar atualizações a cada 1 hora
+          setInterval(() => {
+            reg.update().catch(() => undefined);
+          }, 3600000);
         })
         .catch((err) => console.error('[PWA] SW registration failed:', err));
     }
 
-    if ('caches' in window) {
-      caches.keys()
-        .then((keys) => {
-          keys
-            .filter((key) => key.startsWith('hinario-pmam'))
-            .forEach((key) => caches.delete(key));
-        })
-        .catch(() => undefined);
-    }
+    // NÃO deletar cache - deixar o SW gerenciar
+    // O cache é importante para funcionalidade offline
 
-    const handleOnline = () => setState((prev) => ({ ...prev, isOnline: true }));
-    const handleOffline = () => setState((prev) => ({ ...prev, isOnline: false }));
+    const handleOnline = () => {
+      console.log('[PWA] Online');
+      setState((prev) => ({ ...prev, isOnline: true }));
+    };
+    
+    const handleOffline = () => {
+      console.log('[PWA] Offline');
+      setState((prev) => ({ ...prev, isOnline: false }));
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -91,9 +91,30 @@ export function usePWA() {
   };
 
   const updateApp = () => window.location.reload();
-  const clearCache = () => undefined;
-  const cacheUrls = (_urls: string[]) => undefined;
-  const precacheAssets = (_assets: string[]) => undefined;
+  
+  const clearCache = async () => {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(key => caches.delete(key)));
+      console.log('[PWA] Cache cleared');
+    }
+  };
+  
+  const cacheUrls = async (urls: string[]) => {
+    if ('caches' in window) {
+      const cache = await caches.open('hinario-pmam-cache-v2');
+      await cache.addAll(urls);
+      console.log('[PWA] URLs cached:', urls);
+    }
+  };
+  
+  const precacheAssets = async (assets: string[]) => {
+    if ('caches' in window) {
+      const cache = await caches.open('hinario-pmam-cache-v2');
+      await cache.addAll(assets);
+      console.log('[PWA] Assets precached:', assets);
+    }
+  };
 
   return {
     ...state,
