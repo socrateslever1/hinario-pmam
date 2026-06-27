@@ -8,6 +8,8 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import { usePWA } from "./hooks/usePWA";
+import { useOfflineCache } from "./hooks/useOfflineCache";
+import { useBackgroundSync } from "./hooks/useBackgroundSync";
 import { useSessionRefresh } from "./hooks/useSessionRefresh";
 import { useSessionManager } from "./_core/hooks/useSessionManager";
 import { useEffect } from "react";
@@ -90,6 +92,12 @@ function App() {
   
   // Ativar auto-atualização silenciosa
   useAutoUpdate();
+  
+  // Pré-cachear dados críticos para offline
+  useOfflineCache();
+  
+  // Sincronizar em background quando voltar online
+  useBackgroundSync();
   
   // Pré-cachear assets para offline
   const { precacheAssets } = usePWA();
