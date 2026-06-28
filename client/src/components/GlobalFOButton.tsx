@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FOProofUploader } from "@/components/FOProofUploader";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
+import { useModalHistory } from "@/hooks/useModalHistory";
 
 type FOType = "positive" | "negative";
 
@@ -119,8 +120,8 @@ export function GlobalFOButton() {
     setSelectedStudent(student);
     setFoType(type);
     resetFOForm();
-    setSearchOpen(false);
     setFoOpen(true);
+    setSearchOpen(false);
   };
 
   const closeFO = () => {
@@ -128,6 +129,15 @@ export function GlobalFOButton() {
     setSelectedStudent(null);
     resetFOForm();
   };
+
+  const modalOpen = searchOpen || foOpen;
+  useModalHistory(modalOpen, () => {
+    if (foOpen) {
+      closeFO();
+      return;
+    }
+    setSearchOpen(false);
+  }, "global-fo");
 
   const handleSubmitFO = async () => {
     if (!selectedStudent?.id) {
@@ -249,36 +259,36 @@ export function GlobalFOButton() {
       </Button>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-[680px] bg-white dark:bg-zinc-900 border border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[720px] max-h-[calc(100dvh-6rem)] gap-0 overflow-hidden border border-border bg-white p-0 text-foreground dark:bg-zinc-950 sm:rounded-xl">
+          <DialogHeader className="border-b bg-muted/20 px-4 pb-3 pt-4 text-left sm:px-5">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black leading-tight text-[#1a3a2a] dark:text-[#c4a84b]" style={{ fontFamily: "Merriweather, serif" }}>
+              <ClipboardList className="h-5 w-5 shrink-0 text-[#c4a84b]" />
               Atalho FO
             </DialogTitle>
-            <DialogDescription>
-              Pesquise a numérica ou o nome do aluno. Clique no aluno para abrir o FO.
+            <DialogDescription className="text-sm leading-snug">
+              Pesquise o aluno. Toque no nome para abrir o FO, ou use FO+ / FO-.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="relative">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 p-4 sm:p-5">
+            <div className="relative shrink-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por numérica, nome ou companhia/pelotão"
-                className="pl-9"
+                placeholder="Numérica, nome, cia/pel"
+                className="h-11 w-full pl-9 text-base"
                 autoFocus
               />
             </div>
 
-            <div className="max-h-[440px] overflow-y-auto rounded-md border bg-muted/10">
+            <div className="min-h-0 max-h-[min(58dvh,440px)] overflow-y-auto rounded-lg border bg-muted/10">
               {studentsQuery.isLoading ? (
                 <div className="p-4 text-sm text-muted-foreground">Carregando alunos...</div>
               ) : filteredStudents.length === 0 ? (
                 <div className="p-4 text-sm text-muted-foreground">Nenhum aluno encontrado.</div>
               ) : (
-                <div className="divide-y">
+                <div className="divide-y divide-border/70">
                   {filteredStudents.map((student: any) => (
                     <div
                       key={student.id}
@@ -291,10 +301,10 @@ export function GlobalFOButton() {
                           openFOForStudent(student);
                         }
                       }}
-                      className="flex w-full flex-col gap-3 p-3 text-left transition-colors hover:bg-[#1a3a2a]/5 sm:flex-row sm:items-center sm:justify-between"
+                      className="grid w-full gap-3 p-3 text-left transition-colors hover:bg-[#1a3a2a]/5 sm:grid-cols-[1fr_auto] sm:items-center"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
                           {student.fotoUrl ? (
                             <img src={student.fotoUrl} alt={student.nomeGuerra || "Aluno"} className="h-full w-full object-cover" />
                           ) : (
@@ -302,20 +312,20 @@ export function GlobalFOButton() {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{student.numerica}</span>
-                            <span className="truncate font-semibold">{student.nomeGuerra}</span>
+                          <div className="flex min-w-0 items-baseline gap-2">
+                            <span className="shrink-0 text-sm font-black text-[#c4a84b]">{student.numerica}</span>
+                            <span className="truncate text-sm font-bold sm:text-base">{student.nomeGuerra}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">
                             {student.nomeCompleto || "Sem nome completo"} · {student.companhia}ª Cia / {student.peloton}º Pel
                           </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0" onClick={(event) => event.stopPropagation()}>
-                        <Button type="button" size="sm" className="bg-green-700 text-white hover:bg-green-800" onClick={() => openFOForStudent(student, "positive")}>
+                        <Button type="button" size="sm" className="h-9 bg-green-700 px-5 text-white hover:bg-green-800" onClick={() => openFOForStudent(student, "positive")}>
                           FO+
                         </Button>
-                        <Button type="button" size="sm" className="bg-red-700 text-white hover:bg-red-800" onClick={() => openFOForStudent(student, "negative")}>
+                        <Button type="button" size="sm" className="h-9 bg-red-700 px-5 text-white hover:bg-red-800" onClick={() => openFOForStudent(student, "negative")}>
                           FO-
                         </Button>
                       </div>
@@ -329,30 +339,32 @@ export function GlobalFOButton() {
       </Dialog>
 
       <Dialog open={foOpen} onOpenChange={(open) => (open ? setFoOpen(true) : closeFO())}>
-        <DialogContent className="sm:max-w-[560px] max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-900 border border-border text-foreground">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
-              Lançar Fato Observado
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[620px] max-h-[calc(100dvh-4rem)] overflow-y-auto border border-border bg-white p-0 text-foreground dark:bg-zinc-950 sm:rounded-xl">
+          <DialogHeader className="border-b bg-muted/20 px-4 pb-3 pt-4 text-left sm:px-5">
+            <DialogTitle className="flex items-center gap-2 text-xl font-black text-[#1a3a2a] dark:text-[#c4a84b]" style={{ fontFamily: "Merriweather, serif" }}>
+              <ClipboardList className="h-5 w-5 shrink-0 text-[#c4a84b]" />
+              Lançar FO
             </DialogTitle>
-            <DialogDescription>
-              Selecione o tipo, o fato observado e anexe provas quando necessário.
+            <DialogDescription className="text-sm leading-snug">
+              Confira o aluno, escolha o tipo e registre o fato observado.
             </DialogDescription>
           </DialogHeader>
 
           {selectedStudent && (
-            <div className="space-y-4 py-3">
-              <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
+            <div className="space-y-4 p-4 sm:p-5">
+              <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted">
                   {selectedStudent.fotoUrl ? (
                     <img src={selectedStudent.fotoUrl} alt={selectedStudent.nomeGuerra || "Aluno"} className="h-full w-full object-cover" />
                   ) : (
-                    <User className="h-6 w-6 text-muted-foreground" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-bold">{selectedStudent.numerica} - {selectedStudent.nomeGuerra}</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="truncate text-sm font-black">
+                    <span className="text-[#c4a84b]">{selectedStudent.numerica}</span> · {selectedStudent.nomeGuerra}
+                  </div>
+                  <div className="line-clamp-2 text-xs leading-snug text-muted-foreground">
                     {selectedStudent.nomeCompleto || "Sem nome completo"} · {selectedStudent.companhia}ª Cia / {selectedStudent.peloton}º Pel
                   </div>
                 </div>
@@ -459,7 +471,7 @@ export function GlobalFOButton() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 border-t bg-white p-4 dark:bg-zinc-950 sm:px-5">
             <Button type="button" variant="outline" onClick={closeFO}>
               Cancelar
             </Button>
