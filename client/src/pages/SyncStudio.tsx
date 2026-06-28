@@ -51,7 +51,7 @@ export default function SyncStudio() {
               </p>
               <Link href="/login">
                 <Button className="w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#10241b]">
-                  <LogIn className="h-4 w-4" /> Entrar como Xerife
+                  <LogIn className="h-4 w-4" /> Posto de Comando
                 </Button>
               </Link>
             </CardContent>

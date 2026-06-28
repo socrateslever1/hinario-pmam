@@ -59,8 +59,26 @@ async function seed() {
   });
 
   try {
+    // Garante que a tabela de platoon_disciplines existe
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS pmam_platoon_disciplines (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        discipline_id INT NOT NULL,
+        companhia INT NOT NULL,
+        peloton INT NOT NULL,
+        start_date DATE NULL,
+        exam_date DATE NULL,
+        status VARCHAR(50) DEFAULT 'em_breve',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_pmam_platoon_disciplines_scope (discipline_id, companhia, peloton),
+        FOREIGN KEY (discipline_id) REFERENCES pmam_disciplines(id) ON DELETE CASCADE
+      )
+    `);
+
     for (const discipline of disciplines) {
       // Verificar se já existe
+      let disciplineId;
       const [rows] = await connection.execute(
         "SELECT id FROM pmam_disciplines WHERE name = ? LIMIT 1",
         [discipline.name]
@@ -68,16 +86,32 @@ async function seed() {
       
       if (rows.length > 0) {
         console.log(`Disciplina já cadastrada: ${discipline.name}`);
-        continue;
+        disciplineId = rows[0].id;
+      } else {
+        const [result] = await connection.execute(
+          "INSERT INTO pmam_disciplines (name, description, created_by, is_active) VALUES (?, ?, ?, 1)",
+          [discipline.name, discipline.description, 1]
+        );
+        disciplineId = result.insertId;
+        console.log(`Inserido com sucesso: ${discipline.name}`);
       }
 
-      await connection.execute(
-        "INSERT INTO pmam_disciplines (name, description, created_by, is_active) VALUES (?, ?, ?, 1)",
-        [discipline.name, discipline.description, 1]
-      );
-      console.log(`Inserido com sucesso: ${discipline.name}`);
+      // Associar com todas as companhias (1..5) e pelotões (1..2)
+      for (let cia = 1; cia <= 5; cia++) {
+        for (let pel = 1; pel <= 2; pel++) {
+          try {
+            await connection.execute(
+              `INSERT IGNORE INTO pmam_platoon_disciplines (discipline_id, companhia, peloton, status) 
+               VALUES (?, ?, ?, 'em_breve')`,
+              [disciplineId, cia, pel]
+            );
+          } catch (err) {
+            // ignorar duplicados
+          }
+        }
+      }
     }
-    console.log("Todas as disciplinas foram semeadas com sucesso!");
+    console.log("Todas as disciplinas foram semeadas e associadas aos pelotões com sucesso!");
   } catch (error) {
     console.error("Erro ao semear disciplinas:", error);
   } finally {

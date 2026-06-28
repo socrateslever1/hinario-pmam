@@ -118,10 +118,10 @@ export function PeculioOverview() {
                           isClosed
                             ? "w-fit bg-[#c4a84b] text-black"
                             : isReleased
-                              ? "w-fit bg-amber-100 text-amber-800"
+                              ? "w-fit bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200"
                               : lockedByTime
-                                ? "w-fit bg-red-100 text-red-800"
-                                : "w-fit bg-green-100 text-green-800"
+                                ? "w-fit bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200"
+                                : "w-fit bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200"
                         }
                       >
                         {isClosed ? "Fechado" : isReleased ? "Liberado" : lockedByTime ? "Travado" : "Aberto"}

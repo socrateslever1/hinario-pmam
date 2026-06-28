@@ -279,7 +279,7 @@ export function BlogManagementPanel() {
             <Button
               variant="outline"
               onClick={handleContinueDraft}
-              className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-50"
+              className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/10"
             >
               <Save className="h-4 w-4" />
               Continuar rascunho

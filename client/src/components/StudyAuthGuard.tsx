@@ -128,7 +128,7 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
             <Link href="/entrar">
               <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
                 <LogIn className="mr-2 h-4 w-4" />
-                Entrar ou criar conta
+                Acesso do Aluno
               </Button>
             </Link>
           </CardContent>

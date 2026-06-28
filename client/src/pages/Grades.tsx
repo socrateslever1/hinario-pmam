@@ -415,9 +415,9 @@ export default function Grades() {
 
 
         {disciplines.length === 0 && (
-          <Card className="mb-6 border-amber-200 bg-amber-50">
-            <CardContent className="flex gap-3 pt-6 text-sm text-amber-800">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <Card className="mb-6 border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <CardContent className="flex gap-3 pt-6 text-sm font-medium">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
               <p>Nenhuma disciplina foi criada pelo xerife ainda.</p>
             </CardContent>
           </Card>

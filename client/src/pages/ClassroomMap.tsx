@@ -744,7 +744,7 @@ export default function ClassroomMap() {
             ) : (
               <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent
                   ? "bg-red-500/10 text-red-500 border-red-400"
-                  : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500" : "bg-slate-500/10 text-slate-600 border-slate-400")
+                  : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-700 border-yellow-500 dark:text-yellow-200" : "bg-slate-500/10 text-slate-700 border-slate-400 dark:text-slate-200")
                 }`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
@@ -1167,7 +1167,7 @@ export default function ClassroomMap() {
               <p className="text-sm text-muted-foreground text-center">Faça login como aluno para continuar.</p>
               <div className="flex flex-col gap-2">
                 <Link href="/entrar">
-                  <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90">Entrar como Aluno</Button>
+                  <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90">Acesso do Aluno</Button>
                 </Link>
               </div>
             </CardContent>
@@ -1436,7 +1436,7 @@ export default function ClassroomMap() {
                           key={s.id}
                           variant="outline"
                           className={`text-xs px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-muted/80 ${selectedStudentId === String(s.id)
-                              ? "bg-yellow-500/20 border-yellow-500 text-yellow-700"
+                              ? "bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-200"
                               : "border-border text-muted-foreground"
                             }`}
                           onClick={() => {
@@ -2439,13 +2439,13 @@ export default function ClassroomMap() {
 
                                   const statusBadge = 
                                     doc.status === 'enviado' ? (
-                                      <Badge className="bg-yellow-500/10 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/10">Pendente</Badge>
+                                      <Badge className="bg-yellow-500/10 text-yellow-700 border border-yellow-500/30 hover:bg-yellow-500/10 dark:text-yellow-200">Pendente</Badge>
                                     ) : doc.status === 'aceito' ? (
-                                      <Badge className="bg-green-500/10 text-green-600 border border-green-500/30 hover:bg-green-500/10">Acatado</Badge>
+                                      <Badge className="bg-green-500/10 text-green-700 border border-green-500/30 hover:bg-green-500/10 dark:text-green-200">Acatado</Badge>
                                     ) : doc.status === 'recusado' ? (
-                                      <Badge className="bg-red-500/10 text-red-600 border border-red-500/30 hover:bg-red-500/10">Recusado</Badge>
+                                      <Badge className="bg-red-500/10 text-red-700 border border-red-500/30 hover:bg-red-500/10 dark:text-red-200">Recusado</Badge>
                                     ) : (
-                                      <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/10">Ajustar</Badge>
+                                      <Badge className="bg-blue-500/10 text-blue-700 border border-blue-500/30 hover:bg-blue-500/10 dark:text-blue-200">Ajustar</Badge>
                                     );
 
                                   return (

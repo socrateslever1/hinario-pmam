@@ -54,6 +54,7 @@ export default function BottomNavigation() {
   }, []);
 
   const isComandante = Boolean(
+    !isStudent &&
     user?.role &&
       [
         "comandante_corpo",
@@ -94,7 +95,7 @@ export default function BottomNavigation() {
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ]
     : [
-        { icon: User, label: user ? "Meu Perfil" : "Perfil do Aluno", path: user ? "/perfil" : isStudent ? "/perfil-aluno" : "/entrar" },
+        { icon: User, label: isStudent ? "Perfil do Aluno" : user ? "Meu Perfil" : "Acesso do Aluno", path: isStudent ? "/perfil-aluno" : user ? "/perfil" : "/entrar" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },

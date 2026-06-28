@@ -72,10 +72,10 @@ export default function GradesLogin() {
   const isBusy = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#050d12]">
       <Navbar />
       <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
-      <Card className="w-full max-w-md border-[#c4a84b]/30">
+      <Card className="w-full max-w-md border-[#c4a84b]/30 bg-white text-foreground dark:bg-zinc-950 dark:border-[#c4a84b]/40">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-[#c4a84b] rounded-full p-3">
@@ -87,7 +87,7 @@ export default function GradesLogin() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -133,7 +133,7 @@ export default function GradesLogin() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-[#1a3a2a] hover:bg-[#214936]" disabled={isBusy}>
+                <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
                   Entrar
                 </Button>
               </form>
@@ -240,7 +240,7 @@ export default function GradesLogin() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-[#1a3a2a] hover:bg-[#214936]" disabled={isBusy}>
+                <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
                   Criar conta
                 </Button>
               </form>

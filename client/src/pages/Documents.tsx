@@ -1835,10 +1835,10 @@ window.print();
                     <tbody>
                       {paginatedDocs.map((doc: any) => {
                         const statusColors: Record<string, string> = {
-                          enviado: "bg-yellow-100 text-yellow-800 border-yellow-200",
-                          aceito: "bg-green-100 text-green-800 border-green-200",
-                          recusado: "bg-red-100 text-red-800 border-red-200",
-                          negociacao: "bg-orange-100 text-orange-800 border-orange-200",
+                          enviado: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-200 dark:border-yellow-500/30",
+                          aceito: "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-200 dark:border-green-500/30",
+                          recusado: "bg-red-100 text-red-800 border-red-200 dark:bg-red-500/15 dark:text-red-200 dark:border-red-500/30",
+                          negociacao: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-200 dark:border-orange-500/30",
                         };
                         const statusLabels: Record<string, string> = {
                           enviado: "Enviado",

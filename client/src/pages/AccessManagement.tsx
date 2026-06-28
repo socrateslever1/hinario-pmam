@@ -54,7 +54,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   useEffect(() => {
     if (!isTab && user !== undefined && myAccess !== undefined) {
       if (!user) {
-        setLocation("/entrar");
+        setLocation("/login");
       } else {
         const canManage = user.role === 'admin' || user.role === 'master' || myAccess?.isGeneral;
         if (!canManage) {

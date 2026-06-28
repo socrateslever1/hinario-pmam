@@ -26,7 +26,7 @@ import {
 const statusList = [
   { value: "pronto", label: "PRONTO", color: "bg-green-700 text-white hover:bg-green-800" },
   { value: "falta", label: "FT", color: "bg-red-600 text-white hover:bg-red-700" },
-  { value: "atraso", label: "AT", color: "bg-amber-500 text-black hover:bg-amber-600" },
+  { value: "atraso", label: "AT", color: "bg-amber-500 text-[#111827] hover:bg-amber-600 dark:bg-amber-400 dark:text-[#07120d] dark:hover:bg-amber-300" },
   { value: "diverso_destino", label: "DD", color: "bg-blue-600 text-white hover:bg-blue-700" },
   { value: "destino_ignorado", label: "DI", color: "bg-gray-600 text-white hover:bg-gray-700" },
   { value: "dispensa_medica", label: "DM", color: "bg-orange-600 text-white hover:bg-orange-700" },

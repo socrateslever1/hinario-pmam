@@ -27,9 +27,9 @@ const difficultyLabels: Record<string, string> = {
 };
 
 const difficultyClasses: Record<string, string> = {
-  basico: "bg-emerald-100 text-emerald-800",
-  intermediario: "bg-amber-100 text-amber-800",
-  avancado: "bg-red-100 text-red-800",
+  basico: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
+  intermediario: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200",
+  avancado: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200",
 };
 
 export default function Drill() {

@@ -86,7 +86,7 @@ export default function XerifeSystemDocs() {
                     </div>
                   </div>
 
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-yellow-950 dark:bg-yellow-500/10 dark:text-yellow-100 dark:border-yellow-500/50">
                     <strong>⏱️ Tempo de Implementação:</strong> 4-6 horas<br/>
                     <strong>📊 Escala:</strong> 5 companhias × 10 pelotões = até 50 Xerifes
                   </div>
