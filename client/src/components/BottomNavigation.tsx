@@ -55,7 +55,16 @@ export default function BottomNavigation() {
 
   const isComandante = Boolean(
     user?.role &&
-      ["comandante_corpo", "comandante_cfap", "comandante_cia", "comandante_pel"].includes(user.role)
+      [
+        "comandante_corpo",
+        "subcomandante_corpo",
+        "sub_comandante_corpo",
+        "comandante_cfap",
+        "subcomandante_cfap",
+        "sub_comandante_cfap",
+        "comandante_cia",
+        "comandante_pel",
+      ].includes(user.role)
   );
 
   const navItems = isComandante
@@ -76,7 +85,7 @@ export default function BottomNavigation() {
 
   const moreItems = isComandante
     ? [
-        { icon: User, label: "Meu Perfil", path: "/xerife?tab=profile" },
+        { icon: User, label: "Meu Perfil", path: "/perfil" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
@@ -85,7 +94,7 @@ export default function BottomNavigation() {
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ]
     : [
-        { icon: User, label: "Perfil do Aluno", path: isStudent ? "/perfil-aluno" : "/entrar" },
+        { icon: User, label: user ? "Meu Perfil" : "Perfil do Aluno", path: user ? "/perfil" : isStudent ? "/perfil-aluno" : "/entrar" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },

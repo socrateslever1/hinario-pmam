@@ -63,7 +63,16 @@ export default function Navbar() {
   const { data: user } = trpc.auth.me.useQuery();
   const isComandante = Boolean(
     user?.role &&
-      ["comandante_corpo", "comandante_cfap", "comandante_cia", "comandante_pel"].includes(user.role)
+      [
+        "comandante_corpo",
+        "subcomandante_corpo",
+        "sub_comandante_corpo",
+        "comandante_cfap",
+        "subcomandante_cfap",
+        "sub_comandante_cfap",
+        "comandante_cia",
+        "comandante_pel",
+      ].includes(user.role)
   );
 
   const links = isComandante
@@ -192,7 +201,7 @@ export default function Navbar() {
           {/* Desktop-only Auth controls */}
           <div className="hidden xl:flex items-center gap-2">
             {user ? (
-              <Link href="/xerife?tab=profile">
+              <Link href="/perfil">
                 <Button variant="ghost" size="sm" className="gap-2 max-w-48 truncate text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
                   {user.fotoUrl ? (
                     <img
@@ -336,7 +345,7 @@ export default function Navbar() {
                 })}
 
                 {user ? (
-                  <Link href="/xerife?tab=profile" onClick={() => setOpen(false)}>
+                  <Link href="/perfil" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
                       {user.fotoUrl ? (
                         <img

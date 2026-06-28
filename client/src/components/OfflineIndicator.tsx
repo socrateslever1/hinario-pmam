@@ -66,7 +66,7 @@ export function OfflineIndicator() {
         <div className="bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
           <p className="font-medium mb-1">Cache disponível:</p>
           <p className="opacity-90">{cacheSize}</p>
-          <p className="opacity-75 text-xs mt-1">Você pode acessar hinos, estudos e drill offline</p>
+          <p className="opacity-75 text-xs mt-1">Você pode acessar hinos, estudos, documentos e drill offline</p>
         </div>
       )}
 

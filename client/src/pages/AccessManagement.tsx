@@ -14,7 +14,9 @@ const ROLE_LABELS = {
   admin: 'Administrador Global (Admin)',
   master: 'Xerife Master',
   comandante_corpo: 'Comandante do Corpo de Alunos (CAL)',
+  subcomandante_corpo: 'Subcomandante do Corpo de Alunos',
   comandante_cfap: 'Comandante CFAP',
+  subcomandante_cfap: 'Subcomandante CFAP',
   comandante_cia: 'Comandante de Companhia',
   comandante_pel: 'Comandante de Pelotão',
 };
@@ -189,7 +191,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                   <SelectContent>
                     <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
                     <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
+                    <SelectItem value="subcomandante_corpo">Subcomandante do Corpo de Alunos</SelectItem>
                     <SelectItem value="comandante_cfap">Comandante CFAP</SelectItem>
+                    <SelectItem value="subcomandante_cfap">Subcomandante CFAP</SelectItem>
                     <SelectItem value="comandante_cia">Comandante de Companhia</SelectItem>
                     <SelectItem value="comandante_pel">Comandante de Pelotão</SelectItem>
                   </SelectContent>

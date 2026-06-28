@@ -48,6 +48,20 @@ interface ProofFile {
   type: "foto" | "video" | "audio" | "documento";
 }
 
+const GENERAL_COMMAND_ROLES = new Set([
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "sub_comandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "sub_comandante_cfap",
+]);
+
+function isCommandRoleValue(role?: string | null) {
+  const value = String(role || "");
+  return GENERAL_COMMAND_ROLES.has(value) || value === "comandante_cia" || value === "comandante_pel";
+}
+
 const conditionLabels: Record<string, string> = {
   pronto: "Pronto (PRONTO)",
   falta: "Falta (FT)",
@@ -218,6 +232,8 @@ export default function ClassroomMap() {
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
   const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
   const [foProofsUploading, setFoProofsUploading] = useState(false);
+  const [quickFOOpen, setQuickFOOpen] = useState(false);
+  const [quickFOSearch, setQuickFOSearch] = useState("");
   const {
     uploadItems: foProofUploadItems,
     addItem: addFoProofUpload,
@@ -256,6 +272,7 @@ export default function ClassroomMap() {
     setFoProofs([]);
     setFoModalPage("students");
   }, "fo");
+  useModalHistory(quickFOOpen, () => setQuickFOOpen(false), "quick-fo");
   useModalHistory(parteModalOpen, () => setParteModalOpen(false), "parte");
   useModalHistory(Boolean(operationalStudent), () => setOperationalStudent(null), "operational");
   useModalHistory(Boolean(editingStudent), () => setEditingStudent(null), "editing");
@@ -291,14 +308,16 @@ export default function ClassroomMap() {
   const currentRoles = platoonPublicQuery.data?.roles;
   const isCurrentStudentActiveXerife = Boolean(studentSession && currentRoles &&
     (studentSession.id === currentRoles.xerifeId || studentSession.id === currentRoles.subXerifeId));
+  const accessRole = String(access?.role || "");
   const isComandanteScopeAdmin = Boolean(
-    access?.role && (
-      (access.role as string) === "comandante_corpo" ||
-      (access.role as string) === "comandante_cfap" ||
-      ((access.role as string) === "comandante_cia" && access.scope?.companhia === selectedCompanhia) ||
-      ((access.role as string) === "comandante_pel" && access.scope?.companhia === selectedCompanhia && access.scope?.peloton === selectedPeloton)
+    accessRole && (
+      GENERAL_COMMAND_ROLES.has(accessRole) ||
+      (accessRole === "comandante_cia" && access?.scope?.companhia === selectedCompanhia) ||
+      (accessRole === "comandante_pel" && access?.scope?.companhia === selectedCompanhia && access?.scope?.peloton === selectedPeloton)
     )
   );
+  const isCommandRole = isCommandRoleValue(accessRole);
+  const canApproveStudentDocuments = Boolean((access as any)?.canApproveStudentDocuments);
 
   const isAdminOrXerifeAdmin = isXerifeGeral ||
     isComandanteScopeAdmin ||
@@ -309,6 +328,7 @@ export default function ClassroomMap() {
           access.assignment.companhia === selectedCompanhia &&
           access.assignment.peloton === selectedPeloton))) ||
     isCurrentStudentActiveXerife;
+  const canOpenStudentRecord = isAdminOrXerifeAdmin || isCommandRole;
 
   const capacityQuery = trpc.serviceScale.getPlatoonCapacity.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
@@ -333,7 +353,11 @@ export default function ClassroomMap() {
   );
 
   const foReasonsQuery = trpc.serviceScale.foReasons.useQuery(undefined, {
-    enabled: Boolean(isAdminOrXerifeAdmin),
+    enabled: Boolean(canOpenStudentRecord),
+  });
+
+  const quickFOStudentsQuery = trpc.serviceScale.students.useQuery(undefined, {
+    enabled: Boolean(canOpenStudentRecord),
   });
 
   const pendingFoReasonsQuery = trpc.serviceScale.pendingFoReasons.useQuery(undefined, {
@@ -342,11 +366,11 @@ export default function ClassroomMap() {
 
   const studentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
     { studentId: operationalStudent?.id ?? 0 },
-    { enabled: Boolean(operationalStudent?.id && isAdminOrXerifeAdmin) }
+    { enabled: Boolean(operationalStudent?.id && canOpenStudentRecord) }
   );
 
   const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery(undefined, {
-    enabled: Boolean(isAdminOrXerifeAdmin),
+    enabled: Boolean(canApproveStudentDocuments),
   });
 
   const responderParteMutation = trpc.documentosParte.responderParte.useMutation({
@@ -371,8 +395,22 @@ export default function ClassroomMap() {
   }, [capacityQuery.data]);
 
   const students = platoonPublicQuery.data?.students ?? [];
+  const foAvailableStudents = quickFOStudentsQuery.data?.length ? quickFOStudentsQuery.data : students;
   const activeRoles = platoonPublicQuery.data?.roles;
   const weeklyScale = platoonPublicQuery.data?.week;
+  const filteredQuickFOStudents = useMemo(() => {
+    const query = quickFOSearch.trim().toLowerCase();
+    const sorted = [...foAvailableStudents].sort((a: any, b: any) => Number(a.numerica) - Number(b.numerica));
+    if (!query) return sorted.slice(0, 20);
+    return sorted
+      .filter((student: any) =>
+        String(student.numerica || "").includes(query) ||
+        String(student.nomeGuerra || "").toLowerCase().includes(query) ||
+        String(student.nomeCompleto || "").toLowerCase().includes(query) ||
+        `${student.companhia || ""}/${student.peloton || ""}`.includes(query)
+      )
+      .slice(0, 20);
+  }, [foAvailableStudents, quickFOSearch]);
 
   // Filtrar alunos por nome, número ou pelotão
   const filteredStudents = useMemo(() => {
@@ -587,8 +625,9 @@ export default function ClassroomMap() {
     onError: (err) => toast.error(err.message),
   });
 
-  const canChangeCompanhia = isXerifeGeral;
+  const canChangeCompanhia = isXerifeGeral || isCommandRole;
   const canChangePelotao = isXerifeGeral || 
+    isCommandRole ||
     Boolean(access?.assignment && access.assignment.level === "companhia") ||
     (access?.role as string) === "comandante_cia";
 
@@ -625,7 +664,7 @@ export default function ClassroomMap() {
         className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? getSeatConditionStyle(cond)
             : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
-          } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center justify-center">
@@ -688,7 +727,7 @@ export default function ClassroomMap() {
       <div
         key={role}
         onClick={() => {
-          if (isAdminOrXerifeAdmin) {
+          if (canOpenStudentRecord) {
             if (occupant) {
               setOperationalStudent(occupant);
             } else {
@@ -700,7 +739,7 @@ export default function ClassroomMap() {
         className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
             : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
-          } ${isAdminOrXerifeAdmin ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center gap-1">
@@ -755,9 +794,15 @@ export default function ClassroomMap() {
 
   // Handlers
   const handleSeatClick = (seatNumber: number) => {
+    const occupant = students.find((s: any) => s.deskNumber === seatNumber);
+    if (occupant && canOpenStudentRecord) {
+      setOperationalStudent(occupant);
+      return;
+    }
+
     if (!isAdminOrXerifeAdmin) {
       if (!studentSession) {
-        toast.info("Entre como aluno para solicitar troca de carteira.");
+        toast.info("Sem permissão para editar carteira neste pelotão.");
         return;
       }
       requestSeatChange.mutate({
@@ -765,11 +810,6 @@ export default function ClassroomMap() {
         sessionToken: studentSession.sessionToken,
         requestedDeskNumber: seatNumber,
       });
-      return;
-    }
-    const occupant = students.find((s: any) => s.deskNumber === seatNumber);
-    if (occupant) {
-      setOperationalStudent(occupant);
       return;
     }
     setSelectedSeat(seatNumber);
@@ -1128,10 +1168,13 @@ export default function ClassroomMap() {
     { title: "Histórico de Xerifado", mobileTitle: "Histórico", desc: "Arquivo histórico de promoções", mobileDesc: "Promoções", icon: History, path: "/sala-de-aula/historico", adminOnly: false }
   ];
 
-  const filteredMenuOptions = menuOptions.filter(opt => !opt.adminOnly || isAdminOrXerifeAdmin);
+  const filteredMenuOptions = menuOptions.filter((opt) => {
+    if (opt.path === "/sala-de-aula/partes") return canApproveStudentDocuments;
+    return !opt.adminOnly || isAdminOrXerifeAdmin;
+  });
 
   // Proteção: Redirecionar para login se não estiver autenticado
-  if (!studentSession && !access?.isGeneral && !isAdminOrXerifeAdmin) {
+  if (!studentSession && !access?.isGeneral && !canOpenStudentRecord) {
     return (
       <div className="min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#0c0c0e]">
         <Navbar />
@@ -1293,7 +1336,7 @@ export default function ClassroomMap() {
                               type="button"
                               className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-left transition-colors hover:border-[#c4a84b]/60 hover:bg-[#c4a84b]/5"
                               onClick={() => {
-                                if (isAdminOrXerifeAdmin) {
+                                if (canOpenStudentRecord) {
                                   setOperationalStudent(student);
                                 } else {
                                   toast.info(student.deskNumber ? `${student.nomeGuerra}: carteira ${student.deskNumber}` : `${student.nomeGuerra}: sem carteira definida`);
@@ -2331,10 +2374,10 @@ export default function ClassroomMap() {
 
             {subview === "partes" && (
               /* PARTES SUBVIEW (XERIFE ONLY) */
-              !isAdminOrXerifeAdmin ? (
+              !canApproveStudentDocuments ? (
                 <Card className="p-8 text-center max-w-md mx-auto">
                   <CardContent>
-                    <p className="text-sm font-bold text-red-500">Acesso Restrito ao Xerife Geral e Administradores.</p>
+                    <p className="text-sm font-bold text-red-500">Acesso restrito ao Comando do Corpo de Alunos.</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -2568,18 +2611,20 @@ export default function ClassroomMap() {
                   >
                     FO- Transgressão
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="col-span-2 sm:col-span-1"
-                    onClick={() => {
-                      const student = operationalStudent;
-                      setOperationalStudent(null);
-                      openEditStudent(student);
-                    }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" /> Editar cadastro
-                  </Button>
+                  {isAdminOrXerifeAdmin && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="col-span-2 sm:col-span-1"
+                      onClick={() => {
+                        const student = operationalStudent;
+                        setOperationalStudent(null);
+                        openEditStudent(student);
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" /> Editar cadastro
+                    </Button>
+                  )}
                 </div>
 
                 <div className="rounded-lg border">
@@ -2726,6 +2771,100 @@ export default function ClassroomMap() {
           </DialogContent>
         </Dialog>
 
+        {canOpenStudentRecord && (
+          <Button
+            type="button"
+            onClick={() => {
+              setQuickFOSearch("");
+              setQuickFOOpen(true);
+            }}
+            className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-[#1a3a2a] p-0 text-base font-black text-white shadow-xl ring-2 ring-[#c4a84b]/70 hover:bg-[#12281d] md:bottom-8 md:right-8"
+            aria-label="Abrir atalho de Fato Observado"
+            title="Abrir FO"
+          >
+            FO
+          </Button>
+        )}
+
+        <Dialog open={quickFOOpen} onOpenChange={setQuickFOOpen}>
+          <DialogContent className="sm:max-w-[620px] bg-white dark:bg-zinc-900 border border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
+                Atalho FO
+              </DialogTitle>
+              <DialogDescription>
+                Pesquise a numérica ou o nome do aluno e escolha se o Fato Observado será positivo ou negativo.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={quickFOSearch}
+                  onChange={(event) => setQuickFOSearch(event.target.value)}
+                  placeholder="Pesquisar por numérica, nome ou companhia/pelotão"
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-[420px] overflow-y-auto rounded-md border bg-muted/10">
+                {quickFOStudentsQuery.isLoading ? (
+                  <div className="p-4 text-sm text-muted-foreground">Carregando alunos...</div>
+                ) : filteredQuickFOStudents.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">Nenhum aluno encontrado.</div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredQuickFOStudents.map((student: any) => (
+                      <div key={student.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-[#1a3a2a] dark:text-[#c4a84b]">{student.numerica}</span>
+                            <span className="truncate font-semibold">{student.nomeGuerra}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {student.nomeCompleto || "Sem nome completo"} · {student.companhia}ª Cia / {student.peloton}º Pel
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-green-700 text-white hover:bg-green-800"
+                            onClick={() => {
+                              setQuickFOOpen(false);
+                              openLaunchFOModal(student, "positive");
+                            }}
+                          >
+                            FO+
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-red-700 text-white hover:bg-red-800"
+                            onClick={() => {
+                              setQuickFOOpen(false);
+                              openLaunchFOModal(student, "negative");
+                            }}
+                          >
+                            FO-
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Depois de escolher FO+ ou FO-, o formulário completo abre com tipo, fato observado, detalhes e upload de provas.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* FO (Fatos Observados) Dialog global */}
         <Dialog open={foModalOpen} onOpenChange={setFoModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-white dark:bg-zinc-900 border border-border text-foreground">
@@ -2778,7 +2917,7 @@ export default function ClassroomMap() {
                   // Caso aberto individualmente para um único aluno
                   <div className="mt-1.5 p-2 bg-muted/30 rounded border text-xs font-semibold flex justify-between items-center">
                     <span>
-                      {students.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {students.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
+                      {foAvailableStudents.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {foAvailableStudents.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
                     </span>
                     <span className="text-[10px] text-muted-foreground">(Lançamento Individual)</span>
                   </div>

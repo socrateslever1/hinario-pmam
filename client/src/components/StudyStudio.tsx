@@ -28,6 +28,36 @@ type StudyStudioProps = {
 };
 
 type StudyMode = "overview" | "study" | "exam" | "results";
+type LocalStudyProgress = {
+  completedSectionIds: string[];
+  bestScore: number | null;
+};
+
+function getLocalProgressKey(studentId: number, moduleSlug: string) {
+  return `pmam-study-progress-${studentId}-${moduleSlug}`;
+}
+
+function readLocalProgress(studentId: number, moduleSlug: string): LocalStudyProgress | null {
+  try {
+    const raw = window.localStorage.getItem(getLocalProgressKey(studentId, moduleSlug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LocalStudyProgress;
+    return {
+      completedSectionIds: Array.isArray(parsed.completedSectionIds) ? parsed.completedSectionIds : [],
+      bestScore: typeof parsed.bestScore === "number" ? parsed.bestScore : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalProgress(studentId: number, moduleSlug: string, progress: LocalStudyProgress) {
+  try {
+    window.localStorage.setItem(getLocalProgressKey(studentId, moduleSlug), JSON.stringify(progress));
+  } catch {
+    // O servidor continua sendo a fonte principal quando houver conexao.
+  }
+}
 
 export default function StudyStudio({ module }: StudyStudioProps) {
   const { session, student } = useStudyAuth();
@@ -52,20 +82,43 @@ export default function StudyStudio({ module }: StudyStudioProps) {
   );
 
   useEffect(() => {
+    if (!student) return;
+
+    const localProgress = readLocalProgress(student.id, module.slug);
+    if (!localProgress) return;
+
+    setCompletedSectionIds(localProgress.completedSectionIds);
+    setBestScore(localProgress.bestScore);
+  }, [module.slug, student]);
+
+  useEffect(() => {
     if (dashboardData) {
       type ModuleProgress = { moduleSlug: string; completedSectionIds: string[]; bestScore: number | null };
       const prog = (dashboardData.modules as ModuleProgress[]).find((m) => m.moduleSlug === module.slug);
       if (prog) {
         setCompletedSectionIds(prog.completedSectionIds);
         setBestScore(prog.bestScore);
+        if (student) {
+          saveLocalProgress(student.id, module.slug, {
+            completedSectionIds: prog.completedSectionIds,
+            bestScore: prog.bestScore,
+          });
+        }
       }
     }
-  }, [dashboardData, module.slug]);
+  }, [dashboardData, module.slug, student]);
 
   const saveProgressMutation = trpc.study.saveModuleProgress.useMutation();
 
   const handleSaveProgress = (newCompletedSections: string[], score: number | null) => {
     if (!session || !student) return;
+    const nextBestScore = score !== null ? Math.max(score, bestScore || 0) : bestScore;
+
+    saveLocalProgress(student.id, module.slug, {
+      completedSectionIds: newCompletedSections,
+      bestScore: nextBestScore,
+    });
+
     if (saveProgressMutation?.mutate) {
       saveProgressMutation.mutate({
         studentId: student.id,
@@ -76,7 +129,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
           completedSectionIds: newCompletedSections,
           answers: {},
           lastScore: score,
-          bestScore: score !== null ? Math.max(score, bestScore || 0) : bestScore,
+          bestScore: nextBestScore,
           lastSubmittedAt: score !== null ? new Date().toISOString() : null,
         }
       });

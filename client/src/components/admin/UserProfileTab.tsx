@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,18 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador Global (Admin)",
   master: "Xerife Master",
   comandante_corpo: "Comandante do Corpo de Alunos (CAL)",
+  subcomandante_corpo: "Subcomandante do Corpo de Alunos",
   comandante_cfap: "Comandante CFAP",
+  subcomandante_cfap: "Subcomandante CFAP",
   comandante_cia: "Comandante de Companhia",
   comandante_pel: "Comandante de Pelotão",
 };
 
-export function UserProfileTab() {
+type UserProfileTabProps = {
+  showDirectory?: boolean;
+};
+
+export function UserProfileTab({ showDirectory = true }: UserProfileTabProps) {
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,13 +36,16 @@ export function UserProfileTab() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.name || "");
 
   // Carregar diretório do comando
-  const { data: commandUsers, isLoading: isLoadingDirectory } = trpc.auth.listCommandDirectory.useQuery();
+  const { data: commandUsers, isLoading: isLoadingDirectory } = trpc.auth.listCommandDirectory.useQuery(undefined, {
+    enabled: showDirectory,
+  });
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
-      toast.success("Foto de perfil atualizada!");
+      toast.success("Perfil atualizado!");
       void utils.auth.me.invalidate();
       void utils.auth.listCommandDirectory.invalidate();
     },
@@ -44,6 +53,10 @@ export function UserProfileTab() {
       toast.error(`Erro ao atualizar foto: ${err.message}`);
     }
   });
+
+  useEffect(() => {
+    setDisplayName(user?.name || "");
+  }, [user?.name]);
 
   const changePasswordMutation = trpc.access.changePassword.useMutation({
     onSuccess: () => {
@@ -139,8 +152,19 @@ export function UserProfileTab() {
     fileInputRef.current?.click();
   };
 
+  const handleProfileSave = async () => {
+    const name = displayName.trim();
+    if (name.length < 2) {
+      toast.error("Informe um nome com pelo menos 2 caracteres.");
+      return;
+    }
+
+    await updateProfileMutation.mutateAsync({ name });
+  };
+
   return (
     <Tabs defaultValue="my_profile" className="space-y-6">
+      {showDirectory && (
       <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted p-1 rounded-xl">
         <TabsTrigger value="my_profile" className="gap-2">
           <User className="h-4 w-4" />
@@ -151,6 +175,7 @@ export function UserProfileTab() {
           Membros do Comando
         </TabsTrigger>
       </TabsList>
+      )}
 
       {/* ABA MEU PERFIL */}
       <TabsContent value="my_profile" className="space-y-6">
@@ -187,7 +212,7 @@ export function UserProfileTab() {
               </div>
 
               <h2 className="text-xl font-bold text-foreground leading-tight font-serif" style={{ fontFamily: "Merriweather, serif" }}>
-                {user?.name || "Comandante"}
+                {user?.name || "Usuário"}
               </h2>
               <p className="text-sm font-semibold text-[#c4a84b] mt-1">
                 {getRoleDisplay(user?.role || "")}
@@ -208,6 +233,29 @@ export function UserProfileTab() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
+                <div className="flex flex-col gap-2 rounded-lg border bg-muted/5 p-3 sm:col-span-2">
+                  <Label htmlFor="profile-display-name" className="text-[10px] uppercase font-bold text-muted-foreground">
+                    Nome exibido
+                  </Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="profile-display-name"
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      placeholder="Como seu nome deve aparecer"
+                      className="h-9 text-sm"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleProfileSave}
+                      disabled={updateProfileMutation.isPending || displayName.trim() === (user?.name || "").trim()}
+                      className="bg-[#1a3a2a] text-white hover:bg-[#10281d]"
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-3 rounded-lg border bg-muted/5 p-3">
                   <Shield className="h-5 w-5 text-[#c4a84b] shrink-0" />
                   <div>
@@ -315,6 +363,7 @@ export function UserProfileTab() {
       </TabsContent>
 
       {/* ABA DIRETÓRIO DO COMANDO */}
+      {showDirectory && (
       <TabsContent value="command_staff">
         <Card className="border-border/50 bg-white shadow-md dark:bg-zinc-900 py-0">
           <CardHeader className="pb-3 border-b bg-muted/20">
@@ -372,6 +421,7 @@ export function UserProfileTab() {
           </CardContent>
         </Card>
       </TabsContent>
+      )}
     </Tabs>
   );
 }

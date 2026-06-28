@@ -1,10 +1,24 @@
-import { useEffect } from 'react';
-import { usePWA } from './usePWA';
+import { useEffect } from "react";
+import { studyModules } from "@/content/studyModules";
+import { usePWA } from "./usePWA";
 
-/**
- * Hook para pré-cachear dados críticos para offline
- * Executa quando o app inicia e periodicamente
- */
+const CRITICAL_API_URLS = [
+  "/api/trpc/hymns.list?batch=1",
+  "/api/trpc/drill.list?batch=1",
+  "/api/trpc/blog.list?batch=1",
+];
+
+const CRITICAL_STATIC_URLS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/logo/IMG_7728.PNG",
+  "/documents/peculio_cfsd_2026.pdf",
+  "/documents/modelo_de_parte.docx",
+  "/documents/matriz_curricular_cfsd2025.docx",
+  ...studyModules.map((module) => module.textPath),
+];
+
 export function useOfflineCache() {
   const { swReady, isOnline, precacheAssets } = usePWA();
 
@@ -13,50 +27,19 @@ export function useOfflineCache() {
 
     const precacheData = async () => {
       try {
-        console.log('[OfflineCache] Iniciando pré-cache de dados críticos');
+        console.log("[OfflineCache] Iniciando pre-cache de dados criticos");
 
-        // URLs críticas para pré-cachear
-        const criticalUrls = [
-          // Hinos
-          '/api/trpc/hymns.list?batch=1',
-          
-          // Estudos
-          '/api/trpc/education.listModules?batch=1',
-          
-          // Drill
-          '/api/trpc/drill.list?batch=1',
-          
-          // Blog
-          '/api/trpc/blog.list?batch=1',
-        ];
-
-        // Pré-cachear assets
+        const criticalUrls = [...CRITICAL_STATIC_URLS, ...CRITICAL_API_URLS];
         await precacheAssets(criticalUrls);
-        console.log('[OfflineCache] Pré-cache concluído');
 
-        // Fazer fetch das URLs para cachear as respostas
-        for (const url of criticalUrls) {
-          try {
-            const response = await fetch(url);
-            if (response.ok) {
-              const cache = await caches.open('hinario-pmam-cache-v2');
-              await cache.put(url, response.clone());
-              console.log('[OfflineCache] Cacheado:', url);
-            }
-          } catch (err) {
-            console.warn('[OfflineCache] Erro ao cachear:', url, err);
-          }
-        }
+        console.log("[OfflineCache] Pre-cache concluido");
       } catch (err) {
-        console.error('[OfflineCache] Erro ao pré-cachear:', err);
+        console.error("[OfflineCache] Erro ao pre-cachear:", err);
       }
     };
 
-    // Executar pré-cache imediatamente
     precacheData();
-
-    // Repetir a cada 1 hora
-    const interval = setInterval(precacheData, 3600000);
+    const interval = window.setInterval(precacheData, 3600000);
 
     return () => clearInterval(interval);
   }, [swReady, isOnline, precacheAssets]);

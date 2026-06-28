@@ -1,0 +1,1 @@
+ALTER TABLE `pmam_users` MODIFY COLUMN `role` enum('admin','comandante_corpo','subcomandante_corpo','comandante_cfap','subcomandante_cfap','comandante_cia','comandante_pel','student') DEFAULT 'student';--> statement-breakpoint

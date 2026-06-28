@@ -18,6 +18,26 @@ export function ChangePassword() {
   const changePasswordMutation = trpc.access.changePassword.useMutation();
   const meQuery = trpc.auth.me.useQuery();
 
+  const getPostPasswordPath = () => {
+    const role = meQuery.data?.role;
+    if (role === 'student') return '/notas-do-curso';
+    if (
+      role === 'admin' ||
+      role === 'master' ||
+      [
+        'comandante_corpo',
+        'subcomandante_corpo',
+        'sub_comandante_corpo',
+        'comandante_cfap',
+        'subcomandante_cfap',
+        'sub_comandante_cfap',
+        'comandante_cia',
+        'comandante_pel',
+      ].includes(role || '')
+    ) return '/xerife';
+    return '/perfil';
+  };
+
   const handleChangePassword = async () => {
     setError('');
     setSuccess(false);
@@ -50,18 +70,7 @@ export function ChangePassword() {
 
       // Redirecionar após 2 segundos
       setTimeout(() => {
-        if (meQuery.data) {
-          const role = meQuery.data.role;
-          if (role === 'student') {
-            navigate('/notas-do-curso');
-          } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
-            navigate('/xerife');
-          } else {
-            navigate('/');
-          }
-        } else {
-          navigate('/');
-        }
+        navigate(getPostPasswordPath());
       }, 2000);
     } catch (error: any) {
       setError(error.message || 'Erro ao alterar senha');
@@ -72,18 +81,7 @@ export function ChangePassword() {
     sessionStorage.setItem("skip-password-change", "true");
     toast.warning("Atenção: Troque sua senha provisória no seu perfil assim que possível.");
     
-    if (meQuery.data) {
-      const role = meQuery.data.role;
-      if (role === 'student') {
-        navigate('/notas-do-curso');
-      } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
-        navigate('/xerife');
-      } else {
-        navigate('/');
-      }
-    } else {
-      navigate('/');
-    }
+    navigate(getPostPasswordPath());
   };
 
   if (meQuery.isLoading) {

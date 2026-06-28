@@ -26,7 +26,7 @@ export const pmamUsers = mysqlTable("pmam_users", {
   email: varchar("email", { length: 255 }).unique(),
   password: varchar("password", { length: 255 }),
   loginMethod: varchar("login_method", { length: 50 }),
-  role: mysqlEnum("role", ["admin", "comandante_corpo", "comandante_cfap", "comandante_cia", "comandante_pel", "student"]).default("student"),
+  role: mysqlEnum("role", ["admin", "comandante_corpo", "subcomandante_corpo", "comandante_cfap", "subcomandante_cfap", "comandante_cia", "comandante_pel", "student"]).default("student"),
   pelotaoId: int("pelotao_id"),
   companhiaId: int("companhia_id"),
   forcePasswordChange: boolean("force_password_change").default(false),

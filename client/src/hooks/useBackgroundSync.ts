@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
-import { usePWA } from './usePWA';
+import { useEffect } from "react";
+import { studyModules } from "@/content/studyModules";
+import { usePWA } from "./usePWA";
 
-/**
- * Hook para sincronizar dados em background quando voltar online
- * Detecta quando o app volta online e sincroniza dados
- */
+const CACHE_NAME = "hinario-pmam-cache-v3";
+const CRITICAL_URLS = [
+  "/api/trpc/hymns.list?batch=1",
+  "/api/trpc/drill.list?batch=1",
+  "/api/trpc/blog.list?batch=1",
+  ...studyModules.map((module) => module.textPath),
+];
+
 export function useBackgroundSync() {
   const { isOnline, swReady } = usePWA();
 
@@ -12,59 +17,50 @@ export function useBackgroundSync() {
     if (!swReady) return;
 
     const handleOnline = async () => {
-      console.log('[BackgroundSync] Voltou online, sincronizando...');
+      console.log("[BackgroundSync] Voltou online, sincronizando...");
 
       try {
-        // Atualizar dados críticos
-        const criticalUrls = [
-          '/api/trpc/hymns.list?batch=1',
-          '/api/trpc/education.listModules?batch=1',
-          '/api/trpc/drill.list?batch=1',
-          '/api/trpc/blog.list?batch=1',
-        ];
+        const cache = await caches.open(CACHE_NAME);
 
-        for (const url of criticalUrls) {
+        for (const url of CRITICAL_URLS) {
           try {
-            const response = await fetch(url);
+            const response = await fetch(url, { credentials: "include" });
             if (response.ok) {
-              const cache = await caches.open('hinario-pmam-cache-v2');
               await cache.put(url, response.clone());
-              console.log('[BackgroundSync] Atualizado:', url);
+              console.log("[BackgroundSync] Atualizado:", url);
             }
           } catch (err) {
-            console.warn('[BackgroundSync] Erro ao atualizar:', url, err);
+            console.warn("[BackgroundSync] Erro ao atualizar:", url, err);
           }
         }
 
-        // Enviar evento para o Service Worker
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
-            type: 'SYNC_DATA',
+            type: "SYNC_DATA",
             timestamp: Date.now(),
           });
         }
 
-        console.log('[BackgroundSync] Sincronização concluída');
+        console.log("[BackgroundSync] Sincronizacao concluida");
       } catch (err) {
-        console.error('[BackgroundSync] Erro durante sincronização:', err);
+        console.error("[BackgroundSync] Erro durante sincronizacao:", err);
       }
     };
 
     const handleOffline = () => {
-      console.log('[BackgroundSync] Ficou offline');
+      console.log("[BackgroundSync] Ficou offline");
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
-    // Se já está online, sincronizar imediatamente
     if (isOnline) {
       handleOnline();
     }
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [isOnline, swReady]);
 }

@@ -39,12 +39,30 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StudySession | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  const buildLocalStudySession = (currentStudent: StudentSession): StudySession => ({
+    student: {
+      id: currentStudent.id,
+      studentNumber: currentStudent.numerica,
+      displayName: currentStudent.nomeGuerra,
+    },
+    accessToken: currentStudent.sessionToken,
+  });
+
   const ensureStudent = trpc.study.ensureStudent.useMutation({
     onSuccess: (data) => {
       setSession(data as StudySession);
       setIsInitializing(false);
     },
-    onError: () => {
+    onError: (error) => {
+      const currentStudent = getStudentSession();
+      const isOffline =
+        typeof navigator !== "undefined" &&
+        (!navigator.onLine || error.message.includes("Offline") || error.message.includes("Failed to fetch"));
+
+      if (currentStudent && isOffline) {
+        setStudent(currentStudent);
+        setSession(buildLocalStudySession(currentStudent));
+      }
       setIsInitializing(false);
     },
   });
@@ -54,6 +72,12 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
     setStudent(currentStudent);
 
     if (!currentStudent) {
+      setIsInitializing(false);
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setSession(buildLocalStudySession(currentStudent));
       setIsInitializing(false);
       return;
     }

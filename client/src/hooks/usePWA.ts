@@ -1,4 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
+
+const CACHE_NAME = "hinario-pmam-cache-v3";
+let registrationStarted = false;
+let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
+let updateIntervalId: number | null = null;
 
 interface PWAState {
   isOnline: boolean;
@@ -6,6 +11,21 @@ interface PWAState {
   isInstalled: boolean;
   swReady: boolean;
   updateAvailable: boolean;
+}
+
+async function cacheEach(urls: string[]) {
+  if (!("caches" in window)) return;
+
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`Falha ao cachear ${url}: ${response.status}`);
+      }
+      await cache.put(url, response.clone());
+    }),
+  );
 }
 
 export function usePWA() {
@@ -20,36 +40,35 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    // Registrar Service Worker em todos os ambientes (localhost e produção)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => {
-          console.log('[PWA] Service Worker registered:', reg);
-          setState(prev => ({ ...prev, swReady: true }));
-          
-          // Verificar atualizações a cada 1 hora
-          setInterval(() => {
-            reg.update().catch(() => undefined);
-          }, 3600000);
+    if ("serviceWorker" in navigator) {
+      if (!registrationStarted) {
+        registrationStarted = true;
+        registrationPromise = navigator.serviceWorker.register("/sw.js");
+      }
+
+      registrationPromise
+        ?.then((reg) => {
+          console.log("[PWA] Service Worker registered:", reg);
+          setState((prev) => ({ ...prev, swReady: true }));
+
+          if (updateIntervalId === null) {
+            updateIntervalId = window.setInterval(() => {
+              reg.update().catch(() => undefined);
+            }, 3600000);
+          }
         })
-        .catch((err) => console.error('[PWA] SW registration failed:', err));
+        .catch((err) => console.error("[PWA] SW registration failed:", err));
     }
 
-    // NÃO deletar cache - deixar o SW gerenciar
-    // O cache é importante para funcionalidade offline
-
     const handleOnline = () => {
-      console.log('[PWA] Online');
+      console.log("[PWA] Online");
       setState((prev) => ({ ...prev, isOnline: true }));
     };
-    
+
     const handleOffline = () => {
-      console.log('[PWA] Offline');
+      console.log("[PWA] Offline");
       setState((prev) => ({ ...prev, isOnline: false }));
     };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
 
     const handleBeforeInstallPrompt = (event: any) => {
       event.preventDefault();
@@ -57,9 +76,11 @@ export function usePWA() {
       setState((prev) => ({ ...prev, isInstallable: true }));
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
     if (mediaQuery.matches) {
       setState((prev) => ({ ...prev, isInstalled: true }));
     }
@@ -68,53 +89,47 @@ export function usePWA() {
       setState((prev) => ({ ...prev, isInstalled: event.matches }));
     };
 
-    mediaQuery.addEventListener('change', handleDisplayModeChange);
+    mediaQuery.addEventListener("change", handleDisplayModeChange);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      mediaQuery.removeEventListener("change", handleDisplayModeChange);
     };
   }, []);
 
-  const installApp = async () => {
+  const installApp = useCallback(async () => {
     if (!deferredPrompt) return;
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
+    if (outcome === "accepted") {
       setState((prev) => ({ ...prev, isInstalled: true }));
     }
 
     setDeferredPrompt(null);
-  };
+  }, [deferredPrompt]);
 
-  const updateApp = () => window.location.reload();
-  
-  const clearCache = async () => {
-    if ('caches' in window) {
+  const updateApp = useCallback(() => window.location.reload(), []);
+
+  const clearCache = useCallback(async () => {
+    if ("caches" in window) {
       const keys = await caches.keys();
-      await Promise.all(keys.map(key => caches.delete(key)));
-      console.log('[PWA] Cache cleared');
+      await Promise.all(keys.map((key) => caches.delete(key)));
+      console.log("[PWA] Cache cleared");
     }
-  };
-  
-  const cacheUrls = async (urls: string[]) => {
-    if ('caches' in window) {
-      const cache = await caches.open('hinario-pmam-cache-v2');
-      await cache.addAll(urls);
-      console.log('[PWA] URLs cached:', urls);
-    }
-  };
-  
-  const precacheAssets = async (assets: string[]) => {
-    if ('caches' in window) {
-      const cache = await caches.open('hinario-pmam-cache-v2');
-      await cache.addAll(assets);
-      console.log('[PWA] Assets precached:', assets);
-    }
-  };
+  }, []);
+
+  const cacheUrls = useCallback(async (urls: string[]) => {
+    await cacheEach(urls);
+    console.log("[PWA] URLs cached:", urls);
+  }, []);
+
+  const precacheAssets = useCallback(async (assets: string[]) => {
+    await cacheEach(assets);
+    console.log("[PWA] Assets precached:", assets);
+  }, []);
 
   return {
     ...state,

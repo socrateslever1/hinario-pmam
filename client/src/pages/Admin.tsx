@@ -55,20 +55,37 @@ export default function Admin() {
   });
 
   const isXerife = Boolean(scaleAccess?.assignment);
-  const isComandante = isAuthenticated && Boolean(user?.role?.startsWith("comandante_"));
+  const isCommandRole = Boolean(
+    user?.role &&
+      [
+        "comandante_corpo",
+        "subcomandante_corpo",
+        "sub_comandante_corpo",
+        "comandante_cfap",
+        "subcomandante_cfap",
+        "sub_comandante_cfap",
+        "comandante_cia",
+        "comandante_pel",
+      ].includes(user.role)
+  );
+  const isComandante = isAuthenticated && isCommandRole;
   const isAuthorized = isAdminOrMaster || isXerife || isComandante;
-  
+
   // Xerife Geral (strictly master, admin, or principal assignment; commanders excluded)
   const isXerifeGeral = Boolean(
     (isAdminOrMaster || scaleAccess?.assignment?.level === "principal") && 
-    !user?.role?.startsWith("comandante_")
+    !isCommandRole
   );
   
   // Can manage global content (Xerife Geral + CAL & CFAP commanders)
   const canManageGlobalContent = Boolean(
     isXerifeGeral || 
-    user?.role === "comandante_corpo" || 
-    user?.role === "comandante_cfap"
+    user?.role === "comandante_corpo" ||
+    user?.role === "subcomandante_corpo" ||
+    user?.role === "sub_comandante_corpo" ||
+    user?.role === "comandante_cfap" ||
+    user?.role === "subcomandante_cfap" ||
+    user?.role === "sub_comandante_cfap"
   );
   
   const canManagePlatoonContent = canManageGlobalContent || isXerife;

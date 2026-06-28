@@ -32,6 +32,7 @@ import Grades from "./pages/Grades";
 import GradesManagement from "./pages/GradesManagement";
 import Documents from "./pages/Documents";
 import StudentProfilePage from "./pages/StudentProfile";
+import UserProfilePage from "./pages/UserProfile";
 import XerifeSystemDocs from "./pages/XerifeSystemDocs";
 import ServiceBoard from "./pages/ServiceBoard";
 import ClassroomMap from "./pages/ClassroomMap";
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/notas-do-curso" component={Grades} />
       <Route path="/lançar-notas" component={GradesManagement} />
       <Route path="/perfil-aluno" component={StudentProfilePage} />
+      <Route path="/perfil" component={UserProfilePage} />
       <Route path="/quadro-de-servico" component={ServiceBoard} />
       <Route path="/sala-de-aula" component={ClassroomMap} />
       <Route path="/sala-de-aula/:subview" component={ClassroomMap} />

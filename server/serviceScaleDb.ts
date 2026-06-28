@@ -399,7 +399,14 @@ export function canAccessScope(
   peloton?: number | null,
 ) {
   if (user.role === "master" || user.role === "admin") return true;
-  if (user.role === "comandante_corpo" || user.role === "comandante_cfap") return true;
+  if (
+    user.role === "comandante_corpo" ||
+    user.role === "subcomandante_corpo" ||
+    user.role === "sub_comandante_corpo" ||
+    user.role === "comandante_cfap" ||
+    user.role === "subcomandante_cfap" ||
+    user.role === "sub_comandante_cfap"
+  ) return true;
   if (user.role === "comandante_cia") {
     return user.companhiaId === companhia;
   }
@@ -420,7 +427,14 @@ export function getDefaultScope(
   if (user.role === "master" || user.role === "admin" || assignment?.level === "principal") {
     return { unrestricted: true };
   }
-  if (user.role === "comandante_corpo" || user.role === "comandante_cfap") {
+  if (
+    user.role === "comandante_corpo" ||
+    user.role === "subcomandante_corpo" ||
+    user.role === "sub_comandante_corpo" ||
+    user.role === "comandante_cfap" ||
+    user.role === "subcomandante_cfap" ||
+    user.role === "sub_comandante_cfap"
+  ) {
     return { unrestricted: true };
   }
   if (user.role === "comandante_cia" && user.companhiaId) {

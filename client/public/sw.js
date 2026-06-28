@@ -1,11 +1,22 @@
-const CACHE_NAME = "hinario-pmam-cache-v2";
+const CACHE_NAME = "hinario-pmam-cache-v3";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/logo/IMG_7728.PNG",
+  "/documents/peculio_cfsd_2026.pdf",
+  "/documents/modelo_de_parte.docx",
+  "/documents/matriz_curricular_cfsd2025.docx",
+  "/documents/images/pmam-brasao.png",
+  "/documents/images/brasao_cfap.png",
+  "/study/texts/estatuto-policiais-militares.txt",
+  "/study/texts/manual-do-aluno.txt",
+  "/study/texts/rdpmam.txt",
+  "/study/texts/rcont.txt",
+  "/study/texts/risg.txt",
+  "/study/texts/rupmam.txt",
 ];
 
-// Rotas de autenticação que NUNCA devem ser cacheadas
 const AUTH_ROUTES = [
   "/api/trpc/auth.me",
   "/api/trpc/auth.login",
@@ -13,27 +24,40 @@ const AUTH_ROUTES = [
   "/api/trpc/auth.loginEmail",
 ];
 
-// Rotas de sessão de aluno que NUNCA devem ser cacheadas
 const SESSION_ROUTES = [
   "/api/trpc/study.ensureStudent",
   "/api/trpc/study.getStudentSession",
+  "/api/trpc/student.login",
+  "/api/trpc/student.register",
 ];
 
-// Rotas críticas para offline (hinos, estudos, etc)
-const CRITICAL_ROUTES = [
-  "/api/trpc/hymns.list",
-  "/api/trpc/hymns.getById",
-  "/api/trpc/drill.list",
-  "/api/trpc/blog.list",
+const STATIC_CACHE_PATHS = [
+  "/assets/",
+  "/logo/",
+  "/documents/",
+  "/study/",
 ];
+
+async function addToCache(cache, urls) {
+  const results = await Promise.allSettled(
+    urls.map(async (url) => {
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error(`${url}: ${response.status}`);
+      await cache.put(url, response.clone());
+    }),
+  );
+
+  results.forEach((result) => {
+    if (result.status === "rejected") {
+      console.warn("[SW] Failed to cache asset:", result.reason);
+    }
+  });
+}
 
 self.addEventListener("install", (event) => {
   console.log("[SW] Installing...");
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("[SW] Caching assets:", ASSETS_TO_CACHE);
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => addToCache(cache, ASSETS_TO_CACHE)),
   );
   self.skipWaiting();
 });
@@ -41,16 +65,17 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   console.log("[SW] Activating...");
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
             console.log("[SW] Deleting old cache:", key);
             return caches.delete(key);
           }
-        })
-      );
-    })
+          return undefined;
+        }),
+      ),
+    ),
   );
   self.clients.claim();
 });
@@ -59,41 +84,35 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Ignore non-GET requests
   if (request.method !== "GET") return;
+  if (url.origin !== self.location.origin) return;
 
-  // SPA navigation fallback
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => {
         console.log("[SW] Navigation offline, returning index.html");
         return caches.match("/index.html") || caches.match("/");
-      })
+      }),
     );
     return;
   }
 
-  // NEVER cache authentication or session routes
-  const isAuthRoute = AUTH_ROUTES.some(route => url.pathname.includes(route));
-  const isSessionRoute = SESSION_ROUTES.some(route => url.pathname.includes(route));
-  
+  const isAuthRoute = AUTH_ROUTES.some((route) => url.pathname.includes(route));
+  const isSessionRoute = SESSION_ROUTES.some((route) => url.pathname.includes(route));
+
   if (isAuthRoute || isSessionRoute) {
-    // Network-first for auth/session: always try to fetch fresh
     event.respondWith(
-      fetch(request)
-        .catch(() => {
-          // If offline, return error response instead of cached data
-          console.log("[SW] Auth/session offline, returning error");
-          return new Response(
-            JSON.stringify({ error: "Offline - authentication unavailable" }),
-            { status: 503, headers: { "Content-Type": "application/json" } }
-          );
-        })
+      fetch(request).catch(() => {
+        console.log("[SW] Auth/session offline, returning error");
+        return new Response(
+          JSON.stringify({ error: "Offline - authentication unavailable" }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        );
+      }),
     );
     return;
   }
 
-  // Handle other tRPC GET queries (grades, hymns catalog etc) for offline fallback
   if (url.pathname.startsWith("/api/trpc")) {
     event.respondWith(
       fetch(request)
@@ -111,23 +130,23 @@ self.addEventListener("fetch", (event) => {
           console.log("[SW] API offline, returning cached response:", url.pathname);
           return caches.match(request) || new Response(
             JSON.stringify({ error: "Offline" }),
-            { status: 503, headers: { "Content-Type": "application/json" } }
+            { status: 503, headers: { "Content-Type": "application/json" } },
           );
-        })
+        }),
     );
     return;
   }
 
-  // Handle static assets caching
+  const shouldCacheStatic = STATIC_CACHE_PATHS.some((path) => url.pathname.includes(path));
+
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Fetch new version in background to update cache (Stale-While-Revalidate)
         fetch(request)
           .then((response) => {
-            if (response.status === 200) {
+            if (response.status === 200 && shouldCacheStatic) {
               caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, response);
+                cache.put(request, response.clone());
                 console.log("[SW] Updated cached asset:", url.pathname);
               });
             }
@@ -136,30 +155,30 @@ self.addEventListener("fetch", (event) => {
         return cachedResponse;
       }
 
-      return fetch(request).then((response) => {
-        // Cache new assets on the fly
-        if (response.status === 200 && (url.pathname.includes("/assets/") || url.pathname.includes("/logo/"))) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-            console.log("[SW] Cached new asset:", url.pathname);
-          });
-        }
-        return response;
-      }).catch(() => {
-        console.log("[SW] Asset offline:", url.pathname);
-        return new Response("Offline", { status: 503 });
-      });
-    })
+      return fetch(request)
+        .then((response) => {
+          if (response.status === 200 && shouldCacheStatic) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+              console.log("[SW] Cached new asset:", url.pathname);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          console.log("[SW] Asset offline:", url.pathname);
+          return new Response("Offline", { status: 503 });
+        });
+    }),
   );
 });
 
-// Handle messages from clients
 self.addEventListener("message", (event) => {
   if (event.data.type === "CLEAR_CACHE") {
     console.log("[SW] Clearing cache on request from client");
     caches.delete(CACHE_NAME).then(() => {
-      event.ports[0].postMessage({ success: true });
+      event.ports[0]?.postMessage({ success: true });
     });
   }
 });

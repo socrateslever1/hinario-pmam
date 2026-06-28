@@ -1513,7 +1513,7 @@ export async function updateAccessUser(id: number, input: {
 
 export async function listAccessUsers() {
   const rows = await query(
-    "SELECT id, name, email, role, pelotao_id, companhia_id, force_password_change, created_at FROM pmam_users WHERE role IN ('comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel') ORDER BY created_at DESC"
+    "SELECT id, name, email, role, pelotao_id, companhia_id, force_password_change, created_at FROM pmam_users WHERE role IN ('comandante_corpo', 'subcomandante_corpo', 'sub_comandante_corpo', 'comandante_cfap', 'subcomandante_cfap', 'sub_comandante_cfap', 'comandante_cia', 'comandante_pel') ORDER BY created_at DESC"
   );
   return rows.map((r: any) => ({
     id: r.id,

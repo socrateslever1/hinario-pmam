@@ -78,7 +78,20 @@ export default function Login() {
         navigate("/alterar-senha");
       } else if (role === 'student') {
         navigate("/notas-do-curso");
-      } else if (role === 'admin' || role === 'master' || role?.startsWith('comandante_')) {
+      } else if (
+        role === 'admin' ||
+        role === 'master' ||
+        [
+          'comandante_corpo',
+          'subcomandante_corpo',
+          'sub_comandante_corpo',
+          'comandante_cfap',
+          'subcomandante_cfap',
+          'sub_comandante_cfap',
+          'comandante_cia',
+          'comandante_pel',
+        ].includes(role || '')
+      ) {
         navigate("/xerife");
       } else {
         navigate("/");

@@ -50,6 +50,43 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
   "odt", "ods", "txt", "png", "jpg", "jpeg",
 ]);
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const COMMAND_ROLES = [
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "sub_comandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "sub_comandante_cfap",
+  "comandante_cia",
+  "comandante_pel",
+] as const;
+const COMMAND_ACCESS_ROLES = [
+  "admin",
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "comandante_cia",
+  "comandante_pel",
+] as const;
+const STUDENT_DOCUMENT_APPROVER_ROLES = [
+  "master",
+  "admin",
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "sub_comandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "sub_comandante_cfap",
+] as const;
+
+function isCommandRole(role?: string | null) {
+  return COMMAND_ROLES.includes(String(role || "") as any);
+}
+
+function isGeneralCommandRole(role?: string | null) {
+  return STUDENT_DOCUMENT_APPROVER_ROLES.includes(String(role || "") as any);
+}
 
 
 async function requireStudentSession(studentId: number, sessionToken: string) {
@@ -106,7 +143,7 @@ const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (
     ctx.user.role === "master" ||
     ctx.user.role === "admin" ||
-    ctx.user.role?.startsWith("comandante_")
+    isCommandRole(ctx.user.role)
   ) {
     return next({ ctx });
   }
@@ -124,7 +161,7 @@ const scaleManagerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (
     ctx.user.role === "master" ||
     ctx.user.role === "admin" ||
-    ctx.user.role?.startsWith("comandante_")
+    isCommandRole(ctx.user.role)
   ) {
     return next({ ctx });
   }
@@ -147,8 +184,36 @@ async function requireServiceScaleAccess(
   return assignment;
 }
 
+function canCommandViewAllClassrooms(user: any) {
+  return isCommandRole(user?.role);
+}
+
+async function requireClassroomViewAccess(
+  user: any,
+  companhia: number,
+  peloton?: number | null,
+) {
+  if (canCommandViewAllClassrooms(user)) {
+    return null;
+  }
+  return requireServiceScaleAccess(user, companhia, peloton);
+}
+
+function canApproveStudentDocuments(user: any) {
+  return isGeneralCommandRole(user?.role);
+}
+
+function requireStudentDocumentApprovalAccess(user: any) {
+  if (!canApproveStudentDocuments(user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Aprovação de Parte restrita ao Comando do Corpo de Alunos",
+    });
+  }
+}
+
 async function isXerifeGeral(user: any) {
-  if (user.role === "master" || user.role === "admin") return true;
+  if (user.role === "master" || user.role === "admin" || isGeneralCommandRole(user.role)) return true;
   const assignment = await serviceScaleDb.getXerifeAssignment(user.id);
   return assignment?.level === "principal";
 }
@@ -259,7 +324,7 @@ export const appRouter = router({
       return { success: true, message: 'Perfil atualizado com sucesso' };
     }),
     listCommandDirectory: protectedProcedure.query(async () => {
-      const commandRoles = ['admin', 'master', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel'];
+      const commandRoles = ['admin', 'master', ...COMMAND_ROLES];
       const users = await db.getAllUsers();
       return users
         .filter(u => commandRoles.includes(u.role || ''))
@@ -795,8 +860,7 @@ export const appRouter = router({
       if (
         ctx.user.role !== "master" &&
         ctx.user.role !== "admin" &&
-        ctx.user.role !== "comandante_corpo" &&
-        ctx.user.role !== "comandante_cfap"
+        !isGeneralCommandRole(ctx.user.role)
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
@@ -1553,12 +1617,13 @@ export const appRouter = router({
         return null;
       }
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
-      const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || (ctx.user.role as string) === "comandante_corpo" || (ctx.user.role as string) === "comandante_cfap" || assignment?.level === "principal";
+      const isGeneral = ctx.user.role === "master" || ctx.user.role === "admin" || isGeneralCommandRole(ctx.user.role) || assignment?.level === "principal";
       return {
         assignment,
         scope: serviceScaleDb.getDefaultScope(ctx.user, assignment),
         isMaster: ctx.user.role === "master",
         isGeneral,
+        canApproveStudentDocuments: canApproveStudentDocuments(ctx.user),
         role: ctx.user.role,
       };
     }),
@@ -1571,11 +1636,15 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
       const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
-      const companhia = input?.companhia ?? scope.companhia;
-      const peloton = input?.peloton ?? scope.peloton;
+      let companhia = input?.companhia ?? scope.companhia;
+      let peloton = input?.peloton ?? scope.peloton;
 
-      const isComandante = ctx.user.role?.startsWith("comandante_");
+      const isComandante = isCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
+      if (isComandante && !input?.companhia) {
+        companhia = undefined;
+        peloton = undefined;
+      }
 
       if (!isComandante && !isGeneral && companhia) {
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
@@ -1593,7 +1662,7 @@ export const appRouter = router({
         weekStart: z.string().trim().min(10).max(10),
       })
     ).query(async ({ ctx, input }) => {
-      const isComandante = ctx.user.role?.startsWith("comandante_");
+      const isComandante = isCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
       if (!isComandante && !isGeneral) {
         await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
@@ -2147,8 +2216,8 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
-      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
-      const isComandante = ctx.user.role?.startsWith("comandante_");
+      await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
+      const isComandante = isCommandRole(ctx.user.role);
       const general = await isXerifeGeral(ctx.user);
       const needsValidation = input.type === "positive" || input.type === "negative";
       const isApprovedDirectly = isComandante || general || !needsValidation;
@@ -2173,7 +2242,7 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
-      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
       return serviceScaleDb.listStudentObservations(input.studentId);
     }),
 
@@ -2654,21 +2723,12 @@ export const appRouter = router({
     }),
 
     listarPartesPendentes: scaleManagerProcedure.query(async ({ ctx }) => {
-      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
-      let level = "principal";
-      let companhia: number | null = null;
-      let peloton: number | null = null;
-      
-      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
-        if (!assignment) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a administradores ou xerifes" });
-        }
-        level = assignment.level;
-        companhia = assignment.companhia;
-        peloton = assignment.peloton;
-      }
-      
-      return documentosParteDb.listarDocumentosXerife({ level, companhia, peloton });
+      requireStudentDocumentApprovalAccess(ctx.user);
+      return documentosParteDb.listarDocumentosXerife({
+        level: "principal",
+        companhia: null,
+        peloton: null,
+      });
     }),
 
     responderParte: scaleManagerProcedure.input(
@@ -2683,12 +2743,7 @@ export const appRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Documento não encontrado" });
       }
       
-      if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
-        const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
-        if (!serviceScaleDb.canAccessScope(ctx.user, assignment, doc.companhia || 1, doc.peloton)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
-        }
-      }
+      requireStudentDocumentApprovalAccess(ctx.user);
       
       const success = await documentosParteDb.responderDocumentoParte(
         input.id,
@@ -2706,7 +2761,7 @@ export const appRouter = router({
       z.object({
         name: z.string().trim().min(2).max(255),
         email: z.string().trim().min(3).max(255),
-        role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']),
+        role: z.enum(COMMAND_ACCESS_ROLES),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
       })
@@ -2740,7 +2795,7 @@ export const appRouter = router({
       z.object({
         id: z.number().int(),
         name: z.string().trim().min(2).max(255).optional(),
-        role: z.enum(['admin', 'comandante_corpo', 'comandante_cfap', 'comandante_cia', 'comandante_pel']).optional(),
+        role: z.enum(COMMAND_ACCESS_ROLES).optional(),
         pelotaoId: z.number().int().min(1).max(2).nullable().optional(),
         companhiaId: z.number().int().min(1).max(5).nullable().optional(),
       })
@@ -2808,7 +2863,7 @@ export const appRouter = router({
       if (!observation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
       }
-      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      await requireClassroomViewAccess(ctx.user, observation.companhia, observation.peloton);
 
       // Validar tipo de arquivo
       const validTypes = [
@@ -2871,7 +2926,7 @@ export const appRouter = router({
       if (!observation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
       }
-      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      await requireClassroomViewAccess(ctx.user, observation.companhia, observation.peloton);
       return foDb.listFatoObservadoProvas(input.studentObservationId);
     }),
 
@@ -2889,7 +2944,7 @@ export const appRouter = router({
       if (!observation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Fato observado não encontrado" });
       }
-      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      await requireClassroomViewAccess(ctx.user, observation.companhia, observation.peloton);
       await foDb.deleteFatoObservadoProva(input.provaId);
       return { success: true };
     }),
