@@ -232,8 +232,6 @@ export default function ClassroomMap() {
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
   const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
   const [foProofsUploading, setFoProofsUploading] = useState(false);
-  const [quickFOOpen, setQuickFOOpen] = useState(false);
-  const [quickFOSearch, setQuickFOSearch] = useState("");
   const {
     uploadItems: foProofUploadItems,
     addItem: addFoProofUpload,
@@ -272,7 +270,6 @@ export default function ClassroomMap() {
     setFoProofs([]);
     setFoModalPage("students");
   }, "fo");
-  useModalHistory(quickFOOpen, () => setQuickFOOpen(false), "quick-fo");
   useModalHistory(parteModalOpen, () => setParteModalOpen(false), "parte");
   useModalHistory(Boolean(operationalStudent), () => setOperationalStudent(null), "operational");
   useModalHistory(Boolean(editingStudent), () => setEditingStudent(null), "editing");
@@ -356,10 +353,6 @@ export default function ClassroomMap() {
     enabled: Boolean(canOpenStudentRecord),
   });
 
-  const quickFOStudentsQuery = trpc.serviceScale.students.useQuery(undefined, {
-    enabled: Boolean(canOpenStudentRecord),
-  });
-
   const pendingFoReasonsQuery = trpc.serviceScale.pendingFoReasons.useQuery(undefined, {
     enabled: Boolean(access?.isGeneral),
   });
@@ -395,22 +388,8 @@ export default function ClassroomMap() {
   }, [capacityQuery.data]);
 
   const students = platoonPublicQuery.data?.students ?? [];
-  const foAvailableStudents = quickFOStudentsQuery.data?.length ? quickFOStudentsQuery.data : students;
   const activeRoles = platoonPublicQuery.data?.roles;
   const weeklyScale = platoonPublicQuery.data?.week;
-  const filteredQuickFOStudents = useMemo(() => {
-    const query = quickFOSearch.trim().toLowerCase();
-    const sorted = [...foAvailableStudents].sort((a: any, b: any) => Number(a.numerica) - Number(b.numerica));
-    if (!query) return sorted.slice(0, 20);
-    return sorted
-      .filter((student: any) =>
-        String(student.numerica || "").includes(query) ||
-        String(student.nomeGuerra || "").toLowerCase().includes(query) ||
-        String(student.nomeCompleto || "").toLowerCase().includes(query) ||
-        `${student.companhia || ""}/${student.peloton || ""}`.includes(query)
-      )
-      .slice(0, 20);
-  }, [foAvailableStudents, quickFOSearch]);
 
   // Filtrar alunos por nome, número ou pelotão
   const filteredStudents = useMemo(() => {
@@ -2771,22 +2750,7 @@ export default function ClassroomMap() {
           </DialogContent>
         </Dialog>
 
-        {canOpenStudentRecord && (
-          <Button
-            type="button"
-            onClick={() => {
-              setQuickFOSearch("");
-              setQuickFOOpen(true);
-            }}
-            className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-[#1a3a2a] p-0 text-base font-black text-white shadow-xl ring-2 ring-[#c4a84b]/70 hover:bg-[#12281d] md:bottom-8 md:right-8"
-            aria-label="Abrir atalho de Fato Observado"
-            title="Abrir FO"
-          >
-            FO
-          </Button>
-        )}
-
-        <Dialog open={quickFOOpen} onOpenChange={setQuickFOOpen}>
+        <Dialog open={false} onOpenChange={() => undefined}>
           <DialogContent className="sm:max-w-[620px] bg-white dark:bg-zinc-900 border border-border text-foreground">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -2802,8 +2766,8 @@ export default function ClassroomMap() {
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  value={quickFOSearch}
-                  onChange={(event) => setQuickFOSearch(event.target.value)}
+                  value=""
+                  onChange={() => undefined}
                   placeholder="Pesquisar por numérica, nome ou companhia/pelotão"
                   className="pl-9"
                   autoFocus
@@ -2811,13 +2775,13 @@ export default function ClassroomMap() {
               </div>
 
               <div className="max-h-[420px] overflow-y-auto rounded-md border bg-muted/10">
-                {quickFOStudentsQuery.isLoading ? (
+                {false ? (
                   <div className="p-4 text-sm text-muted-foreground">Carregando alunos...</div>
-                ) : filteredQuickFOStudents.length === 0 ? (
+                ) : true ? (
                   <div className="p-4 text-sm text-muted-foreground">Nenhum aluno encontrado.</div>
                 ) : (
                   <div className="divide-y">
-                    {filteredQuickFOStudents.map((student: any) => (
+                    {([] as any[]).map((student: any) => (
                       <div key={student.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -2834,7 +2798,7 @@ export default function ClassroomMap() {
                             size="sm"
                             className="bg-green-700 text-white hover:bg-green-800"
                             onClick={() => {
-                              setQuickFOOpen(false);
+                              undefined;
                               openLaunchFOModal(student, "positive");
                             }}
                           >
@@ -2845,7 +2809,7 @@ export default function ClassroomMap() {
                             size="sm"
                             className="bg-red-700 text-white hover:bg-red-800"
                             onClick={() => {
-                              setQuickFOOpen(false);
+                              undefined;
                               openLaunchFOModal(student, "negative");
                             }}
                           >
@@ -2917,7 +2881,7 @@ export default function ClassroomMap() {
                   // Caso aberto individualmente para um único aluno
                   <div className="mt-1.5 p-2 bg-muted/30 rounded border text-xs font-semibold flex justify-between items-center">
                     <span>
-                      {foAvailableStudents.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {foAvailableStudents.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
+                      {students.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {students.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
                     </span>
                     <span className="text-[10px] text-muted-foreground">(Lançamento Individual)</span>
                   </div>

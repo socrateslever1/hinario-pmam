@@ -39,6 +39,7 @@ import ClassroomMap from "./pages/ClassroomMap";
 import { ChangePassword } from "./pages/ChangePassword";
 import { AccessManagement } from "./pages/AccessManagement";
 import BottomNavigation from "./components/BottomNavigation";
+import { GlobalFOButton } from "./components/GlobalFOButton";
 
 function Router() {
   return (
@@ -140,6 +141,7 @@ function App() {
             <div>
               <Router />
             </div>
+            <GlobalFOButton />
             <BottomNavigation />
             <OfflineIndicator />
           </TooltipProvider>
