@@ -419,3 +419,20 @@ button[role="tab"][data-state="active"] {
 .dark :is(h1, h2, h3, h4, h5, h6) {
   color: var(--foreground);
 }
+
+
+/* Animação de fade-out para o indicador offline */
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut 2s ease-out forwards;
+}
