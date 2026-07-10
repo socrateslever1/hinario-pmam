@@ -437,13 +437,14 @@ export default function Cfap2026() {
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container max-w-6xl">
-          <Card className="mb-6 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-foreground md:bg-[#c4a84b]/5">
-            <CardContent className="flex items-start gap-3 p-4">
-              <Shield className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#c4a84b]" />
-              <div className="space-y-1">
-                <h3 className="font-bold text-sm text-foreground">Comunicados do Pelotão</h3>
-                <p className="text-xs text-muted-foreground">
-                  Marque <strong>Ciente</strong> para avisar que leu.
+          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-foreground md:bg-[#c4a84b]/5">
+            <CardContent className="flex items-start gap-4 p-6">
+              <Shield className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
+              <div className="space-y-2">
+                <h3 className="font-bold text-foreground">Informativo CFAP</h3>
+                <p className="text-sm text-muted-foreground">
+                  Use esta aba para ver comunicados gerais e aditamentos oficiais do seu pelotão.
+                  Marque <strong>Ciente</strong> nas missões para avisar o xerife que você leu.
                 </p>
               </div>
             </CardContent>
