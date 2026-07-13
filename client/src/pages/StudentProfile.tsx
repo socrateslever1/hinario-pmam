@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Award, Camera, Save, User, Shield, KeyRound, Loader2, MinusCircle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Award, CalendarDays, Camera, Clock, FileText, Save, User, Shield, KeyRound, Loader2, MinusCircle, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getStudentSession, saveStudentSession, clearStudentSession } from "@/lib/studentSession";
 import { trpc } from "@/lib/trpc";
+import { getFoCodeDefinition } from "@shared/foCatalog";
 import {
   emptyStudentProfile,
   getStudentProfile,
@@ -17,11 +18,19 @@ import {
   type StudentProfile,
 } from "@/lib/studentProfile";
 
+function formatDateOnly(value?: string | null) {
+  if (!value) return "Data não informada";
+  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
 export default function StudentProfilePage() {
   const [, setLocation] = useLocation();
   const [profile, setProfile] = useState<StudentProfile>(emptyStudentProfile);
   const [senhaNova, setSenhaNova] = useState("");
   const [confirmarSenhaNova, setConfirmarSenhaNova] = useState("");
+  const [baixadoFile, setBaixadoFile] = useState<File | null>(null);
+  const [baixadoNote, setBaixadoNote] = useState("");
+  const [baixadoHpmHomologated, setBaixadoHpmHomologated] = useState(true);
   
   const session = getStudentSession();
 
@@ -34,8 +43,36 @@ export default function StudentProfilePage() {
     { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
     { enabled: !!session }
   );
+  const lcStatusQuery = trpc.student.licencaCacadaStatus.useQuery(
+    { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
+    { enabled: !!session }
+  );
+  const baixadoDocumentsQuery = trpc.student.baixadoDocuments.useQuery(
+    { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
+    { enabled: !!session }
+  );
+  const internalReportsQuery = trpc.student.internalReports.useQuery(
+    { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
+    { enabled: !!session }
+  );
 
   const updateMutation = trpc.student.updateProfile.useMutation();
+  const uploadBaixadoDocument = trpc.student.uploadBaixadoDocument.useMutation({
+    onSuccess: async () => {
+      toast.success("Documento enviado para acompanhamento do comando.");
+      setBaixadoFile(null);
+      setBaixadoNote("");
+      await baixadoDocumentsQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const contestObservation = trpc.student.contestObservation.useMutation({
+    onSuccess: async () => {
+      toast.success("Contestação enviada para análise do Comandante do CAL.");
+      await observationsQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   // Redirecionar para login se sessão inválida
   useEffect(() => {
@@ -191,9 +228,50 @@ export default function StudentProfilePage() {
     }
   };
 
+  const handleBaixadoUpload = async () => {
+    if (!session || !baixadoFile) {
+      toast.error("Selecione o atestado ou documento.");
+      return;
+    }
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+      reader.onerror = () => reject(reader.error || new Error("Erro ao ler arquivo"));
+      reader.readAsDataURL(baixadoFile);
+    });
+    uploadBaixadoDocument.mutate({
+      id: session.id,
+      sessionToken: session.sessionToken,
+      fileName: baixadoFile.name,
+      mimeType: baixadoFile.type || "application/octet-stream",
+      base64Data,
+      note: baixadoNote || null,
+      hpmHomologated: baixadoHpmHomologated,
+    });
+  };
+
+  const handleContestObservation = (item: any) => {
+    if (!session) return;
+    const text = window.prompt(
+      `Informe a contestação do FO ${item.fo_code || item.id}. Descreva o motivo e, se houver, indique provas ou testemunhas:`,
+      ""
+    );
+    if (!text?.trim()) return;
+    contestObservation.mutate({
+      id: session.id,
+      sessionToken: session.sessionToken,
+      observationId: item.id,
+      text: text.trim(),
+    });
+  };
+
   if (!session) return null;
 
   const isLoading = profileQuery.isLoading || updateMutation.isPending;
+  const lcCases = lcStatusQuery.data ?? [];
+  const pendingLcCases = lcCases.filter((item: any) => item.status === "pending");
+  const homologatedLcCases = lcCases.filter((item: any) => item.status === "homologated");
+  const internalReports = internalReportsQuery.data ?? [];
 
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
@@ -304,11 +382,160 @@ export default function StudentProfilePage() {
               <Card className="border-border/50 bg-white text-foreground shadow-sm">
                 <CardHeader className="pb-3 border-b bg-muted/20">
                   <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-[#c4a84b]" />
+                    Baixado / Atestado HPM
+                  </CardTitle>
+                  <CardDescription className="text-[10px]">
+                    Envie atestado ou documento para acompanhamento do comando.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4">
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(event) => setBaixadoFile(event.target.files?.[0] ?? null)}
+                  />
+                  <Textarea
+                    value={baixadoNote}
+                    onChange={(event) => setBaixadoNote(event.target.value)}
+                    placeholder="Observações: período, restrições, homologação pelo HPM..."
+                    className="min-h-[74px] text-xs"
+                  />
+                  <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={baixadoHpmHomologated}
+                      onChange={(event) => setBaixadoHpmHomologated(event.target.checked)}
+                    />
+                    Documento homologado pelo HPM
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleBaixadoUpload}
+                    disabled={!baixadoFile || uploadBaixadoDocument.isPending}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploadBaixadoDocument.isPending ? "Enviando..." : "Enviar documento"}
+                  </Button>
+                  {baixadoDocumentsQuery.data?.length ? (
+                    <div className="space-y-1.5 border-t pt-3">
+                      {baixadoDocumentsQuery.data.map((doc: any) => (
+                        <a
+                          key={doc.id}
+                          href={doc.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-md border bg-muted/20 px-2 py-1 text-[11px] font-semibold text-[#1a3a2a] hover:underline"
+                        >
+                          {doc.hpmHomologated ? "HPM - " : ""}{doc.fileName}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              {internalReports.length ? (
+                <Card className="border-amber-500/30 bg-amber-50 text-amber-950 shadow-sm dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+                  <CardHeader className="pb-3 border-b border-amber-500/20">
+                    <CardTitle className="text-sm font-black flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Informes internos do CAL
+                    </CardTitle>
+                    <CardDescription className="text-[10px] text-amber-800 dark:text-amber-200">
+                      Procedimento interno entre o Corpo de Alunos e o aluno.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 p-4">
+                    {internalReports.map((item: any) => (
+                      <div key={item.id} className="rounded-md border border-amber-500/25 bg-white/70 p-3 text-xs dark:bg-amber-950/20">
+                        <p className="font-black">{item.title}</p>
+                        <p className="mt-1 text-amber-800 dark:text-amber-200">
+                          Tipo: {item.type === "desistente" ? "Desistente" : item.type === "desertor" ? "Desertor" : item.type === "baixado" ? "Baixado" : "Outro"}
+                        </p>
+                        {item.note ? <p className="mt-2 whitespace-pre-wrap">{item.note}</p> : null}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {pendingLcCases.length ? (
+                <Card className="border-red-500/40 bg-red-50 text-red-950 shadow-sm dark:border-red-700/60 dark:bg-red-950/30 dark:text-red-100">
+                  <CardHeader className="pb-3 border-b border-red-500/20">
+                    <CardTitle className="text-sm font-black flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Aviso de possibilidade de LC
+                    </CardTitle>
+                    <CardDescription className="text-[10px] text-red-800 dark:text-red-200">
+                      Reincidência de FO- com o mesmo código.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 p-4">
+                    {pendingLcCases.map((item: any) => (
+                      <div key={item.id} className="rounded-md border border-red-500/25 bg-white/70 p-3 text-xs dark:bg-red-950/20">
+                        <p className="font-black">
+                          FO {item.foCode} - {item.foLabel}: você está sujeito à LC.
+                        </p>
+                        <p className="mt-1 text-red-800 dark:text-red-200">
+                          Saldo do código: {item.netCount} ({item.negativeCount} FO- menos {item.positiveCount} FO+).
+                        </p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {homologatedLcCases.length ? (
+                <Card className="border-red-700/50 bg-white text-foreground shadow-sm dark:bg-zinc-900">
+                  <CardHeader className="pb-3 border-b bg-red-700/10">
+                    <CardTitle className="text-sm font-black text-red-800 flex items-center gap-2 dark:text-red-200">
+                      <Shield className="h-4 w-4" />
+                      LC homologada
+                    </CardTitle>
+                    <CardDescription className="text-[10px]">
+                      Procedimentos definidos pelo comando.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 p-4">
+                    {homologatedLcCases.map((item: any) => (
+                      <div key={item.id} className="rounded-md border border-red-500/25 bg-red-50/70 p-3 text-xs dark:bg-red-950/20">
+                        <p className="font-black text-red-800 dark:text-red-200">
+                          FO {item.foCode} - {item.foLabel}
+                        </p>
+                        <div className="mt-2 grid gap-2">
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="h-3.5 w-3.5 text-red-700" />
+                            <span>Recolhimento: {formatDateOnly(item.recolhimentoDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5 text-red-700" />
+                            <span>Duração: {item.durationHours ? `${item.durationHours}h` : "Não informada"}</span>
+                          </div>
+                          {item.procedures ? (
+                            <div className="flex items-start gap-2">
+                              <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-700" />
+                              <p className="whitespace-pre-wrap">{item.procedures}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
+                  <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-2">
                     <Award className="h-4 w-4 text-[#c4a84b]" />
                     FO+ / FO-
                   </CardTitle>
                   <CardDescription className="text-[10px]">
-                    Anotações validadas pelo Xerife Geral.
+                    Fatos Observados homologados, contestáveis pelo portal ou no CAL.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="max-h-96 space-y-2 overflow-auto p-4">
@@ -319,21 +546,61 @@ export default function StudentProfilePage() {
                   ) : observationsQuery.data?.length ? (
                     observationsQuery.data.map((item: any) => {
                       const isPositive = item.type === "positive";
+                      const isAnnulled = Boolean(item.annulled_at);
+                      const contestStatus = String(item.contest_status || "none");
+                      const canContest = !isAnnulled && contestStatus === "none";
+                      const codeDefinition = item.fo_code && (item.type === "positive" || item.type === "negative")
+                        ? getFoCodeDefinition(item.type, item.fo_code)
+                        : null;
                       return (
-                        <div key={item.id} className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
+                        <div key={item.id} className={`rounded-lg border p-3 text-xs ${isAnnulled ? "border-zinc-300 bg-zinc-100 opacity-80" : "border-border/60 bg-muted/20"}`}>
                           <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-black ${isPositive ? "bg-green-600/10 text-green-700 dark:text-green-300" : "bg-red-600/10 text-red-700 dark:text-red-300"}`}>
-                              {isPositive ? <CheckCircle2 className="h-3 w-3" /> : <MinusCircle className="h-3 w-3" />}
-                              {isPositive ? "FO+" : "FO-"}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-black ${isPositive ? "bg-green-600/10 text-green-700 dark:text-green-300" : "bg-red-600/10 text-red-700 dark:text-red-300"}`}>
+                                {isPositive ? <CheckCircle2 className="h-3 w-3" /> : <MinusCircle className="h-3 w-3" />}
+                                {isPositive ? "FO+" : "FO-"}
+                                {item.fo_code ? ` ${item.fo_code}` : ""}
+                              </span>
+                              {isAnnulled ? (
+                                <span className="rounded-md bg-zinc-700 px-2 py-0.5 text-[10px] font-black text-white">Anulado</span>
+                              ) : contestStatus === "pending" ? (
+                                <span className="rounded-md bg-amber-600 px-2 py-0.5 text-[10px] font-black text-white">Contestação em análise</span>
+                              ) : contestStatus === "rejected" ? (
+                                <span className="rounded-md bg-red-700 px-2 py-0.5 text-[10px] font-black text-white">Contestação não acolhida</span>
+                              ) : null}
+                            </div>
                             <span className="text-[10px] text-muted-foreground">
                               {item.created_at ? new Date(item.created_at).toLocaleDateString("pt-BR") : ""}
                             </span>
                           </div>
+                          {codeDefinition ? (
+                            <p className="mb-1 font-semibold text-foreground">{codeDefinition.label}</p>
+                          ) : null}
                           <p className="whitespace-pre-wrap text-muted-foreground">{item.note}</p>
                           <p className="mt-2 text-[10px] text-muted-foreground">
                             Validado por {item.validated_by_name || "Xerife Geral"}
                           </p>
+                          {item.contest_text ? (
+                            <div className="mt-2 rounded-md border bg-background/70 p-2">
+                              <p className="font-semibold">Contestação:</p>
+                              <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{item.contest_text}</p>
+                              {item.contest_decision_note ? (
+                                <p className="mt-1 text-muted-foreground">Decisão: {item.contest_decision_note}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {canContest ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 h-8 w-full text-xs"
+                              onClick={() => handleContestObservation(item)}
+                              disabled={contestObservation.isPending}
+                            >
+                              Contestar FO
+                            </Button>
+                          ) : null}
                         </div>
                       );
                     })

@@ -73,7 +73,7 @@ export default function BottomNavigation() {
         { icon: Home, label: "Início", path: "/" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ClipboardList, label: "Pecúlio", path: "/sala-de-aula/peculio" },
-        { icon: ClipboardList, label: "Anotar aluno", path: "/sala-de-aula/efetivo" },
+        { icon: ClipboardList, label: "Administrar", path: "/sala-administrativa" },
         { icon: MoreHorizontal, label: "Mais", path: "__more" },
       ]
     : [

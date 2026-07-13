@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import { ClipboardList, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { FOProofUploader } from "@/components/FOProofUploader";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
 import { useModalHistory } from "@/hooks/useModalHistory";
@@ -32,31 +34,6 @@ const COMMAND_ROLES = new Set([
   "comandante_pel",
 ]);
 
-const TRANSGRESSIONS_LIST = [
-  "Atraso para formaturas ou instruções",
-  "Fardamento incorreto ou desalinhado",
-  "Falta de zelo ou dano ao material de instrução",
-  "Postura inadequada ou desatenção em instrução",
-  "Conversas paralelas durante a instrução",
-  "Utilização de celular sem autorização",
-  "Dormir durante a instrução ou serviço",
-  "Faltar com a verdade ou omitir fatos",
-  "Descumprimento de ordens ou prescrições dos manuais",
-  "Falta de asseio pessoal ou de higiene",
-];
-
-const ELOGIOS_LIST = [
-  "Destaque intelectual em avaliações ou trabalhos",
-  "Destaque em instrução de Ordem Unida ou Treinamento",
-  "Espírito de corpo exemplar e cooperação ativa",
-  "Honestidade ou ato de probidade militar exemplar",
-  "Presteza e dedicação excepcional no serviço",
-  "Iniciativa positiva na resolução de problemas do pelotão",
-  "Asseio impecável e alinhamento de fardamento exemplar",
-  "Desempenho exemplar como Xerife ou função de liderança",
-  "Conduta exemplar dentro e fora das dependências",
-];
-
 export function GlobalFOButton() {
   const utils = trpc.useUtils();
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
@@ -68,7 +45,6 @@ export function GlobalFOButton() {
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [foType, setFoType] = useState<FOType>("negative");
   const [foReason, setFoReason] = useState("");
-  const [foCustomReason, setFoCustomReason] = useState("");
   const [foDetails, setFoDetails] = useState("");
   const [proofs, setProofs] = useState<ProofFile[]>([]);
   const [proofsUploading, setProofsUploading] = useState(false);
@@ -84,13 +60,7 @@ export function GlobalFOButton() {
   const studentsQuery = trpc.serviceScale.students.useQuery(undefined, {
     enabled: canUseFO,
   });
-  const foReasonsQuery = trpc.serviceScale.foReasons.useQuery(undefined, {
-    enabled: canUseFO,
-  });
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation();
-  const suggestFoReason = trpc.serviceScale.suggestFoReason.useMutation({
-    onSuccess: () => utils.serviceScale.foReasons.invalidate(),
-  });
   const uploadFoProof = trpc.foProofs.uploadProof.useMutation();
 
   const filteredStudents = useMemo(() => {
@@ -108,9 +78,13 @@ export function GlobalFOButton() {
       .slice(0, 20);
   }, [studentsQuery.data, search]);
 
+  const foTextClassification = useMemo(
+    () => classifyFoText(foType, foDetails),
+    [foType, foDetails]
+  );
+
   const resetFOForm = () => {
     setFoReason("");
-    setFoCustomReason("");
     setFoDetails("");
     setProofs([]);
     clearItems();
@@ -145,37 +119,33 @@ export function GlobalFOButton() {
       return;
     }
 
-    if (!foReason) {
-      toast.error("Selecione o fato observado.");
+    const cleanFoText = foDetails.trim();
+    if (cleanFoText.length < 5) {
+      toast.error("Descreva o fato observado em texto livre.");
       return;
     }
 
-    let selectedReason = foReason;
-    if (foReason === "outro") {
-      if (foCustomReason.trim().length < 3) {
-        toast.error("Informe o novo elogio ou transgressão.");
-        return;
-      }
-      selectedReason = foCustomReason.trim();
+    const selectedCode = foReason;
+    if (!selectedCode) {
+      toast.error("Selecione o código oficial do Manual antes de registrar o FO.");
+      return;
     }
 
-    const note = foDetails.trim()
-      ? `${selectedReason} - Detalhes: ${foDetails.trim()}`
-      : selectedReason;
+    const selectedDefinition = getFoCodeDefinition(foType, selectedCode);
+    if (!selectedDefinition) {
+      toast.error("Código de FO inválido para este tipo.");
+      return;
+    }
+
+    const note = `[${selectedCode}] ${selectedDefinition.label} - Relato: ${cleanFoText}`;
 
     try {
       toast.loading("Registrando Fato Observado...", { id: "global-fo" });
 
-      if (foReason === "outro") {
-        await suggestFoReason.mutateAsync({
-          type: foType,
-          label: selectedReason,
-        });
-      }
-
       const result = await addStudentObservation.mutateAsync({
         studentId: selectedStudent.id,
         type: foType,
+        foCode: selectedCode,
         note,
       });
 
@@ -383,7 +353,6 @@ export function GlobalFOButton() {
                     onClick={() => {
                       setFoType("positive");
                       setFoReason("");
-                      setFoCustomReason("");
                     }}
                   >
                     FO+ (Elogio)
@@ -395,7 +364,6 @@ export function GlobalFOButton() {
                     onClick={() => {
                       setFoType("negative");
                       setFoReason("");
-                      setFoCustomReason("");
                     }}
                   >
                     FO- (Transgressão)
@@ -404,49 +372,66 @@ export function GlobalFOButton() {
               </div>
 
               <div>
-                <Label htmlFor="global-fo-reason">Fato Observado</Label>
+                <Label htmlFor="global-fo-details">Relato livre do Fato Observado</Label>
+                <textarea
+                  id="global-fo-details"
+                  value={foDetails}
+                  onChange={(event) => setFoDetails(event.target.value)}
+                  placeholder="Descreva o ocorrido com data, hora, local e circunstancias..."
+                  className="mt-1.5 flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                {foDetails.trim() ? (
+                  <div className="mt-2 rounded-md border bg-muted/20 p-2 text-xs">
+                    {foTextClassification ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={foType === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>
+                            Sugestao FO {foTextClassification.definition.code}
+                          </Badge>
+                          <span className="font-semibold text-foreground">{foTextClassification.definition.label}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setFoReason(foTextClassification.definition.code)}
+                        >
+                          Usar esta linha do Manual
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Nenhuma sugestao segura pelo relato. Escolha uma linha do Manual abaixo.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <Label htmlFor="global-fo-reason">Código oficial do Manual do Aluno</Label>
                 <select
                   id="global-fo-reason"
                   value={foReason}
                   onChange={(event) => setFoReason(event.target.value)}
                   className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <option value="">-- Selecione o fato --</option>
-                  {(foType === "positive" ? ELOGIOS_LIST : TRANSGRESSIONS_LIST).map((reason) => (
-                    <option key={reason} value={reason}>{reason}</option>
+                  <option value="">-- Escolha a linha do Manual --</option>
+                  {getFoCodesByType(foType).map((item) => (
+                    <option key={`${item.type}-${item.code}`} value={item.code}>
+                      {item.code} - {item.label}
+                    </option>
                   ))}
-                  {foReasonsQuery.data
-                    ?.filter((item: any) => item.type === foType)
-                    .map((item: any) => (
-                      <option key={`custom-${item.id}`} value={item.label}>{item.label}</option>
-                    ))}
-                  <option value="outro">Outro / Especificar</option>
                 </select>
-              </div>
-
-              {foReason === "outro" && (
-                <div>
-                  <Label htmlFor="global-fo-custom">{foType === "positive" ? "Novo elogio" : "Nova transgressão"}</Label>
-                  <Input
-                    id="global-fo-custom"
-                    value={foCustomReason}
-                    onChange={(event) => setFoCustomReason(event.target.value)}
-                    maxLength={500}
-                    placeholder={foType === "positive" ? "Escreva o elogio" : "Escreva a transgressão"}
-                    className="mt-1.5 h-10 text-sm"
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="global-fo-details">Detalhes Complementares</Label>
-                <textarea
-                  id="global-fo-details"
-                  value={foDetails}
-                  onChange={(event) => setFoDetails(event.target.value)}
-                  placeholder="Detalhe o ocorrido: data, hora, local e circunstâncias adicionais..."
-                  className="mt-1.5 flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
+                {foReason && getFoCodeDefinition(foType, foReason) ? (
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {getFoCodeDefinition(foType, foReason)?.manualRef}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  O FO so e registrado quando uma linha oficial do Manual e selecionada.
+                </p>
               </div>
 
               <div className="border-t pt-4">

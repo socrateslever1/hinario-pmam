@@ -434,6 +434,12 @@ export function GradeAdminTab() {
                       {row.numerica} - {row.companhia}ª Cia / {row.peloton}º Pel
                     </p>
                   </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-black text-[#1a3a2a]">{Number(row.totalScore || 0).toFixed(1)}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      media {Number(row.average || 0).toFixed(2)} / {row.disciplineCount || 0} nota(s)
+                    </p>
+                  </div>
                 </div>
               ))}
               {!ranking?.length && <p className="text-sm text-muted-foreground">Ranking vazio.</p>}

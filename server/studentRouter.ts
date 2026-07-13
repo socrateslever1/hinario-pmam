@@ -1,9 +1,20 @@
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { nanoid } from "nanoid";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
+import { storagePut } from "./storage";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
+
+const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
 
 export const studentRouter = router({
   register: publicProcedure
@@ -230,6 +241,150 @@ export const studentRouter = router({
         });
       }
       return serviceScaleDb.listStudentObservations(input.id, { onlyVisibleToStudent: true });
+    }),
+
+  contestObservation: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+        observationId: z.number().int().positive(),
+        text: z.string().trim().min(5).max(5000),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+      const observation = await serviceScaleDb.getStudentObservation(input.observationId);
+      if (!observation || Number(observation.student_id) !== Number(input.id)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "FO não encontrado." });
+      }
+      if (observation.validation_status !== "approved" || observation.annulled_at) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Somente FO homologado e ainda válido pode ser contestado." });
+      }
+      if (observation.contest_status && observation.contest_status !== "none") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Este FO já possui contestação registrada." });
+      }
+      await serviceScaleDb.contestStudentObservation({
+        id: input.observationId,
+        source: "portal",
+        text: input.text,
+      });
+      return { success: true };
+    }),
+
+  internalReports: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+      return serviceScaleDb.listInternalReports({
+        studentId: input.id,
+        status: "active",
+        visibleToStudent: true,
+      });
+    }),
+
+  licencaCacadaStatus: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+      return serviceScaleDb.listStudentLcCases(input.id);
+    }),
+
+  baixadoDocuments: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessao invalida ou expirada",
+        });
+      }
+      return serviceScaleDb.listBaixadoDocuments(input.id);
+    }),
+
+  uploadBaixadoDocument: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+        fileName: z.string().trim().min(1).max(180),
+        mimeType: z.string().trim().min(3).max(120),
+        base64Data: z.string().min(1),
+        note: z.string().trim().max(1000).nullable().optional(),
+        baixadoKind: z.enum(["informativo", "ausente_com_atestado", "ausente_sem_atestado", "presente_sem_atestado"]).optional(),
+        hpmHomologated: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessao invalida ou expirada",
+        });
+      }
+      const student = await studentDb.getStudentById(input.id);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nao encontrado" });
+      }
+      if (!BAIXADO_DOCUMENT_MIME_TYPES.has(input.mimeType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem do atestado/documento" });
+      }
+      const buffer = Buffer.from(input.base64Data, "base64");
+      if (buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 15MB" });
+      }
+      const ext = input.fileName.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pdf";
+      const fileKey = `baixados/${student.companhia}-${student.peloton}/${student.id}/${Date.now()}-${nanoid(8)}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      const documentId = await serviceScaleDb.createBaixadoDocument({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        fileUrl: url,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        fileSize: buffer.length,
+        note: input.note ?? null,
+        baixadoKind: input.baixadoKind ?? "ausente_com_atestado",
+        hpmHomologated: input.hpmHomologated ?? false,
+        uploadedByStudentId: student.id,
+      });
+      return { id: documentId, url };
     }),
 
   updateProfile: publicProcedure

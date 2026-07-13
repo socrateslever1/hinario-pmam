@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getStudentSession } from "@/lib/studentSession";
+import { classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -70,6 +71,7 @@ const conditionLabels: Record<string, string> = {
   destino_ignorado: "Destino Ignorado (DI)",
   dispensa_medica: "Dispensa Médica (DM)",
   dispensa_administrativa: "Dispensa Administrativa (DA)",
+  baixado: "Baixado (BX)",
 };
 
 const conditionShorts: Record<string, string> = {
@@ -80,6 +82,7 @@ const conditionShorts: Record<string, string> = {
   destino_ignorado: "DI",
   dispensa_medica: "DM",
   dispensa_administrativa: "DA",
+  baixado: "BX",
 };
 
 const getConditionBadgeStyle = (cond = "pronto") => {
@@ -98,6 +101,8 @@ const getConditionBadgeStyle = (cond = "pronto") => {
       return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300";
     case "dispensa_administrativa":
       return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300";
+    case "baixado":
+      return "bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
@@ -119,6 +124,8 @@ const getSeatConditionStyle = (cond = "pronto") => {
       return "bg-orange-500/5 border-dashed border-orange-500/50 opacity-75 shadow-sm";
     case "dispensa_administrativa":
       return "bg-purple-500/5 border-dashed border-purple-500/50 opacity-75 shadow-sm";
+    case "baixado":
+      return "bg-red-500/10 border-solid border-red-500/70 shadow-[0_0_0_2px_rgba(239,68,68,.18)]";
     default:
       return "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800";
   }
@@ -150,31 +157,6 @@ function addDays(date: string, days: number) {
   value.setDate(value.getDate() + days);
   return value.toISOString().slice(0, 10);
 }
-
-const TRANSGRESSIONS_LIST = [
-  "Atraso para formaturas ou instruções",
-  "Fardamento incorreto ou desalinhado",
-  "Falta de zelo ou dano ao material de instrução",
-  "Postura inadequada ou desatenção em instrução",
-  "Conversas paralelas durante a instrução",
-  "Utilização de celular sem autorização",
-  "Dormir durante a instrução ou serviço",
-  "Faltar com a verdade ou omitir fatos",
-  "Descumprimento de ordens ou prescrições dos manuais",
-  "Falta de asseio pessoal ou de higiene",
-];
-
-const ELOGIOS_LIST = [
-  "Destaque intelectual em avaliações ou trabalhos",
-  "Destaque em instrução de Ordem Unida ou Treinamento",
-  "Espírito de corpo exemplar e cooperação ativa",
-  "Honestidade ou ato de probidade militar exemplar",
-  "Presteza e dedicação excepcional no serviço",
-  "Iniciativa positiva na resolução de problemas do pelotão",
-  "Asseio impecável e alinhamento de fardamento exemplar",
-  "Desempenho exemplar como Xerife ou função de liderança",
-  "Conduta exemplar dentro e fora das dependências",
-];
 
 export default function ClassroomMap() {
   const studentSession = getStudentSession();
@@ -227,7 +209,6 @@ export default function ClassroomMap() {
   const [foSelectedStudentIds, setFoSelectedStudentIds] = useState<number[]>([]);
   const [foType, setFoType] = useState<"positive" | "negative">("negative");
   const [foReason, setFoReason] = useState("");
-  const [foCustomReason, setFoCustomReason] = useState("");
   const [foDetails, setFoDetails] = useState("");
   const [foIsAllSelected, setFoIsAllSelected] = useState(false);
   const [foProofs, setFoProofs] = useState<ProofFile[]>([]);
@@ -315,6 +296,7 @@ export default function ClassroomMap() {
   );
   const isCommandRole = isCommandRoleValue(accessRole);
   const canApproveStudentDocuments = Boolean((access as any)?.canApproveStudentDocuments);
+  const canViewFoLcAlerts = Boolean(access?.isGeneral || isCommandRole || access?.assignment?.level === "principal");
 
   const isAdminOrXerifeAdmin = isXerifeGeral ||
     isComandanteScopeAdmin ||
@@ -326,7 +308,6 @@ export default function ClassroomMap() {
           access.assignment.peloton === selectedPeloton))) ||
     isCurrentStudentActiveXerife;
   const canOpenStudentRecord = isAdminOrXerifeAdmin || isCommandRole;
-
   const capacityQuery = trpc.serviceScale.getPlatoonCapacity.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
     { enabled: Boolean(selectedCompanhia && selectedPeloton) }
@@ -346,16 +327,13 @@ export default function ClassroomMap() {
 
   const pendingObservationsQuery = trpc.serviceScale.pendingStudentObservations.useQuery(
     { companhia: selectedCompanhia, peloton: selectedPeloton },
-    { enabled: Boolean(access?.isGeneral && selectedCompanhia && selectedPeloton) }
+    { enabled: Boolean(canViewFoLcAlerts && selectedCompanhia && selectedPeloton) }
   );
 
-  const foReasonsQuery = trpc.serviceScale.foReasons.useQuery(undefined, {
-    enabled: Boolean(canOpenStudentRecord),
-  });
-
-  const pendingFoReasonsQuery = trpc.serviceScale.pendingFoReasons.useQuery(undefined, {
-    enabled: Boolean(access?.isGeneral),
-  });
+  const lcCasesQuery = trpc.serviceScale.lcCases.useQuery(
+    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
+    { enabled: Boolean(canViewFoLcAlerts && selectedCompanhia && selectedPeloton) }
+  );
 
   const studentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
     { studentId: operationalStudent?.id ?? 0 },
@@ -390,6 +368,32 @@ export default function ClassroomMap() {
   const students = platoonPublicQuery.data?.students ?? [];
   const activeRoles = platoonPublicQuery.data?.roles;
   const weeklyScale = platoonPublicQuery.data?.week;
+  const effectiveXerifeId = xerifeId
+    ? Number(xerifeId)
+    : weeklyScale?.xerifeId ?? activeRoles?.xerifeId ?? null;
+  const effectiveSubXerifeId = subXerifeId
+    ? Number(subXerifeId)
+    : weeklyScale?.subXerifeId ?? activeRoles?.subXerifeId ?? null;
+  const effectiveRoleStudentIds = new Set<number>(
+    [effectiveXerifeId, effectiveSubXerifeId].filter(
+      (id): id is number => typeof id === "number" && Number.isFinite(id)
+    )
+  );
+  const getStudentById = (studentId?: number | null) =>
+    studentId ? students.find((s: any) => Number(s.id) === Number(studentId)) : null;
+  const effectiveXerife = getStudentById(effectiveXerifeId);
+  const effectiveSubXerife = getStudentById(effectiveSubXerifeId);
+  const effectiveXerifeName = effectiveXerife?.nomeGuerra
+    || (effectiveXerifeId === weeklyScale?.xerifeId ? weeklyScale?.xerifeName : null)
+    || (effectiveXerifeId === activeRoles?.xerifeId ? activeRoles?.xerifeName : null)
+    || "Não definido";
+  const effectiveSubXerifeName = effectiveSubXerife?.nomeGuerra
+    || (effectiveSubXerifeId === weeklyScale?.subXerifeId ? weeklyScale?.subXerifeName : null)
+    || (effectiveSubXerifeId === activeRoles?.subXerifeId ? activeRoles?.subXerifeName : null)
+    || "Não definido";
+  const pendingLcStudentIds = new Set<number>(
+    (lcCasesQuery.data ?? []).map((item: any) => Number(item.studentId)).filter(Boolean)
+  );
 
   // Filtrar alunos por nome, número ou pelotão
   const filteredStudents = useMemo(() => {
@@ -402,6 +406,11 @@ export default function ClassroomMap() {
       String(student.peloton).includes(query)
     );
   }, [students, searchQuery]);
+
+  const foTextClassification = useMemo(
+    () => classifyFoText(foType, foDetails),
+    [foType, foDetails]
+  );
 
   // Sync roles and scale parameters
   useEffect(() => {
@@ -527,42 +536,11 @@ export default function ClassroomMap() {
     onError: (err) => toast.error(err.message),
   });
 
-  const validateStudentObservation = trpc.serviceScale.validateStudentObservation.useMutation({
-    onSuccess: async () => {
-      toast.success("FO validada");
-      await pendingObservationsQuery.refetch();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const suggestFoReason = trpc.serviceScale.suggestFoReason.useMutation({
-    onSuccess: async (result) => {
-      if (result.status === "approved") {
-        toast.success("Novo fato incluído na lista oficial.");
-      } else {
-        toast.success("Novo fato enviado para validação do Xerife Master.");
-      }
-      await Promise.all([
-        foReasonsQuery.refetch(),
-        access?.isGeneral ? pendingFoReasonsQuery.refetch() : Promise.resolve(),
-      ]);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
   const uploadFoProof = trpc.foProofs.uploadProof.useMutation({
     onSuccess: () => {
       toast.success("Prova enviada com sucesso");
     },
     onError: (err) => toast.error(`Erro ao enviar prova: ${err.message}`),
-  });
-
-  const validateFoReason = trpc.serviceScale.validateFoReason.useMutation({
-    onSuccess: async () => {
-      toast.success("Lista de fatos atualizada.");
-      await Promise.all([foReasonsQuery.refetch(), pendingFoReasonsQuery.refetch()]);
-    },
-    onError: (err) => toast.error(err.message),
   });
 
   const createRosterStudent = trpc.serviceScale.createRosterStudent.useMutation({
@@ -627,14 +605,15 @@ export default function ClassroomMap() {
   const col5Regular = Array.from({ length: col5RegularLength }, (_, i) => startNumber + i + 42); // 42 onwards
 
   // Lists definitions
-  const unassignedStudents = students.filter((s: any) => !s.deskNumber && s.id !== activeRoles?.xerifeId && s.id !== activeRoles?.subXerifeId);
+  const unassignedStudents = students.filter((s: any) => !s.deskNumber && !effectiveRoleStudentIds.has(Number(s.id)));
 
   // Seat rendering helpers
   const renderSeatCard = (seatNumber: number) => {
-    const occupant = students.find((s: any) => s.deskNumber === seatNumber && s.id !== activeRoles?.xerifeId && s.id !== activeRoles?.subXerifeId);
+    const occupant = students.find((s: any) => s.deskNumber === seatNumber && !effectiveRoleStudentIds.has(Number(s.id)));
     const isOccupied = !!occupant;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
+    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id))));
 
     return (
       <div
@@ -643,7 +622,7 @@ export default function ClassroomMap() {
         className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? getSeatConditionStyle(cond)
             : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
-          } ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center justify-center">
@@ -663,11 +642,11 @@ export default function ClassroomMap() {
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${needsAttention ? "border-red-500 ring-2 ring-red-500/70" : isAbsent ? "border-red-400" : "border-[#c4a84b]/60"
                   } ${cond === "falta" ? "opacity-30" : ""}`}
               />
             ) : (
-              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
+              <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${needsAttention ? "bg-red-500/15 text-red-700 border-red-500 ring-2 ring-red-500/60" : isAbsent ? "bg-red-500/10 text-red-500 border-red-400" : "bg-[#c4a84b]/10 text-[#c4a84b] border-[#c4a84b]/60"
                 } ${cond === "falta" ? "opacity-30" : ""}`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
               </div>
@@ -691,11 +670,12 @@ export default function ClassroomMap() {
   };
 
   const renderSpecialSeatCard = (role: 'xerife' | 'sub_xerife') => {
-    const studentId = role === 'xerife' ? activeRoles?.xerifeId : activeRoles?.subXerifeId;
-    const occupant = studentId ? students.find((s: any) => s.id === studentId) : null;
+    const studentId = role === 'xerife' ? effectiveXerifeId : effectiveSubXerifeId;
+    const occupant = getStudentById(studentId);
     const isOccupied = !!occupant;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
+    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id))));
 
     const roleTitle = role === 'xerife' ? "Xerife" : "Sub-Xerife";
     const borderClass = role === 'xerife'
@@ -710,15 +690,15 @@ export default function ClassroomMap() {
             if (occupant) {
               setOperationalStudent(occupant);
             } else {
-              toast.info(`Defina o ${roleTitle} em Efetivo do Pelotão.`);
-              setLocation("/sala-de-aula/efetivo");
+              toast.info(`Defina o ${roleTitle} na Escala Semanal.`);
+              setLocation("/sala-de-aula/escala");
             }
           }
         }}
         className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
             ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
             : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
-          } ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center gap-1">
@@ -738,12 +718,14 @@ export default function ClassroomMap() {
               <img
                 src={occupant.fotoUrl}
                 alt={occupant.nomeGuerra}
-                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
+                className={`mb-0.5 h-6 w-6 rounded-full border object-cover shadow-sm ${needsAttention ? "border-red-500 ring-2 ring-red-500/70" : isAbsent ? "border-red-400" : (role === 'xerife' ? "border-yellow-500" : "border-slate-400")
                   }`}
               />
             ) : (
               <div className={`mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-bold ${isAbsent
                   ? "bg-red-500/10 text-red-500 border-red-400"
+                  : needsAttention
+                    ? "bg-red-500/15 text-red-700 border-red-500 ring-2 ring-red-500/60"
                   : (role === 'xerife' ? "bg-yellow-500/10 text-yellow-700 border-yellow-500 dark:text-yellow-200" : "bg-slate-500/10 text-slate-700 border-slate-400 dark:text-slate-200")
                 }`}>
                 {occupant.nomeGuerra.slice(0, 2).toUpperCase()}
@@ -892,6 +874,10 @@ export default function ClassroomMap() {
       toast.error("A data é obrigatória");
       return;
     }
+    if (!aditConteudo.trim() && !aditPdfUrl) {
+      toast.error("Informe um resumo ou envie o arquivo digital do aditamento.");
+      return;
+    }
     saveAditamento.mutate({
       companhia: selectedCompanhia,
       peloton: selectedPeloton,
@@ -948,7 +934,6 @@ export default function ClassroomMap() {
   const openLaunchFOModal = (student?: any, initialType: "positive" | "negative" = "negative") => {
     setFoType(initialType);
     setFoReason("");
-    setFoCustomReason("");
     setFoDetails("");
     setFoIsAllSelected(false);
     setFoProofs([]);
@@ -977,39 +962,35 @@ export default function ClassroomMap() {
       return;
     }
 
-    if (!foReason) {
-      toast.error("Selecione o fato observado (elogio ou transgressão)");
+    const cleanFoText = foDetails.trim();
+    if (cleanFoText.length < 5) {
+      toast.error("Descreva o fato observado em texto livre.");
       return;
     }
 
-    let selectedReason = foReason;
-    if (foReason === "outro") {
-      if (foCustomReason.trim().length < 3) {
-        toast.error("Informe o novo elogio ou transgressão");
-        return;
-      }
-      selectedReason = foCustomReason.trim();
+    const selectedCode = foReason;
+    if (!selectedCode) {
+      toast.error("Selecione o código oficial do Manual antes de registrar o FO.");
+      return;
     }
-    const finalNote = foDetails.trim()
-      ? `${selectedReason} - Detalhes: ${foDetails.trim()}`
-      : selectedReason;
+    const selectedDefinition = getFoCodeDefinition(foType, selectedCode);
+    if (!selectedDefinition) {
+      toast.error("Código de FO inválido para este tipo");
+      return;
+    }
+    const selectedReason = selectedDefinition.label;
+    const finalNote = `[${selectedCode}] ${selectedReason} - Relato: ${cleanFoText}`;
 
     try {
       toast.loading("Registrando Fato Observado...", { id: "fo-launch" });
 
-      if (foReason === "outro") {
-        await suggestFoReason.mutateAsync({
-          type: foType,
-          label: selectedReason,
-        });
-      }
-      
       // Envia as mutações em lote usando Promise.all
       const foResults = await Promise.all(
         idsToSend.map((studentId) =>
           addStudentObservation.mutateAsync({
             studentId,
             type: foType,
+            foCode: selectedCode,
             note: finalNote,
           })
         )
@@ -1069,10 +1050,10 @@ export default function ClassroomMap() {
 
       toast.success("Fato Observado registrado com sucesso!", { id: "fo-launch" });
       setFoModalOpen(false);
-      setFoCustomReason("");
       setFoProofs([]);
       await Promise.all([
         pendingObservationsQuery.refetch(),
+        lcCasesQuery.refetch(),
         operationalStudent?.id ? studentObservationsQuery.refetch() : Promise.resolve(),
       ]);
     } catch (err: any) {
@@ -1471,10 +1452,10 @@ export default function ClassroomMap() {
                     {/* active Xerife */}
                     <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-center gap-3">
                       <div className="relative shrink-0">
-                        {students.find((s: any) => s.id === activeRoles?.xerifeId)?.fotoUrl ? (
+                        {effectiveXerife?.fotoUrl ? (
                           <img
-                            src={students.find((s: any) => s.id === activeRoles?.xerifeId)?.fotoUrl}
-                            alt="Xerife"
+                            src={effectiveXerife.fotoUrl}
+                            alt={effectiveXerifeName}
                             className="h-11 w-11 rounded-full object-cover border-2 border-[#c4a84b]"
                           />
                         ) : (
@@ -1487,7 +1468,7 @@ export default function ClassroomMap() {
                       <div>
                         <span className="text-[9px] uppercase font-black tracking-widest text-[#b39740]">Xerife</span>
                         <p className="text-xs font-bold text-foreground truncate max-w-[190px]">
-                          {activeRoles?.xerifeName || "Não definido"}
+                          {effectiveXerifeName}
                         </p>
                       </div>
                     </div>
@@ -1495,10 +1476,10 @@ export default function ClassroomMap() {
                     {/* active Sub-Xerife */}
                     <div className="rounded-xl border border-slate-500/10 bg-slate-500/5 p-3 flex items-center gap-3">
                       <div className="relative shrink-0">
-                        {students.find((s: any) => s.id === activeRoles?.subXerifeId)?.fotoUrl ? (
+                        {effectiveSubXerife?.fotoUrl ? (
                           <img
-                            src={students.find((s: any) => s.id === activeRoles?.subXerifeId)?.fotoUrl}
-                            alt="Sub-Xerife"
+                            src={effectiveSubXerife.fotoUrl}
+                            alt={effectiveSubXerifeName}
                             className="h-11 w-11 rounded-full object-cover border-2 border-slate-400"
                           />
                         ) : (
@@ -1510,7 +1491,7 @@ export default function ClassroomMap() {
                       <div>
                         <span className="text-[9px] uppercase font-black tracking-widest text-slate-500">Sub-Xerife</span>
                         <p className="text-xs font-bold text-foreground truncate max-w-[190px]">
-                          {activeRoles?.subXerifeName || "Não definido"}
+                          {effectiveSubXerifeName}
                         </p>
                       </div>
                     </div>
@@ -1840,19 +1821,24 @@ export default function ClassroomMap() {
                       </div>
                     </div>
 
-                    {access?.isGeneral && pendingObservationsQuery.data?.length ? (
+                    {/*
                       <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
                         <div className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-800 dark:text-amber-200">
                           <Inbox className="h-4 w-4" />
                           FO pendente de validação
                         </div>
                         <div className="space-y-2">
-                          {pendingObservationsQuery.data.map((item: any) => (
+                          {(pendingObservationsQuery.data ?? []).map((item: any) => (
                             <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background/80 p-2 text-xs md:flex-row md:items-center md:justify-between">
                               <div>
-                                <p className="font-bold">
-                                  {item.type === "positive" ? "FO+" : "FO-"} - {item.numerica} {item.nome_guerra}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2 font-bold">
+                                  <span>{item.type === "positive" ? "FO+" : "FO-"} - {item.numerica} {item.nome_guerra}</span>
+                                  {item.fo_code ? (
+                                    <Badge variant="outline" className="text-[9px]">
+                                      Código {item.fo_code}
+                                    </Badge>
+                                  ) : null}
+                                </div>
                                 <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
                                 <p className="mt-1 text-[10px] text-muted-foreground">Lançada por {item.created_by_name || "xerife"}</p>
                               </div>
@@ -1881,16 +1867,68 @@ export default function ClassroomMap() {
                           ))}
                         </div>
                       </div>
-                    ) : null}
+                    */}
 
-                    {access?.isGeneral && pendingFoReasonsQuery.data?.length ? (
+                    {/*
+                      <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-bold text-red-800 dark:text-red-200">
+                          <Shield className="h-4 w-4" />
+                          Alunos sujeitos a LC
+                        </div>
+                        <div className="space-y-2">
+                          {(lcCasesQuery.data ?? []).map((item: any) => (
+                            <div key={item.id} className="flex flex-col gap-3 rounded-md border border-red-500/20 bg-background/90 p-3 text-xs md:flex-row md:items-center md:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge className="bg-red-700 text-white hover:bg-red-700">LC pendente</Badge>
+                                  <Badge variant="outline" className="border-red-300 text-red-700 dark:text-red-300">
+                                    FO {item.foCode}
+                                  </Badge>
+                                  <span className="font-black text-foreground">
+                                    {item.numerica} {item.nomeGuerra}
+                                  </span>
+                                </div>
+                                <p className="mt-1 break-words font-semibold text-foreground">{item.foLabel}</p>
+                                <p className="mt-1 text-[10px] text-muted-foreground">
+                                  Saldo do código: {item.netCount} ({item.negativeCount} FO- menos {item.positiveCount} FO+)
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 bg-[#1a3a2a] text-white"
+                                  onClick={() => openLcDecision(item)}
+                                  disabled={decideLcCase.isPending}
+                                >
+                                  <FileSignature className="mr-1 h-3.5 w-3.5" />
+                                  Formalizar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                                  onClick={() => handleRejectLc(item)}
+                                  disabled={decideLcCase.isPending}
+                                >
+                                  Arquivar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    */}
+
+                    {/*
                       <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
                         <div className="mb-2 flex items-center gap-2 text-sm font-bold text-blue-800 dark:text-blue-200">
                           <BadgeCheck className="h-4 w-4" />
                           Novos fatos aguardando inclusão na lista
                         </div>
                         <div className="space-y-2">
-                          {pendingFoReasonsQuery.data.map((item: any) => (
+                          {(pendingFoReasonsQuery.data ?? []).map((item: any) => (
                             <div key={item.id} className="flex flex-col gap-2 rounded-md border bg-background/80 p-2 text-xs md:flex-row md:items-center md:justify-between">
                               <div className="min-w-0">
                                 <p className={`font-black ${item.type === "positive" ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}`}>
@@ -1924,7 +1962,7 @@ export default function ClassroomMap() {
                           ))}
                         </div>
                       </div>
-                    ) : null}
+                    */}
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {filteredStudents.map((student: any) => (
@@ -2232,7 +2270,7 @@ export default function ClassroomMap() {
                   <Card className="border-border/50 bg-white dark:bg-zinc-900 h-fit">
                     <CardHeader className="pb-3 border-b">
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#c4a84b]" /> Novo Aditamento
+                        <FileText className="h-4 w-4 text-[#c4a84b]" /> Novo Aditamento Digital
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 space-y-3">
@@ -2267,7 +2305,7 @@ export default function ClassroomMap() {
                           </p>
                         )}
                       </div>
-                      <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAditamento} disabled={saveAditamento.isPending}>
+                      <Button className="w-full gap-2 bg-[#1a3a2a] text-white" onClick={handleSaveAditamento} disabled={saveAditamento.isPending || isUploadingAditamento}>
                         <Save className="h-4 w-4" /> Publicar Aditamento
                       </Button>
                     </CardContent>
@@ -2278,7 +2316,7 @@ export default function ClassroomMap() {
                 <Card className={`border-border/50 bg-white dark:bg-zinc-900 ${!isAdminOrXerifeAdmin ? "col-span-2" : ""}`}>
                   <CardHeader className="pb-3 border-b">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-[#c4a84b]" /> Banco de Aditamentos
+                      <FileText className="h-4 w-4 text-[#c4a84b]" /> Banco de Aditamentos Digitais
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 space-y-3 max-h-[500px] overflow-y-auto">
@@ -2298,7 +2336,7 @@ export default function ClassroomMap() {
                         {adit.conteudo && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{adit.conteudo}</p>}
                         {adit.pdfUrl && (
                           <a href={adit.pdfUrl} target="_blank" rel="noreferrer" className="text-xs text-[#c4a84b] hover:underline flex items-center gap-1 font-semibold mt-1">
-                            Visualizar PDF original
+                            Abrir arquivo digital
                           </a>
                         )}
                       </div>
@@ -2621,9 +2659,16 @@ export default function ClassroomMap() {
                           <p className={`font-black ${item.type === "positive" ? "text-green-700 dark:text-green-300" : item.type === "negative" ? "text-red-700 dark:text-red-300" : "text-foreground"}`}>
                             {item.type === "positive" ? "FO+ · Elogio" : item.type === "negative" ? "FO- · Transgressão" : "Observação"}
                           </p>
-                          <Badge variant="outline" className="text-[9px]">
-                            {item.validation_status === "approved" ? "Validado" : item.validation_status === "rejected" ? "Rejeitado" : "Aguardando validação"}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            {item.fo_code ? (
+                              <Badge variant="outline" className="text-[9px]">
+                                Código {item.fo_code}
+                              </Badge>
+                            ) : null}
+                            <Badge variant="outline" className="text-[9px]">
+                              {item.validation_status === "approved" ? "Validado" : item.validation_status === "rejected" ? "Rejeitado" : "Aguardando validação"}
+                            </Badge>
+                          </div>
                         </div>
                         <p className="mt-1 whitespace-pre-wrap break-words text-foreground">{item.note}</p>
                         <p className="mt-1 text-[10px] text-muted-foreground">
@@ -2829,20 +2874,103 @@ export default function ClassroomMap() {
           </DialogContent>
         </Dialog>
 
+        {/*
+        <Dialog open={Boolean(lcDecisionCase)} onOpenChange={(open) => !open && setLcDecisionCase(null)}>
+          <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-border bg-white p-0 text-foreground dark:bg-zinc-900 sm:max-w-[600px]">
+            <DialogHeader className="shrink-0 border-b px-5 py-4 pr-12">
+              <DialogTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-red-700" />
+                Formalizar Licença Caçada
+              </DialogTitle>
+              <DialogDescription>
+                Defina o recolhimento, o tempo e os procedimentos que ficarao visiveis ao aluno.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              {lcDecisionCase && (
+                <div className="space-y-4">
+                <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-red-700 text-white hover:bg-red-700">FO {lcDecisionCase.foCode}</Badge>
+                    <span className="font-black text-foreground">
+                      {lcDecisionCase.numerica} {lcDecisionCase.nomeGuerra}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs font-semibold text-foreground">{lcDecisionCase.foLabel}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Saldo atual: {lcDecisionCase.netCount} ({lcDecisionCase.negativeCount} FO- menos {lcDecisionCase.positiveCount} FO+)
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="lc-recolhimento-date">Dia do recolhimento</Label>
+                    <Input
+                      id="lc-recolhimento-date"
+                      type="date"
+                      value={lcDecisionForm.recolhimentoDate}
+                      onChange={(event) => setLcDecisionForm((current) => ({ ...current, recolhimentoDate: event.target.value }))}
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lc-duration-hours">Tempo no quartel (horas)</Label>
+                    <Input
+                      id="lc-duration-hours"
+                      type="number"
+                      min={1}
+                      max={240}
+                      value={lcDecisionForm.durationHours}
+                      onChange={(event) => setLcDecisionForm((current) => ({ ...current, durationHours: event.target.value }))}
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="lc-procedures">Procedimentos, regras e orientacoes ao aluno</Label>
+                  <textarea
+                    id="lc-procedures"
+                    value={lcDecisionForm.procedures}
+                    onChange={(event) => setLcDecisionForm((current) => ({ ...current, procedures: event.target.value }))}
+                    className="mt-1.5 flex min-h-[140px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="shrink-0 border-t bg-white px-5 py-4 dark:bg-zinc-900">
+              <Button variant="outline" onClick={() => setLcDecisionCase(null)}>
+                Cancelar
+              </Button>
+              <Button
+                className="bg-red-700 text-white hover:bg-red-800"
+                onClick={handleHomologateLc}
+                disabled={decideLcCase.isPending}
+              >
+                {decideLcCase.isPending ? "Homologando..." : "Homologar LC"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        */}
+
         {/* FO (Fatos Observados) Dialog global */}
         <Dialog open={foModalOpen} onOpenChange={setFoModalOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-white dark:bg-zinc-900 border border-border text-foreground">
-            <DialogHeader>
+          <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-border bg-white p-0 text-foreground dark:bg-zinc-900 sm:max-w-[500px]">
+            <DialogHeader className="shrink-0 border-b px-5 py-4 pr-12">
               <DialogTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
                 Lançar Fato Observado (FO)
               </DialogTitle>
               <DialogDescription>
-                Selecione o tipo de fato, escolha os alunos e detalhe o ocorrido de acordo com o manual.
+                Escreva o fato, anexe as provas se houver e selecione a linha codificada do Manual do Aluno.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-3">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
               {/* Tipo de FO: Positivo (+) ou Negativo (-) */}
               <div>
                 <Label>Tipo de Fato</Label>
@@ -2854,7 +2982,6 @@ export default function ClassroomMap() {
                     onClick={() => {
                       setFoType("positive");
                       setFoReason("");
-                      setFoCustomReason("");
                     }}
                   >
                     FO+ (Elogio)
@@ -2866,7 +2993,6 @@ export default function ClassroomMap() {
                     onClick={() => {
                       setFoType("negative");
                       setFoReason("");
-                      setFoCustomReason("");
                     }}
                   >
                     FO- (Transgressão)
@@ -2939,61 +3065,71 @@ export default function ClassroomMap() {
                 )}
               </div>
 
-              {/* Fato / Causa (Dropdown) */}
+              {/* Relato livre do fato */}
               <div>
-                <Label htmlFor="fo-reason-select">Fato Observado (Manual do Aluno)</Label>
+                <Label htmlFor="fo-details-textarea">
+                  Relato livre do Fato Observado
+                </Label>
+                <textarea
+                  id="fo-details-textarea"
+                  value={foDetails}
+                  onChange={(e) => setFoDetails(e.target.value)}
+                  placeholder="Descreva o ocorrido com data, hora, local e circunstâncias..."
+                  className="mt-1.5 flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                {foDetails.trim() ? (
+                  <div className="mt-2 rounded-md border bg-muted/20 p-2 text-xs">
+                    {foTextClassification ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={foType === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>
+                            Sugestao FO {foTextClassification.definition.code}
+                          </Badge>
+                          <span className="font-semibold text-foreground">{foTextClassification.definition.label}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setFoReason(foTextClassification.definition.code)}
+                        >
+                          Usar esta linha do Manual
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Nenhuma sugestao segura pelo relato. Escolha uma linha do Manual abaixo.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Código oficial do Manual */}
+              <div>
+                <Label htmlFor="fo-reason-select">Código oficial do Manual do Aluno</Label>
                 <select
                   id="fo-reason-select"
                   value={foReason}
                   onChange={(e) => setFoReason(e.target.value)}
                   className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <option value="">-- Selecione o fato --</option>
-                  {(foType === "positive" ? ELOGIOS_LIST : TRANSGRESSIONS_LIST).map((reason, idx) => (
-                    <option key={idx} value={reason}>{reason}</option>
+                  <option value="">-- Escolha a linha do Manual --</option>
+                  {getFoCodesByType(foType).map((item) => (
+                    <option key={`${item.type}-${item.code}`} value={item.code}>
+                      {item.code} - {item.label}
+                    </option>
                   ))}
-                  {foReasonsQuery.data
-                    ?.filter((item: any) => item.type === foType)
-                    .map((item: any) => (
-                      <option key={`custom-${item.id}`} value={item.label}>{item.label}</option>
-                    ))}
-                  <option value="outro">Outro / Especificar</option>
                 </select>
-              </div>
-
-              {foReason === "outro" && (
-                <div>
-                  <Label htmlFor="fo-custom-reason">
-                    {foType === "positive" ? "Novo elogio" : "Nova transgressão"}
-                  </Label>
-                  <Input
-                    id="fo-custom-reason"
-                    value={foCustomReason}
-                    onChange={(event) => setFoCustomReason(event.target.value)}
-                    maxLength={500}
-                    placeholder={foType === "positive" ? "Escreva o elogio que deverá entrar na lista" : "Escreva a transgressão que deverá entrar na lista"}
-                    className="mt-1.5 h-10 text-sm"
-                  />
+                {foReason && getFoCodeDefinition(foType, foReason) && (
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {isXerifeGeral
-                      ? "Como Xerife Master, a nova opção será incluída imediatamente."
-                      : "A nova opção entrará na lista após validação do Xerife Master."}
+                    {getFoCodeDefinition(foType, foReason)?.manualRef}
                   </p>
-                </div>
-              )}
-
-              {/* Detalhes / Especificação */}
-              <div>
-                <Label htmlFor="fo-details-textarea">
-                  Detalhes Complementares (Opcional)
-                </Label>
-                <textarea
-                  id="fo-details-textarea"
-                  value={foDetails}
-                  onChange={(e) => setFoDetails(e.target.value)}
-                  placeholder="Detalhe o ocorrido: data, hora, local e circunstâncias adicionais..."
-                  className="mt-1.5 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
+                )}
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  O relato não cria código novo. O FO só é registrado quando uma linha oficial do Manual é selecionada.
+                </p>
               </div>
 
               {/* Upload de Provas (Fotos/Vídeos) */}
@@ -3014,7 +3150,7 @@ export default function ClassroomMap() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="shrink-0 border-t bg-white px-5 py-4 dark:bg-zinc-900">
               <Button 
                 variant="outline" 
                 onClick={() => {

@@ -231,9 +231,17 @@ export default function Admin() {
                 <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Comandante"} {isXerifeGeral && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Xerife Geral</Badge>}</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-foreground gap-2 sm:w-auto" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" /> Sair
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Link href="/sala-administrativa">
+                <Button className="w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90 sm:w-auto">
+                  <ClipboardList className="h-4 w-4" />
+                  Sala Administrativa
+                </Button>
+              </Link>
+              <Button variant="outline" className="w-full border-border text-muted-foreground hover:bg-[#1a3a2a]/5 hover:text-foreground gap-2 sm:w-auto" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" /> Sair
+              </Button>
+            </div>
           </div>
         </div>
         <div className="checkerboard-pattern w-full mt-6 hidden md:block" />

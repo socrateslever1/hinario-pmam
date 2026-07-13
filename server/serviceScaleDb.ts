@@ -1,4 +1,10 @@
 import { query } from "./mysql";
+import {
+  calculateFoNetCount,
+  FO_LC_THRESHOLD,
+  getFoCodeDefinition,
+  normalizeFoCode,
+} from "../shared/foCatalog";
 
 export type XerifeLevel = "principal" | "companhia" | "pelotao";
 
@@ -24,6 +30,94 @@ export interface ServiceStudent {
   condition?: string;
   deskNumber?: number | null;
   fotoUrl?: string;
+}
+
+export type LcCaseStatus = "pending" | "homologated" | "rejected" | "cancelled";
+export type FoContestStatus = "none" | "pending" | "accepted" | "rejected";
+export type FoContestSource = "portal" | "cal";
+export type BaixadoKind =
+  | "informativo"
+  | "ausente_com_atestado"
+  | "ausente_sem_atestado"
+  | "presente_sem_atestado";
+export type InternalReportType = "desistente" | "desertor" | "baixado" | "outro";
+export type InternalReportStatus = "active" | "resolved" | "cancelled";
+
+export interface StudentLcCase {
+  id: number;
+  studentId: number;
+  numerica: string | null;
+  nomeGuerra: string | null;
+  companhia: number;
+  peloton: number;
+  foCode: string;
+  foLabel: string;
+  negativeCount: number;
+  positiveCount: number;
+  netCount: number;
+  status: LcCaseStatus;
+  recolhimentoDate: string | null;
+  durationHours: number | null;
+  procedures: string | null;
+  judgedBy: number | null;
+  judgedByName: string | null;
+  judgedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface BaixadoDocument {
+  id: number;
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  fileUrl: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number | null;
+  note: string | null;
+  baixadoKind: BaixadoKind;
+  hpmHomologated: boolean;
+  uploadedBy: number | null;
+  uploadedByName: string | null;
+  uploadedByStudentId: number | null;
+  createdAt: Date | string;
+}
+
+export interface StudentInternalReport {
+  id: number;
+  studentId: number;
+  numerica: string | null;
+  nomeGuerra: string | null;
+  companhia: number;
+  peloton: number;
+  type: InternalReportType;
+  status: InternalReportStatus;
+  title: string;
+  note: string | null;
+  visibleToStudent: boolean;
+  createdBy: number | null;
+  createdByName: string | null;
+  resolvedBy: number | null;
+  resolvedByName: string | null;
+  resolvedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface BaixadoStudent {
+  studentId: number;
+  numerica: string;
+  nomeGuerra: string;
+  nomeCompleto: string | null;
+  companhia: number;
+  peloton: number;
+  condition: string;
+  deskNumber: number | null;
+  fotoUrl: string | null;
+  documentCount: number;
+  latestDocumentAt: Date | string | null;
+  documents: BaixadoDocument[];
 }
 
 export interface PlatoonRoles {
@@ -298,15 +392,28 @@ export async function ensureServiceScaleTables() {
           peloton INT NOT NULL,
           type ENUM('positive','negative','neutral') NOT NULL DEFAULT 'neutral',
           note LONGTEXT NOT NULL,
+          fo_code VARCHAR(32) NULL,
           created_by INT NULL,
           validation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
           validated_by INT NULL,
           validated_at TIMESTAMP NULL,
           validation_note VARCHAR(500) NULL,
+          contest_status VARCHAR(16) NOT NULL DEFAULT 'none',
+          contest_source VARCHAR(16) NULL,
+          contest_text LONGTEXT NULL,
+          contested_at TIMESTAMP NULL,
+          contest_decided_by INT NULL,
+          contest_decided_at TIMESTAMP NULL,
+          contest_decision_note VARCHAR(1000) NULL,
+          annulled_by INT NULL,
+          annulled_at TIMESTAMP NULL,
+          annulment_note VARCHAR(1000) NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           KEY idx_pmam_student_observations_student (student_id, created_at),
+          KEY idx_pmam_student_observations_student_code (student_id, fo_code, validation_status),
           KEY idx_pmam_student_observations_scope (companhia, peloton),
-          KEY idx_pmam_student_observations_validation (validation_status, created_at)
+          KEY idx_pmam_student_observations_validation (validation_status, created_at),
+          KEY idx_pmam_student_observations_contest (contest_status, contested_at)
         )
       `);
 
@@ -314,6 +421,7 @@ export async function ensureServiceScaleTables() {
         CREATE TABLE IF NOT EXISTS pmam_fo_reasons (
           id INT AUTO_INCREMENT PRIMARY KEY,
           type ENUM('positive','negative') NOT NULL,
+          code VARCHAR(32) NULL,
           label VARCHAR(500) NOT NULL,
           normalized_label VARCHAR(500) NOT NULL,
           validation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
@@ -323,7 +431,75 @@ export async function ensureServiceScaleTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           UNIQUE KEY uq_pmam_fo_reasons_type_label (type, normalized_label),
+          KEY idx_pmam_fo_reasons_code (type, code),
           KEY idx_pmam_fo_reasons_status (validation_status, type, label)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_lc_cases (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          fo_code VARCHAR(32) NOT NULL,
+          negative_count INT NOT NULL DEFAULT 0,
+          positive_count INT NOT NULL DEFAULT 0,
+          net_count INT NOT NULL DEFAULT 0,
+          status ENUM('pending','homologated','rejected','cancelled') NOT NULL DEFAULT 'pending',
+          recolhimento_date DATE NULL,
+          duration_hours INT NULL,
+          procedures LONGTEXT NULL,
+          judged_by INT NULL,
+          judged_at TIMESTAMP NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_lc_cases_scope_status (companhia, peloton, status),
+          KEY idx_pmam_lc_cases_student_status (student_id, status),
+          KEY idx_pmam_lc_cases_code (fo_code, status)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_student_baixado_documents (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          file_url LONGTEXT NOT NULL,
+          file_name VARCHAR(255) NOT NULL,
+          mime_type VARCHAR(120) NOT NULL,
+          file_size INT NULL,
+          note VARCHAR(1000) NULL,
+          baixado_kind VARCHAR(40) NOT NULL DEFAULT 'informativo',
+          hpm_homologated BOOLEAN NOT NULL DEFAULT false,
+          uploaded_by INT NULL,
+          uploaded_by_student_id INT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          KEY idx_pmam_baixado_docs_student (student_id, created_at),
+          KEY idx_pmam_baixado_docs_scope (companhia, peloton, created_at)
+        )
+      `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_student_internal_reports (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          student_id INT NOT NULL,
+          companhia INT NOT NULL,
+          peloton INT NOT NULL,
+          type VARCHAR(32) NOT NULL,
+          status VARCHAR(16) NOT NULL DEFAULT 'active',
+          title VARCHAR(180) NOT NULL,
+          note LONGTEXT NULL,
+          visible_to_student BOOLEAN NOT NULL DEFAULT true,
+          created_by INT NULL,
+          resolved_by INT NULL,
+          resolved_at TIMESTAMP NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          KEY idx_pmam_internal_reports_scope (companhia, peloton, status, created_at),
+          KEY idx_pmam_internal_reports_student (student_id, status, created_at),
+          KEY idx_pmam_internal_reports_type (type, status)
         )
       `);
 
@@ -341,10 +517,53 @@ export async function ensureServiceScaleTables() {
       if (!hasObservationCol("validation_note")) {
         await query("ALTER TABLE pmam_student_observations ADD COLUMN validation_note VARCHAR(500) NULL AFTER validated_at");
       }
+      if (!hasObservationCol("fo_code")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN fo_code VARCHAR(32) NULL AFTER note");
+      }
+      if (!hasObservationCol("contest_status")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_status VARCHAR(16) NOT NULL DEFAULT 'none' AFTER validation_note");
+      }
+      if (!hasObservationCol("contest_source")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_source VARCHAR(16) NULL AFTER contest_status");
+      }
+      if (!hasObservationCol("contest_text")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_text LONGTEXT NULL AFTER contest_source");
+      }
+      if (!hasObservationCol("contested_at")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contested_at TIMESTAMP NULL AFTER contest_text");
+      }
+      if (!hasObservationCol("contest_decided_by")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_decided_by INT NULL AFTER contested_at");
+      }
+      if (!hasObservationCol("contest_decided_at")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_decided_at TIMESTAMP NULL AFTER contest_decided_by");
+      }
+      if (!hasObservationCol("contest_decision_note")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN contest_decision_note VARCHAR(1000) NULL AFTER contest_decided_at");
+      }
+      if (!hasObservationCol("annulled_by")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN annulled_by INT NULL AFTER contest_decision_note");
+      }
+      if (!hasObservationCol("annulled_at")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN annulled_at TIMESTAMP NULL AFTER annulled_by");
+      }
+      if (!hasObservationCol("annulment_note")) {
+        await query("ALTER TABLE pmam_student_observations ADD COLUMN annulment_note VARCHAR(1000) NULL AFTER annulled_at");
+      }
       try {
         await query("ALTER TABLE pmam_student_observations MODIFY COLUMN note LONGTEXT NOT NULL");
       } catch (error) {
         console.warn("[ServiceScaleDB] Could not widen pmam_student_observations.note:", error);
+      }
+
+      const baixadoCols = await query("SHOW COLUMNS FROM pmam_student_baixado_documents");
+      if (!baixadoCols.some((col: any) => col.Field === "baixado_kind")) {
+        await query("ALTER TABLE pmam_student_baixado_documents ADD COLUMN baixado_kind VARCHAR(40) NOT NULL DEFAULT 'informativo' AFTER note");
+      }
+
+      const reasonCols = await query("SHOW COLUMNS FROM pmam_fo_reasons");
+      if (!reasonCols.some((col: any) => col.Field === "code")) {
+        await query("ALTER TABLE pmam_fo_reasons ADD COLUMN code VARCHAR(32) NULL AFTER type");
       }
 
       await query(`
@@ -1242,22 +1461,25 @@ export async function createStudentObservation(input: {
   peloton: number;
   type: "positive" | "negative" | "neutral";
   note: string;
+  foCode?: string | null;
   createdBy: number;
   validationStatus?: "pending" | "approved" | "rejected";
   validatedBy?: number | null;
   validatedAt?: Date | null;
 }): Promise<number> {
   await ensureServiceScaleTables();
+  const foCode = input.foCode ? normalizeFoCode(input.foCode) : null;
   const result = await query(
     `INSERT INTO pmam_student_observations
-      (student_id, companhia, peloton, type, note, created_by, validation_status, validated_by, validated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (student_id, companhia, peloton, type, note, fo_code, created_by, validation_status, validated_by, validated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.studentId,
       input.companhia,
       input.peloton,
       input.type,
       input.note,
+      foCode,
       input.createdBy,
       input.validationStatus ?? "pending",
       input.validatedBy ?? null,
@@ -1335,6 +1557,618 @@ export async function validateStudentObservation(input: {
      SET validation_status = ?, validated_by = ?, validated_at = CURRENT_TIMESTAMP, validation_note = ?
      WHERE id = ?`,
     [input.status, input.validatedBy, input.validationNote ?? null, input.id]
+  );
+}
+
+export async function contestStudentObservation(input: {
+  id: number;
+  source: FoContestSource;
+  text: string;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_student_observations
+     SET contest_status = 'pending',
+       contest_source = ?,
+       contest_text = ?,
+       contested_at = CURRENT_TIMESTAMP,
+       contest_decided_by = NULL,
+       contest_decided_at = NULL,
+       contest_decision_note = NULL
+     WHERE id = ?
+       AND validation_status = 'approved'
+       AND annulled_at IS NULL
+       AND contest_status = 'none'`,
+    [input.source, input.text, input.id]
+  );
+}
+
+export async function listContestedStudentObservations(scope?: {
+  companhia?: number | null;
+  peloton?: number | null;
+  status?: FoContestStatus | "all";
+}): Promise<any[]> {
+  await ensureServiceScaleTables();
+  const where = ["o.contest_status <> 'none'", "o.type IN ('positive','negative')"];
+  const params: any[] = [];
+  if (scope?.status && scope.status !== "all") {
+    where.push("o.contest_status = ?");
+    params.push(scope.status);
+  }
+  if (scope?.companhia) {
+    where.push("o.companhia = ?");
+    params.push(scope.companhia);
+  }
+  if (scope?.peloton) {
+    where.push("o.peloton = ?");
+    params.push(scope.peloton);
+  }
+  return query(
+    `SELECT
+       o.*,
+       s.numerica,
+       s.nome_guerra,
+       u.name AS created_by_name,
+       vu.name AS validated_by_name,
+       du.name AS contest_decided_by_name,
+       au.name AS annulled_by_name
+     FROM pmam_student_observations o
+     INNER JOIN pmam_students s ON s.id = o.student_id
+     LEFT JOIN pmam_users u ON u.id = o.created_by
+     LEFT JOIN pmam_users vu ON vu.id = o.validated_by
+     LEFT JOIN pmam_users du ON du.id = o.contest_decided_by
+     LEFT JOIN pmam_users au ON au.id = o.annulled_by
+     WHERE ${where.join(" AND ")}
+     ORDER BY FIELD(o.contest_status, 'pending', 'accepted', 'rejected'), o.contested_at DESC
+     LIMIT 300`,
+    params
+  );
+}
+
+export async function decideObservationContest(input: {
+  id: number;
+  status: "accepted" | "rejected";
+  decidedBy: number;
+  decisionNote?: string | null;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  const accepted = input.status === "accepted";
+  await query(
+    `UPDATE pmam_student_observations
+     SET contest_status = ?,
+       contest_decided_by = ?,
+       contest_decided_at = CURRENT_TIMESTAMP,
+       contest_decision_note = ?,
+       annulled_by = CASE WHEN ? THEN ? ELSE annulled_by END,
+       annulled_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE annulled_at END,
+       annulment_note = CASE WHEN ? THEN ? ELSE annulment_note END
+     WHERE id = ?
+       AND contest_status = 'pending'`,
+    [
+      input.status,
+      input.decidedBy,
+      input.decisionNote ?? null,
+      accepted ? 1 : 0,
+      input.decidedBy,
+      accepted ? 1 : 0,
+      accepted ? 1 : 0,
+      input.decisionNote ?? null,
+      input.id,
+    ]
+  );
+}
+
+function mapLcCase(row: any): StudentLcCase {
+  const status = (row.status || "pending") as LcCaseStatus;
+  const foCode = normalizeFoCode(row.fo_code || row.foCode || "");
+  const definition = getFoCodeDefinition("negative", foCode) || getFoCodeDefinition("positive", foCode);
+  return {
+    id: Number(row.id),
+    studentId: Number(row.student_id ?? row.studentId),
+    numerica: row.numerica ?? null,
+    nomeGuerra: row.nome_guerra ?? row.nomeGuerra ?? null,
+    companhia: Number(row.companhia),
+    peloton: Number(row.peloton),
+    foCode,
+    foLabel: definition?.label ?? foCode,
+    negativeCount: Number(row.negative_count ?? row.negativeCount ?? 0),
+    positiveCount: Number(row.positive_count ?? row.positiveCount ?? 0),
+    netCount: Number(row.net_count ?? row.netCount ?? 0),
+    status,
+    recolhimentoDate: toDateOnly(row.recolhimento_date ?? row.recolhimentoDate),
+    durationHours: row.duration_hours === null || row.duration_hours === undefined
+      ? null
+      : Number(row.duration_hours),
+    procedures: row.procedures ?? null,
+    judgedBy: row.judged_by === null || row.judged_by === undefined ? null : Number(row.judged_by),
+    judgedByName: row.judged_by_name ?? row.judgedByName ?? null,
+    judgedAt: row.judged_at ?? row.judgedAt ?? null,
+    createdAt: row.created_at ?? row.createdAt,
+    updatedAt: row.updated_at ?? row.updatedAt,
+  };
+}
+
+export async function getFoCodeBalance(studentId: number, foCode: string) {
+  await ensureServiceScaleTables();
+  const normalizedCode = normalizeFoCode(foCode);
+  const rows = await query(
+    `SELECT
+       SUM(CASE WHEN type = 'negative' THEN 1 ELSE 0 END) AS negative_count,
+       SUM(CASE WHEN type = 'positive' THEN 1 ELSE 0 END) AS positive_count
+     FROM pmam_student_observations
+     WHERE student_id = ?
+       AND fo_code = ?
+       AND validation_status = 'approved'
+       AND annulled_at IS NULL
+       AND type IN ('positive', 'negative')`,
+    [studentId, normalizedCode]
+  );
+  const row = rows[0] || {};
+  const negativeCount = Number(row.negative_count ?? 0);
+  const positiveCount = Number(row.positive_count ?? 0);
+  return {
+    foCode: normalizedCode,
+    negativeCount,
+    positiveCount,
+    netCount: calculateFoNetCount(negativeCount, positiveCount),
+  };
+}
+
+export async function recomputeLcCaseForStudentCode(
+  studentId: number,
+  companhia: number,
+  peloton: number,
+  foCode: string,
+) {
+  await ensureServiceScaleTables();
+  const normalizedCode = normalizeFoCode(foCode);
+  if (!normalizedCode) return null;
+
+  const balance = await getFoCodeBalance(studentId, normalizedCode);
+  const rows = await query(
+    `SELECT *
+     FROM pmam_lc_cases
+     WHERE student_id = ?
+       AND fo_code = ?
+       AND status IN ('pending', 'homologated')
+     ORDER BY FIELD(status, 'pending', 'homologated'), created_at DESC
+     LIMIT 1`,
+    [studentId, normalizedCode]
+  );
+  const activeCase = rows[0] ?? null;
+
+  if (balance.netCount >= FO_LC_THRESHOLD) {
+    if (activeCase?.status === "homologated") {
+      await query(
+        `UPDATE pmam_lc_cases
+         SET negative_count = ?, positive_count = ?, net_count = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [balance.negativeCount, balance.positiveCount, balance.netCount, activeCase.id]
+      );
+      return mapLcCase({ ...activeCase, ...balance });
+    }
+
+    if (activeCase?.status === "pending") {
+      await query(
+        `UPDATE pmam_lc_cases
+         SET negative_count = ?, positive_count = ?, net_count = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [balance.negativeCount, balance.positiveCount, balance.netCount, activeCase.id]
+      );
+      return mapLcCase({ ...activeCase, ...balance });
+    }
+
+    const result = await query(
+      `INSERT INTO pmam_lc_cases
+        (student_id, companhia, peloton, fo_code, negative_count, positive_count, net_count, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [
+        studentId,
+        companhia,
+        peloton,
+        normalizedCode,
+        balance.negativeCount,
+        balance.positiveCount,
+        balance.netCount,
+      ]
+    );
+    return {
+      id: (result as any).insertId,
+      ...balance,
+      status: "pending" as const,
+    };
+  }
+
+  if (activeCase?.status === "pending") {
+    await query(
+      `UPDATE pmam_lc_cases
+       SET negative_count = ?, positive_count = ?, net_count = ?, status = 'cancelled', updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [balance.negativeCount, balance.positiveCount, balance.netCount, activeCase.id]
+    );
+  }
+
+  return null;
+}
+
+export async function listLcCases(options?: {
+  companhia?: number | null;
+  peloton?: number | null;
+  status?: LcCaseStatus | "active";
+}): Promise<StudentLcCase[]> {
+  await ensureServiceScaleTables();
+  const where: string[] = [];
+  const params: any[] = [];
+
+  if (options?.companhia) {
+    where.push("lc.companhia = ?");
+    params.push(options.companhia);
+  }
+  if (options?.peloton) {
+    where.push("lc.peloton = ?");
+    params.push(options.peloton);
+  }
+  if (options?.status === "active" || !options?.status) {
+    where.push("lc.status IN ('pending', 'homologated')");
+  } else {
+    where.push("lc.status = ?");
+    params.push(options.status);
+  }
+
+  const rows = await query(
+    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+     FROM pmam_lc_cases lc
+     INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users u ON u.id = lc.judged_by
+     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY FIELD(lc.status, 'pending', 'homologated', 'rejected', 'cancelled'),
+       lc.updated_at DESC
+     LIMIT 300`,
+    params
+  );
+
+  return (rows as any[]).map(mapLcCase);
+}
+
+export async function listStudentLcCases(studentId: number): Promise<StudentLcCase[]> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+     FROM pmam_lc_cases lc
+     INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users u ON u.id = lc.judged_by
+     WHERE lc.student_id = ?
+       AND lc.status IN ('pending', 'homologated')
+     ORDER BY FIELD(lc.status, 'homologated', 'pending'), lc.updated_at DESC`,
+    [studentId]
+  );
+  return (rows as any[]).map(mapLcCase);
+}
+
+export async function getLcCase(id: number): Promise<StudentLcCase | null> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+     FROM pmam_lc_cases lc
+     INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users u ON u.id = lc.judged_by
+     WHERE lc.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  return rows[0] ? mapLcCase(rows[0]) : null;
+}
+
+export async function decideLcCase(input: {
+  id: number;
+  status: "homologated" | "rejected";
+  recolhimentoDate?: string | null;
+  durationHours?: number | null;
+  procedures?: string | null;
+  judgedBy: number;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_lc_cases
+     SET status = ?,
+       recolhimento_date = ?,
+       duration_hours = ?,
+       procedures = ?,
+       judged_by = ?,
+       judged_at = CURRENT_TIMESTAMP,
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [
+      input.status,
+      input.status === "homologated" ? input.recolhimentoDate ?? null : null,
+      input.status === "homologated" ? input.durationHours ?? null : null,
+      input.procedures ?? null,
+      input.judgedBy,
+      input.id,
+    ]
+  );
+}
+
+function normalizeBaixadoKind(value?: string | null): BaixadoKind {
+  const allowed = new Set<BaixadoKind>([
+    "informativo",
+    "ausente_com_atestado",
+    "ausente_sem_atestado",
+    "presente_sem_atestado",
+  ]);
+  return allowed.has(value as BaixadoKind) ? value as BaixadoKind : "informativo";
+}
+
+function mapBaixadoDocument(row: any): BaixadoDocument {
+  return {
+    id: Number(row.id),
+    studentId: Number(row.student_id ?? row.studentId),
+    companhia: Number(row.companhia),
+    peloton: Number(row.peloton),
+    fileUrl: row.file_url ?? row.fileUrl,
+    fileName: row.file_name ?? row.fileName,
+    mimeType: row.mime_type ?? row.mimeType,
+    fileSize: row.file_size === null || row.file_size === undefined ? null : Number(row.file_size),
+    note: row.note ?? null,
+    baixadoKind: normalizeBaixadoKind(row.baixado_kind ?? row.baixadoKind),
+    hpmHomologated: row.hpm_homologated === 1 || row.hpm_homologated === true,
+    uploadedBy: row.uploaded_by === null || row.uploaded_by === undefined ? null : Number(row.uploaded_by),
+    uploadedByName: row.uploaded_by_name ?? row.uploadedByName ?? null,
+    uploadedByStudentId: row.uploaded_by_student_id === null || row.uploaded_by_student_id === undefined
+      ? null
+      : Number(row.uploaded_by_student_id),
+    createdAt: row.created_at ?? row.createdAt,
+  };
+}
+
+export async function createBaixadoDocument(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  fileUrl: string;
+  fileName: string;
+  mimeType: string;
+  fileSize?: number | null;
+  note?: string | null;
+  baixadoKind?: BaixadoKind | null;
+  hpmHomologated?: boolean;
+  uploadedBy?: number | null;
+  uploadedByStudentId?: number | null;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  const result = await query(
+    `INSERT INTO pmam_student_baixado_documents
+      (student_id, companhia, peloton, file_url, file_name, mime_type, file_size, note, baixado_kind, hpm_homologated, uploaded_by, uploaded_by_student_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.studentId,
+      input.companhia,
+      input.peloton,
+      input.fileUrl,
+      input.fileName,
+      input.mimeType,
+      input.fileSize ?? null,
+      input.note ?? null,
+      normalizeBaixadoKind(input.baixadoKind),
+      input.hpmHomologated ? 1 : 0,
+      input.uploadedBy ?? null,
+      input.uploadedByStudentId ?? null,
+    ]
+  );
+  return (result as any).insertId;
+}
+
+export async function listBaixadoDocuments(studentId: number): Promise<BaixadoDocument[]> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT d.*, u.name AS uploaded_by_name
+     FROM pmam_student_baixado_documents d
+     LEFT JOIN pmam_users u ON u.id = d.uploaded_by
+     WHERE d.student_id = ?
+     ORDER BY d.created_at DESC
+     LIMIT 100`,
+    [studentId]
+  );
+  return (rows as any[]).map(mapBaixadoDocument);
+}
+
+export async function listBaixadoStudents(options?: {
+  companhia?: number | null;
+  peloton?: number | null;
+}): Promise<BaixadoStudent[]> {
+  await ensureServiceScaleTables();
+  const where: string[] = ["(s.`condition` = 'baixado' OR d.id IS NOT NULL)"];
+  const params: any[] = [];
+
+  if (options?.companhia) {
+    where.push("s.companhia = ?");
+    params.push(options.companhia);
+  }
+  if (options?.peloton) {
+    where.push("s.peloton = ?");
+    params.push(options.peloton);
+  }
+
+  const rows = await query(
+    `SELECT
+       s.id AS student_id,
+       s.numerica,
+       s.nome_guerra,
+       s.nome_completo,
+       s.companhia,
+       s.peloton,
+       s.\`condition\`,
+       s.desk_number,
+       s.foto_url,
+       COUNT(d.id) AS document_count,
+       MAX(d.created_at) AS latest_document_at
+     FROM pmam_students s
+     LEFT JOIN pmam_student_baixado_documents d ON d.student_id = s.id
+     WHERE ${where.join(" AND ")}
+     GROUP BY s.id, s.numerica, s.nome_guerra, s.nome_completo, s.companhia, s.peloton, s.\`condition\`, s.desk_number, s.foto_url
+     ORDER BY FIELD(s.\`condition\`, 'baixado') DESC, latest_document_at DESC, s.companhia ASC, s.peloton ASC, s.numerica ASC
+     LIMIT 300`,
+    params
+  );
+
+  const result: BaixadoStudent[] = [];
+  for (const row of rows as any[]) {
+    const studentId = Number(row.student_id);
+    result.push({
+      studentId,
+      numerica: row.numerica,
+      nomeGuerra: row.nome_guerra,
+      nomeCompleto: row.nome_completo ?? null,
+      companhia: Number(row.companhia),
+      peloton: Number(row.peloton),
+      condition: row.condition || "pronto",
+      deskNumber: row.desk_number === null || row.desk_number === undefined ? null : Number(row.desk_number),
+      fotoUrl: row.foto_url ?? null,
+      documentCount: Number(row.document_count ?? 0),
+      latestDocumentAt: row.latest_document_at ?? null,
+      documents: await listBaixadoDocuments(studentId),
+    });
+  }
+  return result;
+}
+
+function normalizeInternalReportType(value?: string | null): InternalReportType {
+  const allowed = new Set<InternalReportType>(["desistente", "desertor", "baixado", "outro"]);
+  return allowed.has(value as InternalReportType) ? value as InternalReportType : "outro";
+}
+
+function normalizeInternalReportStatus(value?: string | null): InternalReportStatus {
+  const allowed = new Set<InternalReportStatus>(["active", "resolved", "cancelled"]);
+  return allowed.has(value as InternalReportStatus) ? value as InternalReportStatus : "active";
+}
+
+function mapInternalReport(row: any): StudentInternalReport {
+  return {
+    id: Number(row.id),
+    studentId: Number(row.student_id ?? row.studentId),
+    numerica: row.numerica ?? null,
+    nomeGuerra: row.nome_guerra ?? row.nomeGuerra ?? null,
+    companhia: Number(row.companhia),
+    peloton: Number(row.peloton),
+    type: normalizeInternalReportType(row.type),
+    status: normalizeInternalReportStatus(row.status),
+    title: row.title,
+    note: row.note ?? null,
+    visibleToStudent: row.visible_to_student === 1 || row.visible_to_student === true,
+    createdBy: row.created_by === null || row.created_by === undefined ? null : Number(row.created_by),
+    createdByName: row.created_by_name ?? row.createdByName ?? null,
+    resolvedBy: row.resolved_by === null || row.resolved_by === undefined ? null : Number(row.resolved_by),
+    resolvedByName: row.resolved_by_name ?? row.resolvedByName ?? null,
+    resolvedAt: row.resolved_at ?? row.resolvedAt ?? null,
+    createdAt: row.created_at ?? row.createdAt,
+    updatedAt: row.updated_at ?? row.updatedAt,
+  };
+}
+
+export async function createInternalReport(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  type: InternalReportType;
+  title: string;
+  note?: string | null;
+  visibleToStudent?: boolean;
+  createdBy?: number | null;
+}): Promise<number> {
+  await ensureServiceScaleTables();
+  const result = await query(
+    `INSERT INTO pmam_student_internal_reports
+      (student_id, companhia, peloton, type, title, note, visible_to_student, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.studentId,
+      input.companhia,
+      input.peloton,
+      normalizeInternalReportType(input.type),
+      input.title,
+      input.note ?? null,
+      input.visibleToStudent === false ? 0 : 1,
+      input.createdBy ?? null,
+    ]
+  );
+  return (result as any).insertId;
+}
+
+export async function listInternalReports(options?: {
+  companhia?: number | null;
+  peloton?: number | null;
+  studentId?: number | null;
+  status?: InternalReportStatus | "all";
+  visibleToStudent?: boolean;
+}): Promise<StudentInternalReport[]> {
+  await ensureServiceScaleTables();
+  const where: string[] = [];
+  const params: any[] = [];
+  if (options?.companhia) {
+    where.push("r.companhia = ?");
+    params.push(options.companhia);
+  }
+  if (options?.peloton) {
+    where.push("r.peloton = ?");
+    params.push(options.peloton);
+  }
+  if (options?.studentId) {
+    where.push("r.student_id = ?");
+    params.push(options.studentId);
+  }
+  if (options?.status && options.status !== "all") {
+    where.push("r.status = ?");
+    params.push(options.status);
+  } else if (!options?.status) {
+    where.push("r.status = 'active'");
+  }
+  if (options?.visibleToStudent !== undefined) {
+    where.push("r.visible_to_student = ?");
+    params.push(options.visibleToStudent ? 1 : 0);
+  }
+  const rows = await query(
+    `SELECT r.*, s.numerica, s.nome_guerra, cu.name AS created_by_name, ru.name AS resolved_by_name
+     FROM pmam_student_internal_reports r
+     INNER JOIN pmam_students s ON s.id = r.student_id
+     LEFT JOIN pmam_users cu ON cu.id = r.created_by
+     LEFT JOIN pmam_users ru ON ru.id = r.resolved_by
+     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY FIELD(r.status, 'active', 'resolved', 'cancelled'), r.created_at DESC
+     LIMIT 300`,
+    params
+  );
+  return (rows as any[]).map(mapInternalReport);
+}
+
+export async function getInternalReport(id: number): Promise<StudentInternalReport | null> {
+  await ensureServiceScaleTables();
+  const rows = await query(
+    `SELECT r.*, s.numerica, s.nome_guerra, cu.name AS created_by_name, ru.name AS resolved_by_name
+     FROM pmam_student_internal_reports r
+     INNER JOIN pmam_students s ON s.id = r.student_id
+     LEFT JOIN pmam_users cu ON cu.id = r.created_by
+     LEFT JOIN pmam_users ru ON ru.id = r.resolved_by
+     WHERE r.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  return rows[0] ? mapInternalReport(rows[0]) : null;
+}
+
+export async function updateInternalReportStatus(input: {
+  id: number;
+  status: InternalReportStatus;
+  resolvedBy?: number | null;
+}): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_student_internal_reports
+     SET status = ?,
+       resolved_by = CASE WHEN ? IN ('resolved', 'cancelled') THEN ? ELSE resolved_by END,
+       resolved_at = CASE WHEN ? IN ('resolved', 'cancelled') THEN CURRENT_TIMESTAMP ELSE resolved_at END,
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [input.status, input.status, input.resolvedBy ?? null, input.status, input.id]
   );
 }
 

@@ -31,6 +31,7 @@ const statusList = [
   { value: "destino_ignorado", label: "DI", color: "bg-gray-600 text-white hover:bg-gray-700" },
   { value: "dispensa_medica", label: "DM", color: "bg-orange-600 text-white hover:bg-orange-700" },
   { value: "dispensa_administrativa", label: "DA", color: "bg-purple-600 text-white hover:bg-purple-700" },
+  { value: "baixado", label: "BX", color: "bg-red-800 text-white hover:bg-red-900" },
 ];
 
 const legendDetails = [
@@ -40,6 +41,7 @@ const legendDetails = [
   { abbr: "DI", name: "Destino Ignorado" },
   { abbr: "DM", name: "Dispensa Médica" },
   { abbr: "DA", name: "Dispensa Administrativa" },
+  { abbr: "BX", name: "Baixado" },
 ];
 
 const conditionAbbrs: Record<string, string> = {
@@ -50,6 +52,7 @@ const conditionAbbrs: Record<string, string> = {
   destino_ignorado: "DI",
   dispensa_medica: "DM",
   dispensa_administrativa: "DA",
+  baixado: "BX",
 };
 
 type StudentStatusState = {
@@ -920,18 +923,19 @@ export function PeculioTab({
           <tbody>
             {students.map((student, idx) => {
               const entry = studentStatuses[student.id] || { status: "pronto", observacao: "" };
+              const printableStatus = entry.status === "baixado" ? "pronto" : entry.status;
               return (
                 <tr key={student.id}>
                   <td>{idx + 1}</td>
                   <td>{student.numerica}</td>
                   <td className="left-align font-semibold uppercase">{student.nomeGuerra}</td>
-                  <td>{entry.status === "pronto" ? "X" : ""}</td>
-                  <td>{entry.status === "falta" ? "X" : ""}</td>
-                  <td>{entry.status === "atraso" ? "X" : ""}</td>
-                  <td>{entry.status === "diverso_destino" ? "X" : ""}</td>
-                  <td>{entry.status === "destino_ignorado" ? "X" : ""}</td>
-                  <td>{entry.status === "dispensa_medica" ? "X" : ""}</td>
-                  <td>{entry.status === "dispensa_administrativa" ? "X" : ""}</td>
+                  <td>{printableStatus === "pronto" ? "X" : ""}</td>
+                  <td>{printableStatus === "falta" ? "X" : ""}</td>
+                  <td>{printableStatus === "atraso" ? "X" : ""}</td>
+                  <td>{printableStatus === "diverso_destino" ? "X" : ""}</td>
+                  <td>{printableStatus === "destino_ignorado" ? "X" : ""}</td>
+                  <td>{printableStatus === "dispensa_medica" ? "X" : ""}</td>
+                  <td>{printableStatus === "dispensa_administrativa" ? "X" : ""}</td>
                 </tr>
               );
             })}
@@ -972,7 +976,7 @@ export function PeculioTab({
           <div className="space-y-1">
             {students.filter(s => {
               const entry = studentStatuses[s.id];
-              return entry && (entry.status !== "pronto" || entry.observacao);
+              return entry && entry.status !== "baixado" && (entry.status !== "pronto" || entry.observacao);
             }).map((student, idx) => {
               const entry = studentStatuses[student.id];
               return (
@@ -983,7 +987,7 @@ export function PeculioTab({
             })}
             {!students.some(s => {
               const entry = studentStatuses[s.id];
-              return entry && (entry.status !== "pronto" || entry.observacao);
+              return entry && entry.status !== "baixado" && (entry.status !== "pronto" || entry.observacao);
             }) && (
                 <div className="text-center text-gray-500 italic p-4 text-[10px]">Sem alterações registradas.</div>
               )}

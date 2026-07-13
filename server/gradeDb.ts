@@ -527,7 +527,7 @@ export async function getGradeRanking(filters?: {
     LEFT JOIN pmam_student_grades g ON g.student_id = s.id AND g.grade IS NOT NULL
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY s.id, s.nome_guerra, s.numerica, s.companhia, s.peloton
-     ORDER BY avg_grade DESC, discipline_count DESC, s.numerica ASC`,
+     ORDER BY total_score DESC, avg_grade DESC, discipline_count DESC, s.numerica ASC`,
     params
   );
 

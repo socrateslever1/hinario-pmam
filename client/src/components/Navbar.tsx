@@ -46,6 +46,63 @@ const navLinks = [
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
+function ProfileAvatar({ src, alt }: { src?: string | null; alt: string }) {
+  return (
+    <span className="flex size-8 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/40 bg-[#1a3a2a]/10 dark:bg-zinc-800">
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          draggable={false}
+          className="block h-full w-full object-cover object-center"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center">
+          <User className="h-3.5 w-3.5 text-[#c4a84b]" />
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ProfileIdentityLink({
+  href,
+  label,
+  photoUrl,
+  photoAlt,
+  onClick,
+  tone = "student",
+  compact = false,
+}: {
+  href: string;
+  label: string;
+  photoUrl?: string | null;
+  photoAlt: string;
+  onClick?: () => void;
+  tone?: "student" | "command";
+  compact?: boolean;
+}) {
+  const colorClass = tone === "student"
+    ? "text-[#1a3a2a] dark:text-primary"
+    : "text-[#1a3a2a] dark:text-[#c4a84b]";
+
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`inline-flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-xs font-black leading-tight transition-colors hover:bg-accent dark:hover:bg-accent/50 ${colorClass} ${
+        compact ? "w-full max-w-full justify-start" : "max-w-[18rem]"
+      }`}
+      title={label}
+    >
+      <ProfileAvatar src={photoUrl} alt={photoAlt} />
+      <span className="min-w-0 whitespace-normal break-words [overflow-wrap:anywhere]">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
 function isStudentArea(location: string) {
   return (
     location.startsWith("/entrar") ||
@@ -217,43 +274,25 @@ export default function Navbar() {
                     Notas do Curso
                   </Button>
                 </Link>
-                <Link href="/perfil-aluno">
-                  <Button variant="ghost" size="sm" className="gap-2 max-w-48 truncate text-[#1a3a2a] dark:text-primary font-bold">
-                    {profileQuery.data?.fotoUrl ? (
-                      <img
-                        src={profileQuery.data.fotoUrl}
-                        alt="Foto do Aluno"
-                        className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
-                      />
-                    ) : (
-                      <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
-                        <User className="h-3 w-3 text-[#c4a84b]" />
-                      </div>
-                    )}
-                    <span>{student.nomeGuerra}</span>
-                  </Button>
-                </Link>
+                <ProfileIdentityLink
+                  href="/perfil-aluno"
+                  label={student.nomeGuerra}
+                  photoUrl={profileQuery.data?.fotoUrl}
+                  photoAlt="Foto do Aluno"
+                  tone="student"
+                />
                 <Button variant="ghost" size="sm" onClick={handleStudentLogout}>
                   Sair
                 </Button>
               </>
             ) : user ? (
-              <Link href="/perfil">
-                <Button variant="ghost" size="sm" className="gap-2 max-w-48 truncate text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
-                  {user.fotoUrl ? (
-                    <img
-                      src={user.fotoUrl}
-                      alt="Foto do Comandante"
-                      className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
-                    />
-                  ) : (
-                    <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
-                      <User className="h-3 w-3 text-[#c4a84b]" />
-                    </div>
-                  )}
-                  <span>{user.name || "Comandante"}</span>
-                </Button>
-              </Link>
+              <ProfileIdentityLink
+                href="/perfil"
+                label={user.name || "Comandante"}
+                photoUrl={user.fotoUrl}
+                photoAlt="Foto do Comandante"
+                tone="command"
+              />
             ) : (
               <Link href="/entrar">
                 <Button
@@ -353,22 +392,15 @@ export default function Navbar() {
                         Notas do Curso
                       </Button>
                     </Link>
-                    <Link href="/perfil-aluno" onClick={() => setOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-primary font-bold">
-                        {profileQuery.data?.fotoUrl ? (
-                          <img
-                            src={profileQuery.data.fotoUrl}
-                            alt="Foto do Aluno"
-                            className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
-                          />
-                        ) : (
-                          <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
-                            <User className="h-3 w-3 text-[#c4a84b]" />
-                          </div>
-                        )}
-                        <span>{student.nomeGuerra}</span>
-                      </Button>
-                    </Link>
+                    <ProfileIdentityLink
+                      href="/perfil-aluno"
+                      label={student.nomeGuerra}
+                      photoUrl={profileQuery.data?.fotoUrl}
+                      photoAlt="Foto do Aluno"
+                      tone="student"
+                      compact
+                      onClick={() => setOpen(false)}
+                    />
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3"
@@ -381,22 +413,15 @@ export default function Navbar() {
                     </Button>
                   </>
                 ) : user ? (
-                  <Link href="/perfil" onClick={() => setOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start gap-3 text-[#1a3a2a] dark:text-[#c4a84b] font-bold">
-                      {user.fotoUrl ? (
-                        <img
-                          src={user.fotoUrl}
-                          alt="Foto do Comandante"
-                          className="h-6 w-6 rounded-full object-cover border border-[#c4a84b]/40"
-                        />
-                      ) : (
-                        <div className="h-6 w-6 rounded-full bg-[#1a3a2a]/10 dark:bg-zinc-800 flex items-center justify-center border border-border/10">
-                          <User className="h-3 w-3 text-[#c4a84b]" />
-                        </div>
-                      )}
-                      <span>{user.name || "Comandante"}</span>
-                    </Button>
-                  </Link>
+                  <ProfileIdentityLink
+                    href="/perfil"
+                    label={user.name || "Comandante"}
+                    photoUrl={user.fotoUrl}
+                    photoAlt="Foto do Comandante"
+                    tone="command"
+                    compact
+                    onClick={() => setOpen(false)}
+                  />
                 ) : (
                   <Link href="/entrar" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-3">

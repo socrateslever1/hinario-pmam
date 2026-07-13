@@ -12,6 +12,7 @@ import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import bcrypt from "bcryptjs";
 import { getStudyStudentNumberErrorMessage, isValidStudyStudentNumber } from "../shared/study";
+import { getFoCodeDefinition, normalizeFoCode } from "../shared/foCatalog";
 import * as gradeDb from "./gradeDb";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
@@ -23,7 +24,7 @@ import * as foDb from "./foDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
-const INVALID_LOGIN_MESSAGE = "Email ou senha invalidos";
+const INVALID_LOGIN_MESSAGE = "E-mail ou senha inválidos.";
 const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage();
 
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
@@ -50,6 +51,14 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
   "odt", "ods", "txt", "png", "jpg", "jpeg",
 ]);
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
 const COMMAND_ROLES = [
   "comandante_corpo",
   "subcomandante_corpo",
@@ -201,6 +210,19 @@ async function requireClassroomViewAccess(
 
 function canApproveStudentDocuments(user: any) {
   return isGeneralCommandRole(user?.role);
+}
+
+function canHomologateFoLc(user: any) {
+  return user?.role === "master" || user?.role === "admin" || user?.role === "comandante_corpo";
+}
+
+function requireFoLcHomologationAccess(user: any) {
+  if (!canHomologateFoLc(user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Homologação de FO/LC restrita ao Comandante do CAL",
+    });
+  }
 }
 
 function requireStudentDocumentApprovalAccess(user: any) {
@@ -607,7 +629,7 @@ export const appRouter = router({
       if (!validFormats.includes(ext)) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Formato nao suportado. Use: ${validFormats.join(', ')}`
+          message: `Formato não suportado. Use: ${validFormats.join(', ')}`
         });
       }
       const buffer = Buffer.from(input.fileData, 'base64');
@@ -1624,6 +1646,7 @@ export const appRouter = router({
         isMaster: ctx.user.role === "master",
         isGeneral,
         canApproveStudentDocuments: canApproveStudentDocuments(ctx.user),
+        canHomologateFoLc: canHomologateFoLc(ctx.user),
         role: ctx.user.role,
       };
     }),
@@ -1915,7 +1938,7 @@ export const appRouter = router({
     updateStudentCondition: scaleManagerProcedure.input(
       z.object({
         studentId: z.number().int(),
-        condition: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa"]),
+        condition: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa", "baixado"]),
       })
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
@@ -1924,6 +1947,154 @@ export const appRouter = router({
       }
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       await studentDb.updateStudentCondition(input.studentId, input.condition);
+      return { success: true };
+    }),
+
+    listBaixados: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia ?? scope.companhia;
+      let peloton = input?.peloton ?? scope.peloton;
+
+      if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      } else if (!scope.unrestricted) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+      }
+
+      return serviceScaleDb.listBaixadoStudents({ companhia, peloton });
+    }),
+
+    setStudentBaixado: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int().positive(),
+        isBaixado: z.boolean(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      await studentDb.updateStudentCondition(input.studentId, input.isBaixado ? "baixado" : "pronto");
+      return { success: true };
+    }),
+
+    uploadBaixadoDocument: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int().positive(),
+        fileName: z.string().trim().min(1).max(180),
+        mimeType: z.string().trim().min(3).max(120),
+        base64Data: z.string().min(1),
+        note: z.string().trim().max(1000).nullable().optional(),
+        baixadoKind: z.enum(["informativo", "ausente_com_atestado", "ausente_sem_atestado", "presente_sem_atestado"]).optional(),
+        hpmHomologated: z.boolean().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      if (!BAIXADO_DOCUMENT_MIME_TYPES.has(input.mimeType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem do atestado/documento" });
+      }
+      const buffer = Buffer.from(input.base64Data, "base64");
+      if (buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 15MB" });
+      }
+      const ext = input.fileName.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pdf";
+      const fileKey = `baixados/${student.companhia}-${student.peloton}/${student.id}/${Date.now()}-${nanoid(8)}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      const id = await serviceScaleDb.createBaixadoDocument({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        fileUrl: url,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        fileSize: buffer.length,
+        note: input.note ?? null,
+        baixadoKind: input.baixadoKind ?? "informativo",
+        hpmHomologated: input.hpmHomologated ?? false,
+        uploadedBy: ctx.user.id,
+      });
+      return { id, url };
+    }),
+
+    listInternalReports: scaleManagerProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+        status: z.enum(["active", "resolved", "cancelled", "all"]).default("active"),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia ?? scope.companhia;
+      let peloton = input?.peloton ?? scope.peloton;
+
+      if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      } else if (!scope.unrestricted) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+      }
+
+      return serviceScaleDb.listInternalReports({
+        companhia,
+        peloton,
+        status: input?.status ?? "active",
+      });
+    }),
+
+    createInternalReport: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int().positive(),
+        type: z.enum(["desistente", "desertor", "baixado", "outro"]),
+        title: z.string().trim().min(3).max(180),
+        note: z.string().trim().max(5000).nullable().optional(),
+        visibleToStudent: z.boolean().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const id = await serviceScaleDb.createInternalReport({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        type: input.type,
+        title: input.title,
+        note: input.note ?? null,
+        visibleToStudent: input.visibleToStudent ?? true,
+        createdBy: ctx.user.id,
+      });
+      return { id };
+    }),
+
+    updateInternalReportStatus: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        status: z.enum(["active", "resolved", "cancelled"]),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const report = await serviceScaleDb.getInternalReport(input.id);
+      if (!report) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Informe interno não encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, report.companhia, report.peloton);
+      await serviceScaleDb.updateInternalReportStatus({
+        id: input.id,
+        status: input.status,
+        resolvedBy: ctx.user.id,
+      });
       return { success: true };
     }),
 
@@ -2211,6 +2382,7 @@ export const appRouter = router({
       z.object({
         studentId: z.number().int(),
         type: z.enum(["positive", "negative", "neutral"]).default("neutral"),
+        foCode: z.string().trim().max(32).nullable().optional(),
         note: z.string().trim().min(1).max(200000),
       })
     ).mutation(async ({ ctx, input }) => {
@@ -2220,6 +2392,15 @@ export const appRouter = router({
       const isComandante = isCommandRole(ctx.user.role);
       const general = await isXerifeGeral(ctx.user);
       const needsValidation = input.type === "positive" || input.type === "negative";
+      const foCode = input.foCode ? normalizeFoCode(input.foCode) : "";
+      if (input.type === "positive" || input.type === "negative") {
+        if (!foCode) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Todo FO+ ou FO- deve ter código." });
+        }
+        if (!getFoCodeDefinition(input.type, foCode)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Código de FO inválido para este tipo." });
+        }
+      }
       const isApprovedDirectly = isComandante || general || !needsValidation;
       const id = await serviceScaleDb.createStudentObservation({
         studentId: student.id,
@@ -2227,11 +2408,20 @@ export const appRouter = router({
         peloton: student.peloton,
         type: input.type,
         note: input.note,
+        foCode: needsValidation ? foCode : null,
         createdBy: ctx.user.id,
         validationStatus: isApprovedDirectly ? "approved" : "pending",
         validatedBy: isApprovedDirectly && needsValidation ? ctx.user.id : null,
         validatedAt: isApprovedDirectly && needsValidation ? new Date() : null,
       });
+      if (isApprovedDirectly && needsValidation) {
+        await serviceScaleDb.recomputeLcCaseForStudentCode(
+          student.id,
+          student.companhia,
+          student.peloton,
+          foCode,
+        );
+      }
       return { id };
     }),
 
@@ -2272,6 +2462,58 @@ export const appRouter = router({
       return serviceScaleDb.listPendingStudentObservations({ companhia, peloton });
     }),
 
+    contestedStudentObservations: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+        status: z.enum(["none", "pending", "accepted", "rejected", "all"]).default("pending"),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia;
+      let peloton = input?.peloton;
+      if (!scope.unrestricted) {
+        companhia = scope.companhia;
+        peloton = scope.peloton;
+        if (!companhia) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      } else if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      return serviceScaleDb.listContestedStudentObservations({
+        companhia,
+        peloton,
+        status: input?.status ?? "pending",
+      });
+    }),
+
+    registerFoContestation: scaleManagerProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        text: z.string().trim().min(5).max(5000),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const observation = await serviceScaleDb.getStudentObservation(input.id);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "FO não encontrado." });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      if (observation.validation_status !== "approved" || observation.annulled_at) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Somente FO homologado e ainda válido pode ser contestado." });
+      }
+      if (observation.contest_status && observation.contest_status !== "none") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Este FO já possui contestação registrada." });
+      }
+      await serviceScaleDb.contestStudentObservation({
+        id: input.id,
+        source: "cal",
+        text: input.text,
+      });
+      return { success: true };
+    }),
+
     validateStudentObservation: masterProcedure.input(
       z.object({
         id: z.number().int(),
@@ -2279,6 +2521,7 @@ export const appRouter = router({
         validationNote: z.string().trim().max(500).nullable().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
+      requireFoLcHomologationAccess(ctx.user);
       const observation = await serviceScaleDb.getStudentObservation(input.id);
       if (!observation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Anotação não encontrada" });
@@ -2289,6 +2532,105 @@ export const appRouter = router({
         status: input.status,
         validatedBy: ctx.user.id,
         validationNote: input.validationNote ?? null,
+      });
+      if (observation.fo_code) {
+        await serviceScaleDb.recomputeLcCaseForStudentCode(
+          observation.student_id,
+          observation.companhia,
+          observation.peloton,
+          observation.fo_code,
+        );
+      }
+      return { success: true };
+    }),
+
+    decideFoContestation: masterProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        status: z.enum(["accepted", "rejected"]),
+        decisionNote: z.string().trim().max(1000).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      requireFoLcHomologationAccess(ctx.user);
+      const observation = await serviceScaleDb.getStudentObservation(input.id);
+      if (!observation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "FO não encontrado." });
+      }
+      await requireServiceScaleAccess(ctx.user, observation.companhia, observation.peloton);
+      await serviceScaleDb.decideObservationContest({
+        id: input.id,
+        status: input.status,
+        decidedBy: ctx.user.id,
+        decisionNote: input.decisionNote ?? null,
+      });
+      if (input.status === "accepted" && observation.fo_code) {
+        await serviceScaleDb.recomputeLcCaseForStudentCode(
+          observation.student_id,
+          observation.companhia,
+          observation.peloton,
+          observation.fo_code,
+        );
+      }
+      return { success: true };
+    }),
+
+    lcCases: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+        status: z.enum(["pending", "homologated", "rejected", "cancelled", "active"]).default("pending"),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia;
+      let peloton = input?.peloton;
+      if (!scope.unrestricted) {
+        companhia = scope.companhia;
+        peloton = scope.peloton;
+        if (!companhia) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      } else if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      return serviceScaleDb.listLcCases({
+        companhia,
+        peloton,
+        status: input?.status ?? "pending",
+      });
+    }),
+
+    decideLcCase: masterProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        status: z.enum(["homologated", "rejected"]),
+        recolhimentoDate: z.string().trim().max(10).nullable().optional(),
+        durationHours: z.number().int().min(1).max(240).nullable().optional(),
+        procedures: z.string().trim().max(8000).nullable().optional(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      requireFoLcHomologationAccess(ctx.user);
+      const lcCase = await serviceScaleDb.getLcCase(input.id);
+      if (!lcCase) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Caso de LC não encontrado." });
+      }
+      await requireServiceScaleAccess(ctx.user, lcCase.companhia, lcCase.peloton);
+      if (input.status === "homologated") {
+        if (!input.recolhimentoDate || !input.durationHours || !input.procedures?.trim()) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Para homologar a LC, informe a data, a duração e os procedimentos ao aluno.",
+          });
+        }
+      }
+      await serviceScaleDb.decideLcCase({
+        id: input.id,
+        status: input.status,
+        recolhimentoDate: input.recolhimentoDate ?? null,
+        durationHours: input.durationHours ?? null,
+        procedures: input.procedures ?? null,
+        judgedBy: ctx.user.id,
       });
       return { success: true };
     }),
@@ -2403,7 +2745,7 @@ export const appRouter = router({
         statuses: z.array(
           z.object({
             studentId: z.number().int(),
-            status: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa"]),
+            status: z.enum(["pronto", "falta", "atraso", "diverso_destino", "destino_ignorado", "dispensa_medica", "dispensa_administrativa", "baixado"]),
             observacao: z.string().trim().nullable().optional(),
             arrivalTime: z.string().datetime().nullable().optional(),
           })
@@ -2783,7 +3125,7 @@ export const appRouter = router({
         success: true,
         email: result.email,
         tempPassword: result.tempPassword,
-        message: 'Usuario de comando criado com sucesso. Compartilhe o usuario e senha temporaria.',
+        message: 'Usuário de comando criado com sucesso. Compartilhe o usuário e a senha temporária.',
       };
     }),
 
@@ -2822,7 +3164,7 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const user = await db.getUserById(ctx.user.id);
       if (!user || !user.password) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuario nao encontrado' });
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Usuário não encontrado.' });
       }
       
       const dbPassword = user.password;

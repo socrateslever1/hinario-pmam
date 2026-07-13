@@ -36,6 +36,7 @@ import UserProfilePage from "./pages/UserProfile";
 import XerifeSystemDocs from "./pages/XerifeSystemDocs";
 import ServiceBoard from "./pages/ServiceBoard";
 import ClassroomMap from "./pages/ClassroomMap";
+import AdministrativeRoom from "./pages/AdministrativeRoom";
 import { ChangePassword } from "./pages/ChangePassword";
 import { AccessManagement } from "./pages/AccessManagement";
 import BottomNavigation from "./components/BottomNavigation";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/quadro-de-servico" component={ServiceBoard} />
       <Route path="/sala-de-aula" component={ClassroomMap} />
       <Route path="/sala-de-aula/:subview" component={ClassroomMap} />
+      <Route path="/sala-administrativa" component={AdministrativeRoom} />
       <Route path="/documentos" component={Documents} />
       <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/alterar-senha" component={ChangePassword} />
