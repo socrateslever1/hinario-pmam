@@ -429,15 +429,16 @@ export const appRouter = router({
               console.info(`[Auth] Fallback login successful for student ${numericaToTest}. Syncing password to pmam_users.`);
               // Sincroniza a senha correta de pmam_students para pmam_users para futuros logins
               const studentData = await studentDb.getStudentByNumerica(numericaToTest);
-              if (studentData && studentData.senha) {
+              const anyStudentData = studentData as any;
+              if (anyStudentData && anyStudentData.senha) {
                 const { query } = await import("./mysql");
                 await query(
                   "UPDATE pmam_users SET password = ?, student_id = ? WHERE id = ?",
-                  [studentData.senha, studentData.id, user.id]
+                  [anyStudentData.senha, anyStudentData.id, user.id]
                 );
                 // Atualiza o objeto do usuário na memória também
-                user.password = studentData.senha;
-                user.studentId = studentData.id;
+                user.password = anyStudentData.senha;
+                user.studentId = anyStudentData.id;
                 valid = true;
               }
             }
