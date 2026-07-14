@@ -361,7 +361,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
             <p>Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
           </section>
 
-          <section className="ml-auto mt-4 w-[50%] leading-[1.35]">
+          <section className="ml-auto mt-4 w-[65%] leading-[1.35]">
             <p><strong>Do:</strong> {doc.remetente}</p>
             <p><strong>Ao:</strong> {doc.destinatario}</p>
             <p><strong>Assunto:</strong> {doc.assunto}</p>
@@ -1602,12 +1602,11 @@ window.print();
           <div className={`lg:col-span-7 flex flex-col gap-6 items-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start overflow-hidden border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+              className="official-document-sheet flex h-auto min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
                 minWidth: "210mm",
-                height: "297mm",
                 minHeight: "297mm",
                 boxSizing: "border-box",
               }}
@@ -1642,11 +1641,11 @@ window.print();
                   }
                   #military-document-print {
                     width: 210mm !important;
-                    height: 297mm !important;
+                    height: auto !important;
                     min-height: 297mm !important;
                     padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais: Esquerda 3cm, Direita 2cm, Superior 3cm, Inferior 2cm */
                     box-sizing: border-box !important;
-                    overflow: hidden !important;
+                    overflow: visible !important;
                     border: none !important;
                     box-shadow: none !important;
                     position: relative !important;
@@ -1784,7 +1783,7 @@ window.print();
                 <div className="flex flex-col items-center">
                   <div className="w-[80mm] h-[1px] bg-black" />
                   <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
-                    {docData.remetente || "Assinatura do Discente"}
+                    {docData.assinaturaNome || docData.remetente || "Assinatura do Discente"}
                   </span>
                   <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
                     Signatário
