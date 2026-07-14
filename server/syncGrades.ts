@@ -1,4 +1,5 @@
-import mysql from 'mysql2/promise';
+import { query as dbQuery } from "./mysql";
+import mysql from "mysql2/promise";
 import { ENV } from './_core/env';
 
 /**
