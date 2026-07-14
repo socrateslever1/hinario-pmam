@@ -1048,6 +1048,17 @@ window.print();
                   </div>
 
                   <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" /> Nome da Assinatura (No rodapé)
+                    </label>
+                    <Input 
+                      value={docData.assinaturaNome || ""}
+                      onChange={(e) => handleFieldChange("assinaturaNome", e.target.value)}
+                      placeholder="Ex: Felipe da Silva Santos (Opcional)"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-muted-foreground">Destinatário</label>
                     <Input 
                       value={docData.destinatario}
