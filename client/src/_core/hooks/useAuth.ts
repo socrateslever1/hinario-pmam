@@ -4,6 +4,8 @@ import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 import type { User } from "@shared/types";
 
+import { clearStudentSession } from "@/lib/studentSession";
+
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
   redirectPath?: string;
@@ -56,6 +58,7 @@ export function useAuth(options?: UseAuthOptions) {
       // Clear localStorage cache as well
       if (typeof window !== "undefined") {
         localStorage.removeItem("auth-user-info");
+        clearStudentSession();
       }
     }
   }, [logoutMutation, utils]);

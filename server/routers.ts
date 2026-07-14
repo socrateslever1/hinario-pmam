@@ -336,7 +336,7 @@ export const appRouter = router({
       if (ctx.res && typeof (ctx.res as any).clearCookie === "function") {
         (ctx.res as any).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       } else if (ctx.resHeaders) {
-        let cookieStr = `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=${cookieOptions.sameSite || 'Lax'}`;
+        let cookieStr = `${COOKIE_NAME}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=${cookieOptions.sameSite || 'Lax'}`;
         if (cookieOptions.secure) {
           cookieStr += '; Secure';
         }

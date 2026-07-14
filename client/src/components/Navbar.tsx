@@ -161,8 +161,8 @@ export default function Navbar() {
     };
   }, []);
 
-  const handleStudentLogout = () => {
-    clearStudentSession();
+  const handleStudentLogout = async () => {
+    await handleCommandLogout();
     // Força atualização da página para limpar cache
     window.location.href = "/";
   };

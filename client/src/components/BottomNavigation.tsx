@@ -14,10 +14,11 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { getStudentSession, clearStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
+import { getStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 import { useModalHistory } from "@/hooks/useModalHistory";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 
 export const notifySessionChange = () => {
@@ -105,6 +106,8 @@ export default function BottomNavigation() {
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ];
 
+  const { logout } = useAuth();
+
   const isActive = (path: string) => {
     if (path === "__more") {
       return moreItems.some((item) => location === item.path || location.startsWith(`${item.path}/`));
@@ -121,8 +124,8 @@ export default function BottomNavigation() {
     setMoreOpen(false);
   };
 
-  const handleLogout = () => {
-    clearStudentSession();
+  const handleLogout = async () => {
+    await logout();
     notifySessionChange();
     setMoreOpen(false);
     setLocation("/entrar");
