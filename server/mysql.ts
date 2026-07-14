@@ -5,8 +5,9 @@ let connection: ReturnType<typeof connect> | null = null;
 
 function getConnection() {
   if (!ENV.tidbConfigured) {
+    const envKeys = (globalThis as any).cloudflareEnv ? Object.keys((globalThis as any).cloudflareEnv).join(", ") : "none";
     throw new Error(
-      "TiDB is not configured. Set TIDB_HOST, TIDB_USER, TIDB_PASSWORD and TIDB_DATABASE in the server environment."
+      `TiDB is not configured. HOST: ${!!ENV.tidbHost}, USER: ${!!ENV.tidbUser}, PASS: ${!!ENV.tidbPassword}, DB: ${!!ENV.tidbDatabase}. Keys in env: ${envKeys}`
     );
   }
 
