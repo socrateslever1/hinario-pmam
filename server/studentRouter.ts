@@ -478,6 +478,96 @@ export const studentRouter = router({
       const ownRg = student.rg?.replace(/\D/g, "") || "";
       if (
         (requestedNumerica && requestedNumerica !== student.numerica) ||
+    .input(
+      z.object({
+        id: z.number(),
+        sessionToken: z.string(),
+        nomeGuerra: z.string().trim().min(2).max(255).optional(),
+        nomeCompleto: z.string().trim().optional(),
+        rg: z.string().trim().optional(),
+        email: z.string().trim().email().or(z.literal("")).optional(),
+        fotoUrl: z.string().optional(),
+        cpf: z.string().trim().optional(),
+        phone: z.string().trim().optional(),
+        address: z.string().trim().optional(),
+        birthDate: z.string().trim().optional(),
+        bloodType: z.string().trim().optional(),
+        emergencyContact: z.string().trim().optional(),
+        emergencyPhone: z.string().trim().optional(),
+        senha: z.string().min(6).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Sessão inválida ou expirada",
+        });
+      }
+
+      await studentDb.updateStudentProfile(input.id, {
+        nomeGuerra: input.nomeGuerra,
+        nomeCompleto: input.nomeCompleto,
+        rg: input.rg,
+        email: input.email === "" ? null : input.email,
+        fotoUrl: input.fotoUrl,
+        cpf: input.cpf || null,
+        phone: input.phone || null,
+        address: input.address || null,
+        birthDate: input.birthDate || null,
+        bloodType: input.bloodType || null,
+        emergencyContact: input.emergencyContact || null,
+        emergencyPhone: input.emergencyPhone || null,
+        senha: input.senha,
+      });
+
+      const updated = await studentDb.getStudentById(input.id);
+      if (!updated) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Erro ao carregar perfil atualizado",
+        });
+      }
+
+      return {
+        ...updated,
+        companhiaLabel: getCompanhiaLabel(updated.companhia),
+        pelotonLabel: getPelotonLabel(updated.peloton),
+      };
+    }),
+
+  getByNumericaOrRg: publicProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        sessionToken: z.string().min(16),
+        numerica: z.string().trim().optional(),
+        rg: z.string().trim().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida ou expirada" });
+      }
+      if (!input.numerica && !input.rg) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Informe a numérica ou o RG/CI para busca",
+        });
+      }
+
+      const student = await studentDb.getStudentById(input.id);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      }
+
+      const requestedNumerica = input.numerica?.replace(/\D/g, "") || "";
+      const requestedRg = input.rg?.replace(/\D/g, "") || "";
+      const ownRg = student.rg?.replace(/\D/g, "") || "";
+      if (
+        (requestedNumerica && requestedNumerica !== student.numerica) ||
         (requestedRg && requestedRg !== ownRg)
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Só é permitido importar os próprios dados" });
@@ -489,10 +579,33 @@ export const studentRouter = router({
         nomeGuerra: student.nomeGuerra,
         nomeCompleto: student.nomeCompleto || "",
         rg: student.rg || "",
-        companhia: student.companhia,
-        peloton: student.peloton,
-        companhiaLabel: getCompanhiaLabel(student.companhia),
-        pelotonLabel: getPelotonLabel(student.peloton),
+        cpf: student.cpf || "",
+        email: student.email || "",
       };
+    }),
+
+  searchStudents: publicProcedure
+    .input(z.object({ query: z.string().min(2) }))
+    .query(async ({ input }) => {
+      const q = `%${input.query}%`;
+      const { query } = await import("./mysql");
+      const rows = await query(
+        `SELECT id, numerica, nome_guerra, nome_completo, rg, cpf, companhia, peloton 
+         FROM pmam_students 
+         WHERE numerica LIKE ? OR nome_guerra LIKE ? OR nome_completo LIKE ? 
+         LIMIT 10`,
+        [q, q, q]
+      );
+      
+      return rows.map((r: any) => ({
+        id: r.id,
+        numerica: r.numerica,
+        nomeGuerra: r.nome_guerra,
+        nomeCompleto: r.nome_completo,
+        rg: r.rg,
+        cpf: r.cpf,
+        companhia: r.companhia,
+        peloton: r.peloton,
+      }));
     }),
 });
