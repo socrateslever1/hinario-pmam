@@ -1,13 +1,20 @@
+function getEnv(name: string): string {
+  if (typeof process !== "undefined" && process.env && process.env[name]) {
+    return process.env[name] as string;
+  }
+  if (typeof globalThis !== "undefined" && (globalThis as any).cloudflareEnv && (globalThis as any).cloudflareEnv[name]) {
+    return (globalThis as any).cloudflareEnv[name];
+  }
+  return "";
+}
+
 function readBooleanEnv(value: string | undefined) {
   return value === "1" || value === "true";
 }
 
-function readRequiredEnv(name: string) {
-  return process.env[name]?.trim() ?? "";
-}
-
 function parseDatabaseUrl(url: string) {
   try {
+    if (!url) return null;
     const urlObj = new URL(url);
     return {
       host: urlObj.hostname,
@@ -22,52 +29,50 @@ function parseDatabaseUrl(url: string) {
 }
 
 export const ENV = {
-  appId: process.env.VITE_APP_ID || "default",
-  cookieSecret: process.env.JWT_SECRET || "default-secret-key",
-  databaseUrl: process.env.DATABASE_URL ?? "",
-  oAuthServerUrl: process.env.OAUTH_SERVER_URL || "https://forge.ai.studio",
-  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
-  isProduction: process.env.NODE_ENV === "production",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  supabaseUrl: process.env.VITE_SUPABASE_URL ?? "",
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? "",
-  tidbHost: (() => {
-    const fromEnv = readRequiredEnv("TIDB_HOST");
+  get appId() { return getEnv("VITE_APP_ID") || "default"; },
+  get cookieSecret() { return getEnv("JWT_SECRET") || "default-secret-key"; },
+  get databaseUrl() { return getEnv("DATABASE_URL"); },
+  get oAuthServerUrl() { return getEnv("OAUTH_SERVER_URL") || "https://forge.ai.studio"; },
+  get ownerOpenId() { return getEnv("OWNER_OPEN_ID"); },
+  get isProduction() { return getEnv("NODE_ENV") === "production"; },
+  get forgeApiUrl() { return getEnv("BUILT_IN_FORGE_API_URL"); },
+  get forgeApiKey() { return getEnv("BUILT_IN_FORGE_API_KEY"); },
+  get supabaseUrl() { return getEnv("VITE_SUPABASE_URL"); },
+  get supabaseServiceKey() { return getEnv("SUPABASE_SERVICE_ROLE_KEY") || getEnv("VITE_SUPABASE_ANON_KEY"); },
+  get tidbHost() {
+    const fromEnv = getEnv("TIDB_HOST");
     if (fromEnv) return fromEnv;
-    const parsed = parseDatabaseUrl(process.env.DATABASE_URL || "");
-    return parsed?.host ?? "";
-  })(),
-  tidbPort: (() => {
-    const fromEnv = process.env.TIDB_PORT;
+    return parseDatabaseUrl(getEnv("DATABASE_URL"))?.host ?? "";
+  },
+  get tidbPort() {
+    const fromEnv = getEnv("TIDB_PORT");
     if (fromEnv) return parseInt(fromEnv);
-    const parsed = parseDatabaseUrl(process.env.DATABASE_URL || "");
+    const parsed = parseDatabaseUrl(getEnv("DATABASE_URL"));
     return parsed?.port ? parseInt(parsed.port) : 4000;
-  })(),
-  tidbUser: (() => {
-    const fromEnv = readRequiredEnv("TIDB_USER");
+  },
+  get tidbUser() {
+    const fromEnv = getEnv("TIDB_USER");
     if (fromEnv) return fromEnv;
-    const parsed = parseDatabaseUrl(process.env.DATABASE_URL || "");
-    return parsed?.user ?? "";
-  })(),
-  tidbPassword: (() => {
-    const fromEnv = readRequiredEnv("TIDB_PASSWORD");
+    return parseDatabaseUrl(getEnv("DATABASE_URL"))?.user ?? "";
+  },
+  get tidbPassword() {
+    const fromEnv = getEnv("TIDB_PASSWORD");
     if (fromEnv) return fromEnv;
-    const parsed = parseDatabaseUrl(process.env.DATABASE_URL || "");
-    return parsed?.password ?? "";
-  })(),
-  tidbDatabase: (() => {
-    const fromEnv = readRequiredEnv("TIDB_DATABASE");
+    return parseDatabaseUrl(getEnv("DATABASE_URL"))?.password ?? "";
+  },
+  get tidbDatabase() {
+    const fromEnv = getEnv("TIDB_DATABASE");
     if (fromEnv) return fromEnv;
-    const parsed = parseDatabaseUrl(process.env.DATABASE_URL || "");
-    return parsed?.database ?? "";
-  })(),
-  tidbUrl: process.env.TIDB_URL?.trim() ?? "",
-  tidbConfigured: Boolean(
-    (readRequiredEnv("TIDB_HOST") || parseDatabaseUrl(process.env.DATABASE_URL || "")?.host) &&
-    (readRequiredEnv("TIDB_USER") || parseDatabaseUrl(process.env.DATABASE_URL || "")?.user) &&
-    (readRequiredEnv("TIDB_PASSWORD") || parseDatabaseUrl(process.env.DATABASE_URL || "")?.password) &&
-    (readRequiredEnv("TIDB_DATABASE") || parseDatabaseUrl(process.env.DATABASE_URL || "")?.database)
-  ),
-  allowDangerousSystemMutations: readBooleanEnv(process.env.ALLOW_DANGEROUS_SYSTEM_MUTATIONS),
+    return parseDatabaseUrl(getEnv("DATABASE_URL"))?.database ?? "";
+  },
+  get tidbUrl() { return getEnv("TIDB_URL"); },
+  get tidbConfigured() {
+    return Boolean(
+      (getEnv("TIDB_HOST") || parseDatabaseUrl(getEnv("DATABASE_URL"))?.host) &&
+      (getEnv("TIDB_USER") || parseDatabaseUrl(getEnv("DATABASE_URL"))?.user) &&
+      (getEnv("TIDB_PASSWORD") || parseDatabaseUrl(getEnv("DATABASE_URL"))?.password) &&
+      (getEnv("TIDB_DATABASE") || parseDatabaseUrl(getEnv("DATABASE_URL"))?.database)
+    );
+  },
+  get allowDangerousSystemMutations() { return readBooleanEnv(getEnv("ALLOW_DANGEROUS_SYSTEM_MUTATIONS")); },
 };

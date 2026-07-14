@@ -65,6 +65,7 @@ async function createFetchContext(req: Request): Promise<TrpcContext> {
 }
 
 export const onRequest: PagesFunction = async (context) => {
+  (globalThis as any).cloudflareEnv = context.env;
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     req: context.request,

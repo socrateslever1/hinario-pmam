@@ -12,7 +12,9 @@ export interface VersionInfo {
 // Versão estável por processo: usa BUILD_VERSION se disponível,
 // caso contrário usa o timestamp de início do processo (único por deploy)
 const PROCESS_START_TIME = Date.now();
-const STABLE_VERSION = process.env.BUILD_VERSION || `build-${PROCESS_START_TIME}`;
+import { ENV } from "./env";
+const safeProcessEnv = typeof process !== "undefined" ? process.env : {};
+const STABLE_VERSION = safeProcessEnv.BUILD_VERSION || `build-${PROCESS_START_TIME}`;
 
 /**
  * Get current version info
@@ -20,7 +22,7 @@ const STABLE_VERSION = process.env.BUILD_VERSION || `build-${PROCESS_START_TIME}
  */
 export function getVersionInfo(): VersionInfo {
   const version = STABLE_VERSION;
-  const timestamp = parseInt(process.env.BUILD_TIMESTAMP || PROCESS_START_TIME.toString(), 10);
+  const timestamp = parseInt(safeProcessEnv.BUILD_TIMESTAMP || PROCESS_START_TIME.toString(), 10);
   const buildTime = new Date(timestamp).toISOString();
 
   return {

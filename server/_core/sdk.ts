@@ -30,7 +30,7 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    if (!process.env.OAUTH_SERVER_URL) {
+    if (!ENV.oAuthServerUrl || ENV.oAuthServerUrl === "https://forge.ai.studio") {
       console.warn(
         "[OAuth] WARNING: OAUTH_SERVER_URL is not configured! Using default: " + ENV.oAuthServerUrl
       );
