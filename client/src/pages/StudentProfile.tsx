@@ -26,8 +26,6 @@ function formatDateOnly(value?: string | null) {
 export default function StudentProfilePage() {
   const [, setLocation] = useLocation();
   const [profile, setProfile] = useState<StudentProfile>(emptyStudentProfile);
-  const [senhaNova, setSenhaNova] = useState("");
-  const [confirmarSenhaNova, setConfirmarSenhaNova] = useState("");
   const [baixadoFile, setBaixadoFile] = useState<File | null>(null);
   const [baixadoNote, setBaixadoNote] = useState("");
   const [baixadoHpmHomologated, setBaixadoHpmHomologated] = useState(true);
@@ -177,18 +175,6 @@ export default function StudentProfilePage() {
     event.preventDefault();
     if (!session) return;
 
-    // Validar alteração de senha se preenchida
-    if (senhaNova) {
-      if (senhaNova.length < 6) {
-        toast.error("A nova senha deve ter pelo menos 6 caracteres.");
-        return;
-      }
-      if (senhaNova !== confirmarSenhaNova) {
-        toast.error("As senhas informadas não coincidem.");
-        return;
-      }
-    }
-
     try {
       // Salvar no banco de dados via TRPC
       const updatedStudent = await updateMutation.mutateAsync({
@@ -206,7 +192,6 @@ export default function StudentProfilePage() {
         bloodType: profile.bloodType,
         emergencyContact: profile.emergencyContact,
         emergencyPhone: profile.emergencyPhone,
-        senha: senhaNova || undefined,
       });
 
       // Salvar localmente no LocalStorage todos os dados (incluindo campos extras)
@@ -220,8 +205,6 @@ export default function StudentProfilePage() {
         });
       }
 
-      setSenhaNova("");
-      setConfirmarSenhaNova("");
       toast.success("Cadastro e perfil atualizados com sucesso!");
     } catch (error: any) {
       toast.error(error.message || "Erro ao salvar cadastro no banco de dados.");
@@ -344,38 +327,6 @@ export default function StudentProfilePage() {
                     <Camera className="h-3.5 w-3.5" />
                     Selecionar Imagem
                   </Button>
-                </CardContent>
-              </Card>
-
-              {/* Card Segurança / Senha */}
-              <Card className="border-border/50 bg-card text-foreground shadow-sm">
-                <CardHeader className="pb-3 border-b bg-muted/20">
-                  <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 text-[#c4a84b]" />
-                    Alterar Senha
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 flex flex-col gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nova Senha</Label>
-                    <Input 
-                      type="password" 
-                      value={senhaNova} 
-                      onChange={(e) => setSenhaNova(e.target.value)} 
-                      placeholder="Mínimo 6 dígitos"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Confirmar Nova Senha</Label>
-                    <Input 
-                      type="password" 
-                      value={confirmarSenhaNova} 
-                      onChange={(e) => setConfirmarSenhaNova(e.target.value)} 
-                      placeholder="Confirme a senha"
-                      className="h-9 text-sm"
-                    />
-                  </div>
                 </CardContent>
               </Card>
 
