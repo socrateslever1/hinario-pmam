@@ -41,7 +41,7 @@ export const  = async (context) => {
 
     const headers = new Headers();
     // Use standard cookie options (match getSessionCookieOptions in Express)
-    const isProd = context.env?.NODE_ENV === "production" || process.env.NODE_ENV === "production";
+    const isProd = context.env?.NODE_ENV === "production" || (typeof process !== "undefined" && process.env?.NODE_ENV === "production");
     headers.append(
       "Set-Cookie", 
       `${COOKIE_NAME}=${sessionToken}; Max-Age=${Math.floor(ONE_YEAR_MS / 1000)}; Path=/; HttpOnly; SameSite=Lax${isProd ? '; Secure' : ''}`
