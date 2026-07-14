@@ -412,24 +412,39 @@ export const appRouter = router({
         valid = await bcrypt.compare(input.password, dbPassword);
       } else {
         valid = input.password === dbPassword;
-      }
-      
-      if (!valid) {
-        // Se for um usuário associado a um aluno (studentId preenchido), tenta validar com a senha da tabela pmam_students
-        if (user.studentId) {
-          const student = await studentDb.getStudentById(user.studentId);
-          if (student) {
-            const isStudentPasswordValid = await studentDb.verifyStudentPassword(student.numerica, input.password);
+        if (!valid) {
+          // Se for um usuário associado a um aluno (studentId preenchido ou formato numerica), tenta validar com a senha da tabela pmam_students
+          let numericaToTest = null;
+          
+          if (user.studentId) {
+            const student = await studentDb.getStudentById(user.studentId);
+            if (student) numericaToTest = student.numerica;
+          } else if (/^\d{4}@pmam\.com$/.test(normalizedEmail)) {
+            numericaToTest = normalizedEmail.split('@')[0];
+          }
+
+          if (numericaToTest) {
+            const isStudentPasswordValid = await studentDb.verifyStudentPassword(numericaToTest, input.password);
             if (isStudentPasswordValid) {
-              console.info(`[Auth] Synchronizing password for user ${normalizedEmail} from student table`);
-              const hashedPassword = await bcrypt.hash(input.password, 12);
-              await db.resetUserPassword(user.id, hashedPassword);
-              valid = true;
+              console.info(`[Auth] Fallback login successful for student ${numericaToTest}. Syncing password to pmam_users.`);
+              // Sincroniza a senha correta de pmam_students para pmam_users para futuros logins
+              const studentData = await studentDb.getStudentByNumerica(numericaToTest);
+              if (studentData && studentData.senha) {
+                const { query } = await import("./mysql");
+                await query(
+                  "UPDATE pmam_users SET password = ?, student_id = ? WHERE id = ?",
+                  [studentData.senha, studentData.id, user.id]
+                );
+                // Atualiza o objeto do usuário na memória também
+                user.password = studentData.senha;
+                user.studentId = studentData.id;
+                valid = true;
+              }
             }
           }
         }
       }
-
+      
       if (!valid) {
         console.warn(`[Auth] Login failed: Invalid password for user ${normalizedEmail}`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });

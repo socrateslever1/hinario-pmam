@@ -20,6 +20,7 @@ function mapUser(u: any) {
     companhiaId: u.companhia_id,
     forcePasswordChange: u.force_password_change === 1 || u.force_password_change === true,
     fotoUrl: u.foto_url,
+    studentId: u.student_id,
     createdAt: u.created_at,
     updatedAt: u.updated_at,
     lastSignedIn: u.last_signed_in
