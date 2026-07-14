@@ -565,22 +565,33 @@ export const studentRouter = router({
 
       const requestedNumerica = input.numerica?.replace(/\D/g, "") || "";
       const requestedRg = input.rg?.replace(/\D/g, "") || "";
-      const ownRg = student.rg?.replace(/\D/g, "") || "";
-      if (
-        (requestedNumerica && requestedNumerica !== student.numerica) ||
-        (requestedRg && requestedRg !== ownRg)
-      ) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Só é permitido importar os próprios dados" });
+      
+      // Permitir que qualquer pessoa busque os dados para preencher o documento
+      // O usuário pediu explicitamente: "tem que liberar a busca nos campos acima" para "fazer para outra pessoa"
+      let targetStudent = student;
+
+      if (requestedNumerica && requestedNumerica !== student.numerica) {
+        const found = await studentDb.getStudentByNumerica(requestedNumerica);
+        if (found) targetStudent = found;
+      } else if (requestedRg && requestedRg !== (student.rg?.replace(/\D/g, "") || "")) {
+        // Fallback: se tivermos que buscar por RG, na verdade não temos um endpoint fácil no studentDb, 
+        // mas podemos apenas permitir a busca por numérica por agora, ou fazer uma query rápida
+        const { query } = await import("./mysql");
+        const rows = await query("SELECT id FROM pmam_students WHERE REPLACE(rg, '.', '') = ? OR REPLACE(rg, '-', '') = ? LIMIT 1", [requestedRg, requestedRg]);
+        if (rows && rows.length > 0) {
+          const found = await studentDb.getStudentById((rows[0] as any).id);
+          if (found) targetStudent = found;
+        }
       }
 
       return {
-        id: student.id,
-        numerica: student.numerica,
-        nomeGuerra: student.nomeGuerra,
-        nomeCompleto: student.nomeCompleto || "",
-        rg: student.rg || "",
-        cpf: student.cpf || "",
-        email: student.email || "",
+        id: targetStudent.id,
+        numerica: targetStudent.numerica,
+        nomeGuerra: targetStudent.nomeGuerra,
+        nomeCompleto: targetStudent.nomeCompleto || "",
+        rg: targetStudent.rg || "",
+        cpf: targetStudent.cpf || "",
+        email: targetStudent.email || "",
       };
     }),
 

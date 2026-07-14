@@ -1034,7 +1034,7 @@ window.print();
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-4 max-h-[75vh] lg:max-h-[85vh] overflow-y-auto pr-2 pb-10">
                   {/* Campos Comuns */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
@@ -1059,20 +1059,24 @@ window.print();
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Destinatário</label>
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <User className="h-3 w-3" /> Destinatário
+                    </label>
                     <Input 
                       value={docData.destinatario}
                       onChange={(e) => handleFieldChange("destinatario", e.target.value)}
-                      placeholder="Ex: Ao Sr. Comandante do CFAP"
+                      placeholder="Ex: Exmo Sr. Comandante do CFAP"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Assunto</label>
+                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> Assunto
+                    </label>
                     <Input
                       value={docData.assunto}
                       onChange={(e) => handleFieldChange("assunto", e.target.value)}
-                      placeholder="Ex: Solicitação (FAZ)"
+                      placeholder="Ex: Justificativa de Falta"
                     />
                   </div>
 
@@ -1141,7 +1145,11 @@ window.print();
                               variant="outline" 
                               size="sm" 
                               className="h-6 text-[10px] px-2 bg-white"
-                              onClick={() => handleFieldChange("parteRelato", docData.parteRelato + (docData.parteRelato ? "\n" : "") + "Considerando que ")}
+                              onClick={() => {
+                                const current = docData.parteRelato || "";
+                                const prefix = current.length > 0 ? (current.endsWith("\n") ? "" : "\n\n") : "";
+                                handleFieldChange("parteRelato", current + prefix + "Considerando que ");
+                              }}
                             >
                               + Considerando
                             </Button>
