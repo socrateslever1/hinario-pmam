@@ -1,6 +1,6 @@
 import { storagePut } from "../../server/storage";
 
-export const  = async (context) => {
+export const onRequestPost: PagesFunction = async (context) => {
   (globalThis as any).cloudflareEnv = context.env;
   try {
     const formData = await context.request.formData();

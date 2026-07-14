@@ -2,7 +2,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "../../../shared/const";
 import * as db from "../../../server/db";
 import { sdk } from "../../../server/_core/sdk";
 
-export const  = async (context) => {
+export const onRequestGet: PagesFunction = async (context) => {
   (globalThis as any).cloudflareEnv = context.env;
   const url = new URL(context.request.url);
   const code = url.searchParams.get("code");
