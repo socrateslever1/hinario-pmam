@@ -31,6 +31,7 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 
 const LOGO_URL = "/logo/IMG_7728.PNG";
@@ -118,6 +119,7 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   const { data: user } = trpc.auth.me.useQuery();
+  const { logout: handleCommandLogout } = useAuth();
   const isComandante = Boolean(
     !student &&
     user?.role &&
@@ -286,13 +288,18 @@ export default function Navbar() {
                 </Button>
               </>
             ) : user ? (
-              <ProfileIdentityLink
-                href="/perfil"
-                label={user.name || "Comandante"}
-                photoUrl={user.fotoUrl}
-                photoAlt="Foto do Comandante"
-                tone="command"
-              />
+              <>
+                <ProfileIdentityLink
+                  href="/perfil"
+                  label={user.name || "Comandante"}
+                  photoUrl={user.fotoUrl}
+                  photoAlt="Foto do Comandante"
+                  tone="command"
+                />
+                <Button variant="ghost" size="sm" onClick={handleCommandLogout}>
+                  Sair
+                </Button>
+              </>
             ) : (
               <Link href="/entrar">
                 <Button
@@ -413,15 +420,27 @@ export default function Navbar() {
                     </Button>
                   </>
                 ) : user ? (
-                  <ProfileIdentityLink
-                    href="/perfil"
-                    label={user.name || "Comandante"}
-                    photoUrl={user.fotoUrl}
-                    photoAlt="Foto do Comandante"
-                    tone="command"
-                    compact
-                    onClick={() => setOpen(false)}
-                  />
+                  <>
+                    <ProfileIdentityLink
+                      href="/perfil"
+                      label={user.name || "Comandante"}
+                      photoUrl={user.fotoUrl}
+                      photoAlt="Foto do Comandante"
+                      tone="command"
+                      compact
+                      onClick={() => setOpen(false)}
+                    />
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                      onClick={() => {
+                        setOpen(false);
+                        handleCommandLogout();
+                      }}
+                    >
+                      Sair
+                    </Button>
+                  </>
                 ) : (
                   <Link href="/entrar" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-3">
