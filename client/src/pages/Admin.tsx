@@ -178,7 +178,7 @@ export default function Admin() {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4 border-border/50 bg-white text-foreground shadow-md">
+          <Card className="max-w-md w-full mx-4 border-border/50 bg-card text-foreground shadow-md">
             <CardContent className="p-8 text-center">
               <Star className="h-16 w-16 text-[#c4a84b] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Merriweather, serif' }}>
@@ -219,7 +219,7 @@ export default function Admin() {
         </div>
       )}
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -252,7 +252,7 @@ export default function Admin() {
           {/* Stats */}
           {canManageGlobalContent && (
             <div className="mb-3 grid grid-cols-2 gap-2 md:mb-5 md:grid-cols-4 md:gap-3">
-              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+              <Card className="border-border/50 bg-card py-0 text-foreground shadow-sm">
                 <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 md:h-8 md:w-8">
                     <Music className="h-3.5 w-3.5 shrink-0 text-[#1a3a2a] md:h-4 md:w-4" />
@@ -263,7 +263,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+              <Card className="border-border/50 bg-card py-0 text-foreground shadow-sm">
                 <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 md:h-8 md:w-8">
                     <Shield className="h-3.5 w-3.5 shrink-0 text-[#c4a84b] md:h-4 md:w-4" />
@@ -274,7 +274,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+              <Card className="border-border/50 bg-card py-0 text-foreground shadow-sm">
                 <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 md:h-8 md:w-8">
                     <Target className="h-3.5 w-3.5 shrink-0 text-[#c4a84b] md:h-4 md:w-4" />
@@ -285,7 +285,7 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm">
+              <Card className="border-border/50 bg-card py-0 text-foreground shadow-sm">
                 <CardContent className="flex min-w-0 items-center gap-2 p-2.5 md:p-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#1a2744]/10 md:h-8 md:w-8">
                     <Users className="h-3.5 w-3.5 shrink-0 text-[#1a2744] md:h-4 md:w-4" />

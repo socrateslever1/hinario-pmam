@@ -221,7 +221,7 @@ export default function StudyStudio({ module }: StudyStudioProps) {
               <Card className="overflow-hidden border-border/60">
                 <div className="military-gradient h-32 w-full p-6 flex items-end">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-white/10 p-3 backdrop-blur">
+                    <div className="rounded-xl bg-card/10 p-3 backdrop-blur">
                       <Layout className="h-8 w-8 text-[#c4a84b]" />
                     </div>
                     <div>

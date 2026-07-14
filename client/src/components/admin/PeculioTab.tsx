@@ -518,7 +518,7 @@ export function PeculioTab({
                       Salvar Pecúlio
                     </Button>
                     <Button
-                      className="min-h-11 flex-1 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation"
+                      className="min-h-11 flex-1 gap-2 bg-[#c4a84b] font-bold text-foreground hover:bg-[#b8973e] touch-manipulation"
                       onClick={handleClose}
                       disabled={savePeculio.isPending || closePeculio.isPending || !canEdit}
                     >
@@ -611,7 +611,7 @@ export function PeculioTab({
                   onChange={(e) => setReleaseReason(e.target.value)}
                   className="h-11 text-base sm:h-9 sm:text-xs"
                 />
-                <Button size="sm" className="min-h-10 gap-2 bg-[#c4a84b] font-bold text-black hover:bg-[#b8973e] touch-manipulation" onClick={handleRelease} disabled={releasePeculio.isPending}>
+                <Button size="sm" className="min-h-10 gap-2 bg-[#c4a84b] font-bold text-foreground hover:bg-[#b8973e] touch-manipulation" onClick={handleRelease} disabled={releasePeculio.isPending}>
                   <UnlockKeyhole className="h-4 w-4" />
                   Liberar 12h
                 </Button>
@@ -877,7 +877,7 @@ export function PeculioTab({
       </Card>
 
       {/* 4. OFFICIAL PMAM PECÚLIO PRINT VIEW - Hidden by default, visible during window.print() */}
-      <div className="hidden print:block peculio-print-container font-serif text-black p-4 space-y-4" style={{ fontSize: "11px" }}>
+      <div className="hidden print:block peculio-print-container font-serif text-foreground p-4 space-y-4" style={{ fontSize: "11px" }}>
         <style dangerouslySetInnerHTML={{
           __html: `
           @media print {

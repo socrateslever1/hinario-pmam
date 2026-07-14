@@ -71,7 +71,7 @@ export default function Drill() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <Target className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -87,7 +87,7 @@ export default function Drill() {
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container space-y-8">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Target className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -97,7 +97,7 @@ export default function Drill() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Video className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -107,7 +107,7 @@ export default function Drill() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -136,7 +136,7 @@ export default function Drill() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-white text-foreground shadow-sm rounded-xl">
+          <Card className="border-border/50 bg-card text-foreground shadow-sm rounded-xl">
             <CardContent className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_330px]">
               <div className="space-y-4">
                 <div className="relative">
@@ -201,13 +201,13 @@ export default function Drill() {
           </Card>
 
           {isLoading ? (
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="p-12 text-center text-muted-foreground">
                 Carregando ordem unida...
               </CardContent>
             </Card>
           ) : filteredDrills.length === 0 ? (
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="p-12 text-center text-muted-foreground">
                 Nenhum material de ordem unida encontrado com esse filtro.
               </CardContent>
@@ -216,7 +216,7 @@ export default function Drill() {
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredDrills.map((item: any) => (
                 <Link key={item.id} href={`/drill/${item.id}`}>
-                  <Card className="h-full cursor-pointer overflow-hidden border-border/50 bg-white text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50">
+                  <Card className="h-full cursor-pointer overflow-hidden border-border/50 bg-card text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50">
                     <div className="relative aspect-[16/9] overflow-hidden bg-[#0f1f18]">
                       {item.imageUrl ? (
                         <img

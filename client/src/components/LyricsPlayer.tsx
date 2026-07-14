@@ -170,7 +170,7 @@ export default function LyricsPlayer({
 
   return (
     <div className="mx-auto w-full max-w-[58rem] space-y-4 md:space-y-5">
-      <Card className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#0b3323]/78 shadow-[0_22px_60px_rgba(0,0,0,.28)] md:rounded-lg md:border-[#1a3a2a]/10 md:bg-white md:shadow-xl">
+      <Card className="overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#0b3323]/78 shadow-[0_22px_60px_rgba(0,0,0,.28)] md:rounded-lg md:border-[#1a3a2a]/10 md:bg-card md:shadow-xl">
         <CardContent className="p-0">
           {/* Vídeo YouTube (visível apenas se for YouTube) */}
           {mediaUrl ? (
@@ -219,7 +219,7 @@ export default function LyricsPlayer({
                 <h3 className="truncate text-base font-extrabold tracking-normal text-white sm:text-lg md:text-xl md:text-[#1d2b23]">
                   {hymnTitle}
                 </h3>
-              <span className="mt-0.5 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 md:bg-[#1a3a2a]/6 md:text-[#1a3a2a]/70">
+              <span className="mt-0.5 inline-block rounded-full bg-card/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 md:bg-[#1a3a2a]/6 md:text-[#1a3a2a]/70">
                 {mediaLabel}
               </span>
               <span className="ml-1 mt-0.5 inline-block rounded-full bg-[#f0bd3a]/18 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f0bd3a] md:bg-[#c4a84b]/15 md:text-[#1a3a2a]/70">
@@ -233,7 +233,7 @@ export default function LyricsPlayer({
                   variant="ghost"
                   size="icon"
                   onClick={() => seekTo(0)}
-                  className="h-9 w-9 rounded-full text-white/70 transition-all hover:bg-white/10 hover:text-white active:scale-95 md:text-muted-foreground md:hover:bg-[#1a3a2a]/8 md:hover:text-[#1a3a2a]"
+                  className="h-9 w-9 rounded-full text-white/70 transition-all hover:bg-card/10 hover:text-white active:scale-95 md:text-muted-foreground md:hover:bg-[#1a3a2a]/8 md:hover:text-[#1a3a2a]"
                   disabled={!mediaUrl}
                   title="Reiniciar"
                 >
@@ -284,7 +284,7 @@ export default function LyricsPlayer({
                 <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white/55 md:text-[#1a3a2a]/55">
                   Fonte
                 </span>
-                <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-full border border-white/10 bg-white/8 p-0.5 md:rounded-md md:border-[#1a3a2a]/12 md:bg-[#1a3a2a]/5">
+                <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-full border border-white/10 bg-card/8 p-0.5 md:rounded-md md:border-[#1a3a2a]/12 md:bg-[#1a3a2a]/5">
                 {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
                   const isActive = audioVariant === variant;
                   const disabled = variant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl;

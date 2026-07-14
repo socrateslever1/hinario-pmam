@@ -109,7 +109,7 @@ export default function HymnDetail() {
       <Navbar />
 
       {/* Header */}
-      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-10">
+      <section className="bg-card border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-10">
         <div className="px-0 md:container">
           <Link href={catalogHref}>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-[#1a3a2a]/5 gap-2 mb-4">

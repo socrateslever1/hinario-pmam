@@ -357,7 +357,7 @@ export default function Grades() {
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center flex flex-col items-center">
           {studentPhotoUrl ? (
             <img

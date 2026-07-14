@@ -122,7 +122,7 @@ function HeroSection() {
           <div className="relative grid grid-cols-1 md:grid-cols-[1.25fr_0.75fr] items-center gap-6 z-10 flex-1">
             <div className="py-2 md:py-4 flex flex-col justify-center items-start">
               {/* Badge */}
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/5 px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70">
                 <SlideIcon className="h-3.5 w-3.5 text-[#f0bd3a]" />
                 {slide.badge}
               </div>
@@ -188,7 +188,7 @@ function QuickAccess() {
         <div className="flex min-w-min gap-3">
           {quickAccessItems.map((item) => (
             <Link key={item.label} href={item.href}>
-              <div className="h-28 w-32 shrink-0 rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+              <div className="h-28 w-32 shrink-0 rounded-lg border border-border/50 bg-card p-3 shadow-sm">
                 <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] shadow-inner">
                   <item.icon className="h-4 w-4" />
                 </div>
@@ -265,7 +265,7 @@ function InstitutionalGuidelines() {
           {guidelines.map((item) => {
             const Icon = item.icon;
             return (
-              <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50">
+              <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-card py-0 shadow-sm hover:border-[#c4a84b]/50">
                 <div className="h-1 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-1.5" />
                 <CardContent className="p-3 md:p-5">
                   <div className="mb-2 flex items-center gap-2 md:mb-3 md:gap-3">
@@ -281,14 +281,14 @@ function InstitutionalGuidelines() {
           })}
 
           {oath && (
-            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-white py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4 relative" style={{
+            <Card className="col-span-2 mt-1 overflow-hidden border-border/50 bg-card py-0 shadow-sm hover:border-[#c4a84b]/50 lg:col-span-4 relative" style={{
               backgroundImage: 'url(/manus-storage/bandeira-amazonas_31beb3aa.png)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
               backgroundAttachment: 'fixed'
             }}>
-              <div className="absolute inset-0 bg-white/95 pointer-events-none" />
+              <div className="absolute inset-0 bg-card/95 pointer-events-none" />
               <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b] md:h-2" />
               <CardContent className="p-4 md:p-8 relative z-10">
                 <div className="mb-4 flex items-center gap-3 md:mb-6">
@@ -328,7 +328,7 @@ function LatestHymns({ hymns }: { hymns: any[] | undefined }) {
           { id: 13, number: 13, title: "Canção do CFAP", category: "militar" },
         ]).map((hymn: any) => (
           <Link key={hymn.id} href={`/hino/${hymn.id}`}>
-            <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+            <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-card p-3 shadow-sm">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#1a3a2a] to-[#2d5a27] text-sm font-black text-[#c4a84b]">
                 {String(hymn.number ?? "").padStart(2, "0")}
               </div>
@@ -379,7 +379,7 @@ function StudentNoticePanel() {
         <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
           <div className="flex min-w-min gap-3 md:grid md:grid-cols-3">
             {noticesQuery.data.map((notice: any) => (
-              <Card key={notice.id} className="w-72 shrink-0 border-white/10 bg-[#0b3323]/80 py-0 text-white shadow-lg md:w-auto md:border-border/50 md:bg-white md:text-foreground">
+              <Card key={notice.id} className="w-72 shrink-0 border-white/10 bg-[#0b3323]/80 py-0 text-white shadow-lg md:w-auto md:border-border/50 md:bg-card md:text-foreground">
                 <CardContent className="p-4">
                   <Badge className="mb-3 bg-[#f0bd3a] text-[#062417]">
                     {notice.priority === "urgent" ? "Urgente" : notice.priority === "important" ? "Importante" : "Aviso"}
@@ -425,7 +425,7 @@ function StudentHighlights() {
         <div className="-mx-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
           <div className="flex min-w-min gap-3 md:grid md:grid-cols-3 lg:grid-cols-4">
             {highlights.map((item: any) => (
-              <Card key={item.id} className="w-64 shrink-0 overflow-hidden border-border/50 bg-white py-0 shadow-sm md:w-auto">
+              <Card key={item.id} className="w-64 shrink-0 overflow-hidden border-border/50 bg-card py-0 shadow-sm md:w-auto">
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#c4a84b] bg-[#1a3a2a]/10">
@@ -580,7 +580,7 @@ export default function Home() {
         <div className="container">
           <div className="flex flex-col gap-4 text-left md:items-center md:text-center">
             <div className="flex items-center gap-3 md:flex-col md:gap-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#c4a84b] md:mx-auto md:mb-4 md:h-12 md:w-12 md:bg-transparent">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card/10 text-[#c4a84b] md:mx-auto md:mb-4 md:h-12 md:w-12 md:bg-transparent">
                 <Target className="h-5 w-5 md:h-12 md:w-12" />
               </div>
               <div>

@@ -473,7 +473,7 @@ export function GradeAdminTab() {
         setIsFormOpen(open);
         if (!open) resetDisciplineForm();
       }}>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6 bg-white text-foreground">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6 bg-card text-foreground">
           <DialogHeader>
             <DialogTitle>
               {editingDiscipline ? "Editar disciplina" : "Criar disciplina"}
@@ -593,7 +593,7 @@ export function GradeAdminTab() {
               {gaivotasLinks.length > 0 && (
                 <div className="space-y-1.5 rounded-md border p-2 bg-muted/10 max-h-40 overflow-y-auto">
                   {gaivotasLinks.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between gap-2 text-xs bg-white p-1.5 rounded border">
+                    <div key={index} className="flex items-center justify-between gap-2 text-xs bg-card p-1.5 rounded border">
                       <div className="min-w-0 flex-1">
                         <span className="font-semibold text-foreground block truncate">{item.title}</span>
                         <span className="text-muted-foreground block truncate">{item.url}</span>

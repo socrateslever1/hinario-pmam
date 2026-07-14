@@ -99,7 +99,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
         <Navbar />
 
-      <section className="bg-white border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-14">
+      <section className="bg-card border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-14">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />
@@ -201,7 +201,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <Card className="border-border/50 bg-card text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <FileText className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -211,7 +211,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <Card className="border-border/50 bg-card text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <BookOpenCheck className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -221,7 +221,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-border/50 bg-white text-foreground shadow-sm">
+                <Card className="border-border/50 bg-card text-foreground shadow-sm">
                   <CardContent className="flex items-center gap-4 p-5">
                     <UploadCloud className="h-10 w-10 text-[#1a3a2a]" />
                     <div>
@@ -235,7 +235,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
 
               <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5">
                 <CardContent className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
-                  <div className="rounded-2xl border bg-white px-4 py-3 text-sm text-muted-foreground">
+                  <div className="rounded-2xl border bg-card px-4 py-3 text-sm text-muted-foreground">
                     Esta área agora serve como acervo. Em vez de aula, o foco é abrir o material oficial, consultar o texto
                     limpo e usar a página como biblioteca de referência.
                   </div>
@@ -257,7 +257,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
               </Card>
 
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <Card className="overflow-hidden border-border/50 bg-white text-foreground shadow-sm">
+                <Card className="overflow-hidden border-border/50 bg-card text-foreground shadow-sm">
                   <CardHeader>
                     <CardTitle style={{ fontFamily: "Merriweather, serif" }}>PDF para abrir e visualizar</CardTitle>
                     <p className="text-sm text-muted-foreground">
@@ -269,7 +269,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                       <iframe
                         title={`PDF ${libraryItem.title}`}
                         src={`${libraryItem.pdfUrl}#toolbar=1&navpanes=0&view=FitH`}
-                        className="h-[74vh] min-h-[460px] w-full rounded-2xl border bg-white"
+                        className="h-[74vh] min-h-[460px] w-full rounded-2xl border bg-card"
                       />
                     ) : (
                       <div className="rounded-2xl border bg-muted/20 p-5 text-sm text-muted-foreground">
@@ -312,7 +312,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
                 </div>
               </div>
 
-              <Card className="border-border/50 bg-white text-foreground shadow-sm">
+              <Card className="border-border/50 bg-card text-foreground shadow-sm">
                 <CardHeader>
                   <CardTitle style={{ fontFamily: "Merriweather, serif" }}>Texto limpo para consulta</CardTitle>
                   <p className="text-sm text-muted-foreground">

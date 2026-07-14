@@ -288,14 +288,14 @@ function MissionCard({
                   value={authorName}
                   onChange={(event) => setAuthorName(event.target.value)}
                   placeholder="Seu Nº de Acesso"
-                  className="bg-white"
+                  className="bg-card"
                 />
                 <Textarea
                   value={commentText}
                   onChange={(event) => setCommentText(event.target.value)}
                   placeholder="Ex.: Positivo, xerife. Ciente da formatura."
                   rows={3}
-                  className="bg-white"
+                  className="bg-card"
                 />
                 <div className="flex flex-row md:flex-col gap-2 justify-end">
                   <input
@@ -308,7 +308,7 @@ function MissionCard({
                   <Button
                     type="button"
                     variant="outline"
-                    className="bg-white hover:bg-muted text-muted-foreground h-10 w-10 p-0 rounded-xl"
+                    className="bg-card hover:bg-muted text-muted-foreground h-10 w-10 p-0 rounded-xl"
                     onClick={() => document.getElementById(`comment-photo-upload-${mission.id}`)?.click()}
                     title="Anexar foto"
                     disabled={isUploadingPhoto}
@@ -352,13 +352,13 @@ function MissionCard({
                 ))}
               </div>
             ) : !commentsQuery.data || commentsQuery.data.length === 0 ? (
-              <div className="rounded-xl border border-dashed bg-white px-4 py-6 text-sm text-muted-foreground">
+              <div className="rounded-xl border border-dashed bg-card px-4 py-6 text-sm text-muted-foreground">
                 Ainda não há comentários neste comunicado.
               </div>
             ) : (
               <div className="space-y-3">
                 {commentsQuery.data.map((comment) => (
-                  <div key={comment.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5">
+                  <div key={comment.id} className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-black/5">
                     <div className="mb-1 flex items-center justify-between gap-3">
                       <span className="font-semibold text-foreground">{comment.authorName}</span>
                       <span className="text-xs text-muted-foreground">

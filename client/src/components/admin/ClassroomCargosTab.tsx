@@ -220,7 +220,7 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
           <h2 className="text-lg font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Funções e Cargos</h2>
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={openCreate} className="bg-[#c4a84b] hover:bg-[#b8973e] text-black font-bold gap-1">
+          <Button size="sm" onClick={openCreate} className="bg-[#c4a84b] hover:bg-[#b8973e] text-foreground font-bold gap-1">
             <Plus className="h-4 w-4" /> Nova Função
           </Button>
         )}
@@ -404,7 +404,7 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
                 </Select>
                 <Input placeholder="Título do cargo (opcional)" value={memberTitulo} onChange={e => setMemberTitulo(e.target.value)} className="h-8 text-sm" />
                 <div className="flex gap-2">
-                  <Button size="sm" className="bg-[#c4a84b] hover:bg-[#b8973e] text-black font-bold h-7 text-xs" onClick={handleAddMember} disabled={addMember.isPending}>Nomear</Button>
+                  <Button size="sm" className="bg-[#c4a84b] hover:bg-[#b8973e] text-foreground font-bold h-7 text-xs" onClick={handleAddMember} disabled={addMember.isPending}>Nomear</Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddMemberCargoId(null)}>Cancelar</Button>
                 </div>
               </div>
@@ -455,7 +455,7 @@ export function ClassroomCargosTab({ companhia, peloton, isAdmin }: Props) {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => { setShowCreateModal(false); setEditingCargo(null); }}>Cancelar</Button>
-            <Button className="bg-[#c4a84b] hover:bg-[#b8973e] text-black font-bold" onClick={editingCargo ? handleUpdate : handleCreate} disabled={createCargo.isPending || updateCargo.isPending}>
+            <Button className="bg-[#c4a84b] hover:bg-[#b8973e] text-foreground font-bold" onClick={editingCargo ? handleUpdate : handleCreate} disabled={createCargo.isPending || updateCargo.isPending}>
               {editingCargo ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
@@ -546,7 +546,7 @@ function TreasuryPanel({ cargoId, companhia, peloton, isAdmin, cargoNome }: { ca
           <Input placeholder="Descrição" value={descricao} onChange={e => setDescricao(e.target.value)} className="h-8 text-sm" />
           <Input type="date" value={data} onChange={e => setData(e.target.value)} className="h-8 text-sm" />
           <div className="flex gap-2">
-            <Button size="sm" className="bg-[#c4a84b] hover:bg-[#b8973e] text-black font-bold h-7 text-xs flex-1" onClick={handleAdd} disabled={addEntry.isPending}>Registrar</Button>
+            <Button size="sm" className="bg-[#c4a84b] hover:bg-[#b8973e] text-foreground font-bold h-7 text-xs flex-1" onClick={handleAdd} disabled={addEntry.isPending}>Registrar</Button>
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowForm(false)}>Cancelar</Button>
           </div>
         </div>

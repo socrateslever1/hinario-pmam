@@ -100,7 +100,7 @@ export default function DrillDetail() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
             {drill.category && <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{drill.category}</Badge>}
@@ -143,7 +143,7 @@ export default function DrillDetail() {
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
         <div className="container space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <PlayCircle className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -202,7 +202,7 @@ export default function DrillDetail() {
                   )}
 
                   {hasImage && (
-                    <div className="overflow-hidden rounded-3xl border bg-white">
+                    <div className="overflow-hidden rounded-3xl border bg-card">
                       <img
                         src={drill.imageUrl!}
                         alt={drill.title}
@@ -301,7 +301,7 @@ export default function DrillDetail() {
                     <iframe
                       title={`PDF ${drill.title}`}
                       src={`${drill.pdfUrl}#toolbar=1&navpanes=0&view=FitH`}
-                      className="h-[72vh] min-h-[420px] w-full rounded-2xl border bg-white"
+                      className="h-[72vh] min-h-[420px] w-full rounded-2xl border bg-card"
                     />
                   </CardContent>
                 </Card>

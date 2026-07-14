@@ -89,7 +89,7 @@ export default function SyncStudio() {
       <div className="flex items-center justify-between border-b border-white/10 bg-[#111] px-4 py-3 shrink-0">
         <div className="flex items-center gap-4">
           <Link href="/xerife">
-            <Button variant="ghost" size="icon" className="hover:bg-white/10 text-white/70 hover:text-white">
+            <Button variant="ghost" size="icon" className="hover:bg-card/10 text-white/70 hover:text-white">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>

@@ -39,7 +39,7 @@ export default function EducationCenter() {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
         <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <BookOpenCheck className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -55,7 +55,7 @@ export default function EducationCenter() {
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <Library className="h-10 w-10 text-[#c4a84b]" />
                 <div>
@@ -65,7 +65,7 @@ export default function EducationCenter() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <BookOpenCheck className="h-10 w-10 text-[#c4a84b]" />
                 <div>
@@ -75,7 +75,7 @@ export default function EducationCenter() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
                 <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
                 <div>
@@ -87,7 +87,7 @@ export default function EducationCenter() {
             </Card>
           </div>
 
-          <Card className="border-border/50 bg-white text-foreground shadow-sm rounded-xl">
+          <Card className="border-border/50 bg-card text-foreground shadow-sm rounded-xl">
             <CardContent className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_320px] md:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -95,7 +95,7 @@ export default function EducationCenter() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Buscar por nome do documento, tema ou arquivo"
-                  className="pl-9 bg-white text-foreground placeholder:text-muted-foreground border-border"
+                  className="pl-9 bg-card text-foreground placeholder:text-muted-foreground border-border"
                 />
               </div>
               <div className="rounded-2xl border border-border/50 bg-[#1a3a2a]/5 px-4 py-3 text-sm text-muted-foreground">
@@ -120,7 +120,7 @@ export default function EducationCenter() {
                     <p className="text-sm text-muted-foreground italic">Nenhum manual encontrado.</p>
                   ) : (
                     filteredMaterials.filter(m => m.category === "manual").map((item) => (
-                      <Card key={item.slug} className="h-full border-border/50 bg-white text-foreground shadow-sm transition-colors hover:border-[#c4a84b]/50">
+                      <Card key={item.slug} className="h-full border-border/50 bg-card text-foreground shadow-sm transition-colors hover:border-[#c4a84b]/50">
                         <CardHeader className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className="bg-[#1a3a2a] text-white">{item.shortTitle}</Badge>
@@ -161,7 +161,7 @@ export default function EducationCenter() {
                     <p className="text-sm text-muted-foreground italic">Nenhum regulamento encontrado.</p>
                   ) : (
                     filteredMaterials.filter(m => m.category === "regulamento").map((item) => (
-                      <Card key={item.slug} className="h-full border-border/50 bg-white text-foreground shadow-sm transition-colors hover:border-[#c4a84b]/50">
+                      <Card key={item.slug} className="h-full border-border/50 bg-card text-foreground shadow-sm transition-colors hover:border-[#c4a84b]/50">
                         <CardHeader className="space-y-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge className="bg-slate-700 text-white">{item.shortTitle}</Badge>

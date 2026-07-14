@@ -3221,7 +3221,7 @@ export default function ClassroomMap() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="bg-white border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 font-bold"
+                        className="bg-card border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 font-bold"
                         onClick={() => {
                           if (confirm("Deseja realmente RECUSAR este documento?")) {
                             responderParteMutation.mutate({
@@ -3239,7 +3239,7 @@ export default function ClassroomMap() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-bold"
+                        className="bg-card border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-bold"
                         onClick={() => {
                           if (!despachoText.trim()) {
                             toast.error("Para devolver para negociação, explique o que precisa ser ajustado.");

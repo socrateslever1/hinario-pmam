@@ -39,7 +39,7 @@ export default function ServiceBoard() {
       <Navbar />
       <main className="container px-4 py-6 md:py-10">
         <section className="mb-6 rounded-2xl border border-white/10 bg-[#092719] p-5 text-[#f8f7f0] shadow-[0_18px_50px_rgba(0,0,0,.25)] md:p-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
             <CalendarDays className="h-3.5 w-3.5 text-[#f0bd3a]" />
             Quadro de Serviço
           </div>
@@ -52,11 +52,11 @@ export default function ServiceBoard() {
         </section>
 
         {isLoading ? (
-          <Card className="border-border/50 bg-white">
+          <Card className="border-border/50 bg-card">
             <CardContent className="p-6 text-sm text-muted-foreground">Carregando quadro publicado...</CardContent>
           </Card>
         ) : !board?.length ? (
-          <Card className="border-border/50 bg-white">
+          <Card className="border-border/50 bg-card">
             <CardContent className="p-6 text-sm text-muted-foreground">
               Nenhum quadro de serviço publicado para esta semana.
             </CardContent>
@@ -64,7 +64,7 @@ export default function ServiceBoard() {
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">
             {board.map((item: any) => (
-              <Card key={`${item.companhia}-${item.peloton}-${item.week?.weekStart}`} className="overflow-hidden border-border/50 bg-white shadow-sm">
+              <Card key={`${item.companhia}-${item.peloton}-${item.week?.weekStart}`} className="overflow-hidden border-border/50 bg-card shadow-sm">
                 <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
                 <CardContent className="p-5">
                   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

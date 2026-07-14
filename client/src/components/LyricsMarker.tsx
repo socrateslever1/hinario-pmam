@@ -686,7 +686,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             <Button
               size="icon"
               variant="ghost"
-              className="h-9 w-9 shrink-0 rounded-full bg-white/10 text-white shadow-xl hover:bg-white/20 active:scale-95"
+              className="h-9 w-9 shrink-0 rounded-full bg-card/10 text-white shadow-xl hover:bg-card/20 active:scale-95"
               onClick={() => setPlaying(!playing)}
             >
               {playing ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
@@ -701,13 +701,13 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
             {compact ? (
               <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-white/10" onClick={focusPreviousLine}>
+                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-card/10" onClick={focusPreviousLine}>
                   <SkipBack className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-white/10" onClick={focusNextLine}>
+                <Button variant="outline" className="h-9 min-w-[42px] border-white/10 bg-black/20 px-0 text-white hover:bg-card/10" onClick={focusNextLine}>
                   <SkipForward className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/10" onClick={() => setMuted((current) => !current)} title="Volume">
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-card/10" onClick={() => setMuted((current) => !current)} title="Volume">
                   {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
                 <div className="w-20">
@@ -723,10 +723,10 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
                     className="cursor-pointer"
                   />
                 </div>
-                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
+                <span className="rounded-full bg-card/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
                   {syncedCount}/{markableCount}
                 </span>
-                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-9 w-9 text-white/80 hover:bg-white/10 hover:text-white" title="Desfazer">
+                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-9 w-9 text-white/80 hover:bg-card/10 hover:text-white" title="Desfazer">
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
@@ -738,18 +738,18 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
 
               <div className="flex h-8 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
                 <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-1)} title="-1s"><ChevronLeft className="h-3.5 w-3.5" /></Button>
-                <span className="min-w-[28px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
+                <span className="min-w-[28px] border-x border-white/10 bg-card/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-[#c4a84b]">1s</span>
                 <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(1)} title="+1s"><ChevronRight className="h-3.5 w-3.5" /></Button>
               </div>
 
               <div className="flex h-8 items-center rounded-lg bg-black/40 ring-1 ring-white/10">
                 <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-l-lg text-white/70 hover:text-white" onClick={() => nudgeTime(-0.1)} title="-0.1s"><Minus className="h-3 w-3" /></Button>
-                <span className="min-w-[32px] border-x border-white/10 bg-white/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
+                <span className="min-w-[32px] border-x border-white/10 bg-card/5 px-1 text-center text-[10px] font-black uppercase tracking-widest text-white/50">0.1s</span>
                 <Button variant="ghost" size="icon" className="h-full w-7 rounded-none rounded-r-lg text-white/70 hover:text-white" onClick={() => nudgeTime(0.1)} title="+0.1s"><Plus className="h-3 w-3" /></Button>
               </div>
 
               <div className="flex h-8 items-center gap-0.5 rounded-lg bg-black/40 p-0.5 ring-1 ring-white/10">
-                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-7 w-7 text-white hover:bg-white/10" title="Desfazer">
+                <Button variant="ghost" size="icon" onClick={handleUndo} disabled={syncedCount === 0} className="h-7 w-7 text-white hover:bg-card/10" title="Desfazer">
                   <RotateCcw className="h-3 w-3" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={resetSync} className="h-7 w-7 text-red-500 hover:bg-red-500/20 hover:text-red-400" title="Resetar">
@@ -772,7 +772,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             <div className="rounded-xl bg-black/25 px-3 py-2 text-white ring-1 ring-white/10">
               <div className="flex items-start justify-between gap-3">
                 <p className="line-clamp-2 text-sm font-bold leading-relaxed">{lines[normalizedCurrentLineIndex]}</p>
-                <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#c4a84b]">
+                <span className="shrink-0 rounded-full bg-card/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#c4a84b]">
                   #{normalizedCurrentLineIndex + 1}
                 </span>
               </div>
@@ -789,7 +789,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/65 ring-1 ring-white/10">
               <span>{hasLocalDraft ? `Rascunho local salvo ${draftStatusLabel ? `as ${draftStatusLabel}` : "nesta sessao"}` : "Sem rascunho local pendente"}</span>
               {hasLocalDraft && (
-                <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[10px] font-black uppercase text-white hover:bg-white/10" onClick={discardLocalDraft}>
+                <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[10px] font-black uppercase text-white hover:bg-card/10" onClick={discardLocalDraft}>
                   Descartar rascunho
                 </Button>
               )}
@@ -801,7 +801,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   );
 
   const renderCurrentLineCard = (compact: boolean) => (
-    <Card className="relative overflow-hidden border-0 bg-white shadow-2xl ring-1 ring-black/5">
+    <Card className="relative overflow-hidden border-0 bg-card shadow-2xl ring-1 ring-black/5">
       <div className="absolute top-0 h-1.5 w-full bg-[#c4a84b]" />
       <CardContent className={compact ? "p-4 pt-5 sm:p-6" : "p-6 md:p-8"}>
         {normalizedCurrentLineIndex < lines.length ? (
@@ -863,7 +863,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
   );
 
   const renderSaveBar = (compact: boolean) => (
-    <Card className="shrink-0 border-0 bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur">
+    <Card className="shrink-0 border-0 bg-card/95 shadow-xl ring-1 ring-black/5 backdrop-blur">
       <CardContent className={compact ? "space-y-3 p-4" : "flex flex-wrap items-center justify-between gap-4 p-4 md:p-5"}>
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">

@@ -245,7 +245,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                   <p className="font-semibold text-green-900">Conta criada com sucesso!</p>
                   <p className="text-green-800 mt-1">Usuário: {createAccessMutation.data.email}</p>
                   <div className="flex items-center gap-2 mt-2">
-                    <code className="bg-white px-2 py-1 rounded text-xs flex-1 break-all">{createAccessMutation.data.tempPassword}</code>
+                    <code className="bg-card px-2 py-1 rounded text-xs flex-1 break-all">{createAccessMutation.data.tempPassword}</code>
                     <button
                       onClick={() => copyToClipboard(createAccessMutation.data.tempPassword)}
                       className="p-1 hover:bg-green-100 rounded"

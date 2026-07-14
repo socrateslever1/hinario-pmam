@@ -103,23 +103,23 @@ export default function XerifeSystemDocs() {
                   <div>
                     <h3 className="font-bold mb-2">Stack Tecnológico</h3>
                     <div className="space-y-2">
-                      <div className="flex justify-between p-2 bg-gray-100 rounded">
+                      <div className="flex justify-between p-2 bg-muted rounded">
                         <span>Frontend</span>
                         <span>React 19 + Tailwind 4</span>
                       </div>
-                      <div className="flex justify-between p-2 bg-gray-100 rounded">
+                      <div className="flex justify-between p-2 bg-muted rounded">
                         <span>Backend</span>
                         <span>Express 4 + tRPC 11</span>
                       </div>
-                      <div className="flex justify-between p-2 bg-gray-100 rounded">
+                      <div className="flex justify-between p-2 bg-muted rounded">
                         <span>Database</span>
                         <span>TiDB/MySQL</span>
                       </div>
-                      <div className="flex justify-between p-2 bg-gray-100 rounded">
+                      <div className="flex justify-between p-2 bg-muted rounded">
                         <span>ORM</span>
                         <span>Drizzle</span>
                       </div>
-                      <div className="flex justify-between p-2 bg-gray-100 rounded">
+                      <div className="flex justify-between p-2 bg-muted rounded">
                         <span>Auth</span>
                         <span>Manus OAuth</span>
                       </div>
@@ -314,7 +314,7 @@ Output: Array de alunos ordenados por score`}
                             <td className="border p-2">✓ Qualquer</td>
                             <td className="border p-2">✓ Qualquer</td>
                           </tr>
-                          <tr className="bg-gray-50">
+                          <tr className="bg-muted">
                             <td className="border p-2">Ver ranking</td>
                             <td className="border p-2">✓ Pelotão</td>
                             <td className="border p-2">✓ Pelotão</td>

@@ -648,10 +648,10 @@ export default function PlaylistPlayer({
 
                 {/* Status Compacto */}
                 <div className="flex flex-wrap items-center gap-1 text-[8px] font-bold uppercase tracking-[0.15em] text-white/45">
-                  <span className="rounded-full bg-white/10 px-2 py-0.5">Repeat: {repeatMode}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5">Auto: {autoAdvance ? "on" : "off"}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
-                  {isPreparingOffline && <span className="rounded-full bg-white/10 px-2 py-0.5">Salvando offline</span>}
+                  <span className="rounded-full bg-card/10 px-2 py-0.5">Repeat: {repeatMode}</span>
+                  <span className="rounded-full bg-card/10 px-2 py-0.5">Auto: {autoAdvance ? "on" : "off"}</span>
+                  <span className="rounded-full bg-card/10 px-2 py-0.5">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
+                  {isPreparingOffline && <span className="rounded-full bg-card/10 px-2 py-0.5">Salvando offline</span>}
                 </div>
               </div>
             </div>
@@ -733,14 +733,14 @@ export default function PlaylistPlayer({
                   {description && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">{description}</p>}
                 </div>
 
-                <div className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
+                <div className="rounded-full bg-card/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
                   {currentIndex + 1}/{queue.length}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/6 p-3 backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/10 bg-card/6 p-3 backdrop-blur-sm">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-card/10 ring-1 ring-white/10">
                     {isYoutube ? <Youtube className="h-6 w-6" style={{ color: accentColor }} /> : <Music className="h-6 w-6" style={{ color: accentColor }} />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -801,10 +801,10 @@ export default function PlaylistPlayer({
                   <Slider value={[volume * 100]} max={100} onValueChange={handleVolumeChange} className="w-28 md:w-32" />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-                  <span className="rounded-full bg-white/10 px-3 py-1">Repeat: {repeatMode}</span>
-                  <span className="rounded-full bg-white/10 px-3 py-1">Auto: {autoAdvance ? "ligado" : "desligado"}</span>
-                  <span className="rounded-full bg-white/10 px-3 py-1">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
-                  {isPreparingOffline && <span className="rounded-full bg-white/10 px-3 py-1">Salvando offline</span>}
+                  <span className="rounded-full bg-card/10 px-3 py-1">Repeat: {repeatMode}</span>
+                  <span className="rounded-full bg-card/10 px-3 py-1">Auto: {autoAdvance ? "ligado" : "desligado"}</span>
+                  <span className="rounded-full bg-card/10 px-3 py-1">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
+                  {isPreparingOffline && <span className="rounded-full bg-card/10 px-3 py-1">Salvando offline</span>}
                 </div>
               </div>
             </div>

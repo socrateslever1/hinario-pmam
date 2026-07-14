@@ -62,7 +62,7 @@ export function ServiceBoardPreview() {
             {(isLoading ? Array.from({ length: 3 }) : items.slice(0, 6)).map((item: any, index) => {
               const todayCleaning = item?.week?.cleaning?.find((day: any) => day.weekday === currentWeekday());
               return (
-                <Card key={item ? `${item.companhia}-${item.peloton}` : index} className="w-72 shrink-0 overflow-hidden border-border/50 bg-white shadow-sm md:w-auto">
+                <Card key={item ? `${item.companhia}-${item.peloton}` : index} className="w-72 shrink-0 overflow-hidden border-border/50 bg-card shadow-sm md:w-auto">
                   <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
                   <CardContent className="p-4">
                     {item ? (

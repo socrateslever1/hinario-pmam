@@ -115,7 +115,7 @@ export default function Login() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       {/* Header bar */}
       <div className="checkerboard-pattern w-full" />
-      <div className="bg-white border-b border-border/40 py-6">
+      <div className="bg-card border-b border-border/40 py-6">
         <div className="container text-center">
           <img src={BRASAO_URL} alt="Brasão PMAM" className="h-16 w-16 object-contain mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>

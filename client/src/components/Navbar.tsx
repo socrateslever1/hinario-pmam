@@ -191,7 +191,7 @@ export default function Navbar() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5"
                 onClick={toggleTheme}
                 aria-label="Alternar tema"
               >
@@ -199,7 +199,7 @@ export default function Navbar() {
               </Button>
             )}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5">
                 <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>
@@ -240,7 +240,7 @@ export default function Navbar() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5"
                 onClick={toggleTheme}
                 title="Alternar tema"
                 aria-label="Alternar tema"
@@ -251,7 +251,7 @@ export default function Navbar() {
             
             {/* Search and Notifications Icons */}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-white/5">
+              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5">
                 <Search className="h-4 w-4 text-[#c4a84b]" />
               </Button>
             </Link>

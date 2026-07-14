@@ -11,7 +11,7 @@ export default function About() {
       <Navbar />
 
       {/* Header */}
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <BookOpen className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>

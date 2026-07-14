@@ -313,7 +313,7 @@ export default function GradesManagement() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
       <Navbar />
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
         <div className="container text-center">
           <Edit2 className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -408,7 +408,7 @@ export default function GradesManagement() {
                             placeholder="Ex: 9.5 ou 9,5"
                             value={formData.grade1}
                             onChange={(e) => setFormData({ ...formData, grade1: e.target.value.replace(',', '.') })}
-                            className="text-foreground bg-white border-border"
+                            className="text-foreground bg-card border-border"
                           />
                         </div>
                         <div>
@@ -420,7 +420,7 @@ export default function GradesManagement() {
                             placeholder="Se houver 2ª prova"
                             value={formData.grade2}
                             onChange={(e) => setFormData({ ...formData, grade2: e.target.value.replace(',', '.') })}
-                            className="text-foreground bg-white border-border"
+                            className="text-foreground bg-card border-border"
                           />
                         </div>
                         <div>
@@ -430,7 +430,7 @@ export default function GradesManagement() {
                             placeholder="Nome do professor"
                             value={formData.professorName}
                             onChange={(e) => setFormData({ ...formData, professorName: e.target.value })}
-                            className="text-foreground bg-white border-border"
+                            className="text-foreground bg-card border-border"
                           />
                         </div>
                       </div>
@@ -445,7 +445,7 @@ export default function GradesManagement() {
                           type="date"
                           value={formData.evaluationDate}
                           onChange={(e) => setFormData({ ...formData, evaluationDate: e.target.value })}
-                          className="text-foreground bg-white border-border"
+                          className="text-foreground bg-card border-border"
                         />
                       </div>
 
@@ -456,7 +456,7 @@ export default function GradesManagement() {
                           placeholder="Adicione observações sobre a nota"
                           value={formData.observation}
                           onChange={(e) => setFormData({ ...formData, observation: e.target.value })}
-                          className="resize-none text-foreground bg-white border-border"
+                          className="resize-none text-foreground bg-card border-border"
                           rows={2}
                         />
                       </div>
@@ -497,7 +497,7 @@ export default function GradesManagement() {
           </div>
 
           {disciplines.length === 0 && (
-            <Card className="border-border/50 bg-white text-foreground shadow-sm">
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">Nenhuma disciplina disponível</p>
               </CardContent>

@@ -64,7 +64,7 @@ export default function CharlieMike() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-12">
+      <section className="bg-card border-b border-border/40 px-3 pb-7 pt-6 md:px-0 md:py-12">
         <div className="px-0 md:container text-center">
           <ListMusic className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -87,7 +87,7 @@ export default function CharlieMike() {
           />
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-            <div className="bg-white border border-border/50 rounded-[1.75rem] p-4 text-foreground shadow-sm md:rounded-[28px] md:border-border/60 md:p-5">
+            <div className="bg-card border border-border/50 rounded-[1.75rem] p-4 text-foreground shadow-sm md:rounded-[28px] md:border-border/60 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/60">
@@ -108,7 +108,7 @@ export default function CharlieMike() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar canção militar..."
-                  className="h-11 rounded-2xl border-border bg-white pl-10 text-foreground placeholder:text-muted-foreground"
+                  className="h-11 rounded-2xl border-border bg-card pl-10 text-foreground placeholder:text-muted-foreground"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -133,7 +133,7 @@ export default function CharlieMike() {
               <div className="mt-3 space-y-2.5">
                 {featuredSongs.slice(0, 4).map((song: any) => (
                   <Link key={song.id} href={`/hino/${song.id}`}>
-                    <div className="cursor-pointer rounded-2xl border border-border/40 bg-white px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/45 hover:shadow-sm">
+                    <div className="cursor-pointer rounded-2xl border border-border/40 bg-card px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/45 hover:shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a3a2a] text-[11px] font-black text-white shadow-sm">
                           {String(song.number).padStart(2, "0")}
@@ -150,7 +150,7 @@ export default function CharlieMike() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-[1.5rem] border border-border/50 bg-white p-4 text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between md:rounded-2xl md:border-border/60 md:bg-white/90 md:shadow-sm">
+          <div className="flex flex-col gap-2 rounded-[1.5rem] border border-border/50 bg-card p-4 text-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between md:rounded-2xl md:border-border/60 md:bg-card/90 md:shadow-sm">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Catálogo Charlie Mike</p>
               <h2 className="mt-1 text-xl font-black tracking-tight text-foreground">Canções Militares</h2>
@@ -175,7 +175,7 @@ export default function CharlieMike() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {songs.map((song: any) => (
                 <Link key={song.id} href={`/hino/${song.id}`}>
-                  <Card className="hymn-card-hover group cursor-pointer overflow-hidden border-border/50 bg-white py-0 text-foreground shadow-sm hover:border-[#c4a84b]/50">
+                  <Card className="hymn-card-hover group cursor-pointer overflow-hidden border-border/50 bg-card py-0 text-foreground shadow-sm hover:border-[#c4a84b]/50">
                     <CardContent className="p-0">
                       <div className="h-1 w-full bg-[#2d5a27]" />
                       <div className="p-3 md:p-4">
