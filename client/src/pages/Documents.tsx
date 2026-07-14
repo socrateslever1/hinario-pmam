@@ -46,6 +46,7 @@ interface DocumentData {
   imagemCabecalhoEsq?: string | null;
   imagemCabecalhoDir?: string | null;
   assinaturaDigital?: string | null;
+  assinaturaNome?: string;
   assinadoEm?: string | Date | null;
   tipoParte?: string;
   anexosBase64?: string[];
@@ -379,7 +380,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
 
           <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
             <div className="mb-2 w-[80mm] border-t border-black" />
-            <p className="font-bold uppercase">{doc.remetente}</p>
+            <p className="font-bold uppercase">{doc.assinaturaNome || doc.remetente}</p>
             <p>Solicitante</p>
             {doc.assinaturaDigital && (
               <div className="mt-2 rounded border border-green-800 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5">
@@ -536,7 +537,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
             <div className="flex flex-col items-center">
               <div className="w-[80mm] h-[1px] bg-black" />
               <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
-                {doc.remetente}
+                {doc.assinaturaNome || doc.remetente}
               </span>
               <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
                 Signatário
@@ -572,9 +573,8 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
 }
 
 function formatSender(numerica: string, nomeCompleto: string, nomeGuerra: string, rg: string) {
-  const cleanNome = (nomeCompleto || nomeGuerra || "").toUpperCase();
-  const cleanRg = rg ? ` (CI ${rg})` : "";
-  return `AL SD PM (${numerica}) ${cleanNome}${cleanRg}`;
+  const cleanNome = (nomeGuerra || "").toUpperCase();
+  return `Al. Sd. PM Nº ${numerica} ${cleanNome}`;
 }
 
 function getShortDeviceDesc(ua: string) {
@@ -759,6 +759,7 @@ export default function Documents() {
       
       const updated = { ...docData };
       updated.remetente = senderString;
+      updated.assinaturaNome = student.nomeCompleto || student.nomeGuerra;
       
       if (docType === "requerimento") {
         updated.reqNomeCompleto = student.nomeCompleto || "";
@@ -811,8 +812,9 @@ export default function Documents() {
       );
       
       // Auto-preencher remetente se for o padrão ou se estiver vazio ou antigo
-      if (!initialData.remetente || initialData.remetente === defaultValues[docType].remetente || initialData.remetente.includes("1234 Silva")) {
+      if (!initialData.remetente || initialData.remetente === defaultValues[docType].remetente || initialData.remetente.includes("1234 Silva") || initialData.remetente.includes("1234 SILVA")) {
         initialData.remetente = senderString;
+        initialData.assinaturaNome = profileQuery.data.nomeCompleto || profileQuery.data.nomeGuerra;
       }
 
       if (docType === "requerimento") {
@@ -1119,9 +1121,29 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                          <ClipboardList className="h-3 w-3" /> Considerando e solicitação
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                            <ClipboardList className="h-3 w-3" /> Fato, Considerandos e Solicitação
+                          </label>
+                          <div className="flex gap-1.5">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-6 text-[10px] px-2 bg-white"
+                              onClick={() => handleFieldChange("parteRelato", docData.parteRelato + (docData.parteRelato ? "\n" : "") + "Considerando que ")}
+                            >
+                              + Considerando
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-6 text-[10px] px-2 bg-white"
+                              onClick={() => handleFieldChange("parteRelato", docData.parteRelato + (docData.parteRelato ? "\n" : "") + "Solicito a V.S.ª a possibilidade de ")}
+                            >
+                              + Solicitação
+                            </Button>
+                          </div>
+                        </div>
                         <Textarea 
                           value={docData.parteRelato}
                           onChange={(e) => handleFieldChange("parteRelato", e.target.value)}
