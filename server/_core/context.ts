@@ -7,6 +7,7 @@ import { query } from "../mysql";
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
+  resHeaders?: Headers;
   user: User | null;
 };
 

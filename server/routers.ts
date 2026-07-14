@@ -441,7 +441,15 @@ export const appRouter = router({
         expiresInMs: TEN_YEARS_MS,
       });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: TEN_YEARS_MS });
+      if (ctx.res && typeof ctx.res.cookie === "function") {
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: TEN_YEARS_MS });
+      } else if (ctx.resHeaders) {
+        let cookieStr = `${COOKIE_NAME}=${sessionToken}; Max-Age=${Math.floor(TEN_YEARS_MS / 1000)}; Path=/; HttpOnly; SameSite=${cookieOptions.sameSite || 'Lax'}`;
+        if (cookieOptions.secure) {
+          cookieStr += '; Secure';
+        }
+        ctx.resHeaders.append('Set-Cookie', cookieStr);
+      }
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
       return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
