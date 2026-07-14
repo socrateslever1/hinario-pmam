@@ -1,0 +1,19 @@
+name = "hinario-pmam"
+pages_build_output_dir = "dist/public"
+compatibility_date = "2024-03-20"
+
+[vars]
+# Configure essas variáveis pelo painel do Cloudflare:
+# Workers & Pages -> hinario-pmam -> Settings -> Environment Variables
+# TIDB_HOST
+# TIDB_USER
+# TIDB_PASSWORD
+# TIDB_DATABASE
+# OAUTH_SERVER_URL
+# BUILT_IN_FORGE_API_URL
+# BUILT_IN_FORGE_API_KEY
+# SESSION_SECRET
+
+# Variáveis públicas devem ser prefixadas com VITE_ se usadas no front-end
+# VITE_ANALYTICS_ENDPOINT
+# VITE_ANALYTICS_WEBSITE_ID
