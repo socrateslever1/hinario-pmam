@@ -333,7 +333,15 @@ export const appRouter = router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      if (ctx.res && typeof (ctx.res as any).clearCookie === "function") {
+        (ctx.res as any).clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      } else if (ctx.resHeaders) {
+        let cookieStr = `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=${cookieOptions.sameSite || 'Lax'}`;
+        if (cookieOptions.secure) {
+          cookieStr += '; Secure';
+        }
+        ctx.resHeaders.append('Set-Cookie', cookieStr);
+      }
       return { success: true } as const;
     }),
     updateProfile: protectedProcedure.input(
