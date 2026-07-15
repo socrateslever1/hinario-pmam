@@ -88,6 +88,7 @@ export default function LyricsPlayer({
   
   const { isOnline } = usePWA();
   const playerRef = useRef<MediaPlayerElement | null>(null);
+  const timeBeforeVariantChange = useRef<number | null>(null);
   const mediaUrl = audioVariant === "instrumental"
     ? resolvePlayableMediaUrl({
         youtubeUrl: isOnline ? instrumentalYoutubeUrl : null,
@@ -98,6 +99,18 @@ export default function LyricsPlayer({
   const isYoutube = isYouTubeUrl(mediaUrl);
   
   useEffect(() => {
+    if (playerRef.current && timeBeforeVariantChange.current !== null) {
+      const savedTime = timeBeforeVariantChange.current;
+      timeBeforeVariantChange.current = null;
+      const timer = setTimeout(() => {
+        if (playerRef.current) {
+          playerRef.current.currentTime = savedTime;
+          setCurrentTime(savedTime);
+          setPlaying(true);
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
@@ -287,15 +300,18 @@ export default function LyricsPlayer({
                 <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-full border border-white/10 bg-card/8 p-0.5 md:rounded-md md:border-[#1a3a2a]/12 md:bg-[#1a3a2a]/5">
                 {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
                   const isActive = audioVariant === variant;
-                  const disabled = variant === "instrumental" && !instrumentalYoutubeUrl && !instrumentalAudioUrl;
                   return (
                     <Button
                       key={variant}
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setAudioVariant(variant)}
-                      disabled={disabled}
+                      onClick={() => {
+                        if (playerRef.current && Number.isFinite(playerRef.current.currentTime)) {
+                          timeBeforeVariantChange.current = playerRef.current.currentTime;
+                        }
+                        setAudioVariant(variant);
+                      }}
                       className={`h-8 rounded px-3 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
                         isActive
                           ? "bg-[#f0bd3a] text-[#062417] shadow-sm hover:bg-[#d6b64c] md:bg-[#c4a84b] md:text-[#1a3a2a] md:hover:bg-[#c4a84b]/90"

@@ -290,16 +290,19 @@ export default function PlaylistPlayer({
           : "Audio online";
 
   // Armazenar tempo atual antes de mudar de variante
-  const timeBeforeVariantChange = useRef<number>(0);
+  const timeBeforeVariantChange = useRef<number | null>(null);
 
   useEffect(() => {
     // Quando a URL de mídia muda, restaurar o tempo se for a mesma música
-    if (playerRef.current && Number.isFinite(timeBeforeVariantChange.current)) {
+    if (playerRef.current && timeBeforeVariantChange.current !== null) {
+      const savedTime = timeBeforeVariantChange.current;
+      timeBeforeVariantChange.current = null; // Limpa para a próxima faixa
       // Usar setTimeout para garantir que o player esteja pronto
       const timer = setTimeout(() => {
         if (playerRef.current) {
-          playerRef.current.currentTime = timeBeforeVariantChange.current;
-          setCurrentTime(timeBeforeVariantChange.current);
+          playerRef.current.currentTime = savedTime;
+          setCurrentTime(savedTime);
+          setPlaying(true);
         }
       }, 50);
       return () => clearTimeout(timer);

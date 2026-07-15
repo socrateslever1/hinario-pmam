@@ -91,7 +91,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request).catch(() => {
         console.log("[SW] Navigation offline, returning index.html");
-        return caches.match("/index.html") || caches.match("/");
+        return caches.match("/index.html", { ignoreSearch: true }).then(res => res || caches.match("/", { ignoreSearch: true }));
       }),
     );
     return;
@@ -128,10 +128,12 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() => {
           console.log("[SW] API offline, returning cached response:", url.pathname);
-          return caches.match(request) || new Response(
-            JSON.stringify({ error: "Offline" }),
-            { status: 503, headers: { "Content-Type": "application/json" } },
-          );
+          return caches.match(request).then(cachedRes => {
+            return cachedRes || new Response(
+              JSON.stringify({ error: "Offline" }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            );
+          });
         }),
     );
     return;
@@ -140,7 +142,7 @@ self.addEventListener("fetch", (event) => {
   const shouldCacheStatic = STATIC_CACHE_PATHS.some((path) => url.pathname.includes(path));
 
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
+    caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
         fetch(request)
           .then((response) => {
