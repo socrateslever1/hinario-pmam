@@ -240,7 +240,7 @@ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
 
   return (
     <div
-      className="official-document-sheet relative flex h-full flex-1 w-full flex-col text-[12pt] leading-[1.5] [color-scheme:light]"
+      className="official-document-sheet relative flex h-full flex-1 w-full flex-col leading-[1.5]"
     >
       <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif text-black">
         <img
@@ -676,6 +676,7 @@ export function RenderDocumentAttachments({ anexos, remetente, docType }: { anex
 export default function Documents() {
   const [, setLocation] = useLocation();
   const session = getStudentSession();
+  const [fontSize, setFontSize] = useState("12pt");
 
   // Redireciona para o login caso o usuário tente acessar a página sem autenticação
   useEffect(() => {
@@ -903,25 +904,45 @@ window.print();
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
             <Card className="border-border/50 bg-card text-card-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tipo de Documento</label>
-                  <Select
-                    value={docType}
-                    onValueChange={(val: DocType) => setDocType(val)}
-                  >
-                    <SelectTrigger className="bg-muted/30">
-                      <SelectValue placeholder="Selecione o documento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="parte">📁 Parte de Ocorrência / Disciplinar</SelectItem>
-                      <SelectItem value="requerimento">📝 Requerimento Administrativo</SelectItem>
-                      <SelectItem value="defesa">🛡️ Defesa Escrita / Justificativa</SelectItem>
-                      <SelectItem value="guia">✈️ Guia de Trânsito (Viagem)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tipo de Documento</label>
+                    <Select
+                      value={docType}
+                      onValueChange={(val: DocType) => setDocType(val)}
+                    >
+                      <SelectTrigger className="bg-muted/30">
+                        <SelectValue placeholder="Selecione o documento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parte">📁 Parte de Ocorrência / Disciplinar</SelectItem>
+                        <SelectItem value="requerimento">📝 Requerimento Administrativo</SelectItem>
+                        <SelectItem value="defesa">🛡️ Defesa Escrita / Justificativa</SelectItem>
+                        <SelectItem value="guia">✈️ Guia de Trânsito (Viagem)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tamanho da Fonte</label>
+                    <Select
+                      value={fontSize}
+                      onValueChange={(val: string) => setFontSize(val)}
+                    >
+                      <SelectTrigger className="bg-muted/30">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10pt">10pt (Reduzida)</SelectItem>
+                        <SelectItem value="11pt">11pt (Média)</SelectItem>
+                        <SelectItem value="12pt">12pt (Padrão ABNT)</SelectItem>
+                        <SelectItem value="14pt">14pt (Grande)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 lg:hidden">
                   <Button 
                     variant={viewMode === "edit" ? "default" : "outline"} 
                     className={`flex-1 gap-2 ${viewMode === "edit" ? "bg-[#1a3a2a] dark:bg-[#1a3a2a] text-white dark:text-[#e2ca76] hover:bg-[#1a3a2a]/90" : ""}`}
@@ -932,7 +953,7 @@ window.print();
                   </Button>
                   <Button 
                     variant={viewMode === "preview" ? "default" : "outline"} 
-                    className={`flex-1 gap-2 lg:hidden ${viewMode === "preview" ? "bg-[#1a3a2a] dark:bg-[#1a3a2a] text-white dark:text-[#e2ca76] hover:bg-[#1a3a2a]/90" : ""}`}
+                    className={`flex-1 gap-2 ${viewMode === "preview" ? "bg-[#1a3a2a] dark:bg-[#1a3a2a] text-white dark:text-[#e2ca76] hover:bg-[#1a3a2a]/90" : ""}`}
                     onClick={() => setViewMode("preview")}
                   >
                     <Eye className="h-4 w-4" />
@@ -1604,7 +1625,7 @@ window.print();
           <div id="print-wrapper" className={`lg:col-span-7 flex flex-col gap-6 items-center overflow-auto print:overflow-visible print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none print:max-h-none print:h-auto print:w-auto print:bg-transparent print:border-none print:p-0 bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[12pt] leading-[1.5] shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none print:m-0 print:p-[30mm_20mm_20mm_30mm]"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif leading-[1.5] shadow-2xl shrink-0 print:border-none print:shadow-none print:m-0 print:p-[30mm_20mm_20mm_30mm]"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
@@ -1612,6 +1633,7 @@ window.print();
                 height: "297mm",
                 minHeight: "297mm",
                 boxSizing: "border-box",
+                fontSize: fontSize,
               }}
             >
               {/* Estilos CSS específicos de impressão injetados */}
@@ -1662,22 +1684,25 @@ window.print();
               ) : (
                 <>
               {/* Top Section / Header */}
-              <div className="w-full flex flex-col items-center text-center gap-1.5 border-b-2 border-black pb-4">
-                <img 
-                  src={PMAM_HEADER_URL} 
-                  alt="Brasão PMAM" 
-                  className="w-[18mm] h-[18mm] object-contain mb-1" 
+              <div className="relative mb-8 min-h-[31mm] w-full shrink-0 text-center font-serif text-black">
+                <img
+                  src={docData.imagemCabecalhoEsq || PMAM_HEADER_URL}
+                  alt="Brasão PMAM"
+                  className="absolute left-0 top-0 h-[26mm] w-[26mm] object-contain"
                   style={{ imageRendering: "-webkit-optimize-contrast" }}
                 />
-                <h2 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
-                  ESTADO DO AMAZONAS
-                </h2>
-                <h3 className="text-[12px] font-bold tracking-wider uppercase m-0 leading-tight">
-                  POLÍCIA MILITAR DO AMAZONAS
-                </h3>
-                <h4 className="text-[11px] font-bold tracking-wider uppercase m-0 leading-tight">
-                  CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS - CFAP
-                </h4>
+                <div className="mx-auto max-w-[120mm] pt-1 uppercase leading-tight text-gray-700">
+                  <p>POLÍCIA MILITAR DO AMAZONAS</p>
+                  <p>DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</p>
+                  <p>CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</p>
+                  <p className="text-[24px] font-bold leading-none">CFAP</p>
+                </div>
+                <img
+                  src={docData.imagemCabecalhoDir || CFAP_HEADER_URL}
+                  alt="Brasão CFAP"
+                  className="absolute right-0 top-0 h-[26mm] w-[31mm] object-contain"
+                  style={{ imageRendering: "-webkit-optimize-contrast" }}
+                />
               </div>
 
               {/* Document Title / Meta */}
@@ -1772,35 +1797,30 @@ window.print();
               </div>
 
               {/* Bottom Section / Signatures */}
-              <div className="w-full flex flex-col items-center gap-10 mt-auto relative">
-                <div className="w-full text-right font-medium">
+              <div className="w-full mt-auto mb-[13mm] flex shrink-0 flex-col items-center text-center text-black relative">
+                <div className="w-full text-right font-medium mb-10">
                   {docData.localData || "Manaus - AM"}
                 </div>
-                
-                <div className="flex flex-col items-center">
-                  <div className="w-[80mm] h-[1px] bg-black" />
-                  <span className="uppercase font-bold mt-2 text-[12px] tracking-wide text-center">
-                    {docData.assinaturaNome || docData.remetente || "Assinatura do Discente"}
-                  </span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
-                    Signatário
-                  </span>
-                  {docData.assinaturaDigital && (
-                    <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
-                      <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5 mb-1">
-                        🛡️ ASSINATURA ELETRÔNICA REGISTRADA
-                      </span>
-                      {docData.assinaturaDigital.includes(" | ") ? (
-                        docData.assinaturaDigital.split(" | ").map((part: string, i: number) => (
-                          <span key={i} className="block">{part}</span>
-                        ))
-                      ) : (
-                        <span>{docData.assinaturaDigital}</span>
-                      )}
-                      {docData.assinadoEm && <span>Data/Hora: {new Date(docData.assinadoEm).toLocaleString("pt-BR")}</span>}
-                    </div>
-                  )}
-                </div>
+                <div className="mb-2 w-[80mm] border-t border-black" />
+                <p className="font-bold uppercase">{docData.assinaturaNome || docData.remetente || "Assinatura do Discente"}</p>
+                <p>Signatário</p>
+                {docData.assinaturaDigital && (
+                  <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
+                    <span className="font-bold tracking-wider uppercase text-green-900 print:text-green-800 flex items-center gap-0.5 mb-1">
+                      🛡️ ASSINATURA ELETRÔNICA REGISTRADA
+                    </span>
+                    {docData.assinaturaDigital.includes(" | ") ? (
+                      docData.assinaturaDigital.split(" | ").map((part: string, i: number) => (
+                        <span key={i} className="block">{part}</span>
+                      ))
+                    ) : (
+                      <span className="block">{docData.assinaturaDigital}</span>
+                    )}
+                    <span className="block border-t border-green-600/20 w-full mt-1 pt-1 opacity-80">
+                      {docData.assinadoEm ? `Assinado em: ${new Date(docData.assinadoEm).toLocaleString("pt-BR")}` : "Data de assinatura não disponível"}
+                    </span>
+                  </div>
+                )}
               </div>
                 </>
               )}
