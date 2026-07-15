@@ -278,59 +278,34 @@ h1, h2, h3, h4, h5, h6 {
   background-size: 14px 14px;
 }
 
-.official-document-sheet {
+.official-document-sheet, .dark .official-document-sheet {
   background-color: #ffffff !important;
   color: #000000 !important;
 }
 
-.dark .official-document-sheet {
-  background-color: #f5f2e8 !important;
-  color: #1a3a2a !important;
-}
-
 .official-document-sheet :is(p, span, strong, h1, h2, h3, h4, h5, h6, div),
 .dark .official-document-sheet :is(p, span, strong, h1, h2, h3, h4, h5, h6, div) {
-  color: inherit;
+  color: #000000 !important;
 }
 
-.official-document-sheet .text-gray-700 {
+.official-document-sheet .text-gray-700, .dark .official-document-sheet .text-gray-700 {
   color: #374151 !important;
 }
 
-.dark .official-document-sheet .text-gray-700 {
-  color: #1f2937 !important;
-}
-
-.official-document-sheet .text-gray-600 {
+.official-document-sheet .text-gray-600, .dark .official-document-sheet .text-gray-600 {
   color: #4b5563 !important;
 }
 
-.dark .official-document-sheet .text-gray-600 {
-  color: #374151 !important;
-}
-
-.official-document-sheet .text-gray-500 {
+.official-document-sheet .text-gray-500, .dark .official-document-sheet .text-gray-500 {
   color: #6b7280 !important;
 }
 
-.dark .official-document-sheet .text-gray-500 {
-  color: #4b5563 !important;
-}
-
-.official-document-sheet .bg-gray-100 {
+.official-document-sheet .bg-gray-100, .dark .official-document-sheet .bg-gray-100 {
   background-color: #f3f4f6 !important;
 }
 
-.dark .official-document-sheet .bg-gray-100 {
-  background-color: #e5e7eb !important;
-}
-
-.official-document-sheet .bg-gray-50\/50 {
+.official-document-sheet .bg-gray-50\/50, .dark .official-document-sheet .bg-gray-50\/50 {
   background-color: rgba(249, 250, 251, 0.5) !important;
-}
-
-.dark .official-document-sheet .bg-gray-50\/50 {
-  background-color: rgba(229, 231, 235, 0.5) !important;
 }
 
 /* Global Helper Overrides for bg-[#f5f2e8] and Dark Mode */
@@ -343,7 +318,7 @@ h1, h2, h3, h4, h5, h6 {
 .dark .bg-\[\#f5f2e8\]\/50 {
   background-color: rgba(255, 255, 255, 0.02) !important;
 }
-.dark .bg-white {
+.dark .bg-white:not(.official-document-sheet) {
   background-color: var(--card) !important;
 }
 .dark .text-\[\#1a3a2a\] {
@@ -416,7 +391,7 @@ button[role="tab"][data-state="active"] {
 }
 
 /* Melhorar contraste de títulos no modo escuro */
-.dark :is(h1, h2, h3, h4, h5, h6) {
+.dark :is(h1, h2, h3, h4, h5, h6):not(.official-document-sheet *) {
   color: var(--foreground);
 }
 

@@ -240,7 +240,7 @@ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
 
   return (
     <div
-      className="official-document-sheet relative flex h-full min-h-0 w-full flex-col text-[12px] leading-[1.45] [color-scheme:light]"
+      className="official-document-sheet relative flex h-full flex-1 w-full flex-col text-[12pt] leading-[1.5] [color-scheme:light]"
     >
       <div className="relative mb-8 min-h-[31mm] shrink-0 text-center font-serif text-black">
         <img
@@ -263,31 +263,31 @@ export function ParteOfficialPreview({ docData }: { docData: DocumentData }) {
         />
       </div>
 
-      <section className="grid grid-cols-2 gap-8 text-black">
+      <section className="flex justify-between text-black mt-2">
         <p>Parte S/Nº/2026</p>
-        <p>Quartel em Manaus-AM, {formatParteDate(docData.localData)}.</p>
+        <p className="text-right">Quartel em Manaus-AM, {formatParteDate(docData.localData)}.</p>
       </section>
 
-      <section className="ml-auto mt-4 w-[50%] leading-[1.35] text-black">
+      <section className="mt-3 leading-[1.5] text-black text-right">
         <p><strong>Do:</strong> {remetente}</p>
         <p><strong>Ao:</strong> {destinatario}</p>
         <p><strong>Assunto:</strong> {assunto}</p>
-        <p><strong>Anexo:</strong> {docData.anexo || "___ (Se houver)"}</p>
+        {docData.anexo && <p><strong>Anexo:</strong> {docData.anexo}</p>}
       </section>
 
-      <main className="mt-10 flex-1 whitespace-pre-line text-justify text-black">
-        <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
-        {relato.split(/\n\s*\n/).map((paragraph, index) => (
-          <p key={index} className="mb-3 indent-[15mm]">
+      <main className="mt-10 flex-1 text-justify text-black">
+        <p className="mb-[8pt] indent-[15mm]">Senhor Comandante,</p>
+        {relato.split('\n').filter((p: string) => p.trim() !== '').map((paragraph, index) => (
+          <p key={index} className="mb-[8pt] indent-[15mm]">
             {paragraph}
           </p>
         ))}
-        <p className="mt-10 indent-[15mm]">{fecho}</p>
+        <p className="mt-10 mb-[8pt] indent-[15mm]">{fecho}</p>
       </main>
 
-      <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center text-black relative">
+      <section className="mt-auto mb-[13mm] flex shrink-0 flex-col items-center text-center text-black relative">
         <div className="mb-2 w-[80mm] border-t border-black" />
-        <p className="font-bold uppercase">{remetente}</p>
+        <p className="font-bold uppercase">{docData.assinaturaNome || remetente}</p>
         <p>Solicitante</p>
         {docData.assinaturaDigital && (
           <div className="mt-2 rounded border border-green-600/30 bg-green-50/50 px-3 py-1.5 text-center text-[10px] text-green-800 font-mono flex flex-col items-center gap-0.5 print:bg-transparent print:border-green-800">
@@ -327,7 +327,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
     return (
       <>
         <div 
-          className="official-document-sheet relative flex flex-col text-[12px] leading-[1.45] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
+          className="official-document-sheet relative flex h-[297mm] flex-col text-[12pt] leading-[1.5] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
           style={{
             fontFamily: "'Times New Roman', Times, serif",
             width: "210mm",
@@ -356,29 +356,29 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
             />
           </div>
 
-          <section className="grid grid-cols-2 gap-8">
+          <section className="flex justify-between mt-2">
             <p>Parte S/Nº/2026</p>
-            <p>Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
+            <p className="text-right">Quartel em Manaus-AM, {formatParteDate(data.localData || doc.localData)}.</p>
           </section>
 
-          <section className="ml-auto mt-4 w-[65%] leading-[1.35]">
+          <section className="mt-3 leading-[1.5] text-right">
             <p><strong>Do:</strong> {doc.remetente}</p>
             <p><strong>Ao:</strong> {doc.destinatario}</p>
             <p><strong>Assunto:</strong> {doc.assunto}</p>
-            <p><strong>Anexo:</strong> {doc.anexo || "___ (Se houver)"}</p>
+            {doc.anexo && <p><strong>Anexo:</strong> {doc.anexo}</p>}
           </section>
 
           <main className="mt-10 flex-1 whitespace-pre-line text-justify">
-            <p className="mb-7 indent-[15mm]">Senhor Comandante,</p>
-            {(data.parteRelato || "").split(/\n\s*\n/).map((paragraph: string, index: number) => (
-              <p key={index} className="mb-3 indent-[15mm]">
+            <p className="mb-[8pt] indent-[15mm]">Senhor Comandante,</p>
+            {(data.parteRelato || "").split('\n').filter((p: string) => p.trim() !== "").map((paragraph: string, index: number) => (
+              <p key={index} className="mb-[8pt] indent-[15mm]">
                 {paragraph}
               </p>
             ))}
-            <p className="mt-10 indent-[15mm]">{data.parteFecho || "Respeitosamente,"}</p>
+            <p className="mt-10 mb-[8pt] indent-[15mm]">{data.parteFecho || "Respeitosamente,"}</p>
           </main>
 
-          <section className="mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
+          <section className="mt-auto mb-[13mm] flex shrink-0 flex-col items-center text-center relative">
             <div className="mb-2 w-[80mm] border-t border-black" />
             <p className="font-bold uppercase">{doc.assinaturaNome || doc.remetente}</p>
             <p>Solicitante</p>
@@ -418,7 +418,7 @@ export function RenderSavedDocument({ doc }: { doc: any }) {
     return (
       <>
         <div 
-          className="official-document-sheet relative flex flex-col text-[12px] leading-[1.45] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
+          className="official-document-sheet relative flex h-[297mm] flex-col text-[12pt] leading-[1.5] text-black text-left bg-white border border-gray-200 shadow-2xl pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif shrink-0 print:border-none print:shadow-none print:p-0"
           style={{
             fontFamily: "'Times New Roman', Times, serif",
             width: "210mm",
@@ -814,6 +814,9 @@ export default function Documents() {
       // Auto-preencher remetente se for o padrão ou se estiver vazio ou antigo
       if (!initialData.remetente || initialData.remetente === defaultValues[docType].remetente || initialData.remetente.includes("1234 Silva") || initialData.remetente.includes("1234 SILVA")) {
         initialData.remetente = senderString;
+      }
+      // Sempre preencher assinaturaNome com o nome completo do perfil (pode ser editado depois)
+      if (!initialData.assinaturaNome || initialData.assinaturaNome === defaultValues[docType].assinaturaNome) {
         initialData.assinaturaNome = profileQuery.data.nomeCompleto || profileQuery.data.nomeGuerra;
       }
 
@@ -858,14 +861,14 @@ window.print();
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col print:block print:min-h-0 print:bg-white bg-[#f5f2e8] md:bg-background">
       <Navbar />
 
       {/* Hero Section */}
       <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
         <div className="container text-center">
           <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#e2ca76]" style={{ fontFamily: "Merriweather, serif" }}>
             Gerador de Documentos Militares
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
@@ -891,17 +894,17 @@ window.print();
           </div>
         </div>
 
-        <TabsContent value="editor" className="flex-1 flex flex-col m-0 p-0">
+        <TabsContent value="editor" className="flex-1 flex flex-col m-0 p-0 print:block">
           {/* Main Panel */}
           <main className="container flex-1 px-0 py-6 print:m-0 print:p-0 md:px-0 md:py-8">
             <div className="grid grid-cols-1 gap-4 px-4 print:block md:px-0 lg:grid-cols-12 lg:gap-8">
           
           {/* Form Side */}
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
-            <Card className="border-border/50 bg-white text-foreground shadow-md">
+            <Card className="border-border/50 bg-card text-card-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a]">Tipo de Documento</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tipo de Documento</label>
                   <Select
                     value={docType}
                     onValueChange={(val: DocType) => setDocType(val)}
@@ -921,7 +924,7 @@ window.print();
                 <div className="flex gap-2">
                   <Button 
                     variant={viewMode === "edit" ? "default" : "outline"} 
-                    className={`flex-1 gap-2 ${viewMode === "edit" ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
+                    className={`flex-1 gap-2 ${viewMode === "edit" ? "bg-[#1a3a2a] dark:bg-[#1a3a2a] text-white dark:text-[#e2ca76] hover:bg-[#1a3a2a]/90" : ""}`}
                     onClick={() => setViewMode("edit")}
                   >
                     <Edit2 className="h-4 w-4" />
@@ -929,7 +932,7 @@ window.print();
                   </Button>
                   <Button 
                     variant={viewMode === "preview" ? "default" : "outline"} 
-                    className={`flex-1 gap-2 lg:hidden ${viewMode === "preview" ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
+                    className={`flex-1 gap-2 lg:hidden ${viewMode === "preview" ? "bg-[#1a3a2a] dark:bg-[#1a3a2a] text-white dark:text-[#e2ca76] hover:bg-[#1a3a2a]/90" : ""}`}
                     onClick={() => setViewMode("preview")}
                   >
                     <Eye className="h-4 w-4" />
@@ -940,11 +943,11 @@ window.print();
             </Card>
 
             {officialDocumentsQuery.data && officialDocumentsQuery.data.length > 0 && (
-              <Card className="border-border/50 bg-white text-foreground shadow-md">
+              <Card className="border-border/50 bg-card text-card-foreground shadow-md">
                 <CardContent className="flex flex-col gap-4 p-6">
                   <div className="flex items-center gap-2 border-b pb-3">
                     <Download className="h-5 w-5 text-[#c4a84b]" />
-                    <h3 className="text-base font-bold text-[#1a3a2a]" style={{ fontFamily: "Inter, sans-serif" }}>
+                    <h3 className="text-base font-bold text-[#1a3a2a] dark:text-[#e2ca76]" style={{ fontFamily: "Inter, sans-serif" }}>
                       Documentos oficiais
                     </h3>
                   </div>
@@ -953,7 +956,7 @@ window.print();
                       const extension = item.fileName.split(".").pop()?.toUpperCase() || "DOC";
                       return (
                         <div key={item.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a]">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a] dark:text-[#e2ca76]">
                             {extension.slice(0, 4)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -977,10 +980,10 @@ window.print();
             )}
 
             {/* Inputs Editor */}
-            <Card className="flex-1 border-border/50 bg-white text-foreground shadow-md">
+            <Card className="flex-1 border-border/50 bg-card text-card-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-5">
                 <div className="flex items-center justify-between border-b pb-3">
-                  <h3 className="font-bold text-[#1a3a2a] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
+                  <h3 className="font-bold text-[#1a3a2a] dark:text-[#e2ca76] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
                     Preencher Dados
                   </h3>
                   <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8">
@@ -991,10 +994,10 @@ window.print();
 
                 {/* Busca e Importação Rápida */}
                 <div className="flex flex-col gap-3 rounded-lg border border-[#c4a84b]/20 bg-[#c4a84b]/5 p-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#1a3a2a]">Busca e Importação Rápida</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Busca e Importação Rápida</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">Numérica (4 dígitos)</label>
+                      <label className="text-[10px] font-semibold text-foreground/70">Numérica (4 dígitos)</label>
                       <Input
                         placeholder="Ex: 4122"
                         value={searchNumerica}
@@ -1007,7 +1010,7 @@ window.print();
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">CI / RG</label>
+                      <label className="text-[10px] font-semibold text-foreground/70">CI / RG</label>
                       <Input
                         placeholder="Ex: 27666"
                         value={searchRgInput}
@@ -1034,55 +1037,64 @@ window.print();
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-4 max-h-[75vh] lg:max-h-[85vh] overflow-y-auto pr-2 pb-10">
-                  {/* Campos Comuns */}
+                <div className="flex flex-col gap-4 max-h-[75vh] lg:max-h-[85vh] overflow-y-auto pr-2 pb-10 pt-2">
+                  {/* ① Local e Data — aparece no topo do documento */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <User className="h-3 w-3" /> Remetente (Identidade Militar)
+                    <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                      <MapPin className="h-3 w-3 shrink-0" /> Local e Data
+                    </label>
+                    <Input 
+                      value={docData.localData}
+                      onChange={(e) => handleFieldChange("localData", e.target.value)}
+                      placeholder="Manaus - AM, DD/MM/AAAA"
+                    />
+                  </div>
+
+                  {/* ② Remetente */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-foreground/70">
+                      <span className="flex items-center gap-1 flex-wrap">
+                        <User className="h-3 w-3 shrink-0" />
+                        <span>Remetente — Identidade Militar</span>
+                      </span>
                     </label>
                     <Input 
                       value={docData.remetente}
                       onChange={(e) => handleFieldChange("remetente", e.target.value)}
-                      placeholder="Ex: Al. Sd. PM Nº 1234 Silva"
+                      placeholder="Ex: Al. Sd. PM Nº 1234 SILVA (CI 12345)"
                     />
                   </div>
 
+                  {/* ③ Destinatário */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <User className="h-3 w-3" /> Nome da Assinatura (No rodapé)
-                    </label>
-                    <Input 
-                      value={docData.assinaturaNome || ""}
-                      onChange={(e) => handleFieldChange("assinaturaNome", e.target.value)}
-                      placeholder="Ex: Felipe da Silva Santos (Opcional)"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <User className="h-3 w-3" /> Destinatário
+                    <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                      <User className="h-3 w-3 shrink-0" /> Destinatário
                     </label>
                     <Input 
                       value={docData.destinatario}
                       onChange={(e) => handleFieldChange("destinatario", e.target.value)}
-                      placeholder="Ex: Exmo Sr. Comandante do CFAP"
+                      placeholder="Ex: Ao Sr. Cmt da Cia de Alunos do CFAP"
                     />
                   </div>
 
+                  {/* ④ Assunto */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                      <FileText className="h-3 w-3" /> Assunto
+                    <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                      <FileText className="h-3 w-3 shrink-0" /> Assunto
                     </label>
                     <Input
                       value={docData.assunto}
                       onChange={(e) => handleFieldChange("assunto", e.target.value)}
-                      placeholder="Ex: Justificativa de Falta"
+                      placeholder="Ex: Solicitação (FAZ)"
                     />
                   </div>
 
+                  {/* ⑤ Anexo — só na Parte */}
                   {docType === "parte" && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-muted-foreground">Anexo</label>
+                      <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                        <FileText className="h-3 w-3 shrink-0" /> Anexo
+                      </label>
                       <Input
                         value={docData.anexo}
                         onChange={(e) => handleFieldChange("anexo", e.target.value)}
@@ -1091,54 +1103,13 @@ window.print();
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Local e Data</label>
-                    <Input 
-                      value={docData.localData}
-                      onChange={(e) => handleFieldChange("localData", e.target.value)}
-                      placeholder="Manaus - AM, DD/MM/AAAA"
-                    />
-                  </div>
-
-                  {/* Campos específicos da PARTE */}
+                  {/* ⑥⑦ Considerandos e Fecho — só na Parte */}
                   {docType === "parte" && (
                     <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" /> Data do Fato
-                          </label>
-                          <Input 
-                            value={docData.parteFatoData}
-                            onChange={(e) => handleFieldChange("parteFatoData", e.target.value)}
-                            placeholder="DD/MM/AAAA"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Hora do Fato</label>
-                          <Input 
-                            value={docData.parteFatoHora}
-                            onChange={(e) => handleFieldChange("parteFatoHora", e.target.value)}
-                            placeholder="HH:MM"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> Local do Fato
-                        </label>
-                        <Input 
-                          value={docData.parteFatoLocal}
-                          onChange={(e) => handleFieldChange("parteFatoLocal", e.target.value)}
-                          placeholder="Ex: Pátio do CFAP"
-                        />
-                      </div>
-
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                            <ClipboardList className="h-3 w-3" /> Fato, Considerandos e Solicitação
+                          <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                            <ClipboardList className="h-3 w-3 shrink-0" /> Fato, Considerandos e Solicitação
                           </label>
                           <div className="flex gap-1.5">
                             <Button 
@@ -1147,7 +1118,7 @@ window.print();
                               className="h-6 text-[10px] px-2 bg-white"
                               onClick={() => {
                                 const current = docData.parteRelato || "";
-                                const prefix = current.length > 0 ? (current.endsWith("\n") ? "" : "\n\n") : "";
+                                const prefix = current.length > 0 ? (current.endsWith("\n") ? "" : "\n") : "";
                                 handleFieldChange("parteRelato", current + prefix + "Considerando que ");
                               }}
                             >
@@ -1177,7 +1148,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Fecho</label>
+                        <label className="text-xs font-semibold text-foreground/70">Fecho</label>
                         <Input
                           value={docData.parteFecho}
                           onChange={(e) => handleFieldChange("parteFecho", e.target.value)}
@@ -1192,7 +1163,7 @@ window.print();
                     <>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Nome Completo do Aluno</label>
+                          <label className="text-xs font-semibold text-foreground/70">Nome Completo do Aluno</label>
                           <Input 
                             value={docData.reqNomeCompleto}
                             onChange={(e) => handleFieldChange("reqNomeCompleto", e.target.value)}
@@ -1200,7 +1171,7 @@ window.print();
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Matrícula / RG</label>
+                          <label className="text-xs font-semibold text-foreground/70">Matrícula / RG</label>
                           <Input 
                             value={docData.reqMatricula}
                             onChange={(e) => handleFieldChange("reqMatricula", e.target.value)}
@@ -1210,7 +1181,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Companhia / Pelotão</label>
+                        <label className="text-xs font-semibold text-foreground/70">Companhia / Pelotão</label>
                         <Input 
                           value={docData.reqPelotao}
                           onChange={(e) => handleFieldChange("reqPelotao", e.target.value)}
@@ -1219,7 +1190,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground font-bold">Objeto do Requerimento</label>
+                        <label className="text-xs font-semibold text-foreground/70 font-bold">Objeto do Requerimento</label>
                         <Input 
                           value={docData.reqSolicitacao}
                           onChange={(e) => handleFieldChange("reqSolicitacao", e.target.value)}
@@ -1228,7 +1199,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Exposição de Motivos (Fundamentação)</label>
+                        <label className="text-xs font-semibold text-foreground/70">Exposição de Motivos (Fundamentação)</label>
                         <Textarea 
                           value={docData.reqJustificativa}
                           onChange={(e) => handleFieldChange("reqJustificativa", e.target.value)}
@@ -1243,7 +1214,7 @@ window.print();
                   {docType === "defesa" && (
                     <>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Fato Apontado Referente (Nº do Registro)</label>
+                        <label className="text-xs font-semibold text-foreground/70">Fato Apontado Referente (Nº do Registro)</label>
                         <Input 
                           value={docData.defesaFatoRef}
                           onChange={(e) => handleFieldChange("defesaFatoRef", e.target.value)}
@@ -1252,7 +1223,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Justificativa e Alegações de Defesa</label>
+                        <label className="text-xs font-semibold text-foreground/70">Justificativa e Alegações de Defesa</label>
                         <Textarea 
                           value={docData.defesaTexto}
                           onChange={(e) => handleFieldChange("defesaTexto", e.target.value)}
@@ -1267,7 +1238,7 @@ window.print();
                   {docType === "guia" && (
                     <>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                        <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
                           <MapPin className="h-3 w-3" /> Cidade e Estado de Destino
                         </label>
                         <Input 
@@ -1279,7 +1250,7 @@ window.print();
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Data de Ida</label>
+                          <label className="text-xs font-semibold text-foreground/70">Data de Ida</label>
                           <Input 
                             value={docData.guiaIda}
                             onChange={(e) => handleFieldChange("guiaIda", e.target.value)}
@@ -1287,7 +1258,7 @@ window.print();
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground">Data de Volta</label>
+                          <label className="text-xs font-semibold text-foreground/70">Data de Volta</label>
                           <Input 
                             value={docData.guiaVolta}
                             onChange={(e) => handleFieldChange("guiaVolta", e.target.value)}
@@ -1297,7 +1268,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Meio de Transporte</label>
+                        <label className="text-xs font-semibold text-foreground/70">Meio de Transporte</label>
                         <Input 
                           value={docData.guiaTransporte}
                           onChange={(e) => handleFieldChange("guiaTransporte", e.target.value)}
@@ -1306,7 +1277,7 @@ window.print();
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-muted-foreground">Motivo do Deslocamento</label>
+                        <label className="text-xs font-semibold text-foreground/70">Motivo do Deslocamento</label>
                         <Textarea 
                           value={docData.guiaMotivo}
                           onChange={(e) => handleFieldChange("guiaMotivo", e.target.value)}
@@ -1316,6 +1287,18 @@ window.print();
                       </div>
                     </>
                   )}
+                  {/* Assinatura no rodapé - sempre no final do formulário */}
+                  <div className="flex flex-col gap-1.5 border-t pt-4 mt-2">
+                    <label className="text-xs font-semibold text-foreground/70 flex items-center gap-1">
+                      <User className="h-3 w-3" /> Nome Completo (Rodapé de Assinatura)
+                    </label>
+                    <Input 
+                      value={docData.assinaturaNome || ""}
+                      onChange={(e) => handleFieldChange("assinaturaNome", e.target.value)}
+                      placeholder="Nome completo para o rodapé"
+                    />
+                    <p className="text-[9px] text-muted-foreground">Aparece sob a linha de assinatura no documento impresso.</p>
+                  </div>
                 </div>
 
                 <Button 
@@ -1329,9 +1312,9 @@ window.print();
             </Card>
 
             {/* Customization, Attachments & Electronic Signature Card */}
-            <Card className="border-border/50 bg-white text-foreground shadow-md">
+            <Card className="border-border/50 bg-card text-card-foreground shadow-md">
               <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-sm font-bold text-[#1a3a2a] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-bold text-[#1a3a2a] dark:text-[#e2ca76] flex items-center gap-1.5">
                   <Shield className="h-4.5 w-4.5 text-[#c4a84b]" />
                   Recursos do Sistema
                 </CardTitle>
@@ -1352,7 +1335,7 @@ window.print();
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1371,7 +1354,7 @@ window.print();
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1618,14 +1601,15 @@ window.print();
           </div>
 
           {/* Document Preview Side (A4 Sheet Simulation) */}
-          <div className={`lg:col-span-7 flex flex-col gap-6 items-center overflow-auto print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
+          <div id="print-wrapper" className={`lg:col-span-7 flex flex-col gap-6 items-center overflow-auto print:overflow-visible print:block ${viewMode === "edit" ? "hidden lg:flex" : "flex"} w-full max-h-[75vh] lg:max-h-none print:max-h-none print:h-auto print:w-auto print:bg-transparent print:border-none print:p-0 bg-zinc-100/50 dark:bg-zinc-900/50 p-3 md:p-6 rounded-lg border`}>
             <div 
               id="military-document-print" 
-              className="official-document-sheet flex h-auto min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[13px] leading-relaxed shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none"
+              className="official-document-sheet flex h-[297mm] min-h-[297mm] w-[210mm] min-w-[210mm] flex-col items-center justify-start border border-gray-200 pb-[20mm] pl-[30mm] pr-[20mm] pt-[30mm] font-serif text-[12pt] leading-[1.5] shadow-2xl bg-white text-black shrink-0 [color-scheme:light] print:border-none print:bg-white print:shadow-none print:m-0 print:p-[30mm_20mm_20mm_30mm]"
               style={{
                 fontFamily: "'Times New Roman', Times, serif",
                 width: "210mm",
                 minWidth: "210mm",
+                height: "297mm",
                 minHeight: "297mm",
                 boxSizing: "border-box",
               }}
@@ -1637,40 +1621,34 @@ window.print();
                   margin: 0;
                 }
                 @media print {
-                  html, body {
-                    width: 210mm !important;
-                    min-height: 297mm !important;
+                  /* Esconde todos os elementos do corpo da página */
+                  body * {
+                    visibility: hidden;
                   }
-                  body {
-                    background-color: white !important;
-                    color: black !important;
-                    font-family: 'Times New Roman', Times, serif !important;
+                  
+                  /* Torna visível apenas o documento e todos os seus filhos */
+                  #military-document-print, #military-document-print * {
+                    visibility: visible;
                   }
-                  header, footer, nav, button, .print\\:hidden, #nprogress {
-                    display: none !important;
-                  }
-                  .container {
-                    max-width: 100% !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                  }
-                  main {
-                    padding: 0 !important;
-                    margin: 0 !important;
-                  }
+                  
+                  /* Posiciona o documento no canto superior esquerdo, fora do fluxo da página (ignora grids/flex) */
                   #military-document-print {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
                     width: 210mm !important;
-                    height: auto !important;
+                    height: 297mm !important;
                     min-height: 297mm !important;
-                    padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais: Esquerda 3cm, Direita 2cm, Superior 3cm, Inferior 2cm */
+                    padding: 30mm 20mm 20mm 30mm !important; /* Margens oficiais */
+                    margin: 0 !important;
                     box-sizing: border-box !important;
-                    overflow: visible !important;
                     border: none !important;
                     box-shadow: none !important;
-                    position: relative !important;
                     page-break-after: always !important;
-                    break-after: page !important;
+                    background: white !important;
+                    color: black !important;
                   }
+
                   #military-document-print img {
                     image-rendering: auto !important;
                     print-color-adjust: exact !important;
@@ -1715,7 +1693,7 @@ window.print();
               </div>
 
               {/* Document Body */}
-              <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[13px] leading-relaxed">
+              <div className="w-full flex-1 mt-10 text-justify flex flex-col gap-6 text-[12pt] leading-[1.5]">
                 
                 {/* Remetente & Destinatário Block */}
                 <div className="flex flex-col gap-1.5">
@@ -1794,7 +1772,7 @@ window.print();
               </div>
 
               {/* Bottom Section / Signatures */}
-              <div className="w-full flex flex-col items-center gap-10 mt-12 relative">
+              <div className="w-full flex flex-col items-center gap-10 mt-auto relative">
                 <div className="w-full text-right font-medium">
                   {docData.localData || "Manaus - AM"}
                 </div>
