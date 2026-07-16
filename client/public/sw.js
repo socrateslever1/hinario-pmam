@@ -89,10 +89,22 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => {
-        console.log("[SW] Navigation offline, returning index.html");
-        return caches.match("/index.html", { ignoreSearch: true }).then(res => res || caches.match("/", { ignoreSearch: true }));
-      }),
+      fetch(request)
+        .then((response) => {
+          // Sempre atualiza o index.html no cache quando a rede funcionar
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put("/index.html", responseClone.clone());
+              cache.put("/", responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          console.log("[SW] Navigation offline, returning index.html from cache");
+          return caches.match("/index.html", { ignoreSearch: true }).then(res => res || caches.match("/", { ignoreSearch: true }));
+        }),
     );
     return;
   }
