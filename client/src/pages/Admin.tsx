@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -34,6 +34,49 @@ import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
 import { AccessManagement } from "./AccessManagement";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { UserProfileTab } from "@/components/admin/UserProfileTab";
+
+function CommandDashboardWidget() {
+  const pendingFoQuery = trpc.serviceScale.pendingStudentObservations.useQuery({});
+  const lcCasesQuery = trpc.serviceScale.lcCases.useQuery({ status: "pending" });
+  const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery();
+
+  const loading = pendingFoQuery.isLoading || lcCasesQuery.isLoading || partesQuery.isLoading;
+
+  return (
+    <div className="mb-6 rounded-xl border border-border/50 bg-card p-4 shadow-sm md:p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">Resumo de Pendências</h2>
+          <p className="text-xs text-muted-foreground">Visão geral das demandas na Sala Administrativa</p>
+        </div>
+        <Link href="/sala-administrativa">
+          <Button size="sm" className="bg-[#1a3a2a] text-white">Administrar Demandas</Button>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <Card className="border-amber-500/25 bg-amber-500/10 transition-colors hover:bg-amber-500/20">
+          <CardContent className="p-3 text-center md:p-4">
+            <p className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 md:text-xs">Fatos Observados</p>
+            {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-amber-600" /> : <p className="mt-1 text-2xl font-black text-amber-800 dark:text-amber-100 md:text-3xl">{pendingFoQuery.data?.length ?? 0}</p>}
+          </CardContent>
+        </Card>
+        <Card className="border-red-500/25 bg-red-500/10 transition-colors hover:bg-red-500/20">
+          <CardContent className="p-3 text-center md:p-4">
+            <p className="text-[10px] font-black uppercase text-red-700 dark:text-red-300 md:text-xs">Licenças Caçadas</p>
+            {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-red-600" /> : <p className="mt-1 text-2xl font-black text-red-800 dark:text-red-100 md:text-3xl">{lcCasesQuery.data?.length ?? 0}</p>}
+          </CardContent>
+        </Card>
+        <Card className="border-blue-500/25 bg-blue-500/10 transition-colors hover:bg-blue-500/20">
+          <CardContent className="p-3 text-center md:p-4">
+            <p className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-300 md:text-xs">Documentos Oficiais</p>
+            {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-blue-600" /> : <p className="mt-1 text-2xl font-black text-blue-800 dark:text-blue-100 md:text-3xl">{partesQuery.data?.length ?? 0}</p>}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 export default function Admin() {
   const isMobile = useIsMobile();
@@ -249,6 +292,9 @@ export default function Admin() {
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
         <div className="container">
+          {/* Widget de Pendências do Comando */}
+          {isComandante && <CommandDashboardWidget />}
+
           {/* Stats */}
           {canManageGlobalContent && (
             <div className="mb-3 grid grid-cols-2 gap-2 md:mb-5 md:grid-cols-4 md:gap-3">
