@@ -502,6 +502,8 @@ export const studentRouter = router({
         rg: targetStudent.rg || "",
         cpf: targetStudent.cpf || "",
         email: targetStudent.email || "",
+        companhia: targetStudent.companhia || 0,
+        peloton: targetStudent.peloton || 0,
       };
     }),
 

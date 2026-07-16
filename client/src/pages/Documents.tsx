@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -676,14 +677,28 @@ export function RenderDocumentAttachments({ anexos, remetente, docType }: { anex
 export default function Documents() {
   const [, setLocation] = useLocation();
   const session = getStudentSession();
+  const { user, isAuthenticated } = useAuth();
+  
+  const isCommand = Boolean(isAuthenticated && user?.role && [
+    "comandante_corpo",
+    "subcomandante_corpo",
+    "sub_comandante_corpo",
+    "comandante_cfap",
+    "subcomandante_cfap",
+    "sub_comandante_cfap",
+    "comandante_cia",
+    "comandante_pel",
+  ].includes(user.role));
+
+  const hasAccess = Boolean(session || isCommand);
   const [fontSize, setFontSize] = useState("12pt");
 
   // Redireciona para o login caso o usuário tente acessar a página sem autenticação
   useEffect(() => {
-    if (!session) {
+    if (!hasAccess) {
       setLocation("/entrar");
     }
-  }, [session, setLocation]);
+  }, [hasAccess, setLocation]);
 
   const [docType, setDocType] = useState<DocType>("parte");
   const [docData, setDocData] = useState<DocumentData>(defaultValues.parte);
@@ -710,7 +725,7 @@ export default function Documents() {
   const [searchRgInput, setSearchRgInput] = useState("");
   const [searchRgQuery, setSearchRgQuery] = useState("");
 
-  if (!session) return null;
+  if (!hasAccess) return null;
   const profileQuery = trpc.student.getProfile.useQuery(
     { id: session?.id ?? 0, sessionToken: session?.sessionToken ?? "" },
     { enabled: !!session }

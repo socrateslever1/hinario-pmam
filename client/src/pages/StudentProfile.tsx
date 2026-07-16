@@ -23,6 +23,47 @@ function formatDateOnly(value?: string | null) {
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
 }
 
+const conditionLabels: Record<string, string> = {
+  pronto: "Pronto (PRONTO)",
+  falta: "Falta (FT)",
+  atraso: "Atraso (AT)",
+  diverso_destino: "Diverso Destino (DD)",
+  destino_ignorado: "Destino Ignorado (DI)",
+  dispensa_medica: "Dispensa Médica (DM)",
+  dispensa_administrativa: "Dispensa Administrativa (DA)",
+  baixado: "Baixado Temporário (BX)",
+  desistente: "Desistente (DES)",
+  desertor: "Desertor (DSR)",
+  desligado: "Desligado Permanente (DLG)",
+};
+
+const getConditionBadgeStyle = (cond = "pronto") => {
+  switch (cond) {
+    case "pronto":
+      return "bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300";
+    case "falta":
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300";
+    case "atraso":
+      return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300";
+    case "diverso_destino":
+      return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300";
+    case "destino_ignorado":
+      return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300";
+    case "dispensa_medica":
+      return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300";
+    case "dispensa_administrativa":
+      return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300";
+    case "baixado":
+      return "bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200";
+    case "desistente":
+    case "desertor":
+    case "desligado":
+      return "bg-zinc-200 text-zinc-500 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-600 dark:border-zinc-800";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+};
+
 export default function StudentProfilePage() {
   const [, setLocation] = useLocation();
   const [profile, setProfile] = useState<StudentProfile>(emptyStudentProfile);
@@ -270,8 +311,15 @@ export default function StudentProfilePage() {
               Gerencie suas informações militares e dados pessoais.
             </p>
           </div>
-          <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#1a3a2a] shadow-sm backdrop-blur md:rounded-lg md:bg-card/80">
-            CFSD 2026 • {session.companhia}ª CIA • {session.peloton}º PEL • Numérica {session.numerica}
+          <div className="flex flex-col items-end gap-2">
+            <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#1a3a2a] shadow-sm backdrop-blur md:rounded-lg md:bg-card/80">
+              CFSD 2026 • {session.companhia}ª CIA • {session.peloton}º PEL • Numérica {session.numerica}
+            </div>
+            {profileQuery.data?.condition && (
+              <div className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm md:rounded-lg ${getConditionBadgeStyle(profileQuery.data.condition)}`}>
+                Status Atual: {conditionLabels[profileQuery.data.condition] || profileQuery.data.condition}
+              </div>
+            )}
           </div>
         </div>
 

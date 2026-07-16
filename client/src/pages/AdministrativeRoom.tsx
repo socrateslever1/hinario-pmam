@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const GENERAL_COMMAND_ROLES = new Set([
   "master",
@@ -54,8 +55,6 @@ async function fileToBase64(file: File) {
 export default function AdministrativeRoom() {
   const utils = trpc.useUtils();
   const { data: access, isLoading: accessLoading } = trpc.serviceScale.myAccess.useQuery();
-  const [companhia, setCompanhia] = useState(() => localStorage.getItem("selected_companhia") || "4");
-  const [peloton, setPeloton] = useState(() => localStorage.getItem("selected_peloton") || "1");
   const [baixadoStudentId, setBaixadoStudentId] = useState("");
   const [baixadoNote, setBaixadoNote] = useState("");
   const [baixadoHpmHomologated, setBaixadoHpmHomologated] = useState(true);
@@ -75,8 +74,6 @@ export default function AdministrativeRoom() {
   const [aditamentoTitle, setAditamentoTitle] = useState("");
   const [aditamentoContent, setAditamentoContent] = useState("");
 
-  const selectedCompanhia = Number(companhia);
-  const selectedPeloton = Number(peloton);
   const role = String(access?.role || "");
   const canHomologateFoLc = Boolean((access as any)?.canHomologateFoLc);
   const canApproveStudentDocuments = Boolean((access as any)?.canApproveStudentDocuments);
@@ -84,40 +81,21 @@ export default function AdministrativeRoom() {
   const canChangeCompanhia = Boolean(access?.isGeneral || GENERAL_COMMAND_ROLES.has(role));
   const canChangePelotao = Boolean(canChangeCompanhia || role === "comandante_cia" || access?.assignment?.level === "companhia");
 
-  useEffect(() => {
-    localStorage.setItem("selected_companhia", companhia);
-  }, [companhia]);
-
-  useEffect(() => {
-    localStorage.setItem("selected_peloton", peloton);
-  }, [peloton]);
-
-  useEffect(() => {
-    if (access?.scope && !access.scope.unrestricted) {
-      if (access.scope.companhia) setCompanhia(String(access.scope.companhia));
-      if (access.scope.peloton) setPeloton(String(access.scope.peloton));
-    }
-  }, [access?.scope]);
-
-  const platoonQuery = trpc.serviceScale.getPlatoonPublic.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, weekStart: getMonday() },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
-  );
   const pendingFoQuery = trpc.serviceScale.pendingStudentObservations.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
+    {},
+    { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const lcCasesQuery = trpc.serviceScale.lcCases.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
+    { status: "pending" },
+    { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const baixadosQuery = trpc.serviceScale.listBaixados.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
+    {},
+    { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const contestedFoQuery = trpc.serviceScale.contestedStudentObservations.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
+    { status: "pending" },
+    { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const contestStudentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
     { studentId: Number(contestStudentId || 0) },
@@ -127,8 +105,8 @@ export default function AdministrativeRoom() {
     enabled: Boolean(canApproveStudentDocuments),
   });
   const internalReportsQuery = trpc.serviceScale.listInternalReports.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "active" },
-    { enabled: Boolean(canViewAdministrativeRoom && selectedCompanhia && selectedPeloton) }
+    { status: "active" },
+    { enabled: Boolean(canViewAdministrativeRoom) }
   );
 
   const validateFo = trpc.serviceScale.validateStudentObservation.useMutation({
@@ -148,7 +126,7 @@ export default function AdministrativeRoom() {
   const setBaixado = trpc.serviceScale.setStudentBaixado.useMutation({
     onSuccess: async () => {
       toast.success("Indicador de baixado atualizado");
-      await Promise.all([baixadosQuery.refetch(), platoonQuery.refetch()]);
+      await Promise.all([baixadosQuery.refetch()]);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -206,18 +184,13 @@ export default function AdministrativeRoom() {
     onError: (error) => toast.error(error.message),
   });
 
-  const students = useMemo(
-    () => [...(platoonQuery.data?.students ?? [])].sort((a: any, b: any) => Number(a.numerica) - Number(b.numerica)),
-    [platoonQuery.data?.students]
-  );
+  const students = useMemo(() => [], []);
   const pendingFoItems = pendingFoQuery.data ?? [];
   const lcItems = lcCasesQuery.data ?? [];
   const baixadoItems = baixadosQuery.data ?? [];
   const contestedFoItems = contestedFoQuery.data ?? [];
   const partesItems = partesQuery.data ?? [];
-  const scopedPartesItems = partesItems.filter((item: any) =>
-    Number(item.companhia) === selectedCompanhia && Number(item.peloton) === selectedPeloton
-  );
+  const scopedPartesItems = partesItems;
   const internalReportItems = internalReportsQuery.data ?? [];
   const contestableObservations = (contestStudentObservationsQuery.data ?? []).filter((item: any) =>
     (item.type === "positive" || item.type === "negative") &&
@@ -360,7 +333,7 @@ export default function AdministrativeRoom() {
     const dayPartesItems = scopedPartesItems.filter((item: any) => isDraftDate(item.createdAt));
     const dayBaixadoItems = baixadoItems.filter((item: any) => isDraftDate(item.latestDocumentAt) || item.documents?.some((doc: any) => isDraftDate(doc.createdAt)));
     const dayInternalReportItems = internalReportItems.filter((item: any) => isDraftDate(item.createdAt));
-    lines.push(`ADITAMENTO DIGITAL - ${selectedCompanhia}ª CIA / ${selectedPeloton}º PEL`);
+    lines.push(`ADITAMENTO DIGITAL - COMANDO CAL`);
     lines.push(`Data: ${new Date(`${aditamentoDate}T00:00:00`).toLocaleDateString("pt-BR")}`);
     lines.push("");
     lines.push("1. Fatos Observados e Licença Caçada");
@@ -399,7 +372,7 @@ export default function AdministrativeRoom() {
     } else {
       lines.push("- Sem baixados ou informes internos lançados nesta data.");
     }
-    setAditamentoTitle(`Aditamento Digital - ${selectedCompanhia}ª Cia / ${selectedPeloton}º Pel - ${new Date(`${aditamentoDate}T00:00:00`).toLocaleDateString("pt-BR")}`);
+    setAditamentoTitle(`Aditamento Digital - Comando CAL - ${new Date(`${aditamentoDate}T00:00:00`).toLocaleDateString("pt-BR")}`);
     setAditamentoContent(lines.join("\n"));
   };
 
@@ -409,8 +382,8 @@ export default function AdministrativeRoom() {
       return;
     }
     saveAditamento.mutate({
-      companhia: selectedCompanhia,
-      peloton: selectedPeloton,
+      companhia: 0,
+      peloton: 0,
       titulo: aditamentoTitle.trim(),
       conteudo: aditamentoContent.trim(),
       data: aditamentoDate,
@@ -464,24 +437,6 @@ export default function AdministrativeRoom() {
               <p className="text-xs text-muted-foreground">Área administrativa do comando para validar Fatos Observados, formalizar Licença Caçada e acompanhar baixados.</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex">
-            <select
-              value={companhia}
-              onChange={(event) => setCompanhia(event.target.value)}
-              disabled={!canChangeCompanhia}
-              className="h-9 rounded-md border bg-white px-3 text-sm font-semibold dark:bg-zinc-900"
-            >
-              {[1, 2, 3, 4, 5].map((item) => <option key={item} value={String(item)}>{item}ª Companhia</option>)}
-            </select>
-            <select
-              value={peloton}
-              onChange={(event) => setPeloton(event.target.value)}
-              disabled={!canChangePelotao}
-              className="h-9 rounded-md border bg-white px-3 text-sm font-semibold dark:bg-zinc-900"
-            >
-              {[1, 2].map((item) => <option key={item} value={String(item)}>{item}º Pelotão</option>)}
-            </select>
-          </div>
         </div>
 
         <div className="mb-5 grid gap-3 sm:grid-cols-3">
@@ -514,8 +469,14 @@ export default function AdministrativeRoom() {
           </Card>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-          <div className="space-y-5">
+        <Tabs defaultValue="disciplina" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6 bg-white dark:bg-zinc-900 border shadow-sm">
+            <TabsTrigger value="disciplina" className="data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white dark:data-[state=active]:bg-[#c4a84b] dark:data-[state=active]:text-black">Disciplina</TabsTrigger>
+            <TabsTrigger value="documentos" className="data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white dark:data-[state=active]:bg-[#c4a84b] dark:data-[state=active]:text-black">Documentos</TabsTrigger>
+            <TabsTrigger value="efetivo" className="data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white dark:data-[state=active]:bg-[#c4a84b] dark:data-[state=active]:text-black">Efetivo</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="disciplina" className="space-y-5">
             <Card className="border-border/50 bg-white dark:bg-zinc-900">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black">
@@ -534,6 +495,7 @@ export default function AdministrativeRoom() {
                       </Badge>
                       {item.fo_code ? <Badge variant="outline">Código {item.fo_code}</Badge> : null}
                       <span>{item.numerica} {item.nome_guerra}</span>
+                      <Badge variant="secondary" className="text-[10px] bg-foreground/10">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
                     <p className="mt-1 text-[10px] text-muted-foreground">Lançada por {item.created_by_name || "xerife"}</p>
@@ -571,6 +533,7 @@ export default function AdministrativeRoom() {
                         <Badge className="bg-red-700 text-white">LC pendente</Badge>
                         <Badge variant="outline" className="border-red-300 text-red-700">FO {item.foCode}</Badge>
                         <span className="font-black">{item.numerica} {item.nomeGuerra}</span>
+                        <Badge variant="secondary" className="text-[10px] bg-red-700/10 text-red-800">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
                       </div>
                       <p className="mt-2 font-semibold">{item.foLabel}</p>
                       <p className="mt-1 text-muted-foreground">Saldo: {item.netCount} ({item.negativeCount} FO- menos {item.positiveCount} FO+)</p>
@@ -618,6 +581,7 @@ export default function AdministrativeRoom() {
                       <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"}</Badge>
                       {item.fo_code ? <Badge variant="outline">Código {item.fo_code}</Badge> : null}
                       <span>{item.numerica} {item.nome_guerra}</span>
+                      <Badge variant="secondary" className="text-[10px]">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
                       <Badge variant="outline">{item.contest_source === "portal" ? "Portal do aluno" : "CAL"}</Badge>
                     </div>
                     <p className="mt-2 whitespace-pre-wrap text-muted-foreground">{item.contest_text}</p>
@@ -665,7 +629,9 @@ export default function AdministrativeRoom() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="documentos" className="space-y-5">
             <Card className="border-blue-500/25 bg-white dark:bg-zinc-900">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black">
@@ -687,6 +653,7 @@ export default function AdministrativeRoom() {
                         <div className="flex flex-wrap items-center gap-2 font-black">
                           <Badge variant="outline">{item.tipoDocumento === "parte" ? `Parte (${item.tipoParte})` : item.tipoDocumento}</Badge>
                           <span>{item.numerica} {item.nomeGuerra}</span>
+                          <Badge variant="secondary" className="text-[10px]">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
                           <Badge>{item.status}</Badge>
                         </div>
                         <p className="mt-1 font-semibold">{item.assunto}</p>
@@ -725,9 +692,9 @@ export default function AdministrativeRoom() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-5">
+          <TabsContent value="efetivo" className="space-y-5">
             <Card className="border-border/50 bg-white dark:bg-zinc-900">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black">
@@ -815,7 +782,10 @@ export default function AdministrativeRoom() {
                     <div key={item.id} className="rounded-md border bg-muted/10 p-2 text-xs">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate font-black">{item.numerica} {item.nomeGuerra}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-black">{item.numerica} {item.nomeGuerra}</p>
+                            <Badge variant="secondary" className="text-[10px]">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
+                          </div>
                           <p className="text-muted-foreground">{getInternalTypeLabel(item.type)} - {item.title}</p>
                         </div>
                         <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" disabled={updateInternalReportStatus.isPending} onClick={() => updateInternalReportStatus.mutate({ id: item.id, status: "resolved" })}>
@@ -870,8 +840,8 @@ export default function AdministrativeRoom() {
                 )}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

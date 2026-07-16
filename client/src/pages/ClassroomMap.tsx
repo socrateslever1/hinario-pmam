@@ -72,6 +72,9 @@ const conditionLabels: Record<string, string> = {
   dispensa_medica: "Dispensa Médica (DM)",
   dispensa_administrativa: "Dispensa Administrativa (DA)",
   baixado: "Baixado (BX)",
+  desistente: "Desistente (DES)",
+  desertor: "Desertor (DSR)",
+  desligado: "Desligado (DLG)",
 };
 
 const conditionShorts: Record<string, string> = {
@@ -83,6 +86,9 @@ const conditionShorts: Record<string, string> = {
   dispensa_medica: "DM",
   dispensa_administrativa: "DA",
   baixado: "BX",
+  desistente: "DES",
+  desertor: "DSR",
+  desligado: "DLG",
 };
 
 const getConditionBadgeStyle = (cond = "pronto") => {
@@ -103,6 +109,10 @@ const getConditionBadgeStyle = (cond = "pronto") => {
       return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300";
     case "baixado":
       return "bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200";
+    case "desistente":
+    case "desertor":
+    case "desligado":
+      return "bg-zinc-200 text-zinc-500 border-zinc-300 dark:bg-zinc-900 dark:text-zinc-600 dark:border-zinc-800";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
@@ -126,6 +136,10 @@ const getSeatConditionStyle = (cond = "pronto") => {
       return "bg-purple-500/5 border-dashed border-purple-500/50 opacity-75 shadow-sm";
     case "baixado":
       return "bg-red-500/10 border-solid border-red-500/70 shadow-[0_0_0_2px_rgba(239,68,68,.18)]";
+    case "desistente":
+    case "desertor":
+    case "desligado":
+      return "bg-zinc-500/10 border-dashed border-zinc-500/20 opacity-40 mix-blend-luminosity grayscale filter";
     default:
       return "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800";
   }
@@ -2024,14 +2038,16 @@ export default function ClassroomMap() {
                             <Select
                               value={student.condition || "pronto"}
                               onValueChange={(value) => handleConditionChange(student.id, value)}
-                              disabled={updateStudentCondition.isPending}
+                              disabled={updateStudentCondition.isPending || ["desistente", "desertor", "desligado"].includes(student.condition || "")}
                             >
                               <SelectTrigger className="h-8 text-xs mt-1">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {Object.entries(conditionLabels).map(([val, lbl]) => (
-                                  <SelectItem key={val} value={val} className="text-xs">{lbl}</SelectItem>
+                                {Object.entries(conditionLabels)
+                                  .filter(([val]) => !["desistente", "desertor", "desligado"].includes(val))
+                                  .map(([val, lbl]) => (
+                                    <SelectItem key={val} value={val} className="text-xs">{lbl}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -2643,6 +2659,34 @@ export default function ClassroomMap() {
                     </Button>
                   )}
                 </div>
+
+                {isCommandRole && (
+                  <div className="rounded-lg border bg-red-50/50 p-3 dark:bg-red-950/20 border-red-200 dark:border-red-900/50">
+                    <Label className="text-[11px] font-black text-red-900 dark:text-red-300">Status Administrativo Permanente (Comando)</Label>
+                    <p className="text-[10px] text-red-800 dark:text-red-400 mb-2 leading-tight">
+                      Alterar para um status permanente irá bloquear a edição pelo xerife e remover a cadeira da sala de aula.
+                    </p>
+                    <Select
+                      value={operationalStudent.condition || "pronto"}
+                      onValueChange={(value) => {
+                        if (window.confirm("Atenção: Você está alterando o status administrativo permanente deste aluno. Confirmar?")) {
+                          handleConditionChange(operationalStudent.id, value);
+                          setOperationalStudent({ ...operationalStudent, condition: value });
+                        }
+                      }}
+                      disabled={updateStudentCondition.isPending}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-white dark:bg-zinc-950 border-red-300 dark:border-red-800">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(conditionLabels).map(([val, lbl]) => (
+                          <SelectItem key={val} value={val} className="text-xs">{lbl}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="rounded-lg border">
                   <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">

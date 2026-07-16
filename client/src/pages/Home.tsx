@@ -24,6 +24,7 @@ import {
   Star,
   Target,
   AlertCircle,
+  ClipboardList
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { getStudentSession } from "@/lib/studentSession";
@@ -176,6 +177,32 @@ function HeroSection() {
 }
 
 function QuickAccess() {
+  const { data: user } = trpc.auth.me.useQuery();
+  const isComandante = Boolean(
+    user?.role &&
+      [
+        "comandante_corpo",
+        "subcomandante_corpo",
+        "sub_comandante_corpo",
+        "comandante_cfap",
+        "subcomandante_cfap",
+        "sub_comandante_cfap",
+        "comandante_cia",
+        "comandante_pel",
+      ].includes(user.role)
+  );
+
+  const items = isComandante
+    ? [
+        { icon: Music, value: "24", label: "Hinos", desc: "Catálogo oficial", href: "/hinos" },
+        { icon: Target, value: "01", label: "Charlie Mike", desc: "Ritmo de treino", href: "/charlie-mike" },
+        { icon: ClipboardList, value: "✓", label: "Administrar", desc: "Sala Administrativa", href: "/sala-administrativa" },
+        { icon: BookOpen, value: "08", label: "Estudos", desc: "Módulos CFAP", href: "/estudos" },
+        { icon: Medal, value: "05", label: "Medalhas", desc: "Mérito e honra", href: "/sobre" },
+        { icon: Star, value: "03", label: "Favoritos", desc: "Itens salvos", href: "/hinos" },
+      ]
+    : quickAccessItems;
+
   return (
     <section className="md:hidden bg-background px-4 py-5 text-foreground">
       <div className="mb-3 flex items-center justify-between">
@@ -186,7 +213,7 @@ function QuickAccess() {
       </div>
       <div className="-mx-4 overflow-x-auto px-4 pb-2">
         <div className="flex min-w-min gap-3">
-          {quickAccessItems.map((item) => (
+          {items.map((item) => (
             <Link key={item.label} href={item.href}>
               <div className="h-28 w-32 shrink-0 rounded-lg border border-border/50 bg-card p-3 shadow-sm">
                 <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] shadow-inner">

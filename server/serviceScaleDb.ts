@@ -1619,7 +1619,7 @@ export async function listContestedStudentObservations(scope?: {
      LEFT JOIN pmam_users du ON du.id = o.contest_decided_by
      LEFT JOIN pmam_users au ON au.id = o.annulled_by
      WHERE ${where.join(" AND ")}
-     ORDER BY FIELD(o.contest_status, 'pending', 'accepted', 'rejected'), o.contested_at DESC
+     ORDER BY FIELD(o.contest_status, 'pending', 'accepted', 'rejected'), o.contested_at ASC
      LIMIT 300`,
     params
   );
@@ -1822,7 +1822,7 @@ export async function listLcCases(options?: {
      LEFT JOIN pmam_users u ON u.id = lc.judged_by
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY FIELD(lc.status, 'pending', 'homologated', 'rejected', 'cancelled'),
-       lc.updated_at DESC
+       lc.updated_at ASC
      LIMIT 300`,
     params
   );
@@ -2133,7 +2133,7 @@ export async function listInternalReports(options?: {
      LEFT JOIN pmam_users cu ON cu.id = r.created_by
      LEFT JOIN pmam_users ru ON ru.id = r.resolved_by
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY FIELD(r.status, 'active', 'resolved', 'cancelled'), r.created_at DESC
+     ORDER BY FIELD(r.status, 'active', 'resolved', 'cancelled'), r.created_at ASC
      LIMIT 300`,
     params
   );
