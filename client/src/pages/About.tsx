@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, BookOpen, Music, Target, Star, Award, LayoutGrid, FileText, Users } from "lucide-react";
+import { Shield, Music, Award, LayoutGrid, FileText, Users } from "lucide-react";
 
 const BRASAO_URL = "/logo/IMG_7728.PNG";
 
@@ -14,10 +14,10 @@ export default function About() {
         <div className="container text-center">
           <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
-            Sobre o Meu Quartel
+            Sobre o QG Digital
           </h1>
           <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
-            A plataforma digital que organiza gestão, formação, comunicação, documentos e tradições da Polícia Militar do Amazonas.
+            Plataforma Militar para gestão, formação, comunicação, documentos, disciplina e rotina institucional.
           </p>
         </div>
         <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
@@ -31,87 +31,28 @@ export default function About() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-[#1a3a2a] md:text-foreground mb-4" style={{ fontFamily: "Merriweather, serif" }}>
-                Meu Quartel — Plataforma Digital PMAM
+                QG Digital — Plataforma Militar
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                O Meu Quartel é um ambiente institucional organizado por setores, funções e níveis de acesso. Cada usuário entra na mesma plataforma, mas visualiza somente os recursos correspondentes à sua função e ao seu escopo.
+                O QG Digital organiza setores, funções e níveis de acesso em um único ambiente. Cada usuário visualiza apenas os recursos correspondentes à sua função e ao seu escopo.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Alunos, comandantes e administradores encontram ferramentas de formação, acompanhamento acadêmico, comunicação, documentos, escalas, efetivo e rotina operacional em um único ambiente.
+                Alunos, comandantes e administradores encontram ferramentas de formação, acompanhamento acadêmico, comunicação, documentos, escalas, efetivo e rotina operacional.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                O antigo Hinário permanece preservado como um módulo interno dedicado aos hinos, canções, orações e tradições militares da PMAM.
+                O Hinário permanece como módulo interno dedicado aos hinos, canções, orações e tradições militares da PMAM.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            <Card className="border-border/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center">
-                    <LayoutGrid className="h-5 w-5 text-[#1a3a2a]" />
-                  </div>
-                  <h3 className="font-bold text-foreground">Setores Digitais</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Sala de aula, estudos, escalas, efetivo, documentos, comunicação e demais módulos organizados conforme a estrutura institucional.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#2d5a27]/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-[#2d5a27]" />
-                  </div>
-                  <h3 className="font-bold text-foreground">Acesso por Função</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  As permissões acompanham a função, a hierarquia e o escopo do usuário, evitando acesso indevido a outros setores, companhias ou pelotões.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-[#c4a84b]" />
-                  </div>
-                  <h3 className="font-bold text-foreground">Gestão e Formação</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Informações acadêmicas, administrativas e operacionais reunidas para reduzir dispersão, retrabalho e falhas de comunicação.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#8b4513]/10 flex items-center justify-center">
-                    <Music className="h-5 w-5 text-[#8b4513]" />
-                  </div>
-                  <h3 className="font-bold text-foreground">Módulo Hinário</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  O catálogo de hinos, canções de armas, canções da PMAM e orações continua disponível como parte da plataforma, preservando a identidade militar.
-                </p>
-              </CardContent>
-            </Card>
+            <Card className="border-border/50"><CardContent className="p-6"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#1a3a2a]/10 flex items-center justify-center"><LayoutGrid className="h-5 w-5 text-[#1a3a2a]" /></div><h3 className="font-bold text-foreground">Setores Digitais</h3></div><p className="text-sm text-muted-foreground leading-relaxed">Sala de aula, escalas, efetivo, documentos, comunicação, disciplina e demais módulos organizados conforme a estrutura institucional.</p></CardContent></Card>
+            <Card className="border-border/50"><CardContent className="p-6"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#2d5a27]/10 flex items-center justify-center"><Users className="h-5 w-5 text-[#2d5a27]" /></div><h3 className="font-bold text-foreground">Acesso por Função</h3></div><p className="text-sm text-muted-foreground leading-relaxed">As permissões acompanham a função, a hierarquia e o escopo do usuário, evitando acesso indevido a outros setores, companhias ou pelotões.</p></CardContent></Card>
+            <Card className="border-border/50"><CardContent className="p-6"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#c4a84b]/10 flex items-center justify-center"><FileText className="h-5 w-5 text-[#c4a84b]" /></div><h3 className="font-bold text-foreground">Gestão e Formação</h3></div><p className="text-sm text-muted-foreground leading-relaxed">Informações acadêmicas, administrativas e operacionais reunidas para reduzir dispersão, retrabalho e falhas de comunicação.</p></CardContent></Card>
+            <Card className="border-border/50"><CardContent className="p-6"><div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 rounded-lg bg-[#8b4513]/10 flex items-center justify-center"><Music className="h-5 w-5 text-[#8b4513]" /></div><h3 className="font-bold text-foreground">Módulo Hinário</h3></div><p className="text-sm text-muted-foreground leading-relaxed">O catálogo de hinos, canções de armas, canções da PMAM e orações continua disponível como parte da plataforma.</p></CardContent></Card>
           </div>
 
-          <Card className="border-[#c4a84b]/30 bg-[#c4a84b]/5">
-            <CardContent className="p-6 text-center">
-              <Award className="h-8 w-8 text-[#c4a84b] mx-auto mb-3" />
-              <h3 className="font-bold text-foreground mb-2">Identidade institucional</h3>
-              <p className="text-sm text-muted-foreground">Meu Quartel — Plataforma Digital PMAM</p>
-              <p className="text-sm text-muted-foreground mt-1">Polícia Militar do Estado do Amazonas</p>
-              <p className="text-sm text-muted-foreground mt-1">Centro de Formação e Aperfeiçoamento de Praças — CFAP</p>
-            </CardContent>
-          </Card>
+          <Card className="border-[#c4a84b]/30 bg-[#c4a84b]/5"><CardContent className="p-6 text-center"><Award className="h-8 w-8 text-[#c4a84b] mx-auto mb-3" /><h3 className="font-bold text-foreground mb-2">Identidade institucional</h3><p className="text-sm text-muted-foreground">QG Digital — Plataforma Militar</p><p className="text-sm text-muted-foreground mt-1">Polícia Militar do Estado do Amazonas</p><p className="text-sm text-muted-foreground mt-1">Centro de Formação e Aperfeiçoamento de Praças — CFAP</p></CardContent></Card>
         </div>
       </section>
 
