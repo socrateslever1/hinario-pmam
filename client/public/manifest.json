@@ -1,7 +1,7 @@
 {
-  "name": "Hinário PMAM - Polícia Militar do Amazonas",
-  "short_name": "Hinário PMAM",
-  "description": "Aplicativo oficial de hinos e canções militares da Polícia Militar do Amazonas",
+  "name": "Meu Quartel - Plataforma Digital PMAM",
+  "short_name": "Meu Quartel",
+  "description": "Plataforma digital de gestão, formação, comunicação e rotina militar da Polícia Militar do Amazonas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -40,7 +40,7 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["music", "education"],
+  "categories": ["productivity", "education", "government"],
   "screenshots": [
     {
       "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-BV7riVUmfuhZ6oMpErScJS.webp",
@@ -53,7 +53,7 @@
     {
       "name": "Hinos",
       "short_name": "Hinos",
-      "description": "Explorar hinos e canções militares",
+      "description": "Explorar o módulo de hinos e canções militares",
       "url": "/hinos",
       "icons": [
         {
