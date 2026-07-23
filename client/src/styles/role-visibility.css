@@ -1,0 +1,7 @@
+/* Módulos preservados no código, mas temporariamente fora do plano visual do aluno. */
+body.qg-student-view a[href="/estudos"],
+body.qg-student-view a[href^="/estudos/"],
+body.qg-student-view a[href="/drill"],
+body.qg-student-view a[href^="/drill/"] {
+  display: none !important;
+}
