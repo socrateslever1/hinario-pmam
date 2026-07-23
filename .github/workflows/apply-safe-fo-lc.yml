@@ -1,0 +1,134 @@
+name: Apply safe FO and LC
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-safe-fo-lc.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch reviewed FO/LC implementation
+        run: git fetch origin fix/full-audit-hardening
+
+      - name: Apply safe implementation
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          component = subprocess.check_output([
+              "git", "show",
+              "origin/fix/full-audit-hardening:client/src/components/GlobalFOButton.tsx",
+          ], text=True)
+
+          old_gate = '''  const canUseFO = Boolean(
+              access?.isGeneral || access?.assignment || COMMAND_ROLES.has(String(access?.role || "")),
+            );'''
+          new_gate = '''  const canUseFO = COMMAND_ROLES.has(String(access?.role || ""));'''
+          if old_gate not in component:
+              raise SystemExit("Permission gate expected in GlobalFOButton was not found")
+          component = component.replace(old_gate, new_gate, 1)
+          if "access?.assignment" in component or "access?.isGeneral ||" in component:
+              raise SystemExit("Xerife permission remained in GlobalFOButton")
+          Path("client/src/components/GlobalFOButton.tsx").write_text(component, encoding="utf-8")
+
+          router_path = Path("server/routers.ts")
+          router = router_path.read_text(encoding="utf-8")
+          scale_block = '''const scaleManagerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+            if (
+              ctx.user.role === "master" ||
+              ctx.user.role === "admin" ||
+              isCommandRole(ctx.user.role)
+            ) {
+              return next({ ctx });
+            }
+            const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+            if (assignment) {
+              return next({ ctx });
+            }
+            throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a comandantes, administradores ou xerifes" });
+          });'''
+          launch_block = scale_block + '''
+
+          // FO e LC são atos de comando. Xerifes continuam recebendo os registros,
+          // mas não podem criar, anexar provas ou decidir casos disciplinares.
+          const foLcLaunchProcedure = protectedProcedure.use(({ ctx, next }) => {
+            if (
+              ctx.user.role === "master" ||
+              ctx.user.role === "admin" ||
+              isCommandRole(ctx.user.role)
+            ) {
+              return next({ ctx });
+            }
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Lançamento de FO/LC restrito aos perfis de comando autorizados",
+            });
+          });'''
+          if "const foLcLaunchProcedure" not in router:
+              if scale_block not in router:
+                  raise SystemExit("scaleManagerProcedure block was not found")
+              router = router.replace(scale_block, launch_block, 1)
+
+          source_route = "addStudentObservation: scaleManagerProcedure.input("
+          target_route = "addStudentObservation: foLcLaunchProcedure.input("
+          if source_route in router:
+              router = router.replace(source_route, target_route, 1)
+          elif target_route not in router:
+              raise SystemExit("addStudentObservation route was not found")
+
+          for source, target in [
+              ("uploadProof: scaleManagerProcedure", "uploadProof: foLcLaunchProcedure"),
+              ("deleteProof: scaleManagerProcedure", "deleteProof: foLcLaunchProcedure"),
+              ("removeProof: scaleManagerProcedure", "removeProof: foLcLaunchProcedure"),
+          ]:
+              router = router.replace(source, target)
+
+          router_path.write_text(router, encoding="utf-8")
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript
+        run: pnpm check
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Commit validated corrections
+        run: |
+          rm .github/workflows/apply-safe-fo-lc.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(fo-lc): publish command-only LC and mobile corrections"
+          git push origin main
