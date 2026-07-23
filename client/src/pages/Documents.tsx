@@ -1941,9 +1941,8 @@ window.print();
                                       const parsed = JSON.parse(doc.conteudoJson);
                                       setDocData(parsed);
                                       setDocType(doc.tipoDocumento as any);
+                                      setActiveTab("editor");
                                       toast.success("Documento carregado no editor! Faça os ajustes e reenvie.");
-                                      const tabBtn = document.querySelector('[role="tab"][value="editor"]') as HTMLButtonElement;
-                                      tabBtn?.click();
                                     } catch (e) {
                                       toast.error("Erro ao carregar documento no editor.");
                                     }

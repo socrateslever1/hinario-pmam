@@ -176,9 +176,7 @@ export default function StudentProfilePage() {
         phone: profileQuery.data.phone || current.phone,
         address: profileQuery.data.address || current.address,
         birthDate: profileQuery.data.birthDate
-          ? (profileQuery.data.birthDate instanceof Date
-              ? profileQuery.data.birthDate.toISOString().slice(0, 10)
-              : String(profileQuery.data.birthDate).slice(0, 10))
+          ? String(profileQuery.data.birthDate).slice(0, 10)
           : current.birthDate,
         bloodType: profileQuery.data.bloodType || current.bloodType,
         emergencyContact: profileQuery.data.emergencyContact || current.emergencyContact,

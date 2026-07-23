@@ -188,8 +188,15 @@ export function PeculioTab({
       const nextStatuses: Record<number, StudentStatusState> = {};
       for (const student of students) {
         const existing = statuses.find((s) => s.studentId === student.id);
+        const conditionToStatus: Record<string, string> = {
+          baixado: "baixado",
+          desistente: "falta",
+          desertor: "falta",
+          desligado: "falta",
+        };
+        const defaultStatus = conditionToStatus[student.condition || ""] || "pronto";
         nextStatuses[student.id] = {
-          status: existing?.status || "pronto",
+          status: existing?.status || defaultStatus,
           observacao: existing?.observacao || "",
           arrivalTime: existing?.arrivalTime || null,
           justificationNote: existing?.justificationNote || "",
@@ -380,7 +387,143 @@ export function PeculioTab({
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open("", "_blank", "width=900,height=1200");
+    if (!printWindow) {
+      toast.error("Bloqueio de popups detectado. Libere popups para imprimir.");
+      return;
+    }
+    const formattedDatePrint = new Date(date + "T00:00:00").toLocaleDateString("pt-BR");
+    const changedStudents = students.filter(s => {
+      const entry = studentStatuses[s.id];
+      return entry && entry.status !== "baixado" && entry.status !== "pronto";
+    });
+
+    const studentRows = students.map((student, idx) => {
+      const entry = studentStatuses[student.id] || { status: "pronto" };
+      const s = entry.status === "baixado" ? "pronto" : entry.status;
+      const mark = (val: string) => s === val ? "X" : "";
+      return `<tr>
+        <td>${idx + 1}</td>
+        <td>${student.numerica}</td>
+        <td class="left-align">${(student.nomeGuerra || "").toUpperCase()}</td>
+        <td>${mark("pronto")}</td>
+        <td>${mark("falta")}</td>
+        <td>${mark("atraso")}</td>
+        <td>${mark("diverso_destino")}</td>
+        <td>${mark("destino_ignorado")}</td>
+        <td>${mark("dispensa_medica")}</td>
+        <td>${mark("dispensa_administrativa")}</td>
+      </tr>`;
+    }).join("");
+
+    const altRows = changedStudents.length > 0
+      ? changedStudents.map((student, idx) => {
+          const entry = studentStatuses[student.id];
+          const abbrs: Record<string, string> = { falta: "FT", atraso: "AT", diverso_destino: "DD", destino_ignorado: "DI", dispensa_medica: "DM", dispensa_administrativa: "DA" };
+          return `<tr><td>${idx + 1}</td><td class="left-align" style="width:80%">${student.numerica} ${(student.nomeGuerra || "").toUpperCase()} - ${abbrs[entry?.status || ""] || entry?.status || ""} ${entry?.observacao ? ": " + entry.observacao : ""}</td></tr>`;
+        }).join("")
+      : `<tr><td colspan="2" style="text-align:center;font-style:italic">Sem alterações</td></tr>`;
+
+    const sigs = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;text-align:center;margin-top:40px">
+        <div><div style="border-bottom:1px solid black;margin-bottom:4px"></div><div style="font-size:9px;font-weight:bold;text-transform:uppercase">Chefe de Turma</div><div style="font-size:8px;color:#555">${chefeTurma || ""}</div></div>
+        <div><div style="border-bottom:1px solid black;margin-bottom:4px"></div><div style="font-size:9px;font-weight:bold;text-transform:uppercase">Subchefe de Turma</div><div style="font-size:8px;color:#555">${subchefeTurma || ""}</div></div>
+        <div><div style="border-bottom:1px solid black;margin-bottom:4px"></div><div style="font-size:9px;font-weight:bold;text-transform:uppercase">CMT de Pel</div><div style="font-size:8px;color:#555">${cmtPel || ""}</div></div>
+      </div>`;
+
+    const logoLeft = `<img src="/logo/IMG_7728.PNG" alt="PMAM" style="height:36mm;width:36mm;object-fit:contain;position:absolute;left:0;top:0" />`;
+    const logoRight = `<img src="/documents/images/brasao_cfap.png" alt="CFAP" style="height:36mm;width:36mm;object-fit:contain;position:absolute;right:0;top:0" />`;
+
+    printWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8" />
+      <title>Pecúlio ${selectedCompanhia}ª CIA/${selectedPeloton}º PEL - ${formattedDatePrint}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 11px; background: white; color: black; padding: 15mm 20mm; }
+        h1,h2,h3,h4 { text-align:center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid black; padding: 2px 4px; text-align: center; font-size: 10px; }
+        td.left-align { text-align: left; }
+        .header-wrap { position: relative; min-height: 40mm; text-align: center; padding-top: 4mm; }
+        .title-block { display:inline-block; font-size:11px; line-height:1.4; }
+        .h-rule { border-top: 1px solid black; margin: 6px 0; }
+        .desc-table td { border: none; border-bottom: 1px dashed #999; font-size:10px; }
+        .page2 { page-break-before: always; }
+        @page { size: A4 portrait; margin: 1.5cm; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head><body>
+      <!-- PAGE 1 -->
+      <div class="header-wrap">
+        ${logoLeft}
+        <div class="title-block">
+          <h1 style="font-size:14px;font-weight:900">PMAM</h1>
+          <h2 style="font-size:10px">POLÍCIA MILITAR DO AMAZONAS</h2>
+          <h3 style="font-size:9px">DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</h3>
+          <h4 style="font-size:9px">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</h4>
+        </div>
+        ${logoRight}
+      </div>
+      <div class="h-rule"></div>
+      <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:10px;margin-bottom:4px">
+        <span>PECÚLIO ${selectedCompanhia}ª CIA/${selectedPeloton}º PEL - CFSD/2026</span>
+        <span>DATA: ${formattedDatePrint}</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ORD</th><th>Nº</th><th>NOME COMPLETO</th><th>PRONTO</th><th>FT</th><th>AT</th><th>DD</th><th>DI</th><th>DM</th><th>DA</th></tr>
+        </thead>
+        <tbody>${studentRows}</tbody>
+      </table>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+        <div style="border:1px solid black;padding:6px">
+          <div style="font-weight:bold;border-bottom:1px solid black;padding-bottom:2px;margin-bottom:4px;text-transform:uppercase;font-size:9px">Legenda das Alterações</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;font-size:9px;gap:2px">
+            <div><b>FT</b> - FALTA</div><div><b>AT</b> - ATRASO</div>
+            <div><b>DD</b> - DIVERSO DESTINO</div><div><b>DI</b> - DESTINO IGNORADO</div>
+            <div><b>DM</b> - DISPENSA MÉDICA</div><div><b>DA</b> - DISPENSA ADMINISTRATIVA</div>
+          </div>
+        </div>
+        <div style="border:1px solid black;padding:6px">
+          <div style="font-weight:bold;border-bottom:1px solid black;padding-bottom:2px;margin-bottom:4px;text-transform:uppercase;font-size:9px;text-align:center">Instrução Externa</div>
+          <div style="font-size:9px"><b>Local:</b> ${instrucaoLocal || "________________"} &nbsp;&nbsp; <b>Disciplina:</b> ${instrucaoDisciplina || "________________"}</div>
+          <div style="font-size:9px;margin-top:4px">[ ${instrucaoExterna ? "X" : " "} ] SIM &nbsp;&nbsp; [ ${!instrucaoExterna ? "X" : " "} ] NÃO</div>
+        </div>
+      </div>
+      ${sigs}
+
+      <!-- PAGE 2 -->
+      <div class="page2">
+        <div class="header-wrap">
+          ${logoLeft}
+          <div class="title-block">
+            <h1 style="font-size:14px;font-weight:900">PMAM</h1>
+            <h2 style="font-size:10px">POLÍCIA MILITAR DO AMAZONAS</h2>
+            <h3 style="font-size:9px">DIRETORIA DE CAPACITAÇÃO E TREINAMENTO</h3>
+            <h4 style="font-size:9px">CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS</h4>
+          </div>
+          ${logoRight}
+        </div>
+        <div class="h-rule"></div>
+        <div style="text-align:center;font-weight:bold;margin-bottom:8px">PECÚLIO ${selectedCompanhia}ª CIA/${selectedPeloton}º PEL - CFSD/2026</div>
+        <div style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:11px;border-bottom:1px solid black;padding-bottom:4px;margin-bottom:8px">DESCRIÇÃO DAS ALTERAÇÕES</div>
+        <table class="desc-table">
+          <thead><tr><th style="width:40px">Nº</th><th>SITUAÇÃO</th></tr></thead>
+          <tbody>${altRows}</tbody>
+        </table>
+        <div style="margin-top:24px;font-size:10px">
+          <div>MANAUS, ____/____/________</div>
+          <div style="margin-top:8px">HORA: ___________</div>
+          <div style="margin-top:8px">FISCAL DE DIA: ________________________________</div>
+        </div>
+        ${sigs}
+      </div>
+    </body></html>`);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 600);
   };
 
   const handleRelease = () => {
