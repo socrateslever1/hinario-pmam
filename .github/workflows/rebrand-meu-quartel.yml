@@ -1,0 +1,80 @@
+name: Apply Meu Quartel branding
+
+on:
+  push:
+    branches:
+      - brand/meu-quartel
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    if: "!contains(github.event.head_commit.message, 'apply Meu Quartel identity')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update institutional branding
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              "client/index.html": [
+                  ("<title>Hinário PMAM - Oficial</title>", "<title>Meu Quartel - Plataforma Digital PMAM</title>"),
+                  ("Aplicativo oficial de hinos e canções militares da Polícia Militar do Amazonas", "Plataforma digital de gestão, formação, comunicação e rotina militar da Polícia Militar do Amazonas"),
+                  ('content="Hinário PMAM"', 'content="Meu Quartel"'),
+              ],
+              "client/public/manifest.json": [
+                  ('"name": "Hinário PMAM - Polícia Militar do Amazonas"', '"name": "Meu Quartel - Plataforma Digital PMAM"'),
+                  ('"short_name": "Hinário PMAM"', '"short_name": "Meu Quartel"'),
+                  ('"description": "Aplicativo oficial de hinos e canções militares da Polícia Militar do Amazonas"', '"description": "Plataforma digital de gestão, formação, comunicação e rotina militar da Polícia Militar do Amazonas"'),
+                  ('"categories": ["music", "education"]', '"categories": ["productivity", "education", "government"]'),
+              ],
+              "client/src/components/Navbar.tsx": [
+                  ("HINÁRIO PMAM", "MEU QUARTEL"),
+                  ("Polícia Militar", "Plataforma PMAM"),
+                  ("Polícia Militar do Amazonas", "Plataforma Digital PMAM"),
+              ],
+              "client/src/components/Footer.tsx": [
+                  ("Hinário PMAM", "Meu Quartel"),
+                  ("Hinos, canções militares e material de estudo da Polícia Militar do Amazonas", "Gestão, formação, comunicação e rotina militar em um só lugar"),
+                  ("Sobre o Hinário", "Sobre o Meu Quartel"),
+                  ("Hinário da PMAM - Tradição, estudo e identidade institucional", "Meu Quartel - Gestão, formação e identidade institucional"),
+              ],
+              "client/src/pages/About.tsx": [
+                  ("Sobre o Hinário", "Sobre o Meu Quartel"),
+                  ("Conheça a história e a importância dos hinos e canções da Polícia Militar do Amazonas", "Conheça a plataforma digital que reúne gestão, formação, comunicação, documentos e tradições da Polícia Militar do Amazonas"),
+                  ("Hinário da PMAM — CFAP e APM", "Meu Quartel — Plataforma Digital PMAM"),
+                  ("O Hinário da Polícia Militar do Amazonas é uma coletânea que reúne os hinos nacionais,\n                canções militares, canções da corporação, canções de armas e orações que fazem parte\n                da formação e do cotidiano dos Alunos Soldados e Alunos Oficiais.", "O Meu Quartel é uma plataforma digital organizada por setores, funções e níveis de acesso. Ela reúne ferramentas de gestão, formação, comunicação, documentos, escalas, acompanhamento acadêmico e rotina institucional."),
+                  ("Cada composição presente neste hinário carrega consigo valores fundamentais como\n                honra, disciplina, patriotismo, coragem e comprometimento com a defense da sociedade.\n                A entoação destes hinos fortalece a identidade militar e o senso de pertencimento\n                à corporação.", "Cada usuário acessa somente os setores correspondentes à sua função. Alunos, comandantes, administradores e demais perfis encontram no mesmo ambiente os recursos necessários ao cumprimento de suas atribuições."),
+                  ("Este material foi desenvolvido para uso no Centro de Formação e Aperfeiçoamento\n                de Praças (CFAP) e na Academia de Polícia Militar (APM) Neper Alencar, servindo\n                como instrumento de formação e preservação das tradições militares.", "O antigo Hinário permanece preservado como um dos módulos do sistema, dedicado aos hinos, canções, orações e tradições militares da PMAM."),
+              ],
+              "client/src/pages/Home.tsx": [
+                  ('badge: "Desde 1837",\n    title: "Hinos e Canções",\n    highlight: "Militares",\n    text: "Preservando a tradição, a honra e os valores da Polícia Militar do Amazonas através dos hinos e canções que formam a identidade da corporação desde 1837.",\n    href: "/hinos",\n    action: "Explorar Hinos",', 'badge: "Plataforma Digital PMAM",\n    title: "Seu quartel",\n    highlight: "em um só lugar",\n    text: "Gestão, formação, comunicação, documentos, escalas, estudos e tradições militares organizados conforme a função de cada usuário.",\n    href: "/",\n    action: "Conhecer a Plataforma",'),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8-sig")
+              original = text
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f"Trecho não encontrado em {filename}: {old[:80]!r}")
+                  text = text.replace(old, new)
+              path.write_text(text, encoding="utf-8")
+              print(f"Atualizado: {filename}")
+
+          Path(".github/workflows/rebrand-meu-quartel.yml").unlink()
+
+      - name: Commit branding
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(brand): apply Meu Quartel identity"
+          git push
