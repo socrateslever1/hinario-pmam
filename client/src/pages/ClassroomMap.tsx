@@ -236,6 +236,17 @@ export default function ClassroomMap() {
   const [operationalStudent, setOperationalStudent] = useState<any | null>(null);
   const [foModalPage, setFoModalPage] = useState<"students" | "proofs">("students"); // Página do modal de FO
 
+  // LC Direta States
+  const [directLcModalOpen, setDirectLcModalOpen] = useState(false);
+  const [directLcStudent, setDirectLcStudent] = useState<any | null>(null);
+  const [directLcForm, setDirectLcForm] = useState({
+    directReason: "",
+    recolhimentoDate: new Date().toISOString().slice(0, 10),
+    recolhimentoTime: "18:00",
+    durationHours: 12,
+    procedures: "",
+  });
+
   const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [editStudentForm, setEditStudentForm] = useState({
@@ -529,6 +540,15 @@ export default function ClassroomMap() {
         xerifeHistoryQuery.refetch(),
         utils.serviceScale.myAccess.invalidate(),
       ]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const createDirectLcCase = trpc.serviceScale.createDirectLcCase.useMutation({
+    onSuccess: async () => {
+      toast.success("Licença Cassada registrada com sucesso");
+      setDirectLcModalOpen(false);
+      await Promise.all([lcCasesQuery.refetch(), platoonPublicQuery.refetch()]);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -2094,7 +2114,7 @@ export default function ClassroomMap() {
                             </Select>
                           </div>
 
-                          <div className="mt-3 border-t pt-2.5">
+                          <div className="mt-3 border-t pt-2.5 space-y-2">
                             <Button
                               type="button"
                               size="sm"
@@ -2104,6 +2124,27 @@ export default function ClassroomMap() {
                             >
                               <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
                               Registrar Fato Observado (FO)
+                            </Button>
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="w-full h-8 text-[11px] border-red-500/30 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/5 dark:hover:text-red-300"
+                              onClick={() => {
+                                setDirectLcStudent(student);
+                                setDirectLcForm({
+                                  directReason: "",
+                                  recolhimentoDate: new Date().toISOString().slice(0, 10),
+                                  recolhimentoTime: "18:00",
+                                  durationHours: 12,
+                                  procedures: "",
+                                });
+                                setDirectLcModalOpen(true);
+                              }}
+                            >
+                              <Shield className="mr-1.5 h-3.5 w-3.5" />
+                              Lançar LC Direta
                             </Button>
                           </div>
 
@@ -3051,6 +3092,92 @@ export default function ClassroomMap() {
           </DialogContent>
         </Dialog>
         */}
+
+        {/* LC Direta Dialog */}
+        <Dialog open={directLcModalOpen} onOpenChange={setDirectLcModalOpen}>
+          <DialogContent className="sm:max-w-[450px] bg-white dark:bg-zinc-900 border border-border text-foreground overflow-y-auto max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Shield className="h-5 w-5" />
+                Lançar LC Direta - Nº {directLcStudent?.numerica}
+              </DialogTitle>
+              <DialogDescription>
+                Aplica uma Licença Cassada diretamente ao aluno sem a necessidade de avaliação de um Fato Observado prévio.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Motivo da LC Direta</Label>
+                <textarea
+                  value={directLcForm.directReason}
+                  onChange={(e) => setDirectLcForm((prev) => ({ ...prev, directReason: e.target.value }))}
+                  placeholder="Descreva o motivo que justifica a LC direta (ex: determinação superior, etc)..."
+                  className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[80px]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Data de Recolhimento</Label>
+                  <Input
+                    type="date"
+                    value={directLcForm.recolhimentoDate}
+                    onChange={(e) => setDirectLcForm((prev) => ({ ...prev, recolhimentoDate: e.target.value }))}
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label>Hora</Label>
+                  <Input
+                    type="time"
+                    value={directLcForm.recolhimentoTime}
+                    onChange={(e) => setDirectLcForm((prev) => ({ ...prev, recolhimentoTime: e.target.value }))}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Duração (Horas)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={directLcForm.durationHours}
+                  onChange={(e) => setDirectLcForm((prev) => ({ ...prev, durationHours: parseInt(e.target.value) || 12 }))}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Procedimentos e Regras</Label>
+                <textarea
+                  value={directLcForm.procedures}
+                  onChange={(e) => setDirectLcForm((prev) => ({ ...prev, procedures: e.target.value }))}
+                  placeholder="Instruções para o plantão (ex: apresentar-se no corpo da guarda...)"
+                  className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[100px]"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDirectLcModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                className="bg-red-700 text-white hover:bg-red-800"
+                disabled={createDirectLcCase.isPending || !directLcForm.directReason || !directLcForm.recolhimentoDate || !directLcForm.recolhimentoTime || !directLcForm.procedures}
+                onClick={() => {
+                  if (directLcStudent) {
+                    createDirectLcCase.mutate({
+                      studentId: directLcStudent.id,
+                      ...directLcForm,
+                    });
+                  }
+                }}
+              >
+                {createDirectLcCase.isPending ? "Lançando..." : "Lançar LC Direta"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* FO (Fatos Observados) Dialog global */}
         <Dialog open={foModalOpen} onOpenChange={setFoModalOpen}>
