@@ -92,7 +92,7 @@ export default function BottomNavigation() {
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
-        { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
+        { icon: Info, label: "Sobre o Meu Quartel", path: "/sobre" },
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ]
     : [
@@ -102,7 +102,7 @@ export default function BottomNavigation() {
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
-        { icon: Info, label: "Sobre o Hinário", path: "/sobre" },
+        { icon: Info, label: "Sobre o Meu Quartel", path: "/sobre" },
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ];
 
