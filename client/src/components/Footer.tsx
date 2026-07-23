@@ -1,4 +1,4 @@
-﻿import { Link } from "wouter";
+import { Link } from "wouter";
 import { Shield, Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -16,23 +16,23 @@ export default function Footer() {
             <img src={LOGO_URL} alt="Brasao PMAM" className="h-8 w-8 object-contain md:h-9 md:w-9" />
             <div>
               <h3 className="text-sm font-bold leading-tight text-white md:text-base" style={{ fontFamily: "Merriweather, serif" }}>
-                Hinário PMAM
+                Meu Quartel
               </h3>
               <p className="mt-0.5 max-w-sm text-[11px] leading-snug text-white/60 md:text-xs">
-                {settings?.footer_text || "Hinos, canções militares e material de estudo da Polícia Militar do Amazonas"}
+                {settings?.footer_text || "Gestão, formação, comunicação e rotina militar em um só lugar"}
               </p>
-              <p className="mt-0.5 text-[10px] text-white/40">Edição 2026</p>
+              <p className="mt-0.5 text-[10px] text-white/40">Plataforma Digital PMAM</p>
             </div>
           </div>
           <div className="hidden sm:block">
             <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white md:text-xs">Navegação</h4>
             <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] md:block md:space-y-1 md:text-xs">
               <li><Link href="/" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Página Inicial</Link></li>
-              <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Catálogo de Hinos</Link></li>
+              <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Módulo de Hinos</Link></li>
               <li><Link href="/charlie-mike" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Charlie Mike</Link></li>
               <li><Link href="/estudos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Centro de Estudos</Link></li>
               <li><Link href="/cfap-2026" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">CFAP 2026</Link></li>
-              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o Hinário</Link></li>
+              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o Meu Quartel</Link></li>
             </ul>
           </div>
           <div>
@@ -81,7 +81,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-3 border-t border-white/10 pt-2 text-center text-[10px] leading-tight text-white/40 md:mt-4 md:text-[11px]">
-          <p>Hinário da PMAM - Tradição, estudo e identidade institucional</p>
+          <p>Meu Quartel - Gestão, formação e identidade institucional</p>
           <p className="mt-0.5 flex items-center justify-center gap-1">
             <Shield className="h-3 w-3" /> Servir e Proteger
           </p>
