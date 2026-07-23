@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   FileText,
   Home,
   Info,
@@ -79,8 +78,8 @@ export default function BottomNavigation() {
       ]
     : [
         { icon: Home, label: "Início", path: "/" },
+        { icon: LayoutGrid, label: "Sala", path: "/sala-de-aula" },
         { icon: Music, label: "Hinos", path: "/hinos" },
-        { icon: BookOpen, label: "Estudos", path: "/estudos" },
         { icon: FileText, label: "Notas", path: isStudent ? "/notas-do-curso" : "/entrar" },
         { icon: MoreHorizontal, label: "Mais", path: "__more" },
       ];
@@ -91,18 +90,17 @@ export default function BottomNavigation() {
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
-        { icon: FileText, label: "Documentos", path: "/documentos" },
-        { icon: Info, label: "Sobre o Meu Quartel", path: "/sobre" },
+        { icon: FileText, label: "Documentos Recebidos", path: "/documentos" },
+        { icon: Info, label: "Sobre o QG Digital", path: "/sobre" },
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ]
     : [
         { icon: User, label: isStudent ? "Perfil do Aluno" : user ? "Meu Perfil" : "Acesso do Aluno", path: isStudent ? "/perfil-aluno" : user ? "/perfil" : "/entrar" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
-        { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
-        { icon: FileText, label: "Documentos", path: "/documentos" },
-        { icon: Info, label: "Sobre o Meu Quartel", path: "/sobre" },
+        { icon: FileText, label: "Meus Documentos", path: "/documentos" },
+        { icon: Info, label: "Sobre o QG Digital", path: "/sobre" },
         { icon: Shield, label: "Posto de Comando", path: "/xerife" },
       ];
 
@@ -143,9 +141,7 @@ export default function BottomNavigation() {
                 key={`${item.label}-${item.path}`}
                 onClick={() => (item.path === "__more" ? setMoreOpen(true) : goTo(item.path))}
                 className={`relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[8.5px] font-black transition-all duration-300 ${
-                  active
-                    ? "text-[#f0bd3a]"
-                    : "text-white/60 hover:text-white"
+                  active ? "text-[#f0bd3a]" : "text-white/60 hover:text-white"
                 }`}
                 title={item.label}
               >
@@ -155,9 +151,7 @@ export default function BottomNavigation() {
                   <Icon className="h-[18px] w-[18px] shrink-0 stroke-[2.25]" />
                 </span>
                 <span className="leading-none">{item.label}</span>
-                {active && (
-                  <span className="absolute -bottom-0.5 h-1 w-4 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
-                )}
+                {active && <span className="absolute -bottom-0.5 h-1 w-4 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />}
               </button>
             );
           })}
@@ -187,8 +181,8 @@ export default function BottomNavigation() {
                   }`}
                 >
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${
-                    active 
-                      ? "bg-[#0b3323] text-[#f0bd3a] border border-[#f0bd3a]/30 shadow-[0_0_12px_rgba(240,189,58,0.2)]" 
+                    active
+                      ? "bg-[#0b3323] text-[#f0bd3a] border border-[#f0bd3a]/30 shadow-[0_0_12px_rgba(240,189,58,0.2)]"
                       : "bg-[#c4a84b]/10 text-[#c4a84b] border border-[#c4a84b]/20 group-hover:text-[#f0bd3a] group-hover:border-[#f0bd3a]/40"
                   }`}>
                     <Icon className="h-5 w-5 stroke-[2]" />
