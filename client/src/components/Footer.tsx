@@ -16,12 +16,12 @@ export default function Footer() {
             <img src={LOGO_URL} alt="Brasao PMAM" className="h-8 w-8 object-contain md:h-9 md:w-9" />
             <div>
               <h3 className="text-sm font-bold leading-tight text-white md:text-base" style={{ fontFamily: "Merriweather, serif" }}>
-                Meu Quartel
+                QG Digital
               </h3>
               <p className="mt-0.5 max-w-sm text-[11px] leading-snug text-white/60 md:text-xs">
                 {settings?.footer_text || "Gestão, formação, comunicação e rotina militar em um só lugar"}
               </p>
-              <p className="mt-0.5 text-[10px] text-white/40">Plataforma Digital PMAM</p>
+              <p className="mt-0.5 text-[10px] text-white/40">Plataforma Militar</p>
             </div>
           </div>
           <div className="hidden sm:block">
@@ -32,7 +32,7 @@ export default function Footer() {
               <li><Link href="/charlie-mike" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Charlie Mike</Link></li>
               <li><Link href="/estudos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Centro de Estudos</Link></li>
               <li><Link href="/cfap-2026" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">CFAP 2026</Link></li>
-              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o Meu Quartel</Link></li>
+              <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o QG Digital</Link></li>
             </ul>
           </div>
           <div>
@@ -81,7 +81,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-3 border-t border-white/10 pt-2 text-center text-[10px] leading-tight text-white/40 md:mt-4 md:text-[11px]">
-          <p>Meu Quartel - Gestão, formação e identidade institucional</p>
+          <p>QG Digital — Plataforma Militar</p>
           <p className="mt-0.5 flex items-center justify-center gap-1">
             <Shield className="h-3 w-3" /> Servir e Proteger
           </p>
