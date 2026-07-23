@@ -13,6 +13,8 @@ import { useBackgroundSync } from "./hooks/useBackgroundSync";
 import { useSessionRefresh } from "./hooks/useSessionRefresh";
 import { useSessionManager } from "./_core/hooks/useSessionManager";
 import { useEffect } from "react";
+import { getStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
+import "@/styles/role-visibility.css";
 import Home from "./pages/Home";
 import Hymns from "./pages/Hymns";
 import HymnDetail from "./pages/HymnDetail";
@@ -71,9 +73,7 @@ function Router() {
       <Route path="/documentos" component={Documents} />
       <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/alterar-senha" component={ChangePassword} />
-      <Route path="/gerenciar-acessos">
-        <AccessManagement />
-      </Route>
+      <Route path="/gerenciar-acessos"><AccessManagement /></Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -82,55 +82,46 @@ function Router() {
 
 function ScrollToTop() {
   const [location] = useLocation();
+  useEffect(() => window.scrollTo(0, 0), [location]);
+  return null;
+}
+
+function StudentVisualMode() {
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location]);
+    const sync = () => {
+      document.body.classList.toggle("qg-student-view", Boolean(getStudentSession()));
+    };
+    sync();
+    window.addEventListener(STUDENT_SESSION_CHANGED, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      document.body.classList.remove("qg-student-view");
+      window.removeEventListener(STUDENT_SESSION_CHANGED, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
   return null;
 }
 
 function App() {
-  // Renovar sessão automaticamente
   useSessionRefresh();
-  
-  // Gerenciar sessão em background
   useSessionManager();
-  
-  // Ativar auto-atualização silenciosa
   useAutoUpdate();
-  
-  // Pré-cachear dados críticos para offline
   useOfflineCache();
-  
-  // Sincronizar em background quando voltar online
   useBackgroundSync();
-  
-  // Pré-cachear assets para offline
+
   const { precacheAssets } = usePWA();
   useEffect(() => {
-    // Coletar todos os scripts e links carregados
     const assets = new Set<string>();
-    
-    // Scripts
-    document.querySelectorAll('script[src]').forEach((script) => {
+    document.querySelectorAll("script[src]").forEach((script) => {
       const src = (script as HTMLScriptElement).src;
-      if (src && src.includes('/assets/')) {
-        assets.add(src);
-      }
+      if (src.includes("/assets/")) assets.add(src);
     });
-    
-    // Stylesheets
     document.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
       const href = (link as HTMLLinkElement).href;
-      if (href && href.includes('/assets/')) {
-        assets.add(href);
-      }
+      if (href.includes("/assets/")) assets.add(href);
     });
-    
-    // Enviar para Service Worker pré-cachear
-    if (assets.size > 0) {
-      console.log('[App] Sending', assets.size, 'assets to SW for pre-cache');
-      precacheAssets(Array.from(assets));
-    }
+    if (assets.size > 0) precacheAssets(Array.from(assets));
   }, [precacheAssets]);
 
   return (
@@ -140,9 +131,8 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <ScrollToTop />
-            <div>
-              <Router />
-            </div>
+            <StudentVisualMode />
+            <Router />
             <GlobalFOButton />
             <BottomNavigation />
             <OfflineIndicator />
