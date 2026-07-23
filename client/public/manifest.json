@@ -1,12 +1,12 @@
 {
-  "name": "Meu Quartel - Plataforma Digital PMAM",
-  "short_name": "Meu Quartel",
-  "description": "Plataforma digital de gestão, formação, comunicação e rotina militar da Polícia Militar do Amazonas",
+  "name": "QG Digital - Plataforma Militar",
+  "short_name": "QG Digital",
+  "description": "Plataforma militar de gestão, formação, comunicação, documentos, escalas e rotina institucional",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
+  "background_color": "#061019",
   "theme_color": "#1a3a2a",
   "icons": [
     {
@@ -41,50 +41,36 @@
     }
   ],
   "categories": ["productivity", "education", "government"],
-  "screenshots": [
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-512-BV7riVUmfuhZ6oMpErScJS.webp",
-      "sizes": "512x512",
-      "type": "image/webp",
-      "form_factor": "narrow"
-    }
-  ],
   "shortcuts": [
+    {
+      "name": "Sala de Aula",
+      "short_name": "Sala",
+      "description": "Abrir o setor digital da sala de aula",
+      "url": "/sala-de-aula",
+      "icons": [{
+        "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+        "sizes": "192x192"
+      }]
+    },
     {
       "name": "Hinos",
       "short_name": "Hinos",
-      "description": "Explorar o módulo de hinos e canções militares",
+      "description": "Explorar hinos e canções militares",
       "url": "/hinos",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Ordem Unida",
-      "short_name": "Ordem Unida",
-      "description": "Aprender movimentos de ordem unida",
-      "url": "/drill",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{
+        "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+        "sizes": "192x192"
+      }]
     },
     {
       "name": "CFAP 2026",
       "short_name": "CFAP 2026",
       "description": "Missões e comunicados CFAP",
-      "url": "/cfap",
-      "icons": [
-        {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
-          "sizes": "192x192"
-        }
-      ]
+      "url": "/cfap-2026",
+      "icons": [{
+        "src": "https://d2xsxph8kpxj0f.cloudfront.net/310419663028422427/oYQqDtLooPR5vbQ65ChDb9/icon-pwa-192-EvNNPUFPTPNT8PPymVEZRo.webp",
+        "sizes": "192x192"
+      }]
     }
   ]
 }
