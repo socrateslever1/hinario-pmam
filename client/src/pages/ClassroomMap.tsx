@@ -345,7 +345,7 @@ export default function ClassroomMap() {
   );
 
   const lcCasesQuery = trpc.serviceScale.lcCases.useQuery(
-    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "pending" },
+    { companhia: selectedCompanhia, peloton: selectedPeloton, status: "active" },
     { enabled: Boolean(canViewFoLcAlerts && selectedCompanhia && selectedPeloton) }
   );
 
@@ -408,6 +408,39 @@ export default function ClassroomMap() {
   const pendingLcStudentIds = new Set<number>(
     (lcCasesQuery.data ?? []).map((item: any) => Number(item.studentId)).filter(Boolean)
   );
+
+  const getActiveLcForStudent = (studentId: number) => {
+    const cases = lcCasesQuery.data ?? [];
+    const studentLc = cases.find((lc: any) => Number(lc.studentId) === studentId);
+    if (!studentLc) return null;
+    
+    // If pending, it is always active
+    if (studentLc.status === "pending") return studentLc;
+    
+    // If homologated, check if release preview exists and if it is in the future
+    if (studentLc.status === "homologated") {
+      if (!studentLc.releaseDate || !studentLc.releaseTime) return studentLc; // Not released yet
+      const releaseDateTime = new Date(`${studentLc.releaseDate}T${studentLc.releaseTime}:00`);
+      if (new Date() < releaseDateTime) {
+        return studentLc;
+      }
+    }
+    
+    return null;
+  };
+
+  const getStudentLcStatusMessage = (studentId: number): string | null => {
+    const lc = getActiveLcForStudent(studentId);
+    if (!lc) return null;
+    if (lc.status === "pending") {
+      return "Licença Caçada Pendente (Reincidência)";
+    }
+    // Homologated LC
+    const releaseStr = (lc.releaseDate || lc.releaseTime)
+      ? `até ${new Date(`${lc.releaseDate}T00:00:00`).toLocaleDateString("pt-BR")} às ${lc.releaseTime || "N/A"}`
+      : `sem data de saída definida`;
+    return `Licença Caçada (LC) ativa ${releaseStr}`;
+  };
 
   // Filtrar alunos por nome, número ou pelotão
   const filteredStudents = useMemo(() => {
@@ -627,7 +660,8 @@ export default function ClassroomMap() {
     const isOccupied = !!occupant;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
-    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id))));
+    const activeLc = occupant ? getActiveLcForStudent(Number(occupant.id)) : null;
+    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id)) || activeLc));
 
     return (
       <div
@@ -689,7 +723,8 @@ export default function ClassroomMap() {
     const isOccupied = !!occupant;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
-    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id))));
+    const activeLc = occupant ? getActiveLcForStudent(Number(occupant.id)) : null;
+    const needsAttention = Boolean(occupant && (cond === "baixado" || pendingLcStudentIds.has(Number(occupant.id)) || activeLc));
 
     const roleTitle = role === 'xerife' ? "Xerife" : "Sub-Xerife";
     const borderClass = role === 'xerife'
@@ -2009,6 +2044,12 @@ export default function ClassroomMap() {
                             </span>
                           </button>
 
+                          {getStudentLcStatusMessage(student.id) && (
+                            <div className="mt-2 rounded-md border border-red-500 bg-red-500/10 p-2 text-[10px] text-red-950 dark:text-red-200 font-bold animate-pulse">
+                              ⚠️ Aluno em Licença Caçada (LC): {getStudentLcStatusMessage(student.id)}
+                            </div>
+                          )}
+
                           <div className="mt-2 flex justify-end gap-1">
                             <Button
                               type="button"
@@ -2621,6 +2662,16 @@ export default function ClassroomMap() {
                   </div>
                 </div>
 
+                {getStudentLcStatusMessage(operationalStudent.id) && (
+                  <div className="rounded-md border border-red-500 bg-red-500/10 p-3 text-xs text-red-950 dark:text-red-200 animate-pulse flex items-start gap-2">
+                    <span className="text-sm font-black">⚠️</span>
+                    <div>
+                      <p className="font-black">Aluno em Licença Caçada (LC)</p>
+                      <p className="mt-1 font-semibold text-[11px] leading-tight">{getStudentLcStatusMessage(operationalStudent.id)}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <Button
                     type="button"
@@ -3049,11 +3100,18 @@ export default function ClassroomMap() {
                 <Label>Alunos Selecionados</Label>
                 {foSelectedStudentIds.length === 1 && !foIsAllSelected ? (
                   // Caso aberto individualmente para um único aluno
-                  <div className="mt-1.5 p-2 bg-muted/30 rounded border text-xs font-semibold flex justify-between items-center">
-                    <span>
-                      {students.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {students.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">(Lançamento Individual)</span>
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    <div className="p-2 bg-muted/30 rounded border text-xs font-semibold flex justify-between items-center">
+                      <span>
+                        {students.find((s: any) => s.id === foSelectedStudentIds[0])?.numerica} - {students.find((s: any) => s.id === foSelectedStudentIds[0])?.nomeGuerra}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">(Lançamento Individual)</span>
+                    </div>
+                    {foSelectedStudentIds[0] && getStudentLcStatusMessage(foSelectedStudentIds[0]) && (
+                      <div className="rounded border border-red-500 bg-red-500/10 p-2.5 text-[10px] text-red-950 dark:text-red-200 font-bold animate-pulse">
+                        ⚠️ Aluno em Licença Caçada (LC): {getStudentLcStatusMessage(foSelectedStudentIds[0])}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   // Lançamento Coletivo ou em Massa

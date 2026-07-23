@@ -60,7 +60,7 @@ export default function AdministrativeRoom() {
   const [baixadoHpmHomologated, setBaixadoHpmHomologated] = useState(true);
   const [baixadoKind, setBaixadoKind] = useState("informativo");
   const [baixadoFile, setBaixadoFile] = useState<File | null>(null);
-  const [lcForm, setLcForm] = useState<Record<number, { recolhimentoDate: string; durationHours: string; procedures: string }>>({});
+  const [lcForm, setLcForm] = useState<Record<number, { recolhimentoDate: string; recolhimentoTime: string; durationHours: string; procedures: string }>>({});
   const [contestDecisionNotes, setContestDecisionNotes] = useState<Record<number, string>>({});
   const [contestStudentId, setContestStudentId] = useState("");
   const [contestObservationId, setContestObservationId] = useState("");
@@ -86,7 +86,7 @@ export default function AdministrativeRoom() {
     { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const lcCasesQuery = trpc.serviceScale.lcCases.useQuery(
-    { status: "pending" },
+    { status: "active" },
     { enabled: Boolean(canViewAdministrativeRoom) }
   );
   const baixadosQuery = trpc.serviceScale.listBaixados.useQuery(
@@ -199,32 +199,39 @@ export default function AdministrativeRoom() {
     (!item.contest_status || item.contest_status === "none")
   );
 
-  const updateLcField = (id: number, field: "recolhimentoDate" | "durationHours" | "procedures", value: string) => {
-    setLcForm((current) => ({
-      ...current,
-      [id]: {
-        recolhimentoDate: current[id]?.recolhimentoDate || new Date().toISOString().slice(0, 10),
-        durationHours: current[id]?.durationHours || "12",
-        procedures: current[id]?.procedures || "",
-        [field]: value,
-      },
-    }));
+  const createDefaultLcForm = (item: any) => {
+    return {
+      recolhimentoDate: item.recolhimentoDate || new Date().toISOString().slice(0, 10),
+      recolhimentoTime: item.recolhimentoTime || "07:00",
+      durationHours: item.durationHours ? String(item.durationHours) : "12",
+      procedures: item.procedures || (item.source === "direct" ? "LC direta por transgressão gravosa." : `Aluno cientificado da LC por reincidencia do codigo ${item.foCode || 'N/A'}.`),
+    };
+  };
+
+  const updateLcField = (id: number, field: "recolhimentoDate" | "recolhimentoTime" | "durationHours" | "procedures", value: string, item: any) => {
+    setLcForm((current) => {
+      const existing = current[id] || createDefaultLcForm(item);
+      return {
+        ...current,
+        [id]: {
+          ...existing,
+          [field]: value,
+        },
+      };
+    });
   };
 
   const homologateLc = (item: any) => {
-    const form = lcForm[item.id] ?? {
-      recolhimentoDate: new Date().toISOString().slice(0, 10),
-      durationHours: "12",
-      procedures: `Aluno cientificado da LC por reincidência do código ${item.foCode}.`,
-    };
-    if (!form.recolhimentoDate || !form.durationHours || !form.procedures.trim()) {
-      toast.error("Informe a data de recolhimento, a duração e os procedimentos para homologar a LC.");
+    const form = lcForm[item.id] ?? createDefaultLcForm(item);
+    if (!form.recolhimentoDate || !form.recolhimentoTime || !form.durationHours || !form.procedures.trim()) {
+      toast.error("Informe a data de recolhimento, horário, duração e os procedimentos para a LC.");
       return;
     }
     decideLc.mutate({
       id: item.id,
       status: "homologated",
       recolhimentoDate: form.recolhimentoDate,
+      recolhimentoTime: form.recolhimentoTime,
       durationHours: Number(form.durationHours),
       procedures: form.procedures.trim(),
     });
@@ -521,38 +528,44 @@ export default function AdministrativeRoom() {
                   <Shield className="h-4 w-4" />
                   LC por reincidência de código
                 </CardTitle>
-                <CardDescription>Os casos surgem quando o saldo atinge dois FO- do mesmo código.</CardDescription>
+                <CardDescription>Acompanhe, homologue e ajuste os parâmetros de LCs ativas antes de arquivá-las.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 p-3">
                 {lcCasesQuery.isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 {lcItems.map((item: any) => {
-                  const form = lcForm[item.id] ?? {};
+                  const form = lcForm[item.id] ?? createDefaultLcForm(item);
                   return (
-                    <div key={item.id} className="rounded-lg border border-red-500/20 bg-background/90 p-3 text-xs">
+                    <div key={item.id} className="rounded-lg border border-red-500/20 bg-background/90 p-2 text-xs space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-red-700 text-white">LC pendente</Badge>
-                        <Badge variant="outline" className="border-red-300 text-red-700">FO {item.foCode}</Badge>
+                        <Badge className={item.status === "homologated" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>
+                          {item.status === "homologated" ? "LC homologada (Ativa)" : "LC pendente"}
+                        </Badge>
+                        {item.foCode ? (
+                          <Badge variant="outline" className="border-red-300 text-red-700">FO {item.foCode}</Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-amber-300 text-amber-700">LC Direta</Badge>
+                        )}
                         <span className="font-black">{item.numerica} {item.nomeGuerra}</span>
                         <Badge variant="secondary" className="text-[10px] bg-red-700/10 text-red-800">{item.companhia}ª Cia / {item.peloton}º Pel</Badge>
+                        <span className="text-muted-foreground">{item.foLabel || item.directReason}</span>
+                        {item.source !== "direct" && (
+                          <span className="text-muted-foreground">· Saldo: {item.netCount} ({item.negativeCount} FO- / {item.positiveCount} FO+)</span>
+                        )}
+                        {item.startedAt && <Badge className="bg-blue-700 text-white text-[10px]">Apresentou-se {new Date(item.startedAt).toLocaleString("pt-BR", {dateStyle:"short",timeStyle:"short"})}</Badge>}
                       </div>
-                      <p className="mt-2 font-semibold">{item.foLabel}</p>
-                      <p className="mt-1 text-muted-foreground">Saldo: {item.netCount} ({item.negativeCount} FO- menos {item.positiveCount} FO+)</p>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_110px]">
-                        <Input type="date" value={form.recolhimentoDate || ""} onChange={(event) => updateLcField(item.id, "recolhimentoDate", event.target.value)} disabled={!canHomologateFoLc} />
-                        <Input type="number" min={1} max={240} placeholder="Horas" value={form.durationHours || ""} onChange={(event) => updateLcField(item.id, "durationHours", event.target.value)} disabled={!canHomologateFoLc} />
-                      </div>
-                      <textarea
-                        value={form.procedures || ""}
-                        onChange={(event) => updateLcField(item.id, "procedures", event.target.value)}
-                        disabled={!canHomologateFoLc}
-                        placeholder="Procedimentos ao aluno..."
-                        className="mt-2 min-h-[82px] w-full rounded-md border bg-background px-3 py-2 text-xs"
-                      />
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button size="sm" className="h-8 bg-red-700 text-white hover:bg-red-800" disabled={!canHomologateFoLc || decideLc.isPending} onClick={() => homologateLc(item)}>
-                          Homologar LC
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input type="date" value={form.recolhimentoDate || ""} onChange={(e) => updateLcField(item.id, "recolhimentoDate", e.target.value, item)} disabled={!canHomologateFoLc} className="h-7 w-36 text-xs px-2" title="Data do recolhimento" />
+                        <Input type="time" value={form.recolhimentoTime || ""} onChange={(e) => updateLcField(item.id, "recolhimentoTime", e.target.value, item)} disabled={!canHomologateFoLc} className="h-7 w-24 text-xs px-2" title="Hora do recolhimento" />
+                        <Input type="number" min={1} max={240} value={form.durationHours || ""} onChange={(e) => updateLcField(item.id, "durationHours", e.target.value, item)} disabled={!canHomologateFoLc} className="h-7 w-20 text-xs px-2" placeholder="Dur.(h)" title="Duração em horas" />
+                        <Input value={form.procedures || ""} onChange={(e) => updateLcField(item.id, "procedures", e.target.value, item)} disabled={!canHomologateFoLc} className="h-7 flex-1 min-w-[120px] text-xs px-2" placeholder="Procedimentos ao aluno..." />
+                        <Button size="sm" className="h-7 bg-red-700 text-white hover:bg-red-800 text-[11px] px-2" disabled={!canHomologateFoLc || decideLc.isPending} onClick={() => homologateLc(item)}>
+                          {item.status === "homologated" ? "Salvar" : "Homologar"}
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8" disabled={!canHomologateFoLc || decideLc.isPending} onClick={() => decideLc.mutate({ id: item.id, status: "rejected", procedures: "LC não homologada pelo Comandante do CAL." })}>
+                        <Button size="sm" variant="outline" className="h-7 text-[11px] px-2" disabled={!canHomologateFoLc || decideLc.isPending} onClick={() => {
+                          if (confirm(item.status === "homologated" ? "Arquivar esta LC?" : "Arquivar esta LC pendente?")) {
+                            decideLc.mutate({ id: item.id, status: "rejected", procedures: item.status === "homologated" ? "LC concluída e arquivada pelo Comandante do CAL." : "LC não homologada pelo Comandante do CAL." });
+                          }
+                        }}>
                           Arquivar
                         </Button>
                       </div>
@@ -560,7 +573,7 @@ export default function AdministrativeRoom() {
                   );
                 })}
                 {!lcCasesQuery.isLoading && lcItems.length === 0 && (
-                  <p className="rounded-md border bg-background/80 p-4 text-center text-sm text-muted-foreground">Nenhuma LC pendente neste escopo.</p>
+                  <p className="rounded-md border bg-background/80 p-4 text-center text-sm text-muted-foreground">Nenhuma LC ativa ou pendente neste escopo.</p>
                 )}
               </CardContent>
             </Card>

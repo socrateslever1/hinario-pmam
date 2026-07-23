@@ -38,6 +38,7 @@ export function GlobalFOButton() {
   const utils = trpc.useUtils();
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
   const canUseFO = COMMAND_ROLES.has(String(access?.role || ""));
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [foOpen, setFoOpen] = useState(false);
@@ -248,7 +249,7 @@ export function GlobalFOButton() {
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Numérica, nome, cia/pel"
                 className="h-11 w-full pl-9 text-base"
-                autoFocus
+                autoFocus={!isMobile}
               />
             </div>
 

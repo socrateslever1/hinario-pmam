@@ -23,6 +23,18 @@ function formatDateOnly(value?: string | null) {
   return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
 }
 
+function formatTimeOnly(value?: string | null) {
+  if (!value) return null;
+  const [hour = "00", minute = "00"] = value.split(":");
+  return minute === "00" ? `${Number(hour)}h` : `${Number(hour)}h${minute}`;
+}
+
+function formatLcDateTime(date?: string | null, time?: string | null) {
+  const formattedDate = formatDateOnly(date);
+  const formattedTime = formatTimeOnly(time);
+  return formattedTime ? `${formattedDate} as ${formattedTime}` : formattedDate;
+}
+
 const conditionLabels: Record<string, string> = {
   pronto: "Pronto (PRONTO)",
   falta: "Falta (FT)",
@@ -72,6 +84,11 @@ export default function StudentProfilePage() {
   const [baixadoHpmHomologated, setBaixadoHpmHomologated] = useState(true);
   
   const session = getStudentSession();
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const todayStr = `${year}-${month}-${day}`;
 
   // TRPC Hooks
   const profileQuery = trpc.student.getProfile.useQuery(
@@ -96,6 +113,15 @@ export default function StudentProfilePage() {
   );
 
   const updateMutation = trpc.student.updateProfile.useMutation();
+  const startLcCase = trpc.student.startLcCase.useMutation({
+    onSuccess: () => {
+      toast.success("Apresentação de LC registrada com sucesso!");
+      lcStatusQuery.refetch();
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao registrar apresentação: ${err.message}`);
+    }
+  });
   const uploadBaixadoDocument = trpc.student.uploadBaixadoDocument.useMutation({
     onSuccess: async () => {
       toast.success("Documento enviado para acompanhamento do comando.");
@@ -149,7 +175,11 @@ export default function StudentProfilePage() {
         cpf: profileQuery.data.cpf || current.cpf,
         phone: profileQuery.data.phone || current.phone,
         address: profileQuery.data.address || current.address,
-        birthDate: profileQuery.data.birthDate || current.birthDate,
+        birthDate: profileQuery.data.birthDate
+          ? (profileQuery.data.birthDate instanceof Date
+              ? profileQuery.data.birthDate.toISOString().slice(0, 10)
+              : String(profileQuery.data.birthDate).slice(0, 10))
+          : current.birthDate,
         bloodType: profileQuery.data.bloodType || current.bloodType,
         emergencyContact: profileQuery.data.emergencyContact || current.emergencyContact,
         emergencyPhone: profileQuery.data.emergencyPhone || current.emergencyPhone,
@@ -300,23 +330,23 @@ export default function StudentProfilePage() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
       <Navbar />
-      <main className="container max-w-5xl px-4 py-6 md:py-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 p-5 text-foreground md:flex-row md:items-center md:p-0">
+      <main className="container max-w-5xl px-4 py-4 md:py-8">
+        <div className="mb-4 flex flex-col justify-between gap-2 text-foreground md:mb-6 md:flex-row md:items-center md:gap-4 md:p-0">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
-              <Shield className="h-8 w-8 text-[#c4a84b]" />
-              Ficha de Cadastro do Aluno
+            <h1 className="flex items-center gap-1.5 text-xl font-bold leading-tight text-[#1a3a2a] md:gap-2 md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+              <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-8 md:w-8" />
+              <span>Ficha de Cadastro do Aluno</span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground md:mt-1 md:text-sm">
               Gerencie suas informações militares e dados pessoais.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#1a3a2a] shadow-sm backdrop-blur md:rounded-lg md:bg-card/80">
+          <div className="flex flex-col items-start gap-1.5 md:items-end md:gap-2">
+            <div className="max-w-full rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#1a3a2a] shadow-sm backdrop-blur md:rounded-lg md:bg-card/80 md:px-4 md:py-2 md:text-xs">
               CFSD 2026 • {session.companhia}ª CIA • {session.peloton}º PEL • Numérica {session.numerica}
             </div>
             {profileQuery.data?.condition && (
-              <div className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm md:rounded-lg ${getConditionBadgeStyle(profileQuery.data.condition)}`}>
+              <div className={`max-w-full rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase leading-tight tracking-wide shadow-sm md:rounded-lg md:px-3 md:py-1 md:text-[10px] md:tracking-wider ${getConditionBadgeStyle(profileQuery.data.condition)}`}>
                 Status Atual: {conditionLabels[profileQuery.data.condition] || profileQuery.data.condition}
               </div>
             )}
@@ -508,11 +538,32 @@ export default function StudentProfilePage() {
                         <div className="mt-2 grid gap-2">
                           <div className="flex items-center gap-2">
                             <CalendarDays className="h-3.5 w-3.5 text-red-700" />
-                            <span>Recolhimento: {formatDateOnly(item.recolhimentoDate)}</span>
+                            <span>Recolhimento: {formatLcDateTime(item.recolhimentoDate, item.recolhimentoTime)}</span>
                           </div>
+                          {(item.releaseDate || item.releaseTime) ? (
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3.5 w-3.5 text-red-700" />
+                              <span>Saida prevista: {formatLcDateTime(item.releaseDate, item.releaseTime)}</span>
+                            </div>
+                          ) : null}
                           <div className="flex items-center gap-2">
                             <Clock className="h-3.5 w-3.5 text-red-700" />
                             <span>Duração: {item.durationHours ? `${item.durationHours}h` : "Não informada"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5 text-red-700" />
+                            <span>
+                              Apresentação:{" "}
+                              {item.startedAt ? (
+                                <span className="font-black text-green-700 dark:text-green-400">
+                                  Iniciada em {new Date(item.startedAt).toLocaleDateString("pt-BR")} às {new Date(item.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              ) : (
+                                <span className="font-black text-amber-600 dark:text-amber-400">
+                                  Aguardando apresentação
+                                </span>
+                              )}
+                            </span>
                           </div>
                           {item.procedures ? (
                             <div className="flex items-start gap-2">
@@ -520,6 +571,32 @@ export default function StudentProfilePage() {
                               <p className="whitespace-pre-wrap">{item.procedures}</p>
                             </div>
                           ) : null}
+                          {!item.startedAt && (
+                            <>
+                              {todayStr !== item.recolhimentoDate ? (
+                                <p className="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded border border-amber-500/20 leading-tight">
+                                  ⚠️ Aluno, sua LC está agendada para o dia {new Date(item.recolhimentoDate + 'T00:00:00').toLocaleDateString('pt-BR')} às {item.recolhimentoTime || "07:00"}. A apresentação só estará disponível nesse dia.
+                                </p>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="mt-2 w-full bg-red-700 text-white hover:bg-red-800 font-bold"
+                                  onClick={() => {
+                                    if (confirm("Confirmar que você está se apresentando para o recolhimento da LC? Isso registrará a data e hora atuais.")) {
+                                      startLcCase.mutate({
+                                        id: session?.id ?? 0,
+                                        sessionToken: session?.sessionToken ?? "",
+                                        lcCaseId: item.id,
+                                      });
+                                    }
+                                  }}
+                                  disabled={startLcCase.isPending}
+                                >
+                                  {startLcCase.isPending ? "Registrando..." : "Apresentar-se (Iniciar LC)"}
+                                </Button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

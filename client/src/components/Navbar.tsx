@@ -170,37 +170,37 @@ export default function Navbar() {
   return (
     <>
       {/* Mobile Header (White, Translucent) */}
-      <header className="md:hidden sticky top-0 z-40 bg-white/95 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-foreground border-b border-border/40 backdrop-blur-xl dark:bg-[#0c0c0e]/95 dark:text-foreground">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
-            <img src={LOGO_URL} alt="Brasão PMAM" className="h-9 w-9 shrink-0 object-contain drop-shadow" />
+      <header className="md:hidden sticky top-0 z-40 bg-white/95 px-2.5 pb-1.5 pt-[calc(env(safe-area-inset-top)+0.4rem)] text-foreground border-b border-border/40 backdrop-blur-xl dark:bg-[#0c0c0e]/95 dark:text-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/" className="flex min-w-0 items-center gap-1.5">
+            <img src={LOGO_URL} alt="Brasão PMAM" className="h-8 w-8 shrink-0 object-contain drop-shadow" />
             <div className="min-w-0">
               <p 
-                className="truncate text-xs font-black uppercase tracking-[0.12em] text-[#1a3a2a] dark:text-[#c4a84b]"
+                className="truncate text-[11px] font-black uppercase leading-tight tracking-[0.1em] text-[#1a3a2a] dark:text-[#c4a84b]"
                 style={{ fontFamily: "Merriweather, serif" }}
               >
                 HINÁRIO PMAM
               </p>
-              <p className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="truncate text-[8px] font-semibold uppercase leading-tight tracking-[0.08em] text-muted-foreground">
                 Polícia Militar
               </p>
             </div>
           </Link>
-          <div className="flex items-center bg-muted/60 dark:bg-zinc-800/40 border border-border/20 backdrop-blur-md rounded-full px-1.5 py-0.5 gap-0.5">
+          <div className="flex shrink-0 items-center bg-muted/60 dark:bg-zinc-800/40 border border-border/20 backdrop-blur-md rounded-full px-1 py-0.5 gap-0.5">
             {toggleTheme && (
               <Button
-                size="icon"
+                size="icon-sm"
                 variant="ghost"
-                className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5"
+                className="rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5"
                 onClick={toggleTheme}
                 aria-label="Alternar tema"
               >
-                {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
+                {theme === "dark" ? <Sun className="h-3.5 w-3.5 text-[#c4a84b]" /> : <Moon className="h-3.5 w-3.5 text-[#c4a84b]" />}
               </Button>
             )}
             <Link href="/hinos" aria-label="Buscar hinos">
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5">
-                <Search className="h-4 w-4 text-[#c4a84b]" />
+              <Button size="icon-sm" variant="ghost" className="rounded-full text-foreground hover:bg-black/5 dark:hover:bg-card/5">
+                <Search className="h-3.5 w-3.5 text-[#c4a84b]" />
               </Button>
             </Link>
             <NotificationBell />

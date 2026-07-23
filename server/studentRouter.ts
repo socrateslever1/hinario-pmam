@@ -396,11 +396,11 @@ export const studentRouter = router({
         nomeCompleto: z.string().trim().optional(),
         rg: z.string().trim().optional(),
         email: z.string().trim().email().or(z.literal("")).optional(),
-        fotoUrl: z.string().optional(),
+        fotoUrl: z.string().nullable().optional(),
         cpf: z.string().trim().optional(),
         phone: z.string().trim().optional(),
         address: z.string().trim().optional(),
-        birthDate: z.string().trim().optional(),
+        birthDate: z.union([z.string(), z.date()]).optional(),
         bloodType: z.string().trim().optional(),
         emergencyContact: z.string().trim().optional(),
         emergencyPhone: z.string().trim().optional(),
@@ -425,7 +425,11 @@ export const studentRouter = router({
         cpf: input.cpf || null,
         phone: input.phone || null,
         address: input.address || null,
-        birthDate: input.birthDate || null,
+        birthDate: input.birthDate
+          ? (input.birthDate instanceof Date
+              ? input.birthDate.toISOString().slice(0, 10)
+              : String(input.birthDate).trim() === "" ? null : String(input.birthDate))
+          : null,
         bloodType: input.bloodType || null,
         emergencyContact: input.emergencyContact || null,
         emergencyPhone: input.emergencyPhone || null,
@@ -530,5 +534,45 @@ export const studentRouter = router({
         companhia: r.companhia,
         peloton: r.peloton,
       }));
+    }),
+
+  startLcCase: publicProcedure
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        sessionToken: z.string().min(16),
+        lcCaseId: z.number().int().positive(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const isSessionValid = await studentDb.verifyStudentSession(input.id, input.sessionToken);
+      if (!isSessionValid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Sessão inválida ou expirada" });
+      }
+      
+      const lcCase = await serviceScaleDb.getLcCase(input.lcCaseId);
+      if (!lcCase) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Caso de LC não encontrado" });
+      }
+      if (lcCase.studentId !== input.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Você não tem permissão para iniciar esta LC" });
+      }
+
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`;
+
+      if (lcCase.recolhimentoDate && lcCase.recolhimentoDate !== todayStr) {
+        const formattedDate = new Date(`${lcCase.recolhimentoDate}T00:00:00`).toLocaleDateString("pt-BR");
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Sua LC está agendada para o dia ${formattedDate} às ${lcCase.recolhimentoTime || "N/A"}. Você só pode se apresentar nesse dia.`,
+        });
+      }
+
+      await serviceScaleDb.startLcCase(input.lcCaseId);
+      return { success: true };
     }),
 });

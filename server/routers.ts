@@ -26,6 +26,9 @@ import { studentRouter } from "./studentRouter";
 
 const INVALID_LOGIN_MESSAGE = "E-mail ou senha inválidos.";
 const INVALID_STUDY_STUDENT_NUMBER_MESSAGE = getStudyStudentNumberErrorMessage();
+const lcTimeSchema = z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
+  message: "Informe um horario valido no formato HH:MM.",
+});
 
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
@@ -2087,9 +2090,13 @@ export const appRouter = router({
     createInternalReport: scaleManagerProcedure.input(
       z.object({
         studentId: z.number().int().positive(),
-        type: z.enum(["desistente", "desertor", "baixado", "outro"]),
+        type: z.enum(["demanda_servico", "desistente", "desertor", "baixado", "outro"]),
         title: z.string().trim().min(3).max(180),
         note: z.string().trim().max(5000).nullable().optional(),
+        serviceDate: z.string().trim().max(10).nullable().optional(),
+        servicePeriod: z.enum(["diurno", "noturno", "24h", "extra", "outro"]).nullable().optional(),
+        priority: z.enum(["normal", "important", "urgent"]).optional(),
+        assignedTo: z.string().trim().max(120).nullable().optional(),
         visibleToStudent: z.boolean().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
@@ -2105,6 +2112,10 @@ export const appRouter = router({
         type: input.type,
         title: input.title,
         note: input.note ?? null,
+        serviceDate: input.serviceDate ?? null,
+        servicePeriod: input.servicePeriod ?? null,
+        priority: input.priority ?? "normal",
+        assignedTo: input.assignedTo ?? null,
         visibleToStudent: input.visibleToStudent ?? true,
         createdBy: ctx.user.id,
       });
@@ -2468,6 +2479,17 @@ export const appRouter = router({
       return serviceScaleDb.listStudentObservations(input.studentId);
     }),
 
+    studentLcCases: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+      })
+    ).query(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
+      return serviceScaleDb.listStudentLcCases(input.studentId);
+    }),
+
     pendingStudentObservations: masterProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
@@ -2610,7 +2632,7 @@ export const appRouter = router({
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
         peloton: z.number().int().min(1).max(2).optional(),
-        status: z.enum(["pending", "homologated", "rejected", "cancelled", "active"]).default("pending"),
+        status: z.enum(["pending", "homologated", "rejected", "cancelled", "active", "all"]).default("pending"),
       }).optional()
     ).query(async ({ ctx, input }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
@@ -2638,6 +2660,7 @@ export const appRouter = router({
         id: z.number().int().positive(),
         status: z.enum(["homologated", "rejected"]),
         recolhimentoDate: z.string().trim().max(10).nullable().optional(),
+        recolhimentoTime: lcTimeSchema.nullable().optional(),
         durationHours: z.number().int().min(1).max(240).nullable().optional(),
         procedures: z.string().trim().max(8000).nullable().optional(),
       })
@@ -2649,10 +2672,10 @@ export const appRouter = router({
       }
       await requireServiceScaleAccess(ctx.user, lcCase.companhia, lcCase.peloton);
       if (input.status === "homologated") {
-        if (!input.recolhimentoDate || !input.durationHours || !input.procedures?.trim()) {
+        if (!input.recolhimentoDate || !input.recolhimentoTime || !input.durationHours || !input.procedures?.trim()) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Para homologar a LC, informe a data, a duração e os procedimentos ao aluno.",
+            message: "Para homologar a LC, informe a data, a hora, a duracao e os procedimentos ao aluno.",
           });
         }
       }
@@ -2660,11 +2683,42 @@ export const appRouter = router({
         id: input.id,
         status: input.status,
         recolhimentoDate: input.recolhimentoDate ?? null,
+        recolhimentoTime: input.recolhimentoTime ?? null,
         durationHours: input.durationHours ?? null,
         procedures: input.procedures ?? null,
         judgedBy: ctx.user.id,
       });
       return { success: true };
+    }),
+
+    createDirectLcCase: masterProcedure.input(
+      z.object({
+        studentId: z.number().int().positive(),
+        directReason: z.string().trim().min(5).max(8000),
+        recolhimentoDate: z.string().trim().min(10).max(10),
+        recolhimentoTime: lcTimeSchema,
+        durationHours: z.number().int().min(1).max(240),
+        procedures: z.string().trim().min(5).max(8000),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      requireFoLcHomologationAccess(ctx.user);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      }
+      await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
+      const lcCase = await serviceScaleDb.createDirectLcCase({
+        studentId: student.id,
+        companhia: student.companhia,
+        peloton: student.peloton,
+        directReason: input.directReason,
+        recolhimentoDate: input.recolhimentoDate,
+        recolhimentoTime: input.recolhimentoTime,
+        durationHours: input.durationHours,
+        procedures: input.procedures,
+        createdBy: ctx.user.id,
+      });
+      return { success: true, lcCase };
     }),
 
     foReasons: scaleManagerProcedure.query(async () => {

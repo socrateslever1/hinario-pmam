@@ -21,7 +21,7 @@ export function getStudentSession(): StudentSession | null {
   const sessionToken = window.localStorage.getItem("gradeStudentToken") || "";
   const expiresAt = Number(window.localStorage.getItem("gradeStudentExpiry") || "0");
 
-  if (!id || !numerica || !nomeGuerra || !companhia || !peloton || !sessionToken) return null;
+  if (!id || !numerica || !nomeGuerra || !sessionToken) return null;
 
   // Verificar se sessão expirou
   if (expiresAt && expiresAt < Date.now()) {

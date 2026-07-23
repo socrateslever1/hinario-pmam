@@ -12,6 +12,7 @@ import { storagePut } from "../storage";
 import crypto from "crypto";
 import { getVersionInfo } from "./version";
 import cors from "cors";
+import path from "path";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -101,6 +102,9 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
       createContext,
     })
   );
+
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

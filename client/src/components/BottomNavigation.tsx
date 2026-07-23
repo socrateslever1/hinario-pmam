@@ -128,7 +128,7 @@ export default function BottomNavigation() {
     await logout();
     notifySessionChange();
     setMoreOpen(false);
-    setLocation("/entrar");
+    setLocation(isStudent ? "/entrar" : "/login");
   };
 
   return (
@@ -204,6 +204,15 @@ export default function BottomNavigation() {
               >
                 <LogOut className="h-4 w-4" />
                 Sair da sessão do aluno
+              </button>
+            )}
+            {user && !isStudent && (
+              <button
+                onClick={handleLogout}
+                className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-3.5 text-center text-xs font-bold text-red-200 hover:bg-red-500/20 transition-all duration-300 mt-2"
+              >
+                <LogOut className="h-4 w-4" />
+                {isComandante ? "Sair do comando" : "Sair"}
               </button>
             )}
           </div>

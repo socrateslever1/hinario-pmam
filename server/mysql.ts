@@ -13,7 +13,7 @@ function getConnection() {
 
   if (!connection) {
     const url = `mysql://${ENV.tidbUser}:${ENV.tidbPassword}@${ENV.tidbHost}/${ENV.tidbDatabase}?ssl={"rejectUnauthorized":true}`;
-    connection = connect({ url });
+    connection = connect({ url, fullResult: true });
   }
 
   return connection;
@@ -45,6 +45,17 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
       }
       return parsedRow;
     }) : rawRows;
+
+    // Attach insertId and affectedRows metadata to the returned array
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+      const resultAny = result as any;
+      if (resultAny.lastInsertId !== undefined && resultAny.lastInsertId !== null) {
+        (rows as any).insertId = Number(resultAny.lastInsertId);
+      }
+      if (resultAny.rowsAffected !== undefined && resultAny.rowsAffected !== null) {
+        (rows as any).affectedRows = Number(resultAny.rowsAffected);
+      }
+    }
 
     return rows as T[];
   } catch (error) {

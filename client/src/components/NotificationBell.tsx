@@ -77,10 +77,16 @@ export function NotificationBell() {
                           {notif.title}
                         </p>
                         <Badge
-                          className={`text-xs ${typeColors[notif.type]}`}
+                          className={`text-[10px] font-bold uppercase tracking-wider ${typeColors[notif.type]}`}
                           variant="secondary"
                         >
-                          {notif.type}
+                          {notif.type === "info"
+                            ? "Info"
+                            : notif.type === "success"
+                            ? "Sucesso"
+                            : notif.type === "warning"
+                            ? "Aviso"
+                            : "Atenção"}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">

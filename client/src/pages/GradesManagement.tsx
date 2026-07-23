@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { AlertCircle, Edit2, LogOut, Plus, Trash2, ChevronRight } from 'lucide-react';
+import { AlertCircle, Edit2, LogOut, Plus, Search, Trash2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button'; // Mantido para outros usos
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,7 @@ export default function GradesManagement() {
   const [disciplines, setDisciplines] = useState<DisciplineCatalogItem[]>([]);
   const [grades, setGrades] = useState<StudentGradeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [disciplineSearch, setDisciplineSearch] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingDisciplineId, setEditingDisciplineId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -111,6 +112,23 @@ export default function GradesManagement() {
   const deleteGradeMutation = trpc.grades.deleteStudentGrade.useMutation();
 
   const disciplineRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  const normalizeDisciplineSearch = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+  const gradedDisciplineIds = new Set(grades.map((grade) => grade.disciplineId));
+  const launchedDisciplinesCount = disciplines.filter((discipline) => gradedDisciplineIds.has(discipline.id)).length;
+  const pendingDisciplinesCount = Math.max(disciplines.length - launchedDisciplinesCount, 0);
+  const normalizedDisciplineSearch = normalizeDisciplineSearch(disciplineSearch);
+  const filteredDisciplines = normalizedDisciplineSearch
+    ? disciplines.filter((discipline) =>
+        normalizeDisciplineSearch(discipline.name).includes(normalizedDisciplineSearch)
+      )
+    : disciplines;
 
   useEffect(() => {
     const session = getStudentSession();
@@ -335,9 +353,49 @@ export default function GradesManagement() {
             </Button>
           </div>
 
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+            <div className="rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">Total</p>
+              <p className="mt-1 text-2xl font-bold leading-none text-[#1a3a2a]">{disciplines.length}</p>
+              <p className="mt-1 text-xs text-muted-foreground">disciplinas</p>
+            </div>
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase text-green-700">Lançadas</p>
+              <p className="mt-1 text-2xl font-bold leading-none text-green-700">{launchedDisciplinesCount}</p>
+              <p className="mt-1 text-xs text-green-700/80">com nota</p>
+            </div>
+            <div className="col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3 shadow-sm sm:col-span-1">
+              <p className="text-[11px] font-semibold uppercase text-amber-700">Faltam</p>
+              <p className="mt-1 text-2xl font-bold leading-none text-amber-700">{pendingDisciplinesCount}</p>
+              <p className="mt-1 text-xs text-amber-700/80">sem nota</p>
+            </div>
+          </div>
+
+          {disciplines.length > 0 && (
+            <div className="mb-5 rounded-lg border border-border/50 bg-white p-3 shadow-sm">
+              <Label htmlFor="discipline-search" className="text-xs font-semibold uppercase text-muted-foreground">
+                Buscar disciplina
+              </Label>
+              <div className="relative mt-2">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="discipline-search"
+                  type="search"
+                  value={disciplineSearch}
+                  onChange={(event) => setDisciplineSearch(event.target.value)}
+                  placeholder="Digite o nome da disciplina"
+                  className="bg-card pl-9 text-foreground"
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Exibindo {filteredDisciplines.length} de {disciplines.length} disciplinas.
+              </p>
+            </div>
+          )}
+
           {/* Lista de Disciplinas */}
           <div className="space-y-3">
-            {disciplines.map((discipline) => {
+            {filteredDisciplines.map((discipline) => {
               const existingGrade = getGradeForDiscipline(discipline.id);
               const isEditing = editingDisciplineId === discipline.id;
               const hasGrade = !!existingGrade;
@@ -495,6 +553,16 @@ export default function GradesManagement() {
               );
             })}
           </div>
+
+          {disciplines.length > 0 && filteredDisciplines.length === 0 && (
+            <Card className="border-border/50 bg-card text-foreground shadow-sm">
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  Nenhuma disciplina encontrada para "{disciplineSearch.trim()}".
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {disciplines.length === 0 && (
             <Card className="border-border/50 bg-card text-foreground shadow-sm">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Camera, KeyRound, Loader2, LogIn, Save, Shield, User } from "lucide-react";
+import { Camera, KeyRound, Loader2, LogIn, LogOut, Save, Shield, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -67,7 +67,7 @@ function saveLocalProfile(userId: number, profile: CommandProfile) {
 }
 
 export default function UserProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -181,6 +181,15 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleCommandLogout = async () => {
+    try {
+      await logout();
+      setLocation("/login");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao sair do sistema.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="mobile-safe-bottom flex min-h-screen flex-col bg-[#f5f2e8] dark:bg-[#050d12]">
@@ -224,33 +233,33 @@ export default function UserProfilePage() {
   const isBusy = updateProfile.isPending || changePassword.isPending || isUploading;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#050d12]">
+    <div className="mobile-safe-bottom flex min-h-screen flex-col bg-[#f5f2e8] text-foreground dark:bg-[#050d12]">
       <Navbar />
-      <main className="container max-w-5xl px-4 py-6 pb-24 md:py-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center md:p-0">
+      <main className="container max-w-5xl flex-1 px-4 py-4 pb-24 md:py-8">
+        <div className="mb-4 flex flex-col justify-between gap-2 md:mb-6 md:flex-row md:items-center md:gap-4 md:p-0">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-[#1a3a2a] dark:text-[#c4a84b] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
-              <Shield className="h-8 w-8 text-[#c4a84b]" />
-              Ficha de Cadastro do Comando
+            <h1 className="flex items-center gap-1.5 text-xl font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b] md:gap-2 md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+              <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-8 md:w-8" />
+              <span>Ficha de Cadastro do Comando</span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground md:mt-1 md:text-sm">
               Dados particulares facultativos, foto funcional e senha de acesso.
             </p>
           </div>
-          <div className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-4 py-2 text-xs font-semibold text-[#1a3a2a] shadow-sm dark:text-[#c4a84b] md:rounded-lg">
+          <div className="w-fit max-w-full rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#1a3a2a] shadow-sm dark:text-[#c4a84b] md:rounded-lg md:px-4 md:py-2 md:text-xs">
             {ROLE_LABELS[user.role || ""] || user.role || "Posto de Comando"}
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="flex flex-col gap-6">
-            <Card className="overflow-hidden border-border/50 bg-white text-foreground shadow-sm dark:bg-zinc-950">
-              <CardHeader className="border-b bg-muted/20 pb-3 text-center">
+        <form onSubmit={handleSave} className="grid gap-4 md:gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="flex flex-col gap-4 md:gap-6">
+            <Card className="overflow-hidden border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
+              <CardHeader className="border-b bg-muted/20 px-4 py-3 text-center md:px-6">
                 <CardTitle className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Identidade Visual</CardTitle>
                 <CardDescription className="text-[10px]">Foto funcional do perfil</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4 p-6">
-                <div className="group relative flex aspect-[3/4] w-44 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 shadow-inner">
+              <CardContent className="flex flex-col items-center gap-3 p-4 md:gap-4 md:p-6">
+                <div className="group relative flex aspect-[3/4] w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 shadow-inner md:w-44">
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 animate-spin text-[#c4a84b]" />
                   ) : photoUrl ? (
@@ -274,8 +283,8 @@ export default function UserProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/50 bg-white text-foreground shadow-sm dark:bg-zinc-950">
-              <CardHeader className="border-b bg-muted/20 pb-3">
+            <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
+              <CardHeader className="border-b bg-muted/20 px-4 py-3 md:px-6">
                 <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">
                   <KeyRound className="h-4 w-4 text-[#c4a84b]" />
                   Alterar Senha
@@ -298,13 +307,13 @@ export default function UserProfilePage() {
             </Card>
           </div>
 
-          <Card className="border-border/50 bg-white text-foreground shadow-sm dark:bg-zinc-950">
-            <CardHeader className="border-b bg-muted/20 pb-3">
+          <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
+            <CardHeader className="border-b bg-muted/20 px-4 py-3 md:px-6">
               <CardTitle className="text-base font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Dados Cadastrais</CardTitle>
               <CardDescription className="text-xs">Preencha somente o que desejar manter no seu perfil particular.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-5 p-6">
-              <div className="grid gap-4 md:grid-cols-2">
+            <CardContent className="flex flex-col gap-4 p-4 md:gap-5 md:p-6">
+              <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Nome completo</Label>
                   <Input value={profile.nomeCompleto} onChange={(event) => updateField("nomeCompleto", event.target.value)} required />
@@ -343,8 +352,18 @@ export default function UserProfilePage() {
                 </div>
               </div>
 
-              <div className="flex justify-end border-t pt-4">
-                <Button type="submit" disabled={isBusy} className="gap-2 bg-[#1a3a2a] text-white hover:bg-[#10281d]">
+              <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCommandLogout}
+                  disabled={isBusy}
+                  className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/30 md:hidden"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </Button>
+                <Button type="submit" disabled={isBusy} className="w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#10281d] sm:w-auto">
                   {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Salvar ficha
                 </Button>

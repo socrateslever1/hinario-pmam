@@ -33,6 +33,7 @@ export interface ServiceStudent {
 }
 
 export type LcCaseStatus = "pending" | "homologated" | "rejected" | "cancelled";
+export type LcCaseSource = "fo_reincidence" | "direct";
 export type FoContestStatus = "none" | "pending" | "accepted" | "rejected";
 export type FoContestSource = "portal" | "cal";
 export type BaixadoKind =
@@ -40,8 +41,9 @@ export type BaixadoKind =
   | "ausente_com_atestado"
   | "ausente_sem_atestado"
   | "presente_sem_atestado";
-export type InternalReportType = "desistente" | "desertor" | "baixado" | "outro";
+export type InternalReportType = "demanda_servico" | "desistente" | "desertor" | "baixado" | "outro";
 export type InternalReportStatus = "active" | "resolved" | "cancelled";
+export type InternalReportPriority = "normal" | "important" | "urgent";
 
 export interface StudentLcCase {
   id: number;
@@ -55,13 +57,21 @@ export interface StudentLcCase {
   negativeCount: number;
   positiveCount: number;
   netCount: number;
+  source: LcCaseSource;
+  directReason: string | null;
   status: LcCaseStatus;
   recolhimentoDate: string | null;
+  recolhimentoTime: string | null;
   durationHours: number | null;
+  releaseDate: string | null;
+  releaseTime: string | null;
   procedures: string | null;
+  createdBy: number | null;
+  createdByName: string | null;
   judgedBy: number | null;
   judgedByName: string | null;
   judgedAt: Date | string | null;
+  startedAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -93,8 +103,12 @@ export interface StudentInternalReport {
   peloton: number;
   type: InternalReportType;
   status: InternalReportStatus;
+  serviceDate: string | null;
+  servicePeriod: string | null;
+  priority: InternalReportPriority;
   title: string;
   note: string | null;
+  assignedTo: string | null;
   visibleToStudent: boolean;
   createdBy: number | null;
   createdByName: string | null;
@@ -174,6 +188,51 @@ function toDateOnly(value: Date | string | null | undefined) {
   if (!value) return null;
   if (typeof value === "string") return value.slice(0, 10);
   return value.toISOString().slice(0, 10);
+}
+
+export function normalizeLcTime(value: string | null | undefined) {
+  if (!value) return null;
+  const match = String(value).trim().match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
+  if (!match) return null;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+export function calculateLcReleaseSchedule(
+  recolhimentoDate: string,
+  recolhimentoTime: string,
+  durationHours: number,
+) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(recolhimentoDate);
+  const time = normalizeLcTime(recolhimentoTime);
+  if (!dateMatch || !time || !Number.isInteger(durationHours) || durationHours <= 0) {
+    return null;
+  }
+
+  const [, year, month, day] = dateMatch;
+  const [hour, minute] = time.split(":").map(Number);
+  const releaseAt = new Date(
+    Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      hour + durationHours,
+      minute,
+      0,
+      0,
+    ),
+  );
+
+  const releaseDate = [
+    releaseAt.getUTCFullYear(),
+    String(releaseAt.getUTCMonth() + 1).padStart(2, "0"),
+    String(releaseAt.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+  const releaseTime = [
+    String(releaseAt.getUTCHours()).padStart(2, "0"),
+    String(releaseAt.getUTCMinutes()).padStart(2, "0"),
+  ].join(":");
+
+  return { releaseDate, releaseTime };
 }
 
 function parseIds(value: unknown): number[] {
@@ -446,10 +505,16 @@ export async function ensureServiceScaleTables() {
           negative_count INT NOT NULL DEFAULT 0,
           positive_count INT NOT NULL DEFAULT 0,
           net_count INT NOT NULL DEFAULT 0,
+          source VARCHAR(24) NOT NULL DEFAULT 'fo_reincidence',
+          direct_reason LONGTEXT NULL,
           status ENUM('pending','homologated','rejected','cancelled') NOT NULL DEFAULT 'pending',
           recolhimento_date DATE NULL,
+          recolhimento_time VARCHAR(5) NULL,
           duration_hours INT NULL,
+          release_date DATE NULL,
+          release_time VARCHAR(5) NULL,
           procedures LONGTEXT NULL,
+          created_by INT NULL,
           judged_by INT NULL,
           judged_at TIMESTAMP NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -459,6 +524,30 @@ export async function ensureServiceScaleTables() {
           KEY idx_pmam_lc_cases_code (fo_code, status)
         )
       `);
+
+      const lcCols = await query("SHOW COLUMNS FROM pmam_lc_cases");
+      const hasLcCol = (name: string) => lcCols.some((col: any) => col.Field === name);
+      if (!hasLcCol("source")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN source VARCHAR(24) NOT NULL DEFAULT 'fo_reincidence' AFTER net_count");
+      }
+      if (!hasLcCol("direct_reason")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN direct_reason LONGTEXT NULL AFTER source");
+      }
+      if (!hasLcCol("recolhimento_time")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN recolhimento_time VARCHAR(5) NULL AFTER recolhimento_date");
+      }
+      if (!hasLcCol("release_date")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN release_date DATE NULL AFTER duration_hours");
+      }
+      if (!hasLcCol("release_time")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN release_time VARCHAR(5) NULL AFTER release_date");
+      }
+      if (!hasLcCol("created_by")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN created_by INT NULL AFTER procedures");
+      }
+      if (!hasLcCol("started_at")) {
+        await query("ALTER TABLE pmam_lc_cases ADD COLUMN started_at TIMESTAMP NULL AFTER judged_at");
+      }
 
       await query(`
         CREATE TABLE IF NOT EXISTS pmam_student_baixado_documents (
@@ -489,8 +578,12 @@ export async function ensureServiceScaleTables() {
           peloton INT NOT NULL,
           type VARCHAR(32) NOT NULL,
           status VARCHAR(16) NOT NULL DEFAULT 'active',
+          service_date DATE NULL,
+          service_period VARCHAR(32) NULL,
+          priority VARCHAR(16) NOT NULL DEFAULT 'normal',
           title VARCHAR(180) NOT NULL,
           note LONGTEXT NULL,
+          assigned_to VARCHAR(120) NULL,
           visible_to_student BOOLEAN NOT NULL DEFAULT true,
           created_by INT NULL,
           resolved_by INT NULL,
@@ -502,6 +595,21 @@ export async function ensureServiceScaleTables() {
           KEY idx_pmam_internal_reports_type (type, status)
         )
       `);
+
+      const internalReportCols = await query("SHOW COLUMNS FROM pmam_student_internal_reports");
+      const hasInternalReportCol = (name: string) => internalReportCols.some((col: any) => col.Field === name);
+      if (!hasInternalReportCol("service_date")) {
+        await query("ALTER TABLE pmam_student_internal_reports ADD COLUMN service_date DATE NULL AFTER status");
+      }
+      if (!hasInternalReportCol("service_period")) {
+        await query("ALTER TABLE pmam_student_internal_reports ADD COLUMN service_period VARCHAR(32) NULL AFTER service_date");
+      }
+      if (!hasInternalReportCol("priority")) {
+        await query("ALTER TABLE pmam_student_internal_reports ADD COLUMN priority VARCHAR(16) NOT NULL DEFAULT 'normal' AFTER service_period");
+      }
+      if (!hasInternalReportCol("assigned_to")) {
+        await query("ALTER TABLE pmam_student_internal_reports ADD COLUMN assigned_to VARCHAR(120) NULL AFTER note");
+      }
 
       const observationCols = await query("SHOW COLUMNS FROM pmam_student_observations");
       const hasObservationCol = (name: string) => observationCols.some((col: any) => col.Field === name);
@@ -1661,7 +1769,18 @@ export async function decideObservationContest(input: {
 function mapLcCase(row: any): StudentLcCase {
   const status = (row.status || "pending") as LcCaseStatus;
   const foCode = normalizeFoCode(row.fo_code || row.foCode || "");
+  const source = row.source === "direct" ? "direct" : "fo_reincidence";
   const definition = getFoCodeDefinition("negative", foCode) || getFoCodeDefinition("positive", foCode);
+  const recolhimentoDate = toDateOnly(row.recolhimento_date ?? row.recolhimentoDate);
+  const recolhimentoTime = normalizeLcTime(row.recolhimento_time ?? row.recolhimentoTime);
+  const durationHours = row.duration_hours === null || row.duration_hours === undefined
+    ? null
+    : Number(row.duration_hours);
+  const storedReleaseDate = toDateOnly(row.release_date ?? row.releaseDate);
+  const storedReleaseTime = normalizeLcTime(row.release_time ?? row.releaseTime);
+  const calculatedRelease = (!storedReleaseDate || !storedReleaseTime) && recolhimentoDate && recolhimentoTime && durationHours
+    ? calculateLcReleaseSchedule(recolhimentoDate, recolhimentoTime, durationHours)
+    : null;
   return {
     id: Number(row.id),
     studentId: Number(row.student_id ?? row.studentId),
@@ -1670,19 +1789,25 @@ function mapLcCase(row: any): StudentLcCase {
     companhia: Number(row.companhia),
     peloton: Number(row.peloton),
     foCode,
-    foLabel: definition?.label ?? foCode,
+    foLabel: source === "direct" ? "LC direta por transgressao gravosa" : definition?.label ?? foCode,
     negativeCount: Number(row.negative_count ?? row.negativeCount ?? 0),
     positiveCount: Number(row.positive_count ?? row.positiveCount ?? 0),
     netCount: Number(row.net_count ?? row.netCount ?? 0),
+    source,
+    directReason: row.direct_reason ?? row.directReason ?? null,
     status,
-    recolhimentoDate: toDateOnly(row.recolhimento_date ?? row.recolhimentoDate),
-    durationHours: row.duration_hours === null || row.duration_hours === undefined
-      ? null
-      : Number(row.duration_hours),
+    recolhimentoDate,
+    recolhimentoTime,
+    durationHours,
+    releaseDate: storedReleaseDate ?? calculatedRelease?.releaseDate ?? null,
+    releaseTime: storedReleaseTime ?? calculatedRelease?.releaseTime ?? null,
     procedures: row.procedures ?? null,
+    createdBy: row.created_by === null || row.created_by === undefined ? null : Number(row.created_by),
+    createdByName: row.created_by_name ?? row.createdByName ?? null,
     judgedBy: row.judged_by === null || row.judged_by === undefined ? null : Number(row.judged_by),
     judgedByName: row.judged_by_name ?? row.judgedByName ?? null,
     judgedAt: row.judged_at ?? row.judgedAt ?? null,
+    startedAt: row.started_at ?? row.startedAt ?? null,
     createdAt: row.created_at ?? row.createdAt,
     updatedAt: row.updated_at ?? row.updatedAt,
   };
@@ -1760,8 +1885,8 @@ export async function recomputeLcCaseForStudentCode(
 
     const result = await query(
       `INSERT INTO pmam_lc_cases
-        (student_id, companhia, peloton, fo_code, negative_count, positive_count, net_count, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        (student_id, companhia, peloton, fo_code, negative_count, positive_count, net_count, source, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'fo_reincidence', 'pending')`,
       [
         studentId,
         companhia,
@@ -1772,11 +1897,20 @@ export async function recomputeLcCaseForStudentCode(
         balance.netCount,
       ]
     );
-    return {
+    return mapLcCase({
       id: (result as any).insertId,
-      ...balance,
-      status: "pending" as const,
-    };
+      student_id: studentId,
+      companhia,
+      peloton,
+      fo_code: normalizedCode,
+      negative_count: balance.negativeCount,
+      positive_count: balance.positiveCount,
+      net_count: balance.netCount,
+      source: "fo_reincidence",
+      status: "pending",
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
   }
 
   if (activeCase?.status === "pending") {
@@ -1794,7 +1928,7 @@ export async function recomputeLcCaseForStudentCode(
 export async function listLcCases(options?: {
   companhia?: number | null;
   peloton?: number | null;
-  status?: LcCaseStatus | "active";
+  status?: LcCaseStatus | "active" | "all";
 }): Promise<StudentLcCase[]> {
   await ensureServiceScaleTables();
   const where: string[] = [];
@@ -1808,7 +1942,9 @@ export async function listLcCases(options?: {
     where.push("lc.peloton = ?");
     params.push(options.peloton);
   }
-  if (options?.status === "active" || !options?.status) {
+  if (options?.status === "all") {
+    // Escopo apenas; usado para fiscalizacao e arquivo administrativo.
+  } else if (options?.status === "active" || !options?.status) {
     where.push("lc.status IN ('pending', 'homologated')");
   } else {
     where.push("lc.status = ?");
@@ -1816,9 +1952,10 @@ export async function listLcCases(options?: {
   }
 
   const rows = await query(
-    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+    `SELECT lc.*, s.numerica, s.nome_guerra, cu.name AS created_by_name, u.name AS judged_by_name
      FROM pmam_lc_cases lc
      INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users cu ON cu.id = lc.created_by
      LEFT JOIN pmam_users u ON u.id = lc.judged_by
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY FIELD(lc.status, 'pending', 'homologated', 'rejected', 'cancelled'),
@@ -1833,9 +1970,10 @@ export async function listLcCases(options?: {
 export async function listStudentLcCases(studentId: number): Promise<StudentLcCase[]> {
   await ensureServiceScaleTables();
   const rows = await query(
-    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+    `SELECT lc.*, s.numerica, s.nome_guerra, cu.name AS created_by_name, u.name AS judged_by_name
      FROM pmam_lc_cases lc
      INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users cu ON cu.id = lc.created_by
      LEFT JOIN pmam_users u ON u.id = lc.judged_by
      WHERE lc.student_id = ?
        AND lc.status IN ('pending', 'homologated')
@@ -1848,9 +1986,10 @@ export async function listStudentLcCases(studentId: number): Promise<StudentLcCa
 export async function getLcCase(id: number): Promise<StudentLcCase | null> {
   await ensureServiceScaleTables();
   const rows = await query(
-    `SELECT lc.*, s.numerica, s.nome_guerra, u.name AS judged_by_name
+    `SELECT lc.*, s.numerica, s.nome_guerra, cu.name AS created_by_name, u.name AS judged_by_name
      FROM pmam_lc_cases lc
      INNER JOIN pmam_students s ON s.id = lc.student_id
+     LEFT JOIN pmam_users cu ON cu.id = lc.created_by
      LEFT JOIN pmam_users u ON u.id = lc.judged_by
      WHERE lc.id = ?
      LIMIT 1`,
@@ -1859,33 +1998,101 @@ export async function getLcCase(id: number): Promise<StudentLcCase | null> {
   return rows[0] ? mapLcCase(rows[0]) : null;
 }
 
+export async function createDirectLcCase(input: {
+  studentId: number;
+  companhia: number;
+  peloton: number;
+  directReason: string;
+  recolhimentoDate: string;
+  recolhimentoTime: string;
+  durationHours: number;
+  procedures: string;
+  createdBy: number;
+}): Promise<StudentLcCase | null> {
+  await ensureServiceScaleTables();
+  const recolhimentoTime = normalizeLcTime(input.recolhimentoTime);
+  if (!recolhimentoTime) {
+    throw new Error("INVALID_LC_TIME");
+  }
+  const releaseSchedule = calculateLcReleaseSchedule(
+    input.recolhimentoDate,
+    recolhimentoTime,
+    input.durationHours,
+  );
+  const result = await query(
+    `INSERT INTO pmam_lc_cases
+      (student_id, companhia, peloton, fo_code, negative_count, positive_count, net_count,
+       source, direct_reason, status, recolhimento_date, recolhimento_time, duration_hours,
+       release_date, release_time, procedures, created_by, judged_by, judged_at)
+     VALUES (?, ?, ?, 'LC_DIRETA', 1, 0, 1, 'direct', ?, 'homologated', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [
+      input.studentId,
+      input.companhia,
+      input.peloton,
+      input.directReason,
+      input.recolhimentoDate,
+      recolhimentoTime,
+      input.durationHours,
+      releaseSchedule?.releaseDate ?? null,
+      releaseSchedule?.releaseTime ?? null,
+      input.procedures,
+      input.createdBy,
+      input.createdBy,
+    ]
+  );
+  return getLcCase((result as any).insertId);
+}
+
 export async function decideLcCase(input: {
   id: number;
   status: "homologated" | "rejected";
   recolhimentoDate?: string | null;
+  recolhimentoTime?: string | null;
   durationHours?: number | null;
   procedures?: string | null;
   judgedBy: number;
 }): Promise<void> {
   await ensureServiceScaleTables();
+  const recolhimentoTime = input.status === "homologated"
+    ? normalizeLcTime(input.recolhimentoTime ?? null)
+    : null;
+  const releaseSchedule = input.status === "homologated" && input.recolhimentoDate && recolhimentoTime && input.durationHours
+    ? calculateLcReleaseSchedule(input.recolhimentoDate, recolhimentoTime, input.durationHours)
+    : null;
   await query(
     `UPDATE pmam_lc_cases
      SET status = ?,
-       recolhimento_date = ?,
-       duration_hours = ?,
-       procedures = ?,
-       judged_by = ?,
-       judged_at = CURRENT_TIMESTAMP,
-       updated_at = CURRENT_TIMESTAMP
+        recolhimento_date = ?,
+        recolhimento_time = ?,
+        duration_hours = ?,
+        release_date = ?,
+        release_time = ?,
+        procedures = ?,
+        judged_by = ?,
+        judged_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
     [
       input.status,
       input.status === "homologated" ? input.recolhimentoDate ?? null : null,
+      recolhimentoTime,
       input.status === "homologated" ? input.durationHours ?? null : null,
+      releaseSchedule?.releaseDate ?? null,
+      releaseSchedule?.releaseTime ?? null,
       input.procedures ?? null,
       input.judgedBy,
       input.id,
     ]
+  );
+}
+
+export async function startLcCase(id: number): Promise<void> {
+  await ensureServiceScaleTables();
+  await query(
+    `UPDATE pmam_lc_cases
+     SET started_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [id]
   );
 }
 
@@ -2033,13 +2240,18 @@ export async function listBaixadoStudents(options?: {
 }
 
 function normalizeInternalReportType(value?: string | null): InternalReportType {
-  const allowed = new Set<InternalReportType>(["desistente", "desertor", "baixado", "outro"]);
+  const allowed = new Set<InternalReportType>(["demanda_servico", "desistente", "desertor", "baixado", "outro"]);
   return allowed.has(value as InternalReportType) ? value as InternalReportType : "outro";
 }
 
 function normalizeInternalReportStatus(value?: string | null): InternalReportStatus {
   const allowed = new Set<InternalReportStatus>(["active", "resolved", "cancelled"]);
   return allowed.has(value as InternalReportStatus) ? value as InternalReportStatus : "active";
+}
+
+function normalizeInternalReportPriority(value?: string | null): InternalReportPriority {
+  const allowed = new Set<InternalReportPriority>(["normal", "important", "urgent"]);
+  return allowed.has(value as InternalReportPriority) ? value as InternalReportPriority : "normal";
 }
 
 function mapInternalReport(row: any): StudentInternalReport {
@@ -2052,8 +2264,12 @@ function mapInternalReport(row: any): StudentInternalReport {
     peloton: Number(row.peloton),
     type: normalizeInternalReportType(row.type),
     status: normalizeInternalReportStatus(row.status),
+    serviceDate: toDateOnly(row.service_date ?? row.serviceDate),
+    servicePeriod: row.service_period ?? row.servicePeriod ?? null,
+    priority: normalizeInternalReportPriority(row.priority),
     title: row.title,
     note: row.note ?? null,
+    assignedTo: row.assigned_to ?? row.assignedTo ?? null,
     visibleToStudent: row.visible_to_student === 1 || row.visible_to_student === true,
     createdBy: row.created_by === null || row.created_by === undefined ? null : Number(row.created_by),
     createdByName: row.created_by_name ?? row.createdByName ?? null,
@@ -2072,21 +2288,29 @@ export async function createInternalReport(input: {
   type: InternalReportType;
   title: string;
   note?: string | null;
+  serviceDate?: string | null;
+  servicePeriod?: string | null;
+  priority?: InternalReportPriority | null;
+  assignedTo?: string | null;
   visibleToStudent?: boolean;
   createdBy?: number | null;
 }): Promise<number> {
   await ensureServiceScaleTables();
   const result = await query(
     `INSERT INTO pmam_student_internal_reports
-      (student_id, companhia, peloton, type, title, note, visible_to_student, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (student_id, companhia, peloton, type, status, service_date, service_period, priority, title, note, assigned_to, visible_to_student, created_by)
+     VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.studentId,
       input.companhia,
       input.peloton,
       normalizeInternalReportType(input.type),
+      input.serviceDate || null,
+      input.servicePeriod?.trim() || null,
+      normalizeInternalReportPriority(input.priority),
       input.title,
       input.note ?? null,
+      input.assignedTo?.trim() || null,
       input.visibleToStudent === false ? 0 : 1,
       input.createdBy ?? null,
     ]
@@ -2133,7 +2357,10 @@ export async function listInternalReports(options?: {
      LEFT JOIN pmam_users cu ON cu.id = r.created_by
      LEFT JOIN pmam_users ru ON ru.id = r.resolved_by
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY FIELD(r.status, 'active', 'resolved', 'cancelled'), r.created_at ASC
+     ORDER BY FIELD(r.status, 'active', 'resolved', 'cancelled'),
+       FIELD(r.priority, 'urgent', 'important', 'normal'),
+       COALESCE(r.service_date, DATE(r.created_at)) DESC,
+       r.created_at DESC
      LIMIT 300`,
     params
   );

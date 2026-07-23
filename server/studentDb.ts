@@ -529,31 +529,20 @@ export async function updateStudentProfile(
 }
 
 export async function deleteStudent(id: number): Promise<void> {
-  
-
-  try {
-    await dbQuery("BEGIN");
-    await dbQuery("DELETE FROM pmam_student_grades WHERE student_id = ?", [id]);
-    for (const table of [
-      "pmam_student_observations",
-      "pmam_seat_change_requests",
-      "pmam_notice_reads",
-      "pmam_peculio_student_statuses",
-    ]) {
-      try {
-        await dbQuery(`DELETE FROM ${table} WHERE student_id = ?`, [id]);
-      } catch (error: any) {
-        if (error?.code !== "ER_NO_SUCH_TABLE") throw error;
-      }
+  await dbQuery("DELETE FROM pmam_student_grades WHERE student_id = ?", [id]);
+  for (const table of [
+    "pmam_student_observations",
+    "pmam_seat_change_requests",
+    "pmam_notice_reads",
+    "pmam_peculio_student_statuses",
+  ]) {
+    try {
+      await dbQuery(`DELETE FROM ${table} WHERE student_id = ?`, [id]);
+    } catch (error: any) {
+      if (error?.code !== "ER_NO_SUCH_TABLE") throw error;
     }
-    await dbQuery("DELETE FROM pmam_students WHERE id = ?", [id]);
-    await dbQuery("COMMIT");
-  } catch (error) {
-    await dbQuery("ROLLBACK");
-    throw error;
-  } finally {
-    
   }
+  await dbQuery("DELETE FROM pmam_students WHERE id = ?", [id]);
 }
 
 export async function updateStudentCondition(id: number, condition: string): Promise<void> {
