@@ -304,7 +304,7 @@ export function BuglePanelAdmin() {
                   variant="secondary"
                   size="icon"
                   onClick={() => {
-                    const url = item.audioUrl.startsWith("data:") || item.audioUrl.startsWith("http")
+                    const url = item.audioUrl.startsWith("data:") || item.audioUrl.startsWith("http") || item.audioUrl.startsWith("/")
                       ? item.audioUrl
                       : `/api/bugle-audio/${nextKind}/${item.id}`;
                     togglePlay(url);
