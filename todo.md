@@ -306,8 +306,8 @@
 - [x] Implementar exclusão de acessos
 
 ### Fase 3: Lógica de Restrição
-- [ ] Implementar visualização de pelotões baseada em role
-- [ ] Implementar restrição de edição baseada em role
+- [x] Implementar visualização de pelotões baseada em role
+- [x] Implementar restrição de edição baseada em role
 - [ ] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
 - [ ] Implementar anotações (positivas/negativas) para alunos
 
@@ -321,7 +321,7 @@
 - [ ] Testar login de Comandante de Companhia
 - [ ] Testar login de Comandante do Corpo de Alunos
 - [ ] Testar login de Comandante CFAP
-- [ ] Testar restrições de visualização e edição
+- [x] Testar restrições de visualização e edição
 - [ ] Testar obrigatoriedade de trocar senha no primeiro login
 
 

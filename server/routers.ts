@@ -78,6 +78,14 @@ const COMMAND_ROLES = [
   "comandante_cia",
   "comandante_pel",
 ] as const;
+const GLOBAL_COMMAND_ROLES = [
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "sub_comandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "sub_comandante_cfap",
+] as const;
 const COMMAND_ACCESS_ROLES = [
   "admin",
   "comandante_corpo",
@@ -100,6 +108,10 @@ const STUDENT_DOCUMENT_APPROVER_ROLES = [
 
 function isCommandRole(role?: string | null) {
   return COMMAND_ROLES.includes(String(role || "") as any);
+}
+
+function isGlobalCommandRole(role?: string | null) {
+  return GLOBAL_COMMAND_ROLES.includes(String(role || "") as any);
 }
 
 function isGeneralCommandRole(role?: string | null) {
@@ -168,7 +180,7 @@ const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (
     ctx.user.role === "master" ||
     ctx.user.role === "admin" ||
-    isCommandRole(ctx.user.role)
+    isGlobalCommandRole(ctx.user.role)
   ) {
     return next({ ctx });
   }
@@ -210,7 +222,7 @@ async function requireServiceScaleAccess(
 }
 
 function canCommandViewAllClassrooms(user: any) {
-  return isCommandRole(user?.role);
+  return isGlobalCommandRole(user?.role);
 }
 
 async function requireClassroomViewAccess(
@@ -1770,7 +1782,7 @@ export const appRouter = router({
       let companhia = input?.companhia ?? scope.companhia;
       let peloton = input?.peloton ?? scope.peloton;
 
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
       if (isComandante && !input?.companhia) {
         companhia = undefined;
@@ -1793,7 +1805,7 @@ export const appRouter = router({
         weekStart: z.string().trim().min(10).max(10),
       })
     ).query(async ({ ctx, input }) => {
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
       if (!isComandante && !isGeneral) {
         await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
@@ -2505,7 +2517,7 @@ export const appRouter = router({
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const general = await isXerifeGeral(ctx.user);
       const needsValidation = input.type === "positive" || input.type === "negative";
       const foCode = input.foCode ? normalizeFoCode(input.foCode) : "";
