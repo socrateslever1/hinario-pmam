@@ -21,6 +21,7 @@ import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
 import * as foDb from "./foDb";
+import * as ordemUnidaAudioDb from "./ordemUnidaAudioDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -55,6 +56,11 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
 ]);
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
+const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm",
+  "audio/mp4", "audio/x-m4a", "audio/aac", "audio/flac",
+]);
 const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/png",
@@ -1021,6 +1027,64 @@ export const appRouter = router({
     }),
     delete: masterOnlyProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteUser(input.id);
+      return { success: true };
+    }),
+  }),
+
+  ordemUnidaAudio: router({
+    list: publicProcedure.query(async () => {
+      return ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
+    }),
+    listAll: masterProcedure.query(async ({ ctx }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      return ordemUnidaAudioDb.listAllOrdemUnidaAudios();
+    }),
+    upload: masterProcedure.input(z.object({
+      itemId: z.string().trim().regex(/^(corneta|dobrado|voz)-[a-z0-9-]+$/, "Identificador do item inválido"),
+      itemTitle: z.string().trim().min(1).max(255),
+      itemType: z.enum(["corneta", "dobrado", "voz"]),
+      fileName: z.string().trim().min(1).max(255),
+      fileSize: z.number().int().positive().max(MAX_ORDEM_UNIDA_AUDIO_SIZE),
+      mimeType: z.string().trim().min(1).max(100),
+      fileData: z.string().min(1),
+      duration: z.number().int().nonnegative().max(60 * 60 * 8).nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      if (!ORDEM_UNIDA_AUDIO_MIME_TYPES.has(input.mimeType.toLowerCase())) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de áudio não permitido" });
+      }
+
+      const buffer = Buffer.from(input.fileData, "base64");
+      if (!buffer.length || buffer.length !== input.fileSize || buffer.length > MAX_ORDEM_UNIDA_AUDIO_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo inválido ou com tamanho divergente" });
+      }
+
+      const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "audio";
+      const fileKey = `ordem-unida/${input.itemType}/${input.itemId}-${Date.now()}-${nanoid(10)}-${safeFileName}`;
+      const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      const audio = await ordemUnidaAudioDb.upsertOrdemUnidaAudio({
+        itemId: input.itemId,
+        itemTitle: input.itemTitle,
+        itemType: input.itemType,
+        audioUrl: url,
+        fileKey: key,
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        mimeType: input.mimeType,
+        duration: input.duration,
+        uploadedBy: ctx.user.id,
+      });
+      return { success: true, audio };
+    }),
+    deactivate: masterProcedure.input(z.object({ itemId: z.string().trim().min(1).max(128) })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.itemId);
       return { success: true };
     }),
   }),

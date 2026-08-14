@@ -354,6 +354,26 @@ export const pmamFatoObservadoProvas = mysqlTable("pmam_fato_observado_provas", 
 export type PmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$inferSelect;
 export type InsertPmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$inferInsert;
 
+export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
+  id: int("id").autoincrement().primaryKey(),
+  itemId: varchar("item_id", { length: 128 }).notNull().unique(),
+  itemTitle: varchar("item_title", { length: 255 }).notNull(),
+  itemType: mysqlEnum("item_type", ["corneta", "dobrado", "voz"]).notNull(),
+  audioUrl: longtext("audio_url").notNull(),
+  fileKey: varchar("file_key", { length: 512 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileSize: int("file_size"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  duration: int("duration"),
+  isActive: boolean("is_active").default(true),
+  uploadedBy: int("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferSelect;
+export type InsertPmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -374,6 +394,6 @@ export const runtimeTables = {
   pmamStudentGrades,
   pmamFatoObservado,
   pmamFatoObservadoProvas,
+  pmamOrdemUnidaAudios,
 };
-
 

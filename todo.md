@@ -392,3 +392,8 @@
 - [x] Criar editor pessoal para montar, renomear e reorganizar os itens da sessão de Ordem Unida
 - [x] Exibir a posição ou comando atual em destaque na tela de execução
 - [x] Fazer os botões de toques e dobrados atualizarem diretamente a execução selecionada
+- [x] Criar tabela e procedimentos para cadastrar arquivos de áudio de Ordem Unida
+- [x] Criar área administrativa para enviar e vincular áudios a toques e dobrados
+- [x] Reproduzir o áudio vinculado ao item acionado e interromper o anterior
+- [x] Preparar o download e cache offline dos áudios no aparelho
+- [x] Documentar a importação dos arquivos MP3 futuros

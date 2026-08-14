@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { trpc } from "@/lib/trpc";
+import { usePWA } from "@/hooks/usePWA";
 import {
   createDefaultSessionConfig,
   DOBRADOS,
@@ -19,6 +21,7 @@ import {
   CheckCircle2,
   CircleStop,
   ClipboardPenLine,
+  Download,
   ListMusic,
   Music2,
   Pencil,
@@ -101,6 +104,11 @@ export default function Drill() {
   const [draftSubtitle, setDraftSubtitle] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [customType, setCustomType] = useState<OrdemUnidaItemType>("corneta");
+  const [isCachingAudios, setIsCachingAudios] = useState(false);
+  const [audiosCached, setAudiosCached] = useState(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const audioCatalogQuery = trpc.ordemUnidaAudio.list.useQuery();
+  const { cacheUrls, isOnline } = usePWA();
 
   const allConfiguredItems = useMemo(() => getConfiguredItems(sessionConfig), [sessionConfig]);
   const sessionItems = useMemo(() => getConfiguredSessionItems(sessionConfig), [sessionConfig]);
@@ -108,10 +116,24 @@ export default function Drill() {
   const cornetas = useMemo(() => allConfiguredItems.filter((item) => TOQUES_DE_CORNETA.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
   const dobrados = useMemo(() => allConfiguredItems.filter((item) => DOBRADOS.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
   const vozes = useMemo(() => allConfiguredItems.filter((item) => VOZES_DE_COMANDO.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
+  const audioByItemId = useMemo(
+    () => new Map((audioCatalogQuery.data ?? []).map((audio) => [audio.itemId, audio])),
+    [audioCatalogQuery.data],
+  );
+  const audioUrls = useMemo(
+    () => Array.from(new Set((audioCatalogQuery.data ?? []).map((audio) => audio.audioUrl).filter(Boolean))),
+    [audioCatalogQuery.data],
+  );
+  const currentAudio = currentItem ? audioByItemId.get(currentItem.id) : undefined;
 
   useEffect(() => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionConfig));
   }, [sessionConfig]);
+
+  useEffect(() => () => {
+    audioPlayerRef.current?.pause();
+    audioPlayerRef.current = null;
+  }, []);
 
   const isInSession = (item: OrdemUnidaPanelItem) => sessionConfig.itemIds.includes(item.id);
 
@@ -122,14 +144,47 @@ export default function Drill() {
     }));
   };
 
+  const stopPlayback = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+      audioPlayerRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const stopExecution = () => {
+    stopPlayback();
+    setSessionConfig((current) => ({ ...current, currentItemId: null }));
+  };
+
   const executeItem = (item: OrdemUnidaPanelItem) => {
+    stopPlayback();
     setSessionConfig((current) => ({ ...current, currentItemId: item.id }));
-    if (item.type === "voz" && typeof window !== "undefined" && "speechSynthesis" in window) {
+    const audio = audioByItemId.get(item.id);
+    if (audio?.audioUrl && typeof window !== "undefined") {
+      const player = new Audio(audio.audioUrl);
+      audioPlayerRef.current = player;
+      void player.play().catch(() => undefined);
+    } else if (item.type === "voz" && typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(item.title);
       utterance.lang = "pt-BR";
       utterance.rate = 0.92;
       window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const cacheRegisteredAudios = async () => {
+    if (!audioUrls.length || !isOnline) return;
+    setIsCachingAudios(true);
+    try {
+      await cacheUrls(audioUrls);
+      setAudiosCached(true);
+    } finally {
+      setIsCachingAudios(false);
     }
   };
 
@@ -195,9 +250,12 @@ export default function Drill() {
               <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${currentItem ? "bg-[#c4a84b] text-[#1a3a2a]" : "bg-white/10 text-white/70"}`}><Radio className="h-5 w-5" /></span>
-                  <div className="min-w-0"><h2 id="execucao-atual-title" className="truncate text-xl font-black">{currentItem ? `Está em ${currentItem.title}` : "Aguardando comando"}</h2><p className="mt-0.5 text-xs text-white/70">{currentItem ? "O botão ativo está destacado no painel." : "Pressione um toque, dobrado ou voz de comando para iniciar a execução."}</p></div>
+                  <div className="min-w-0"><h2 id="execucao-atual-title" className="truncate text-xl font-black">{currentItem ? `Está em ${currentItem.title}` : "Aguardando comando"}</h2><p className="mt-0.5 text-xs text-white/70">{currentItem ? currentAudio ? "Reprodução vinculada em andamento; o botão ativo está destacado." : "O botão ativo está destacado. O áudio será executado assim que estiver vinculado." : "Pressione um toque, dobrado ou voz de comando para iniciar a execução."}</p></div>
                 </div>
-                {currentItem && <Button type="button" variant="outline" size="sm" onClick={() => setSessionConfig((current) => ({ ...current, currentItemId: null }))} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"><CircleStop className="mr-1.5 h-4 w-4" /> Encerrar</Button>}
+                <div className="flex flex-wrap gap-2">
+                  {audioUrls.length > 0 && <Button type="button" variant="outline" size="sm" onClick={() => void cacheRegisteredAudios()} disabled={!isOnline || isCachingAudios} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white disabled:opacity-50"><Download className="mr-1.5 h-4 w-4" />{isCachingAudios ? "Preparando…" : audiosCached ? "Áudios prontos" : "Baixar áudios"}</Button>}
+                  {currentItem && <Button type="button" variant="outline" size="sm" onClick={stopExecution} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"><CircleStop className="mr-1.5 h-4 w-4" /> Encerrar</Button>}
+                </div>
               </div>
             </div>
           </section>

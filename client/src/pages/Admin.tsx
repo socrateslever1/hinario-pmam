@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2, Volume2
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -34,6 +34,7 @@ import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
 import { AccessManagement } from "./AccessManagement";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { UserProfileTab } from "@/components/admin/UserProfileTab";
+import { OrdemUnidaAudioManager } from "@/components/admin/OrdemUnidaAudioManager";
 
 function CommandDashboardWidget() {
   const pendingFoQuery = trpc.serviceScale.pendingStudentObservations.useQuery({});
@@ -357,6 +358,7 @@ export default function Admin() {
               {(canManageGlobalContent || isComandante) && (
                 <>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
+                  {canManageGlobalContent && <TabsTrigger value="ordem_unida_audio" className="gap-2"><Volume2 className="h-4 w-4" /> Áudios O.U.</TabsTrigger>}
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                   <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>
@@ -595,6 +597,8 @@ export default function Admin() {
             </TabsContent>
 
             {/* DRILL (ORDEM UNIDA) TAB */}
+            {canManageGlobalContent && <TabsContent value="ordem_unida_audio"><OrdemUnidaAudioManager /></TabsContent>}
+
             <TabsContent value="drill">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-bold text-foreground">Gerenciar Ordem Unida</h2>
