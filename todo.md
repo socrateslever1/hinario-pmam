@@ -399,3 +399,5 @@
 - [x] Documentar a importação dos arquivos MP3 futuros
 - [x] Corrigir o logout imediato após login sem quebrar o cache offline
 - [x] Criar teste de regressão para a persistência da sessão autenticada
+- [x] Corrigir a confirmação do cookie HttpOnly no ambiente publicado após login válido
+- [x] Validar o redirecionamento do Xerife Geral após a confirmação de sessão

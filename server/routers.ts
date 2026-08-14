@@ -494,7 +494,7 @@ export const appRouter = router({
       }
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
+      return { success: true, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
     }),
   }),
 

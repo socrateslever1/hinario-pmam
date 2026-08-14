@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import { authenticatedFetchOptions } from "./lib/authFetchOptions";
+import { getEmailSessionToken } from "./lib/emailSession";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,10 @@ const trpcClient = trpc.createClient({
           if (studentId && token) {
             headers.set("x-student-id", studentId);
             headers.set("x-student-token", token);
+          }
+          const emailSessionToken = getEmailSessionToken();
+          if (emailSessionToken) {
+            headers.set("x-email-session", emailSessionToken);
           }
         }
         return globalThis.fetch(input, {

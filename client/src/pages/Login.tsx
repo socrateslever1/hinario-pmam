@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
+import { saveEmailSession } from "@/lib/emailSession";
 
 const BRASAO_URL = "/logo/IMG_7728.PNG";
 
@@ -55,6 +56,7 @@ export default function Login() {
       } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
       }
+      saveEmailSession(result.sessionToken, rememberMe);
       
       const optimisticUser: User = {
         id: result.user.id,

@@ -48,7 +48,7 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-student-id', 'x-student-token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-student-id', 'x-student-token', 'x-email-session'],
   }));
   
   // Configure body parser with larger size limit for file uploads

@@ -29,6 +29,22 @@ export async function createContext(
     }
   }
 
+  // Alguns navegadores móveis isolam ou descartam cookies HttpOnly no primeiro redirecionamento.
+  // Para esses casos, o cliente envia o mesmo JWT assinado em cabeçalho por uma sessão local limitada.
+  if (!user) {
+    const emailSessionHeader = opts.req.headers["x-email-session"];
+    const emailSessionToken = Array.isArray(emailSessionHeader) ? emailSessionHeader[0] : emailSessionHeader;
+    if (emailSessionToken) {
+      try {
+        user = await sdk.authenticateSessionToken(String(emailSessionToken));
+      } catch (error) {
+        if (!(error instanceof HttpError && error.statusCode === 403)) {
+          throw error;
+        }
+      }
+    }
+  }
+
   // Fallback: if no admin cookie session, check for student headers
   if (!user) {
     const studentIdHeader = opts.req.headers["x-student-id"];
