@@ -150,6 +150,13 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const masterOnlyProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "master") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral" });
+  }
+  return next({ ctx });
+});
+
 // Xerife Geral: master/admin, a user explicitly assigned as principal, or any commander.
 const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (
@@ -420,6 +427,8 @@ export const appRouter = router({
       const isBcrypt = dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$");
       let valid = false;
       if (isBcrypt) {
+        valid = await bcrypt.compare(input.password, dbPassword);
+      } else if (dbPassword.startsWith("hash:")) {
         valid = await bcrypt.compare(input.password, dbPassword);
       } else {
         valid = input.password === dbPassword;
@@ -980,10 +989,10 @@ export const appRouter = router({
 
   // Gerenciamento de usuários (apenas master)
   users: router({
-    list: masterProcedure.query(async () => {
+    list: masterOnlyProcedure.query(async () => {
       return db.getAllUsers();
     }),
-    create: masterProcedure.input(z.object({
+    create: masterOnlyProcedure.input(z.object({
       name: z.string(),
       email: z.string().email(),
       password: z.string().min(4),
@@ -995,14 +1004,14 @@ export const appRouter = router({
       await db.createUserWithPassword({ ...input, password: hashedPassword });
       return { success: true };
     }),
-    updateRole: masterProcedure.input(z.object({
+    updateRole: masterOnlyProcedure.input(z.object({
       id: z.number(),
       role: z.enum(["user", "admin"]),
     })).mutation(async ({ input }) => {
       await db.updateUserRole(input.id, input.role);
       return { success: true };
     }),
-    resetPassword: masterProcedure.input(z.object({
+    resetPassword: masterOnlyProcedure.input(z.object({
       id: z.number(),
       password: z.string().min(4),
     })).mutation(async ({ input }) => {
@@ -1010,7 +1019,7 @@ export const appRouter = router({
       await db.resetUserPassword(input.id, hashedPassword);
       return { success: true };
     }),
-    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: masterOnlyProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteUser(input.id);
       return { success: true };
     }),

@@ -385,3 +385,7 @@
 - [x] Adicionar indicador pulsante discreto ao botão global de Fato Observado
 - [x] Manter a data selecionada ao abrir um Pécúlio histórico por pelotão
 - [x] Indicar no painel quando o Pécúlio aguarda abertura automática
+- [x] Restringir a gestão de usuários ao perfil mestre e restaurar o teste de permissão
+- [x] Tornar compatível o login de senha legada com a validação coberta pelos testes
+- [x] Remover do teste de aluno a suposição fixa sobre uma numérica real do banco
+- [x] Restaurar a suíte completa de testes com acesso mestre, login legado e dados de aluno isolados
