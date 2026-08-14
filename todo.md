@@ -308,7 +308,7 @@
 ### Fase 3: Lógica de Restrição
 - [x] Implementar visualização de pelotões baseada em role
 - [x] Implementar restrição de edição baseada em role
-- [ ] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
+- [x] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
 - [ ] Implementar anotações (positivas/negativas) para alunos
 
 ### Fase 4: Obrigatoriedade de Trocar Senha

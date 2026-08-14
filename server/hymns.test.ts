@@ -177,6 +177,26 @@ function createAdminContext(): TrpcContext {
   };
 }
 
+function createCfapCommanderContext(): TrpcContext {
+  const user: AuthenticatedUser = {
+    id: 8,
+    openId: "cfap-commander",
+    email: "cmtcfap@pmam.gov.br",
+    name: "Comandante CFAP",
+    password: null,
+    loginMethod: "email",
+    role: "comandante_cfap",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+  return {
+    user,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: () => {}, cookie: () => {} } as unknown as TrpcContext["res"],
+  };
+}
+
 function createMasterContext(): TrpcContext {
   const user: AuthenticatedUser = {
     ...state.users[0],
@@ -315,6 +335,11 @@ describe("hymns admin operations", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.hymns.listAll();
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("comando operacional não pode administrar todos os hinos", async () => {
+    const caller = appRouter.createCaller(createCfapCommanderContext());
+    await expect(caller.hymns.listAll()).rejects.toThrow();
   });
 });
 
