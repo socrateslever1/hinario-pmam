@@ -356,3 +356,7 @@
 - [x] Adicionar alerta ao sair do programa na última página (proofs)
 - [x] Criar testes para validar comportamento de inatividade (11 testes passando)
 - [x] Testar navegação sem recarregamento
+
+## Correção de carregamento após sincronização
+
+- [x] Diagnosticar e corrigir a falha de inicialização após atualização do GitHub
