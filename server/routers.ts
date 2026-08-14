@@ -3280,7 +3280,7 @@ export const appRouter = router({
   }),
 
   access: router({
-    createAccess: masterProcedure.input(
+    createAccess: masterOnlyProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
         email: z.string().trim().min(3).max(255),
@@ -3310,11 +3310,11 @@ export const appRouter = router({
       };
     }),
 
-    listAccesses: masterProcedure.query(async () => {
+    listAccesses: masterOnlyProcedure.query(async () => {
       return await db.getAllUsers();
     }),
 
-    updateAccess: masterProcedure.input(
+    updateAccess: masterOnlyProcedure.input(
       z.object({
         id: z.number().int(),
         name: z.string().trim().min(2).max(255).optional(),
@@ -3328,7 +3328,7 @@ export const appRouter = router({
       return { success: true, message: 'Acesso atualizado com sucesso' };
     }),
 
-    deleteAccess: masterProcedure.input(
+    deleteAccess: masterOnlyProcedure.input(
       z.object({
         id: z.number().int(),
       })

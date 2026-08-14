@@ -302,7 +302,7 @@
 - [x] Criar página `/xerife/acessos` no painel do Xerife
 - [x] Implementar formulário para criar novo acesso (nome, email, role, pelotão, companhia)
 - [x] Implementar listagem de acessos criados
-- [ ] Implementar edição de acessos
+- [x] Implementar edição de acessos
 - [x] Implementar exclusão de acessos
 
 ### Fase 3: Lógica de Restrição
@@ -401,3 +401,4 @@
 - [x] Criar teste de regressão para a persistência da sessão autenticada
 - [x] Corrigir a confirmação do cookie HttpOnly no ambiente publicado após login válido
 - [x] Validar o redirecionamento do Xerife Geral após a confirmação de sessão
+- [x] Conectar a procedure existente de atualização ao formulário visual de edição de acessos

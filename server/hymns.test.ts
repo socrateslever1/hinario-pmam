@@ -117,6 +117,7 @@ const dbMock = vi.hoisted(() => ({
   getAllUsers: vi.fn(),
   getUserByEmail: vi.fn(),
   upsertUser: vi.fn(),
+  updateAccessUser: vi.fn(),
 }));
 
 vi.mock("./db", () => dbMock);
@@ -211,6 +212,7 @@ beforeEach(() => {
   createSessionTokenMock.mockClear();
   dbMock.upsertSetting.mockClear();
   dbMock.upsertUser.mockClear();
+  dbMock.updateAccessUser.mockClear();
 
   dbMock.getActiveHymns.mockResolvedValue(state.hymns.filter((item) => item.isActive));
   dbMock.getAllHymns.mockResolvedValue(state.hymns);
@@ -313,6 +315,36 @@ describe("hymns admin operations", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.hymns.listAll();
     expect(Array.isArray(result)).toBe(true);
+  });
+});
+
+describe("access.updateAccess", () => {
+  it("permite ao Xerife Master atualizar função e escopo de um acesso", async () => {
+    const caller = appRouter.createCaller(createMasterContext());
+    dbMock.updateAccessUser.mockResolvedValue(undefined);
+
+    await expect(caller.access.updateAccess({
+      id: 1,
+      name: "Comandante Atualizado",
+      role: "comandante_pel",
+      companhiaId: 2,
+      pelotaoId: 1,
+    })).resolves.toMatchObject({ success: true });
+
+    expect(dbMock.updateAccessUser).toHaveBeenCalledWith(1, {
+      name: "Comandante Atualizado",
+      role: "comandante_pel",
+      companhiaId: 2,
+      pelotaoId: 1,
+    });
+  });
+
+  it("bloqueia a atualização de acesso para administrador que não é mestre", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+    await expect(caller.access.updateAccess({
+      id: 1,
+      name: "Tentativa bloqueada",
+    })).rejects.toThrow();
   });
 });
 
