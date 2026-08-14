@@ -37,7 +37,16 @@ const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNum
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
 
-const optionalContentUrl = z.string().trim().max(2048).url("Informe uma URL válida.").nullable().optional();
+const optionalContentUrl = z
+  .string()
+  .trim()
+  .max(15 * 1024 * 1024)
+  .refine(
+    (val) => !val || val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/") || val.startsWith("data:"),
+    { message: "Informe uma URL válida ou áudio." },
+  )
+  .nullable()
+  .optional();
 const bugleCallFields = {
   name: z.string().trim().min(1).max(255),
   audioUrl: optionalContentUrl,

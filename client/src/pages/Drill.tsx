@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useBugleAudioCache } from "@/hooks/useBugleAudioCache";
+import { HIGH_FIDELITY_BUMBO_DATA_URI } from "@/lib/bumboSound";
 import { toast } from "sonner";
 import {
   AudioLines,
@@ -221,6 +222,9 @@ export default function Drill() {
   const [callUsage, setCallUsage] = useState<Record<number, number>>(() => {
     try { return JSON.parse(localStorage.getItem("pmam-bugle-usage") || "{}"); } catch { return {}; }
   });
+  const [bumboOverlap, setBumboOverlap] = useState<number>(() => {
+    try { return JSON.parse(localStorage.getItem("pmam-bumbo-overlap") || "1.5"); } catch { return 1.5; }
+  });
   const [isDeletingFavorites, setIsDeletingFavorites] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [playingLabel, setPlayingLabel] = useState<string | null>(null);
@@ -270,12 +274,35 @@ export default function Drill() {
       ];
     return currentItems
       .map((item) => {
-        if (item.type === "call") return { ...item, call: calls.find((call) => call.id === item.callId) };
+        if (item.type === "call") {
+          const foundCall = calls.find((call) => call.id === item.callId);
+          if (foundCall && foundCall.name.toLowerCase().includes("bumbo")) {
+            return {
+              ...item,
+              call: { ...foundCall, audioUrl: HIGH_FIDELITY_BUMBO_DATA_URI },
+            };
+          }
+          return { ...item, call: foundCall };
+        }
         if (item.type === "voice") return { ...item, voice: voiceCommands.find((voice) => voice.id === item.voiceId) };
+        if (item.type === "media" && item.media?.kind === "dobrado") {
+          const marchIdStr = item.media.key.replace(/^march-/, "").split("-")[0];
+          const march = marches.find((m) => String(m.id) === marchIdStr);
+          if (march) {
+            return {
+              ...item,
+              media: {
+                ...item.media,
+                label: `Dobrado: ${march.title}`,
+                audioUrl: march.audioUrl || item.media.audioUrl,
+              },
+            };
+          }
+        }
         return item;
       })
       .filter((item) => item.type === "media" || (item.type === "call" ? Boolean(item.call) : Boolean(item.voice)));
-  }, [calls, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
+  }, [calls, marches, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
 
   useEffect(() => {
     if (voiceProfiles.length && !voiceProfiles.some((profile) => profile.key === selectedVoiceProfileKey)) {
@@ -291,6 +318,10 @@ export default function Drill() {
     const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
     safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
   }, [preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds, user?.id]);
+
+  useEffect(() => {
+    safeSetLocalStorage("pmam-bumbo-overlap", JSON.stringify(bumboOverlap));
+  }, [bumboOverlap]);
 
   useEffect(() => {
     safeSetLocalStorage(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
@@ -433,9 +464,9 @@ export default function Drill() {
 
     // Dispara "Bumbos" como efeitos sonoros isolados, sem travar a fila
     while (nextQueued && nextQueued.label.toLowerCase().includes("bumbo")) {
-      if (audio.duration && (audio.duration - audio.currentTime) <= 1.5) {
+      if (audio.duration && (audio.duration - audio.currentTime) <= bumboOverlap) {
         audioQueueRef.current.shift();
-        const bumboAudio = new Audio(nextQueued.audioUrl);
+        const bumboAudio = new Audio(HIGH_FIDELITY_BUMBO_DATA_URI);
         bumboAudio.play().catch(() => {});
         nextQueued = audioQueueRef.current[0]; // Verifica se o próximo também é algo a processar
       } else {
@@ -449,7 +480,7 @@ export default function Drill() {
     const isMarcheAndDobrado = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase()) && nextQueued.label.toLowerCase().includes("dobrado");
     
     // Crossfade de 1.5s entre marcha e dobrado
-    const overlapTime = isMarcheAndDobrado ? 1.5 : 0;
+    const overlapTime = isMarcheAndDobrado ? bumboOverlap : 0;
     
     if (overlapTime > 0 && audio.duration && (audio.duration - audio.currentTime) <= overlapTime) {
       audioQueueRef.current.shift();
@@ -517,6 +548,12 @@ export default function Drill() {
     });
   };
 
+  const triggerManualBumbo = () => {
+    const audio = new Audio(HIGH_FIDELITY_BUMBO_DATA_URI);
+    audio.play().catch(() => {});
+    toast.success("Bumbo disparado!");
+  };
+
   const playCall = async (call: BugleCall) => {
     incrementCallUsage(call.id);
     const key = `call-${call.id}`;
@@ -525,9 +562,8 @@ export default function Drill() {
       return;
     }
 
-    if (call.name.toLowerCase().includes("bumbo") && call.audioUrl) {
-      const bumboAudio = new Audio(call.audioUrl);
-      bumboAudio.play().catch(() => {});
+    if (call.name.toLowerCase().includes("bumbo")) {
+      triggerManualBumbo();
       return;
     }
 
@@ -743,7 +779,7 @@ export default function Drill() {
     const media = { ...item, key: `${item.key}-${Date.now()}-${sequenceMedia.length}` };
     setSequenceMedia((current) => [...current, media]);
     setSequenceItems((current) => [...current, { key: `media-${media.key}`, type: "media", media }]);
-    toast.success(`${item.label} adicionado ao final da área personalizada.`);
+    toast.success(`${item.label} adicionado aos favoritos.`);
   };
   const moveSequenceItem = (key: string, direction: -1 | 1) => setSequenceItems((current) => {
     const index = current.findIndex((item) => item.key === key);
@@ -828,7 +864,15 @@ export default function Drill() {
                 {playingLabel ? `Executando agora: ${playingLabel}` : "Nenhum toque em execução"}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 md:w-[23rem]">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:w-[26rem]">
+              <Button
+                type="button"
+                onClick={triggerManualBumbo}
+                className="h-9 border border-[#ead46e]/40 bg-[#ead46e]/20 px-2 text-xs font-black text-[#ead46e] hover:bg-[#ead46e]/30 active:scale-95 transition-transform md:h-10 md:text-sm shadow-sm"
+                title="Disparar bumbo manual (coringa) sobreposto ao áudio atual"
+              >
+                🥁 Bumbo
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -836,10 +880,10 @@ export default function Drill() {
                 disabled={!playingKey}
                 className="h-9 border-white/30 bg-white/10 px-2 text-xs text-white hover:bg-white/20 hover:text-white md:h-10 md:text-sm"
               >
-                <Pause className="mr-2 h-4 w-4" /> Parar áudio
+                <Pause className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> Parar
               </Button>
               <Button type="button" variant="ghost" onClick={resetOperation} className="h-9 px-2 text-xs text-white/75 hover:bg-white/10 hover:text-white md:h-10 md:text-sm">
-                <RotateCcw className="mr-2 h-4 w-4" /> Nova execução
+                <RotateCcw className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> Reset
               </Button>
             </div>
             </div>
@@ -865,7 +909,25 @@ export default function Drill() {
         <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
           <CardContent className="p-3 md:p-5">
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-              <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
+                <div className="flex items-center gap-1.5 rounded-md border border-[#c4a84b]/40 bg-white/50 px-2 py-1 dark:border-white/10 dark:bg-black/20">
+                  <label htmlFor="bumbo-overlap" className="text-[10px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#d8c46a] md:text-xs">
+                    Avanço (Bumbo/Dobrado):
+                  </label>
+                  <input
+                    id="bumbo-overlap"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="30"
+                    value={bumboOverlap}
+                    onChange={(e) => setBumboOverlap(Number(e.target.value))}
+                    className="w-12 bg-transparent text-center text-xs font-bold focus:outline-none dark:text-white"
+                  />
+                  <span className="text-[10px] text-muted-foreground">s</span>
+                </div>
+              </div>
               <div className="flex shrink-0 gap-1 sm:gap-2">
                 {preparedWorkItems.length > 0 && (
                   <>
@@ -1102,7 +1164,25 @@ export default function Drill() {
                     onClick={() => playMarch(march)}
                     isPlaying={isPlaying}
                     isAllowed
-                    action={<button type="button" disabled={!march.audioUrl} onClick={() => march.audioUrl && addSequenceMedia({ key: `march-${march.id}`, label: `Dobrado: ${march.title}`, audioUrl: march.audioUrl, kind: "dobrado" })} className="mx-auto mt-1 grid h-7 w-7 place-items-center rounded-full bg-[#c4a84b] text-[#15251d] disabled:opacity-30" title="Adicionar dobrado à sequência"><Plus className="h-4 w-4" /></button>}
+                    action={
+                      <button
+                        type="button"
+                        disabled={!march.audioUrl}
+                        onClick={() =>
+                          march.audioUrl &&
+                          addSequenceMedia({
+                            key: `march-${march.id}`,
+                            label: `Dobrado: ${march.title}`,
+                            audioUrl: march.audioUrl,
+                            kind: "dobrado",
+                          })
+                        }
+                        aria-label={`Adicionar ${march.title} aos favoritos`}
+                        className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md disabled:opacity-30"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    }
                   />
                 );
               })}

@@ -1,5 +1,5 @@
-const CACHE_NAME = "hinario-pmam-cache-v6";
-const AUDIO_CACHE_NAME = "hinario-pmam-audio-v1";
+const CACHE_NAME = "hinario-pmam-cache-v7";
+const AUDIO_CACHE_NAME = "hinario-pmam-audio-v2";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -48,8 +48,6 @@ function isCacheableStaticResponse(request, response) {
 
   const contentType = response.headers.get("content-type") || "";
 
-  // Some SPA hosts answer a missing hashed asset with index.html and status 200.
-  // Caching that HTML under a JS/CSS URL makes the next load render a white page.
   if (request.destination === "script") {
     return /(?:javascript|ecmascript)/i.test(contentType);
   }
@@ -147,17 +145,20 @@ self.addEventListener("fetch", (event) => {
   const audioRequest = request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname + url.search);
   if (audioRequest) {
     event.respondWith(
-      caches.open(AUDIO_CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(request.url);
-        if (cached) return cached;
-        try {
-          const response = await fetch(request);
-          if (response.ok || response.type === "opaque") await cache.put(request.url, response.clone());
+      fetch(request)
+        .then((response) => {
+          if (response.ok || response.type === "opaque") {
+            const clone = response.clone();
+            caches.open(AUDIO_CACHE_NAME).then((cache) => cache.put(request.url, clone));
+          }
           return response;
-        } catch {
+        })
+        .catch(async () => {
+          const cache = await caches.open(AUDIO_CACHE_NAME);
+          const cached = await cache.match(request.url);
+          if (cached) return cached;
           return new Response("Áudio indisponível offline", { status: 503 });
-        }
-      }),
+        })
     );
     return;
   }
@@ -168,7 +169,6 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Sempre atualiza o index.html no cache quando a rede funcionar
           if (response.status === 200) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -210,16 +210,15 @@ self.addEventListener("fetch", (event) => {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
-              console.log("[SW] Cached API response:", url.pathname);
             });
           }
           return response;
         })
         .catch(() => {
-          console.log("[SW] API offline, returning cached response:", url.pathname);
           return caches.match(request).then(cachedRes => {
-            return cachedRes || new Response(
-              JSON.stringify({ error: "Offline" }),
+            if (cachedRes) return cachedRes;
+            return new Response(
+              JSON.stringify({ error: "Offline - API indisponível" }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             );
           });
@@ -228,53 +227,49 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const shouldCacheStatic = STATIC_CACHE_PATHS.some((path) => url.pathname.includes(path));
-
-  event.respondWith(
-    caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
-      if (cachedResponse) {
-        fetch(request)
-          .then((response) => {
-            if (shouldCacheStatic && isCacheableStaticResponse(request, response)) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, response.clone());
-                console.log("[SW] Updated cached asset:", url.pathname);
-              });
-            }
-          })
-          .catch(() => undefined);
-        return cachedResponse;
-      }
-
-      return fetch(request)
-        .then((response) => {
-          if (shouldCacheStatic && isCacheableStaticResponse(request, response)) {
+  const isStaticCache = STATIC_CACHE_PATHS.some((path) => url.pathname.startsWith(path));
+  if (isStaticCache) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (isCacheableStaticResponse(request, response)) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
-              console.log("[SW] Cached new asset:", url.pathname);
             });
           }
           return response;
-        })
-        .catch(() => {
-          console.log("[SW] Asset offline:", url.pathname);
-          return new Response("Offline", { status: 503 });
         });
-    }),
+      }),
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (isCacheableStaticResponse(request, response)) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => caches.match(request)),
   );
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type === "CACHE_AUDIO_URLS" && Array.isArray(event.data.urls)) {
-    event.waitUntil(syncAudioCache(event.data.urls));
-    return;
+  if (event.data && event.data.type === "CACHE_AUDIO_URLS") {
+    const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+    syncAudioCache(urls).catch((error) => console.warn("[SW] Audio cache sync failed:", error));
   }
 
-  if (event.data?.type === "CLEAR_CACHE") {
-    console.log("[SW] Clearing cache on request from client");
-    Promise.all([caches.delete(CACHE_NAME), caches.delete(AUDIO_CACHE_NAME)]).then(() => {
-      event.ports[0]?.postMessage({ success: true });
+  if (event.data && event.data.type === "CLEAR_CACHE") {
+    caches.keys().then((keys) => {
+      keys.forEach((key) => caches.delete(key));
     });
   }
 });

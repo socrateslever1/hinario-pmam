@@ -77,8 +77,14 @@ export async function storagePut(
 
   if (config.isLocalFallback) {
     const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
-    const base64 = buffer.toString("base64");
-    const url = `data:${contentType};base64,${base64}`;
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const safeFileName = key.replace(/[^a-zA-Z0-9_.-]/g, "_");
+    const filePath = path.join(uploadsDir, safeFileName);
+    fs.writeFileSync(filePath, buffer);
+    const url = `/uploads/${safeFileName}`;
     return { key, url };
   }
 
