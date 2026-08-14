@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { authenticatedFetchOptions } from "./lib/authFetchOptions";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -57,7 +58,7 @@ const trpcClient = trpc.createClient({
         return globalThis.fetch(input, {
           ...(init ?? {}),
           headers,
-          credentials: "include",
+          ...authenticatedFetchOptions,
         });
       },
     }),

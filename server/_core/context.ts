@@ -3,6 +3,7 @@ import type { User } from "../../shared/types";
 import { sdk } from "./sdk";
 import { verifyStudentSession } from "../studentDb";
 import { query } from "../mysql";
+import { HttpError } from "../../shared/_core/errors";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -19,7 +20,13 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    user = null;
+    // Apenas um cookie ausente ou inválido deve deixar o usuário como anônimo.
+    // Falhas transitórias de banco/infraestrutura não podem apagar a sessão ativa no cliente.
+    if (error instanceof HttpError && error.statusCode === 403) {
+      user = null;
+    } else {
+      throw error;
+    }
   }
 
   // Fallback: if no admin cookie session, check for student headers

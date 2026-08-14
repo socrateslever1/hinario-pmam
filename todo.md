@@ -397,3 +397,5 @@
 - [x] Reproduzir o áudio vinculado ao item acionado e interromper o anterior
 - [x] Preparar o download e cache offline dos áudios no aparelho
 - [x] Documentar a importação dos arquivos MP3 futuros
+- [x] Corrigir o logout imediato após login sem quebrar o cache offline
+- [x] Criar teste de regressão para a persistência da sessão autenticada

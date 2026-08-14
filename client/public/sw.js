@@ -1,4 +1,4 @@
-const CACHE_NAME = "hinario-pmam-cache-v3";
+const CACHE_NAME = "hinario-pmam-cache-v4";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -114,7 +114,7 @@ self.addEventListener("fetch", (event) => {
 
   if (isAuthRoute || isSessionRoute) {
     event.respondWith(
-      fetch(request).catch(() => {
+      fetch(request, { credentials: "include", cache: "no-store" }).catch(() => {
         console.log("[SW] Auth/session offline, returning error");
         return new Response(
           JSON.stringify({ error: "Offline - authentication unavailable" }),
