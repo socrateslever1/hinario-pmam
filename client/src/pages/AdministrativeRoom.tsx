@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, ArrowLeft, BadgeCheck, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, ClipboardList, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
 import { filterEffectiveStudents } from "@/lib/administrativeEffective";
+import { buildStudentObservationRequest } from "@/lib/studentObservation";
+import { getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +77,10 @@ export default function AdministrativeRoom() {
   const [aditamentoTitle, setAditamentoTitle] = useState("");
   const [aditamentoContent, setAditamentoContent] = useState("");
   const [efetivoSearch, setEfetivoSearch] = useState("");
+  const [observationStudentId, setObservationStudentId] = useState("");
+  const [observationType, setObservationType] = useState<"positive" | "negative">("positive");
+  const [observationCode, setObservationCode] = useState("");
+  const [observationNote, setObservationNote] = useState("");
 
   const role = String(access?.role || "");
   const canHomologateFoLc = Boolean((access as any)?.canHomologateFoLc);
@@ -109,6 +115,11 @@ export default function AdministrativeRoom() {
   const contestStudentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
     { studentId: Number(contestStudentId || 0) },
     { enabled: Boolean(canViewAdministrativeRoom && contestStudentId) }
+  );
+  const selectedObservationStudentId = Number(observationStudentId || 0);
+  const selectedStudentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
+    { studentId: selectedObservationStudentId },
+    { enabled: Boolean(canViewAdministrativeRoom && selectedObservationStudentId) }
   );
   const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery(undefined, {
     enabled: Boolean(canApproveStudentDocuments),
@@ -192,6 +203,19 @@ export default function AdministrativeRoom() {
     onSuccess: () => toast.success("Aditamento gerado e publicado."),
     onError: (error) => toast.error(error.message),
   });
+  const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
+    onSuccess: async () => {
+      toast.success("Anotação FO registrada.");
+      setObservationCode("");
+      setObservationNote("");
+      await Promise.all([
+        selectedStudentObservationsQuery.refetch(),
+        pendingFoQuery.refetch(),
+        reviewedFoQuery.refetch(),
+      ]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const students = studentsQuery.data ?? [];
   const filteredStudents = useMemo(() => filterEffectiveStudents(students, efetivoSearch), [students, efetivoSearch]);
@@ -202,6 +226,8 @@ export default function AdministrativeRoom() {
   const partesItems = partesQuery.data ?? [];
   const scopedPartesItems = partesItems;
   const internalReportItems = internalReportsQuery.data ?? [];
+  const selectedObservationStudent = students.find((student: any) => Number(student.id) === selectedObservationStudentId) ?? null;
+  const selectedStudentObservationItems = selectedStudentObservationsQuery.data ?? [];
   const contestableObservations = (contestStudentObservationsQuery.data ?? []).filter((item: any) =>
     (item.type === "positive" || item.type === "negative") &&
     item.validation_status === "approved" &&
@@ -216,6 +242,19 @@ export default function AdministrativeRoom() {
       durationHours: item.durationHours ? String(item.durationHours) : "12",
       procedures: item.procedures || (item.source === "direct" ? "LC direta por transgressão gravosa." : `Aluno cientificado da LC por reincidencia do codigo ${item.foCode || 'N/A'}.`),
     };
+  };
+
+  const registerStudentObservation = () => {
+    try {
+      addStudentObservation.mutate(buildStudentObservationRequest({
+        studentId: selectedObservationStudentId,
+        type: observationType,
+        foCode: observationCode,
+        details: observationNote,
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível preparar a anotação.");
+    }
   };
 
   const updateLcField = (id: number, field: "recolhimentoDate" | "recolhimentoTime" | "durationHours" | "procedures", value: string, item: any) => {
@@ -750,6 +789,128 @@ export default function AdministrativeRoom() {
               <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div><p className="text-sm font-black">Localizar aluno</p><p className="text-xs text-muted-foreground">Filtre por numérica, nome de guerra ou nome completo antes de iniciar um procedimento.</p></div>
                 <div className="w-full sm:max-w-sm"><Input value={efetivoSearch} onChange={(event) => setEfetivoSearch(event.target.value)} placeholder="Ex.: 4122 ou nome de guerra" /></div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#1a3a2a]/20 bg-white dark:bg-zinc-900">
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-black">
+                  <ClipboardList className="h-4 w-4 text-[#c4a84b]" />
+                  Anotações FO+ / FO-
+                </CardTitle>
+                <CardDescription>Registre e consulte os fatos observados positivos ou negativos do aluno dentro do seu escopo de comando.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="student-observation-student">Aluno</Label>
+                    <select
+                      id="student-observation-student"
+                      value={observationStudentId}
+                      onChange={(event) => {
+                        setObservationStudentId(event.target.value);
+                        setObservationCode("");
+                        setObservationNote("");
+                      }}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o aluno...</option>
+                      {filteredStudents.map((student: any) => (
+                        <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
+                      ))}
+                    </select>
+                    {selectedObservationStudent ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">{selectedObservationStudent.companhia}ª Cia / {selectedObservationStudent.peloton}º Pel</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <Label>Tipo</Label>
+                    <div className="mt-1.5 grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={observationType === "positive" ? "default" : "outline"}
+                        className={observationType === "positive" ? "bg-green-700 text-white hover:bg-green-800" : ""}
+                        onClick={() => { setObservationType("positive"); setObservationCode(""); }}
+                      >
+                        FO+ (Elogio)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={observationType === "negative" ? "default" : "outline"}
+                        className={observationType === "negative" ? "bg-red-700 text-white hover:bg-red-800" : ""}
+                        onClick={() => { setObservationType("negative"); setObservationCode(""); }}
+                      >
+                        FO- (Transgressão)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-code">Código oficial do Manual</Label>
+                    <select
+                      id="student-observation-code"
+                      value={observationCode}
+                      onChange={(event) => setObservationCode(event.target.value)}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o código...</option>
+                      {getFoCodesByType(observationType).map((item) => (
+                        <option key={`${item.type}-${item.code}`} value={item.code}>{item.code} - {item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-note">Relato do fato observado</Label>
+                    <textarea
+                      id="student-observation-note"
+                      value={observationNote}
+                      onChange={(event) => setObservationNote(event.target.value)}
+                      className="mt-1.5 min-h-[96px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      placeholder="Registre data, hora, local e circunstâncias do fato..."
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="w-full bg-[#1a3a2a] text-white hover:bg-[#12281d]"
+                    disabled={!selectedObservationStudentId || addStudentObservation.isPending}
+                    onClick={registerStudentObservation}
+                  >
+                    {addStudentObservation.isPending ? "Registrando..." : "Registrar anotação"}
+                  </Button>
+                  <p className="text-[10px] leading-relaxed text-muted-foreground">Para anexar foto, vídeo ou documento como prova, utilize o botão flutuante FO.</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/10 p-3">
+                  <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">Histórico do aluno</p>
+                  {!selectedObservationStudentId ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Selecione um aluno para consultar suas anotações.</p>
+                  ) : selectedStudentObservationsQuery.isLoading ? (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...</div>
+                  ) : selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Nenhum FO+ ou FO- registrado para este aluno.</p>
+                  ) : (
+                    <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+                      {selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").map((item: any) => {
+                        const approved = item.validation_status === "approved";
+                        const rejected = item.validation_status === "rejected";
+                        const createdAt = item.created_at ? new Date(item.created_at) : null;
+                        return (
+                          <div key={item.id} className="rounded-md border bg-background p-2.5 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"} {item.fo_code || ""}</Badge>
+                              <Badge variant="secondary" className={approved ? "bg-green-100 text-green-800" : rejected ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}>{approved ? "Homologado" : rejected ? "Não homologado" : "Pendente"}</Badge>
+                            </div>
+                            <p className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.note}</p>
+                            <p className="mt-2 text-[10px] text-muted-foreground">{createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString("pt-BR") : "Data não informada"}{item.created_by_name ? ` · ${item.created_by_name}` : ""}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

@@ -514,4 +514,60 @@ describe("auth.loginEmail", () => {
     expect(dbMock.upsertUser).toHaveBeenCalled();
     expect(cookies).toHaveLength(1);
   });
+
+  it.each([
+    ["comandante_pel", "cmtpel@pmam.gov.br"],
+    ["comandante_cia", "cmtcia@pmam.gov.br"],
+    ["comandante_corpo", "cmtcorpo@pmam.gov.br"],
+    ["comandante_cfap", "cmtcfap@pmam.gov.br"],
+  ] as const)("permite login do papel %s", async (role, email) => {
+    const cookies: Array<{ name: string; value: string }> = [];
+    dbMock.getUserByEmail.mockResolvedValueOnce({
+      id: 200,
+      openId: `login-${role}`,
+      email,
+      name: `Teste ${role}`,
+      password: "hash:123456",
+      loginMethod: "email",
+      role,
+      forcePasswordChange: false,
+      fotoUrl: null,
+    });
+    const ctx = {
+      ...createPublicContext(),
+      res: {
+        clearCookie: () => {},
+        cookie: (name: string, value: string) => cookies.push({ name, value }),
+      },
+    } as unknown as TrpcContext;
+
+    const result = await appRouter.createCaller(ctx).auth.loginEmail({ email, password: "123456" });
+
+    expect(result.success).toBe(true);
+    expect(result.user.role).toBe(role);
+    expect(result.user.forcePasswordChange).toBe(false);
+    expect(cookies).toHaveLength(1);
+  });
+
+  it("informa troca obrigatória de senha no primeiro login", async () => {
+    dbMock.getUserByEmail.mockResolvedValueOnce({
+      id: 201,
+      openId: "first-access-command",
+      email: "primeiro.acesso@pmam.gov.br",
+      name: "Comandante Primeiro Acesso",
+      password: "hash:123456",
+      loginMethod: "email",
+      role: "comandante_pel",
+      forcePasswordChange: true,
+      fotoUrl: null,
+    });
+
+    const result = await appRouter.createCaller(createPublicContext()).auth.loginEmail({
+      email: "primeiro.acesso@pmam.gov.br",
+      password: "123456",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.user.forcePasswordChange).toBe(true);
+  });
 });
