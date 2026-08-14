@@ -72,6 +72,8 @@ export function PeculioOverview() {
           setCompanhia={(value) => setSelectedScope((current) => current ? { ...current, companhia: value } : current)}
           peloton={selectedScope.peloton}
           setPeloton={(value) => setSelectedScope((current) => current ? { ...current, peloton: value } : current)}
+          date={date}
+          setDate={setDate}
         />
       </div>
     );
@@ -99,7 +101,9 @@ export function PeculioOverview() {
             {(summariesQuery.data ?? []).map((row: any) => {
               const isClosed = Boolean(row.closedAt);
               const isReleased = Boolean(row.lock?.isReleased);
+              const notOpenedYet = Boolean(row.lock?.notOpenedYet);
               const lockedByTime = Boolean(row.lock?.isLocked);
+              const opensAt = row.lock?.openedAt ? new Date(row.lock.openedAt) : null;
 
               return (
                 <Card key={`${row.companhia}-${row.peloton}`} className="border-border/60 bg-muted/10">
@@ -119,14 +123,22 @@ export function PeculioOverview() {
                             ? "w-fit bg-[#c4a84b] text-black"
                             : isReleased
                               ? "w-fit bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200"
+                              : notOpenedYet
+                                ? "w-fit bg-slate-100 text-slate-800 dark:bg-slate-500/15 dark:text-slate-200"
                               : lockedByTime
                                 ? "w-fit bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200"
                                 : "w-fit bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-200"
                         }
                       >
-                        {isClosed ? "Fechado" : isReleased ? "Liberado" : lockedByTime ? "Travado" : "Aberto"}
+                        {isClosed ? "Fechado" : isReleased ? "Liberado" : notOpenedYet ? "Aguardando abertura" : lockedByTime ? "Travado" : "Aberto"}
                       </Badge>
                     </div>
+
+                    {notOpenedYet && opensAt && (
+                      <p className="rounded-lg border border-slate-500/15 bg-slate-500/5 p-2 text-xs text-muted-foreground">
+                        Abertura automática em {opensAt.toLocaleString("pt-BR")}, uma hora antes do fechamento programado.
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
                       <div className="rounded-lg border bg-white p-2 dark:bg-zinc-950">

@@ -363,14 +363,14 @@
 
 ## Revisão operacional solicitada — Sala Administrativa e Ordem Unida
 
-- [ ] Diagnosticar e corrigir o carregamento de Fatos Observados
-- [ ] Simplificar ou substituir a guia Efetivo da Sala Administrativa
-- [ ] Reduzir os cards de indicadores e avisos excessivamente altos na Sala Administrativa
+- [x] Diagnosticar e corrigir o carregamento de Fatos Observados
+- [x] Simplificar ou substituir a guia Efetivo da Sala Administrativa
+- [x] Reduzir os cards de indicadores e avisos excessivamente altos na Sala Administrativa
 - [x] Redesenhar Ordem Unida com painel rápido por toque para cornetas, dobrados e atalhos
 - [ ] Permitir baixar e manter em cache os conteúdos da Ordem Unida no celular
-- [ ] Aprimorar a movimentação visual das cadeiras no mapa da sala
-- [ ] Destacar o botão de Fato Observado com um sinal visual discreto
-- [ ] Verificar abertura automática dos serviços e a consulta de Pécúlios anteriores
+- [x] Aprimorar a movimentação visual das cadeiras no mapa da sala
+- [x] Destacar o botão de Fato Observado com um sinal visual discreto
+- [x] Verificar abertura automática dos serviços e a consulta de Pécúlios anteriores
 - [x] Substituir integralmente a página de Ordem Unida por um painel único de botões touch
 - [x] Criar uma faixa de acesso rápido personalizável para a sessão atual
 - [x] Organizar os 51 toques da referência em botões de corneta, dobrados e vozes de comando
@@ -378,3 +378,10 @@
 - [ ] Oferecer download e cache local dos áudios disponíveis para uso offline
 - [ ] Preparar testes para a seleção, favoritos e reprodução do painel
 - [x] Criar testes para o catálogo e os favoritos locais do painel de Ordem Unida
+- [x] Exibir os Fatos Observados já homologados no escopo administrativo, além das pendências
+- [x] Conectar a guia Efetivo à lista real de alunos do escopo de comando
+- [x] Substituir os indicadores altos da Sala Administrativa por um resumo compacto
+- [x] Destacar a carteira selecionada e animar visualmente a troca de ocupante
+- [x] Adicionar indicador pulsante discreto ao botão global de Fato Observado
+- [x] Manter a data selecionada ao abrir um Pécúlio histórico por pelotão
+- [x] Indicar no painel quando o Pécúlio aguarda abertura automática

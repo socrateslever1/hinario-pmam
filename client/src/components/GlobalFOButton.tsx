@@ -203,6 +203,7 @@ export function GlobalFOButton() {
       await Promise.all([
         utils.serviceScale.studentObservations.invalidate(),
         utils.serviceScale.pendingStudentObservations.invalidate(),
+        utils.serviceScale.reviewedStudentObservations.invalidate(),
       ]);
       toast.success("Fato Observado registrado com sucesso!", { id: "global-fo" });
       closeFO();
@@ -222,11 +223,15 @@ export function GlobalFOButton() {
           setSearch("");
           setSearchOpen(true);
         }}
-        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-[#1a3a2a] p-0 text-base font-black text-white shadow-xl ring-2 ring-[#c4a84b]/70 hover:bg-[#12281d] md:bottom-8 md:right-8"
+        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-[#1a3a2a] p-0 text-base font-black text-white shadow-xl ring-2 ring-[#c4a84b]/70 transition-transform duration-150 hover:bg-[#12281d] active:scale-[0.96] md:bottom-8 md:right-8"
         aria-label="Abrir atalho de Fato Observado"
         title="Abrir FO"
       >
-        FO
+        <span className="relative z-10">FO</span>
+        <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3 w-3" aria-hidden="true">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e7c957]/80" />
+          <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-[#1a3a2a] bg-[#e7c957]" />
+        </span>
       </Button>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>

@@ -2516,6 +2516,28 @@ export const appRouter = router({
       return serviceScaleDb.listPendingStudentObservations({ companhia, peloton });
     }),
 
+    reviewedStudentObservations: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia;
+      let peloton = input?.peloton;
+      if (!scope.unrestricted) {
+        companhia = scope.companhia;
+        peloton = scope.peloton;
+        if (!companhia) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      } else if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      return serviceScaleDb.listReviewedStudentObservations({ companhia, peloton });
+    }),
+
     contestedStudentObservations: masterProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),

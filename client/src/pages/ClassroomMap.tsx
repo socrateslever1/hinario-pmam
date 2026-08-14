@@ -678,6 +678,7 @@ export default function ClassroomMap() {
   const renderSeatCard = (seatNumber: number) => {
     const occupant = students.find((s: any) => s.deskNumber === seatNumber && !effectiveRoleStudentIds.has(Number(s.id)));
     const isOccupied = !!occupant;
+    const isSelectedSeat = selectedSeat === seatNumber;
     const cond = occupant?.condition || "pronto";
     const isAbsent = cond !== "pronto";
     const activeLc = occupant ? getActiveLcForStudent(Number(occupant.id)) : null;
@@ -687,10 +688,10 @@ export default function ClassroomMap() {
       <div
         key={seatNumber}
         onClick={() => handleSeatClick(seatNumber)}
-        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out ${isOccupied
             ? getSeatConditionStyle(cond)
             : "bg-zinc-50/50 border-dashed border-zinc-200 dark:bg-zinc-950/50 dark:border-zinc-800"
-          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${isSelectedSeat ? "-translate-y-0.5 border-[#c4a84b] ring-2 ring-[#c4a84b]/80 ring-offset-1 ring-offset-background shadow-lg" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center justify-center">
@@ -700,7 +701,7 @@ export default function ClassroomMap() {
         </div>
 
         {isOccupied ? (
-          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 relative">
+          <div key={`${occupant.id}-${seatNumber}`} className="animate-in fade-in zoom-in-95 flex h-full w-full flex-col items-center justify-center pt-1.5 duration-200 relative">
             {cond === "falta" && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <X className="h-8 w-8 text-red-500 font-bold stroke-[3]" />
@@ -728,7 +729,7 @@ export default function ClassroomMap() {
             </span>
           </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 text-muted-foreground/30">
+          <div key={`empty-${seatNumber}`} className="animate-in fade-in flex h-full w-full flex-col items-center justify-center pt-1.5 duration-150 text-muted-foreground/30">
             <User className="mb-0.5 h-3.5 w-3.5 stroke-[1.5] opacity-20" />
             <span className="text-[7px] font-semibold uppercase tracking-wider">Vazia</span>
           </div>
@@ -764,10 +765,10 @@ export default function ClassroomMap() {
             }
           }
         }}
-        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-all duration-200 ${isOccupied
+        className={`relative flex flex-col items-center justify-between rounded-md border p-1 text-center transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out ${isOccupied
             ? (isAbsent ? getSeatConditionStyle(cond) + " border-solid" : borderClass)
             : "bg-zinc-100/50 border-dashed border-zinc-350 dark:bg-zinc-900/50 dark:border-zinc-800"
-          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:shadow-md hover:scale-[1.02]" : ""}`}
+          } ${needsAttention ? "animate-pulse ring-2 ring-red-500/80 ring-offset-1 ring-offset-background" : ""} ${canOpenStudentRecord ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97]" : ""}`}
         style={{ minHeight: "64px" }}
       >
         <div className="absolute left-1 top-1 flex items-center gap-1">
@@ -782,7 +783,7 @@ export default function ClassroomMap() {
         </div>
 
         {isOccupied ? (
-          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5">
+          <div key={`${role}-${occupant.id}`} className="animate-in fade-in zoom-in-95 flex h-full w-full flex-col items-center justify-center pt-1.5 duration-200">
             {occupant.fotoUrl ? (
               <img
                 src={occupant.fotoUrl}
@@ -809,7 +810,7 @@ export default function ClassroomMap() {
             </span>
           </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center pt-1.5 text-muted-foreground/30">
+          <div key={`${role}-empty`} className="animate-in fade-in flex h-full w-full flex-col items-center justify-center pt-1.5 duration-150 text-muted-foreground/30">
             {role === 'xerife' ? (
               <Crown className="mb-0.5 h-3.5 w-3.5 stroke-[1.5] text-yellow-500 opacity-30" />
             ) : (
