@@ -389,3 +389,6 @@
 - [x] Tornar compatível o login de senha legada com a validação coberta pelos testes
 - [x] Remover do teste de aluno a suposição fixa sobre uma numérica real do banco
 - [x] Restaurar a suíte completa de testes com acesso mestre, login legado e dados de aluno isolados
+- [x] Criar editor pessoal para montar, renomear e reorganizar os itens da sessão de Ordem Unida
+- [x] Exibir a posição ou comando atual em destaque na tela de execução
+- [x] Fazer os botões de toques e dobrados atualizarem diretamente a execução selecionada

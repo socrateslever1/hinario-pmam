@@ -7,6 +7,14 @@ export type OrdemUnidaPanelItem = {
   subtitle?: string;
 };
 
+export type OrdemUnidaSessionConfig = {
+  name: string;
+  itemIds: string[];
+  customItems: OrdemUnidaPanelItem[];
+  overrides: Record<string, Pick<OrdemUnidaPanelItem, "title" | "subtitle">>;
+  currentItemId: string | null;
+};
+
 const cornetas: OrdemUnidaPanelItem[] = [
   "A Vontade", "Acelerado", "Ajudante Geral", "Alto", "Alvorada",
   "Apresentar Arma", "Avançar ao Rancho", "Bandeira Nacional", "Batalhão", "Bombeiro",
@@ -66,4 +74,78 @@ export function sanitizeSessionItemIds(value: unknown): string[] {
 export function getSessionItems(ids: string[]): OrdemUnidaPanelItem[] {
   const itemById = new Map(TODOS_OS_ITENS_DE_ORDEM_UNIDA.map((item) => [item.id, item]));
   return ids.map((id) => itemById.get(id)).filter((item): item is OrdemUnidaPanelItem => Boolean(item));
+}
+
+export function createDefaultSessionConfig(): OrdemUnidaSessionConfig {
+  return {
+    name: "Sessão atual",
+    itemIds: [],
+    customItems: [],
+    overrides: {},
+    currentItemId: null,
+  };
+}
+
+function sanitizeText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function isItemType(value: unknown): value is OrdemUnidaItemType {
+  return value === "corneta" || value === "dobrado" || value === "voz";
+}
+
+export function sanitizeSessionConfig(value: unknown): OrdemUnidaSessionConfig {
+  const fallback = createDefaultSessionConfig();
+  if (Array.isArray(value)) {
+    return { ...fallback, itemIds: sanitizeSessionItemIds(value) };
+  }
+  if (!value || typeof value !== "object") return fallback;
+
+  const raw = value as Partial<OrdemUnidaSessionConfig>;
+  const customItems = Array.isArray(raw.customItems)
+    ? raw.customItems.reduce<OrdemUnidaPanelItem[]>((items, candidate) => {
+        if (!candidate || typeof candidate !== "object") return items;
+        const item = candidate as Partial<OrdemUnidaPanelItem>;
+        const title = sanitizeText(item.title, 80);
+        const subtitle = sanitizeText(item.subtitle, 120);
+        if (!item.id?.startsWith("custom-") || !title || !isItemType(item.type) || items.some((existing) => existing.id === item.id)) {
+          return items;
+        }
+        items.push({ id: item.id, title, type: item.type, ...(subtitle ? { subtitle } : {}) });
+        return items;
+      }, [])
+    : [];
+  const knownIds = new Set([...TODOS_OS_ITENS_DE_ORDEM_UNIDA, ...customItems].map((item) => item.id));
+  const itemIds = Array.isArray(raw.itemIds)
+    ? Array.from(new Set(raw.itemIds.filter((id): id is string => typeof id === "string" && knownIds.has(id))))
+    : [];
+  const overrides = Object.entries(raw.overrides ?? {}).reduce<OrdemUnidaSessionConfig["overrides"]>((result, [id, candidate]) => {
+    if (!knownIds.has(id) || !candidate || typeof candidate !== "object") return result;
+    const override = candidate as Partial<Pick<OrdemUnidaPanelItem, "title" | "subtitle">>;
+    const title = sanitizeText(override.title, 80);
+    const subtitle = sanitizeText(override.subtitle, 120);
+    if (title) result[id] = { title, ...(subtitle ? { subtitle } : {}) };
+    return result;
+  }, {});
+  const currentItemId = typeof raw.currentItemId === "string" && knownIds.has(raw.currentItemId)
+    ? raw.currentItemId
+    : null;
+
+  return {
+    name: sanitizeText(raw.name, 60) || fallback.name,
+    itemIds,
+    customItems,
+    overrides,
+    currentItemId,
+  };
+}
+
+export function getConfiguredItems(config: OrdemUnidaSessionConfig) {
+  const baseById = new Map([...TODOS_OS_ITENS_DE_ORDEM_UNIDA, ...config.customItems].map((item) => [item.id, item]));
+  return Array.from(baseById.values()).map((item) => ({ ...item, ...config.overrides[item.id] }));
+}
+
+export function getConfiguredSessionItems(config: OrdemUnidaSessionConfig) {
+  const itemById = new Map(getConfiguredItems(config).map((item) => [item.id, item]));
+  return config.itemIds.map((id) => itemById.get(id)).filter((item): item is OrdemUnidaPanelItem => Boolean(item));
 }
