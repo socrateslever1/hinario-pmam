@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, BadgeCheck, ClipboardList, FileText, History,
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
+import { buildAdministrativeFoSummary, getLcHistoryLabel } from "@/lib/foAdministrativeHistory";
 import { filterEffectiveStudents } from "@/lib/administrativeEffective";
 import { buildStudentObservationRequest } from "@/lib/studentObservation";
 import { getFoCodesByType } from "@shared/foCatalog";
@@ -569,24 +570,28 @@ export default function AdministrativeRoom() {
               <CardHeader className="border-b border-emerald-500/15 pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black text-emerald-900 dark:text-emerald-200">
                   <History className="h-4 w-4" />
-                  Histórico de FO homologados
+                  Histórico permanente de FO
                 </CardTitle>
-                <CardDescription>Últimos registros aprovados ou rejeitados no escopo do seu comando.</CardDescription>
+                <CardDescription>O FO permanece registrado mesmo quando origina uma LC homologada ou já arquivada.</CardDescription>
               </CardHeader>
               <CardContent className="max-h-80 space-y-2 overflow-y-auto p-3">
                 {reviewedFoQuery.isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                {reviewedFoQuery.data?.map((item: any) => (
-                  <div key={item.id} className="rounded-lg border border-emerald-500/15 bg-background/80 p-2.5 text-xs">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"}</Badge>
-                      <Badge variant="outline" className={item.validation_status === "approved" ? "border-emerald-500/40 text-emerald-800 dark:text-emerald-200" : "border-red-500/40 text-red-800 dark:text-red-200"}>{item.validation_status === "approved" ? "Homologado" : "Rejeitado"}</Badge>
-                      <span className="font-black">{item.numerica} {item.nome_guerra}</span>
-                      <span className="text-[10px] text-muted-foreground">{item.companhia}ª Cia / {item.peloton}º Pel</span>
+                {reviewedFoQuery.data?.map((item: any) => {
+                  const lcLabel = getLcHistoryLabel(item.lc_status);
+                  return (
+                    <div key={item.id} className="rounded-lg border border-emerald-500/15 bg-background/80 p-2.5 text-xs">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"} {item.fo_code || ""}</Badge>
+                        <Badge variant="outline" className={item.validation_status === "approved" ? "border-emerald-500/40 text-emerald-800 dark:text-emerald-200" : "border-red-500/40 text-red-800 dark:text-red-200"}>{item.validation_status === "approved" ? "Homologado" : "Rejeitado"}</Badge>
+                        {lcLabel && <Badge className="bg-red-700 text-white">{lcLabel}</Badge>}
+                        <span className="text-[10px] text-muted-foreground">{item.companhia}ª Cia / {item.peloton}º Pel</span>
+                      </div>
+                      <p className="mt-1.5 font-black">{buildAdministrativeFoSummary({ type: item.type, foCode: item.fo_code, numerica: item.numerica, nomeGuerra: item.nome_guerra, validationStatus: item.validation_status })}</p>
+                      <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Decidido em {new Date(item.validated_at || item.created_at).toLocaleString("pt-BR")}{item.validated_by_name ? ` · Por ${item.validated_by_name}` : ""}</p>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">Decidido em {new Date(item.validated_at || item.created_at).toLocaleString("pt-BR")}{item.validated_by_name ? ` · Por ${item.validated_by_name}` : ""}</p>
-                  </div>
-                ))}
+                  );
+                })}
                 {!reviewedFoQuery.isLoading && !reviewedFoQuery.data?.length && (
                   <p className="rounded-md border bg-background/70 p-4 text-center text-sm text-muted-foreground">Ainda não há FOs homologados ou rejeitados neste escopo.</p>
                 )}
