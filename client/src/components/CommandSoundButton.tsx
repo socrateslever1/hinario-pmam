@@ -128,7 +128,7 @@ export function CommandSoundButton({
         onClick={onClick}
         aria-disabled={!isAllowed && !isPlaying}
         aria-label={`${isPlaying ? "Parar" : isAllowed ? "Executar" : "Comando bloqueado"}: ${title}`}
-        className={`group relative grid aspect-square w-full place-items-center rounded-full border-[6px] outline-none transition duration-150 focus-visible:ring-4 focus-visible:ring-amber-400/70 active:translate-y-1 active:scale-[.97] ${compact ? "max-w-[6.5rem]" : "max-w-[9.5rem]"} ${TONE_STYLES[tone]} ${!isAllowed && !isPlaying ? "cursor-not-allowed grayscale-[.45] opacity-45" : "hover:brightness-110"}`}
+        className={`group relative grid aspect-square w-full place-items-center rounded-full border-4 outline-none transition duration-150 focus-visible:ring-4 focus-visible:ring-amber-400/70 active:translate-y-1 active:scale-[.97] ${compact ? "max-w-[4.25rem]" : "max-w-[6.25rem]"} ${TONE_STYLES[tone]} ${!isAllowed && !isPlaying ? "cursor-not-allowed grayscale-[.45] opacity-45" : "hover:brightness-110"}`}
       >
         <span className="absolute inset-[8%] rounded-full border-2 border-white/45 bg-black/10 shadow-[inset_0_3px_8px_rgba(0,0,0,.3)]" />
         <span className="absolute left-[19%] top-[10%] h-[17%] w-[50%] rotate-[-8deg] rounded-full bg-white/35 blur-[1px]" />
@@ -136,7 +136,7 @@ export function CommandSoundButton({
           {isPlaying ? <Volume2 className="h-[62%] w-[62%] animate-pulse" strokeWidth={2.8} /> : <Icon className="h-[62%] w-[62%]" strokeWidth={2.8} />}
         </span>
       </button>
-      <strong className={`mt-2 line-clamp-2 leading-tight ${darkSurface ? "text-white" : "text-foreground"} ${compact ? "text-xs" : "text-sm sm:text-base"}`}>{title}</strong>
+      <strong className={`mt-1.5 line-clamp-2 leading-tight ${darkSurface ? "text-white" : "text-foreground"} ${compact ? "text-[10px]" : "text-xs sm:text-sm"}`}>{title}</strong>
       {subtitle && <span className={`mt-0.5 line-clamp-1 max-w-full text-[11px] ${darkSurface ? "text-white/60" : "text-muted-foreground"}`}>{subtitle}</span>}
       {action}
     </div>
