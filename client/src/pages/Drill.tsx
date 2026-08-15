@@ -466,9 +466,9 @@ export default function Drill() {
               </div>
             ) : (
               <div>
-                <div className="flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
+                <div className="grid grid-cols-4 gap-x-2 gap-y-4 px-1 pb-2 pt-1 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
                   {prepared.map((call, index) => (
-                    <div key={call.id} className="min-w-20">
+                    <div key={call.id} className="min-w-0">
                       <CommandSoundButton
                         compact
                         title={call.name}
