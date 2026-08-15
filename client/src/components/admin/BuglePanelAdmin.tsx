@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Music, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { BUGLE_AUDIO_ACCEPT, validateBugleAudioFile } from "@/lib/bugleAudioUpload";
 
 type Kind = "call" | "march";
 
@@ -42,6 +43,7 @@ export function BuglePanelAdmin() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [uploadingItemKey, setUploadingItemKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const invalidate = () => Promise.all([utils.buglePanel.list.invalidate(), utils.buglePanel.listAll.invalidate()]);
@@ -76,6 +78,10 @@ export function BuglePanelAdmin() {
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
+      if (audioFile) {
+        const validationError = validateBugleAudioFile(audioFile);
+        if (validationError) throw new Error(validationError);
+      }
       let id = editing?.id as number | undefined;
       if (kind === "call") {
         const payload = {
@@ -124,6 +130,27 @@ export function BuglePanelAdmin() {
     }
   };
 
+  const uploadItemAudio = async (nextKind: Kind, item: any, file?: File | null) => {
+    if (!file) return;
+    const validationError = validateBugleAudioFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    const itemKey = `${nextKind}-${item.id}`;
+    try {
+      setUploadingItemKey(itemKey);
+      await uploadAudio.mutateAsync({ kind: nextKind, id: item.id, fileName: file.name, fileData: await fileToBase64(file) });
+      await invalidate();
+      toast.success(item.audioUrl ? "Áudio substituído." : "Áudio enviado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar o áudio.");
+    } finally {
+      setUploadingItemKey(null);
+    }
+  };
+
   const remove = async (nextKind: Kind, item: any) => {
     const label = nextKind === "call" ? item.name : item.title;
     if (!confirm(`Remover “${label}”?`)) return;
@@ -159,7 +186,27 @@ export function BuglePanelAdmin() {
               </p>
               <p className={`mt-1 text-xs ${item.audioUrl ? "text-emerald-700" : "text-amber-700"}`}>{item.audioUrl ? "Áudio disponível" : "Aguardando áudio"}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                id={`bugle-audio-${nextKind}-${item.id}`}
+                type="file"
+                accept={BUGLE_AUDIO_ACCEPT}
+                className="sr-only"
+                onChange={(event) => {
+                  void uploadItemAudio(nextKind, item, event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={Boolean(uploadingItemKey) || uploadAudio.isPending}
+                onClick={() => document.getElementById(`bugle-audio-${nextKind}-${item.id}`)?.click()}
+              >
+                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                {uploadingItemKey === `${nextKind}-${item.id}` ? "Enviando" : item.audioUrl ? "Trocar áudio" : "Enviar áudio"}
+              </Button>
               <Switch checked={item.isActive} onCheckedChange={(checked) => toggleActive(nextKind, item, checked)} aria-label={`Ativar ${nextKind === "call" ? item.name : item.title}`} />
               <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(nextKind, item)}><Pencil className="h-4 w-4" /></Button>
               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(nextKind, item)}><Trash2 className="h-4 w-4" /></Button>
@@ -201,7 +248,7 @@ export function BuglePanelAdmin() {
         <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar" : "Cadastrar"} {kind === "call" ? "toque" : "dobrado"}</DialogTitle>
-            <DialogDescription>Informe uma URL de áudio ou envie o arquivo diretamente.</DialogDescription>
+            <DialogDescription>Envie o arquivo diretamente. A URL do áudio é uma alternativa opcional.</DialogDescription>
           </DialogHeader>
           {form && (
             <form onSubmit={save} className="space-y-4">
@@ -222,14 +269,14 @@ export function BuglePanelAdmin() {
                   <div><Label htmlFor="march-composer">Compositor</Label><Input id="march-composer" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} /></div>
                 </>
               )}
-              <div><Label htmlFor="audio-url">URL do áudio</Label><Input id="audio-url" type="url" value={form.audioUrl} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} placeholder="https://.../audio.mp3" /></div>
+              <div className="rounded-xl border border-dashed p-4">
+                <Label htmlFor="audio-file" className="flex cursor-pointer items-center gap-2"><Upload className="h-4 w-4" /> {editing?.audioUrl ? "Trocar arquivo de áudio" : "Enviar arquivo de áudio"}</Label>
+                <Input id="audio-file" type="file" accept={BUGLE_AUDIO_ACCEPT} className="mt-2" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
+                <p className="mt-2 text-xs text-muted-foreground">Esta opção está sempre disponível. MP3, WAV, OGG, M4A, AAC ou WEBM, até 50 MB.</p>
+              </div>
+              <div><Label htmlFor="audio-url">URL do áudio (alternativa)</Label><Input id="audio-url" type="url" value={form.audioUrl} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} placeholder="https://.../audio.mp3" /></div>
               <div><Label htmlFor="source-url">URL da fonte/crédito</Label><Input id="source-url" type="url" value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://..." /></div>
               <div><Label htmlFor="sort-order">Ordem de exibição</Label><Input id="sort-order" type="number" min={0} max={10000} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} /></div>
-              <div className="rounded-xl border border-dashed p-4">
-                <Label htmlFor="audio-file" className="flex cursor-pointer items-center gap-2"><Upload className="h-4 w-4" /> Enviar arquivo de áudio</Label>
-                <Input id="audio-file" type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac,audio/webm" className="mt-2" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
-                <p className="mt-2 text-xs text-muted-foreground">MP3, WAV, OGG, M4A, AAC ou WEBM, até 50 MB.</p>
-              </div>
               <label className="flex items-center justify-between rounded-xl border p-3"><span className="text-sm font-medium">Visível no painel</span><Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} /></label>
               <Button type="submit" disabled={saving} className="w-full bg-[#1a3a2a] text-white"><Music className="mr-2 h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}</Button>
             </form>
