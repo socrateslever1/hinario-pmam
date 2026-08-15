@@ -132,7 +132,7 @@ export function CommandSoundButton({
       >
         <span className="absolute inset-[8%] rounded-full border-2 border-white/45 bg-black/10 shadow-[inset_0_3px_8px_rgba(0,0,0,.3)]" />
         <span className="absolute left-[19%] top-[10%] h-[17%] w-[50%] rotate-[-8deg] rounded-full bg-white/35 blur-[1px]" />
-        <span className="relative grid h-[53%] w-[53%] place-items-center rounded-full bg-white/90 text-slate-900 shadow-[0_4px_8px_rgba(0,0,0,.35)]">
+        <span className="relative grid h-[53%] w-[53%] place-items-center rounded-full bg-white/90 !text-slate-900 shadow-[0_4px_8px_rgba(0,0,0,.35)]">
           {isPlaying ? <Volume2 className="h-[62%] w-[62%] animate-pulse" strokeWidth={2.8} /> : <Icon className="h-[62%] w-[62%]" strokeWidth={2.8} />}
         </span>
       </button>

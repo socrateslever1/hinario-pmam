@@ -343,7 +343,7 @@ export default function Drill() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d] dark:bg-[#141a16] dark:text-[#f4f0df]">
       <Navbar />
       <audio ref={audioRef} preload="none" loop={false} onEnded={() => { void handleAudioEnded(); }} />
 
@@ -356,7 +356,7 @@ export default function Drill() {
               </div>
               <p className="text-xs text-white/65 md:text-sm">Situação atual da tropa</p>
               <h1 className="mt-0.5 text-2xl font-black leading-tight sm:text-3xl md:text-4xl" aria-live="polite">
-                Está: <span className="text-[#ead46e]">{DRILL_STATE_LABELS[drillState]}</span>
+                Está: <span className="!text-[#ead46e]">{DRILL_STATE_LABELS[drillState]}</span>
               </h1>
               <p className="mt-1 min-h-5 text-xs text-white/75 md:mt-2 md:text-sm" aria-live="polite">
                 {playingLabel ? `Executando agora: ${playingLabel}` : "Nenhum toque em execução"}
@@ -383,13 +383,13 @@ export default function Drill() {
           </div>
         </section>
 
-        <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm">
+        <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
           <CardContent className="p-3 md:p-5">
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-black md:text-lg">Toques preparados</h2>
               <p className="text-xs text-muted-foreground md:text-sm">Monte e organize a sequência que será usada.</p>
-              <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700"><CloudDownload className="h-3.5 w-3.5" /> Os áudios são baixados automaticamente para uso com conexão lenta.</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700 dark:!text-emerald-400"><CloudDownload className="h-3.5 w-3.5" /> Os áudios são baixados automaticamente para uso com conexão lenta.</p>
               </div>
               {prepared.length > 0 && (
                 <Button type="button" variant="ghost" size="sm" onClick={() => setPreparedIds([])}>Limpar</Button>
@@ -423,7 +423,7 @@ export default function Drill() {
           <div className="mb-4">
             <h2 id="bugle-calls-title" className="text-2xl font-black">Toques de corneta</h2>
             <p className="text-sm text-muted-foreground">Toque em um botão para executar. Toque no <Plus className="inline h-4 w-4" /> para prepará-lo.</p>
-            <p className="mt-1 text-xs font-semibold text-[#6f5914]">Envio de áudio: Dashboard → Ordem Unida → Toques.</p>
+            <p className="mt-1 text-xs font-semibold text-[#6f5914] dark:!text-[#d8c46a]">Envio de áudio: Dashboard → Ordem Unida → Toques.</p>
           </div>
 
           {isLoading ? (
@@ -454,12 +454,12 @@ export default function Drill() {
           )}
         </section>
 
-        <section aria-labelledby="voice-commands-title" className="rounded-3xl border border-[#c4a84b]/35 bg-white/90 p-4 shadow-sm md:p-7">
+        <section aria-labelledby="voice-commands-title" className="rounded-3xl border border-[#c4a84b]/35 bg-white/90 p-4 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95 md:p-7">
           <div className="mb-5">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8b6d12]">Gravações do comando</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8b6d12] dark:!text-[#d8c46a]">Gravações do comando</p>
             <h2 id="voice-commands-title" className="text-2xl font-black">Comandos de voz</h2>
             <p className="text-sm text-muted-foreground">As gravações enviadas pelo dashboard aparecem aqui e obedecem às mesmas travas operacionais.</p>
-            <p className="mt-1 text-xs font-semibold text-[#6f5914]">Envio: Dashboard → Comandos de voz → escolha Firme, Sentido ou outro comando.</p>
+            <p className="mt-1 text-xs font-semibold text-[#6f5914] dark:!text-[#d8c46a]">Envio: Dashboard → Comandos de voz → escolha Firme, Sentido ou outro comando.</p>
           </div>
           {voiceAudioQuery.isLoading ? (
             <div className="rounded-2xl border border-dashed p-7 text-center text-sm text-muted-foreground">Carregando comandos de voz...</div>
@@ -501,11 +501,11 @@ export default function Drill() {
             </div>
             <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <Select value={selectedMarchCallId} onValueChange={setSelectedMarchCallId}>
-                <SelectTrigger className="border-white/20 bg-white text-[#15251d]"><SelectValue placeholder="Toque de marcha" /></SelectTrigger>
+                <SelectTrigger className="border-white/20 bg-white text-[#15251d] dark:bg-[#15251d] dark:text-[#f4f0df]"><SelectValue placeholder="Toque de marcha" /></SelectTrigger>
                 <SelectContent>{marchCalls.map((call) => <SelectItem key={call.id} value={String(call.id)}>{call.name}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={selectedMarchId} onValueChange={setSelectedMarchId}>
-                <SelectTrigger className="border-white/20 bg-white text-[#15251d]"><SelectValue placeholder="Dobrado" /></SelectTrigger>
+                <SelectTrigger className="border-white/20 bg-white text-[#15251d] dark:bg-[#15251d] dark:text-[#f4f0df]"><SelectValue placeholder="Dobrado" /></SelectTrigger>
                 <SelectContent>{marches.map((march) => <SelectItem key={march.id} value={String(march.id)}>{march.title}</SelectItem>)}</SelectContent>
               </Select>
               <Button type="button" onClick={addMarchCombination} disabled={marchCalls.length === 0 || marches.length === 0} className="bg-[#c4a84b] font-bold text-[#15251d] hover:bg-[#d7bc56]"><Plus className="mr-1.5 h-4 w-4" /> Combinar</Button>
