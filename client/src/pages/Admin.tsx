@@ -349,7 +349,7 @@ export default function Admin() {
               {(canManageGlobalContent || isComandante) && (
                 <>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
-                  {canManageGlobalContent && <TabsTrigger value="ordem_unida_audio" className="gap-2"><Volume2 className="h-4 w-4" /> Áudios O.U.</TabsTrigger>}
+                  {canManageGlobalContent && <TabsTrigger value="ordem_unida_audio" className="gap-2"><Volume2 className="h-4 w-4" /> Comandos de voz</TabsTrigger>}
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                   <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>

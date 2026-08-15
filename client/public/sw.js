@@ -1,4 +1,4 @@
-const CACHE_NAME = "hinario-pmam-cache-v5";
+const CACHE_NAME = "hinario-pmam-cache-v6";
 const AUDIO_CACHE_NAME = "hinario-pmam-audio-v1";
 const ASSETS_TO_CACHE = [
   "/",
@@ -61,13 +61,9 @@ function isCacheableStaticResponse(request, response) {
   }
 
   return true;
-=======
-const AUDIO_FILE_PATTERN = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:$|\?)/i;
-
-function isAudioRequest(request, url) {
-  return request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname);
->>>>>>> 81d5b6d19a2cb05128aa7dcd68c7828e02fe6f2a
 }
+
+const AUDIO_FILE_PATTERN = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:$|\?)/i;
 
 async function addToCache(cache, urls) {
   const results = await Promise.allSettled(
@@ -148,8 +144,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
 
-  const isAudioRequest = request.destination === "audio" || /\.(mp3|wav|ogg|m4a|aac|webm)(?:$|\?)/i.test(url.pathname + url.search);
-  if (isAudioRequest) {
+  const audioRequest = request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname + url.search);
+  if (audioRequest) {
     event.respondWith(
       caches.open(AUDIO_CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request.url);

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cacheUrlsForOffline, getOfflineCachedUrls } from "./usePWA";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 describe("cache offline de URLs", () => {
   afterEach(() => {
@@ -39,5 +41,14 @@ describe("cache offline de URLs", () => {
     ]);
 
     expect(result).toEqual(["https://audio.example/pronto.mp3"]);
+  });
+});
+
+describe("service worker distribuído", () => {
+  it("não contém marcadores de conflito e aceita arquivos de áudio", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/public/sw.js"), "utf8");
+    expect(source).not.toMatch(/^(?:<<<<<<<|=======|>>>>>>>)/m);
+    expect(source).toContain("AUDIO_FILE_PATTERN");
+    expect(source).toContain("AUDIO_CACHE_NAME");
   });
 });

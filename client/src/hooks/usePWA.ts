@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const CACHE_NAME = "hinario-pmam-cache-v5";
+const CACHE_NAME = "hinario-pmam-cache-v6";
 let registrationStarted = false;
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 let updateIntervalId: number | null = null;

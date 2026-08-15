@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { studyModules } from "@/content/studyModules";
 import { usePWA } from "./usePWA";
 
-const CACHE_NAME = "hinario-pmam-cache-v5";
+const CACHE_NAME = "hinario-pmam-cache-v6";
 const CRITICAL_URLS = [
   "/api/trpc/hymns.list?batch=1",
   "/api/trpc/drill.list?batch=1",

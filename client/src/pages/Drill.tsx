@@ -4,38 +4,16 @@ import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
-  ArrowRight,
   AudioLines,
-  Bell,
-  Clock3,
   CloudDownload,
-  Eye,
-  Flag,
-  Flame,
   Footprints,
-  Gauge,
-  Hand,
-  Lock,
-  Music,
   Pause,
-  Play,
   Plus,
-  RotateCw,
   RotateCcw,
-  School,
-  Search,
-  Shield,
-  Sun,
-  UserRound,
-  Users,
-  Utensils,
-  Volume2,
-  VolumeX,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import {
   applyDrillCommand,
@@ -63,30 +41,13 @@ type March = {
   audioUrl: string | null;
 };
 
-const iconMap: Record<string, LucideIcon> = {
-  "arrow-left": ArrowLeft,
-  "arrow-right": ArrowRight,
-  bell: Bell,
-  clock: Clock3,
-  eye: Eye,
-  flag: Flag,
-  flame: Flame,
-  footprints: Footprints,
-  gauge: Gauge,
-  hand: Hand,
-  relaxed: Pause,
-  rotate: RotateCw,
-  salute: Hand,
-  school: School,
-  search: Search,
-  shield: Shield,
-  sun: Sun,
-  user: UserRound,
-  users: Users,
-  utensils: Utensils,
-  volume: Volume2,
-  "volume-off": VolumeX,
-  music: Music,
+type VoiceCommand = {
+  id: number;
+  itemId: string;
+  itemTitle: string;
+  audioUrl: string;
+  fileName: string;
+  itemType: "corneta" | "dobrado" | "voz";
 };
 
 const PREPARED_STORAGE_KEY = "pmam-bugle-prepared-v1";
@@ -137,6 +98,7 @@ function readStoredIds() {
 
 export default function Drill() {
   const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
+  const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [preparedIds, setPreparedIds] = useState<number[]>(readStoredIds);
   const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
@@ -145,6 +107,7 @@ export default function Drill() {
 
   const calls = (data?.calls || []) as BugleCall[];
   const marches = (data?.marches || []) as March[];
+  const voiceCommands = ((voiceAudioQuery.data || []) as VoiceCommand[]).filter((audio) => audio.itemType === "voz");
   const prepared = useMemo(
     () => preparedIds.map((id) => calls.find((call) => call.id === id)).filter(Boolean) as BugleCall[],
     [calls, preparedIds],
@@ -237,6 +200,26 @@ export default function Drill() {
     await playAudio(key, march.title, march.audioUrl);
   };
 
+  const playVoiceCommand = async (voice: VoiceCommand) => {
+    const key = `voice-${voice.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+    if (playingKey) {
+      toast.error("Aguarde o áudio atual terminar ou use “Parar áudio”.");
+      return;
+    }
+    if (!isDrillCommandAllowed(voice.itemTitle, drillState)) {
+      const sequence = getRequiredCommandSequence(voice.itemTitle, drillState).map(commandLabel).join(" → ");
+      toast.error(`Comando bloqueado. Execute antes: ${sequence}.`);
+      return;
+    }
+    if (await playAudio(key, voice.itemTitle, voice.audioUrl)) {
+      setDrillState((current) => applyDrillCommand(voice.itemTitle, current));
+    }
+  };
+
   const resetOperation = () => {
     if (!confirm("Iniciar uma nova execução na posição Descansar?")) return;
     stopAudio();
@@ -311,24 +294,18 @@ export default function Drill() {
                 Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
               </div>
             ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-4 overflow-x-auto px-1 pb-3 pt-1">
                 {prepared.map((call) => (
-                  <div key={call.id} className="relative min-w-40">
-                    <Button
-                      type="button"
+                  <div key={call.id} className="min-w-28">
+                    <CommandSoundButton
+                      compact
+                      title={call.name}
+                      iconKey={call.iconKey}
+                      isPlaying={playingKey === `call-${call.id}`}
+                      isAllowed={isDrillCommandAllowed(call.name, drillState)}
                       onClick={() => playCall(call)}
-                      className={`h-20 w-full whitespace-normal px-4 text-left ${playingKey === `call-${call.id}` ? "bg-[#c4a84b] text-[#15251d] hover:bg-[#b89b3e]" : "bg-[#1a3a2a] text-white hover:bg-[#10281d]"}`}
-                    >
-                      <Play className="mr-2 h-5 w-5 shrink-0" /> {call.name}
-                    </Button>
-                    <button
-                      type="button"
-                      aria-label={`Remover ${call.name} dos preparados`}
-                      onClick={() => removePrepared(call.id)}
-                      className="absolute -right-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-700 text-white shadow"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                      action={<button type="button" aria-label={`Remover ${call.name} dos preparados`} onClick={() => removePrepared(call.id)} className="absolute right-0 top-0 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow"><X className="h-4 w-4" /></button>}
+                    />
                   </div>
                 ))}
               </div>
@@ -349,38 +326,50 @@ export default function Drill() {
           ) : calls.length === 0 ? (
             <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">Nenhum toque ativo cadastrado.</div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-3 gap-x-3 gap-y-7 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
               {calls.map((call) => {
-                const Icon = iconMap[call.iconKey] || Music;
                 const isPlaying = playingKey === `call-${call.id}`;
                 const isPrepared = preparedIds.includes(call.id);
                 const isAllowed = isDrillCommandAllowed(call.name, drillState);
                 return (
-                  <Card key={call.id} className={`relative overflow-hidden border-2 shadow-sm transition ${isPlaying ? "border-[#c4a84b] bg-[#fff9d9]" : "border-transparent bg-white"}`}>
-                    <button
-                      type="button"
-                      onClick={() => playCall(call)}
-                      className={`flex min-h-36 w-full flex-col items-center justify-center gap-3 p-4 text-center outline-none focus-visible:ring-4 focus-visible:ring-[#c4a84b]/50 ${!isAllowed && !isPlaying ? "cursor-not-allowed opacity-45" : ""}`}
-                      aria-disabled={!isAllowed && !isPlaying}
-                      aria-label={`${isPlaying ? "Parar" : isAllowed ? "Executar" : "Bloqueado"} toque ${call.name}`}
-                    >
-                      <span className={`grid h-14 w-14 place-items-center rounded-2xl ${isPlaying ? "bg-[#c4a84b] text-[#15251d]" : "bg-[#1a3a2a] text-[#ead46e]"}`}>
-                        {isPlaying ? <Pause className="h-7 w-7" /> : isAllowed ? <Icon className="h-7 w-7" /> : <Lock className="h-7 w-7" />}
-                      </span>
-                      <span className="text-sm font-extrabold leading-tight">{call.name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isPrepared}
-                      onClick={() => addPrepared(call.id)}
-                      aria-label={`Adicionar ${call.name} aos preparados`}
-                      className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full border bg-white text-[#1a3a2a] shadow-sm disabled:opacity-35"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </Card>
+                  <CommandSoundButton
+                    key={call.id}
+                    title={call.name}
+                    iconKey={call.iconKey}
+                    isPlaying={isPlaying}
+                    isAllowed={isAllowed}
+                    onClick={() => playCall(call)}
+                    action={<button type="button" disabled={isPrepared} onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} aos preparados`} className="absolute right-0 top-0 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md disabled:opacity-35"><Plus className="h-4 w-4" /></button>}
+                  />
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        <section aria-labelledby="voice-commands-title" className="rounded-3xl border border-[#c4a84b]/35 bg-white/90 p-4 shadow-sm md:p-7">
+          <div className="mb-5">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8b6d12]">Gravações do comando</p>
+            <h2 id="voice-commands-title" className="text-2xl font-black">Comandos de voz</h2>
+            <p className="text-sm text-muted-foreground">As gravações enviadas pelo dashboard aparecem aqui e obedecem às mesmas travas operacionais.</p>
+          </div>
+          {voiceAudioQuery.isLoading ? (
+            <div className="rounded-2xl border border-dashed p-7 text-center text-sm text-muted-foreground">Carregando comandos de voz...</div>
+          ) : voiceCommands.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-[#1a3a2a]/20 px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma voz enviada. No dashboard, abra “Comandos de voz” e envie a gravação de Firme ou de outro comando.</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-x-3 gap-y-7 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+              {voiceCommands.map((voice) => (
+                <CommandSoundButton
+                  key={voice.id}
+                  title={voice.itemTitle}
+                  subtitle={voice.fileName}
+                  iconKey="volume"
+                  isPlaying={playingKey === `voice-${voice.id}`}
+                  isAllowed={isDrillCommandAllowed(voice.itemTitle, drillState)}
+                  onClick={() => playVoiceCommand(voice)}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -398,21 +387,20 @@ export default function Drill() {
               Espaço pronto. Cadastre os dobrados no dashboard para exibi-los aqui.
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-3 gap-x-3 gap-y-7 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
               {marches.map((march) => {
                 const isPlaying = playingKey === `march-${march.id}`;
                 return (
-                  <Button
+                  <CommandSoundButton
                     key={march.id}
-                    type="button"
-                    variant="outline"
+                    title={march.title}
+                    subtitle={march.composer}
+                    iconKey="music"
+                    darkSurface
                     onClick={() => playMarch(march)}
-                    aria-disabled={!MARCH_STATES.includes(drillState) && !isPlaying}
-                    className={`h-auto min-h-20 justify-start whitespace-normal border-white/20 px-4 py-3 text-left ${isPlaying ? "bg-[#c4a84b] text-[#15251d]" : MARCH_STATES.includes(drillState) ? "bg-white/10 text-white hover:bg-white/20 hover:text-white" : "cursor-not-allowed bg-white/5 text-white/40"}`}
-                  >
-                    {isPlaying ? <Pause className="mr-3 h-6 w-6 shrink-0" /> : MARCH_STATES.includes(drillState) ? <Music className="mr-3 h-6 w-6 shrink-0" /> : <Lock className="mr-3 h-6 w-6 shrink-0" />}
-                    <span><strong className="block">{march.title}</strong>{march.composer && <small className="opacity-70">{march.composer}</small>}</span>
-                  </Button>
+                    isPlaying={isPlaying}
+                    isAllowed={MARCH_STATES.includes(drillState)}
+                  />
                 );
               })}
             </div>
