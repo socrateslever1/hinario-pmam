@@ -3,6 +3,7 @@ import type { User } from "../../shared/types";
 import { sdk } from "./sdk";
 import { verifyStudentSession } from "../studentDb";
 import { query } from "../mysql";
+import { HttpError } from "../../shared/_core/errors";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -19,7 +20,29 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    user = null;
+    // Apenas um cookie ausente ou inválido deve deixar o usuário como anônimo.
+    // Falhas transitórias de banco/infraestrutura não podem apagar a sessão ativa no cliente.
+    if (error instanceof HttpError && error.statusCode === 403) {
+      user = null;
+    } else {
+      throw error;
+    }
+  }
+
+  // Alguns navegadores móveis isolam ou descartam cookies HttpOnly no primeiro redirecionamento.
+  // Para esses casos, o cliente envia o mesmo JWT assinado em cabeçalho por uma sessão local limitada.
+  if (!user) {
+    const emailSessionHeader = opts.req.headers["x-email-session"];
+    const emailSessionToken = Array.isArray(emailSessionHeader) ? emailSessionHeader[0] : emailSessionHeader;
+    if (emailSessionToken) {
+      try {
+        user = await sdk.authenticateSessionToken(String(emailSessionToken));
+      } catch (error) {
+        if (!(error instanceof HttpError && error.statusCode === 403)) {
+          throw error;
+        }
+      }
+    }
   }
 
   // Fallback: if no admin cookie session, check for student headers

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, ArrowLeft, BadgeCheck, FileText, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, ClipboardList, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
+import { filterEffectiveStudents } from "@/lib/administrativeEffective";
+import { buildStudentObservationRequest } from "@/lib/studentObservation";
+import { getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +76,11 @@ export default function AdministrativeRoom() {
   const [aditamentoDate, setAditamentoDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [aditamentoTitle, setAditamentoTitle] = useState("");
   const [aditamentoContent, setAditamentoContent] = useState("");
+  const [efetivoSearch, setEfetivoSearch] = useState("");
+  const [observationStudentId, setObservationStudentId] = useState("");
+  const [observationType, setObservationType] = useState<"positive" | "negative">("positive");
+  const [observationCode, setObservationCode] = useState("");
+  const [observationNote, setObservationNote] = useState("");
 
   const role = String(access?.role || "");
   const canHomologateFoLc = Boolean((access as any)?.canHomologateFoLc);
@@ -82,6 +90,13 @@ export default function AdministrativeRoom() {
   const canChangePelotao = Boolean(canChangeCompanhia || role === "comandante_cia" || access?.assignment?.level === "companhia");
 
   const pendingFoQuery = trpc.serviceScale.pendingStudentObservations.useQuery(
+    {},
+    { enabled: Boolean(canViewAdministrativeRoom) }
+  );
+  const studentsQuery = trpc.serviceScale.students.useQuery(undefined, {
+    enabled: Boolean(canViewAdministrativeRoom),
+  });
+  const reviewedFoQuery = trpc.serviceScale.reviewedStudentObservations.useQuery(
     {},
     { enabled: Boolean(canViewAdministrativeRoom) }
   );
@@ -101,6 +116,11 @@ export default function AdministrativeRoom() {
     { studentId: Number(contestStudentId || 0) },
     { enabled: Boolean(canViewAdministrativeRoom && contestStudentId) }
   );
+  const selectedObservationStudentId = Number(observationStudentId || 0);
+  const selectedStudentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
+    { studentId: selectedObservationStudentId },
+    { enabled: Boolean(canViewAdministrativeRoom && selectedObservationStudentId) }
+  );
   const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery(undefined, {
     enabled: Boolean(canApproveStudentDocuments),
   });
@@ -112,7 +132,7 @@ export default function AdministrativeRoom() {
   const validateFo = trpc.serviceScale.validateStudentObservation.useMutation({
     onSuccess: async () => {
       toast.success("FO homologado/atualizado");
-      await Promise.all([pendingFoQuery.refetch(), lcCasesQuery.refetch()]);
+      await Promise.all([pendingFoQuery.refetch(), reviewedFoQuery.refetch(), lcCasesQuery.refetch()]);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -183,8 +203,22 @@ export default function AdministrativeRoom() {
     onSuccess: () => toast.success("Aditamento gerado e publicado."),
     onError: (error) => toast.error(error.message),
   });
+  const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
+    onSuccess: async () => {
+      toast.success("Anotação FO registrada.");
+      setObservationCode("");
+      setObservationNote("");
+      await Promise.all([
+        selectedStudentObservationsQuery.refetch(),
+        pendingFoQuery.refetch(),
+        reviewedFoQuery.refetch(),
+      ]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
-  const students = useMemo(() => [], []);
+  const students = studentsQuery.data ?? [];
+  const filteredStudents = useMemo(() => filterEffectiveStudents(students, efetivoSearch), [students, efetivoSearch]);
   const pendingFoItems = pendingFoQuery.data ?? [];
   const lcItems = lcCasesQuery.data ?? [];
   const baixadoItems = baixadosQuery.data ?? [];
@@ -192,6 +226,8 @@ export default function AdministrativeRoom() {
   const partesItems = partesQuery.data ?? [];
   const scopedPartesItems = partesItems;
   const internalReportItems = internalReportsQuery.data ?? [];
+  const selectedObservationStudent = students.find((student: any) => Number(student.id) === selectedObservationStudentId) ?? null;
+  const selectedStudentObservationItems = selectedStudentObservationsQuery.data ?? [];
   const contestableObservations = (contestStudentObservationsQuery.data ?? []).filter((item: any) =>
     (item.type === "positive" || item.type === "negative") &&
     item.validation_status === "approved" &&
@@ -206,6 +242,19 @@ export default function AdministrativeRoom() {
       durationHours: item.durationHours ? String(item.durationHours) : "12",
       procedures: item.procedures || (item.source === "direct" ? "LC direta por transgressão gravosa." : `Aluno cientificado da LC por reincidencia do codigo ${item.foCode || 'N/A'}.`),
     };
+  };
+
+  const registerStudentObservation = () => {
+    try {
+      addStudentObservation.mutate(buildStudentObservationRequest({
+        studentId: selectedObservationStudentId,
+        type: observationType,
+        foCode: observationCode,
+        details: observationNote,
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível preparar a anotação.");
+    }
   };
 
   const updateLcField = (id: number, field: "recolhimentoDate" | "recolhimentoTime" | "durationHours" | "procedures", value: string, item: any) => {
@@ -446,25 +495,19 @@ export default function AdministrativeRoom() {
           </div>
         </div>
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-3">
-          <Card className="border-amber-500/25 bg-amber-500/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-200">FO pendente</p>
-              <p className="mt-1 text-3xl font-black">{pendingFoItems.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-red-500/25 bg-red-500/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] font-black uppercase text-red-700 dark:text-red-200">LC a decidir</p>
-              <p className="mt-1 text-3xl font-black">{lcItems.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-500/25 bg-blue-500/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-200">Baixados/atestados</p>
-              <p className="mt-1 text-3xl font-black">{baixadoItems.length}</p>
-            </CardContent>
-          </Card>
+        <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="flex min-h-16 items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-2.5 shadow-sm">
+            <span className="h-8 w-1 shrink-0 rounded-full bg-amber-500" />
+            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-amber-800 dark:text-amber-200">FO pendente</p><p className="mt-0.5 text-xl font-black leading-none">{pendingFoItems.length}</p></div>
+          </div>
+          <div className="flex min-h-16 items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-2.5 shadow-sm">
+            <span className="h-8 w-1 shrink-0 rounded-full bg-red-500" />
+            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-red-800 dark:text-red-200">LC a decidir</p><p className="mt-0.5 text-xl font-black leading-none">{lcItems.length}</p></div>
+          </div>
+          <div className="flex min-h-16 items-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 p-2.5 shadow-sm">
+            <span className="h-8 w-1 shrink-0 rounded-full bg-blue-500" />
+            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-blue-800 dark:text-blue-200">Baixados</p><p className="mt-0.5 text-xl font-black leading-none">{baixadoItems.length}</p></div>
+          </div>
         </div>
 
         {!canHomologateFoLc && (
@@ -517,7 +560,35 @@ export default function AdministrativeRoom() {
                   </div>
                 ))}
                 {!pendingFoQuery.isLoading && pendingFoItems.length === 0 && (
-                  <p className="rounded-md border bg-muted/10 p-4 text-center text-sm text-muted-foreground">Nenhum FO pendente neste escopo.</p>
+                  <p className="rounded-md border bg-muted/10 p-4 text-center text-sm text-muted-foreground">Nenhum FO aguardando homologação neste escopo. Consulte abaixo os FOs já decididos.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-500/25 bg-emerald-500/5">
+              <CardHeader className="border-b border-emerald-500/15 pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-black text-emerald-900 dark:text-emerald-200">
+                  <History className="h-4 w-4" />
+                  Histórico de FO homologados
+                </CardTitle>
+                <CardDescription>Últimos registros aprovados ou rejeitados no escopo do seu comando.</CardDescription>
+              </CardHeader>
+              <CardContent className="max-h-80 space-y-2 overflow-y-auto p-3">
+                {reviewedFoQuery.isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                {reviewedFoQuery.data?.map((item: any) => (
+                  <div key={item.id} className="rounded-lg border border-emerald-500/15 bg-background/80 p-2.5 text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"}</Badge>
+                      <Badge variant="outline" className={item.validation_status === "approved" ? "border-emerald-500/40 text-emerald-800 dark:text-emerald-200" : "border-red-500/40 text-red-800 dark:text-red-200"}>{item.validation_status === "approved" ? "Homologado" : "Rejeitado"}</Badge>
+                      <span className="font-black">{item.numerica} {item.nome_guerra}</span>
+                      <span className="text-[10px] text-muted-foreground">{item.companhia}ª Cia / {item.peloton}º Pel</span>
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">Decidido em {new Date(item.validated_at || item.created_at).toLocaleString("pt-BR")}{item.validated_by_name ? ` · Por ${item.validated_by_name}` : ""}</p>
+                  </div>
+                ))}
+                {!reviewedFoQuery.isLoading && !reviewedFoQuery.data?.length && (
+                  <p className="rounded-md border bg-background/70 p-4 text-center text-sm text-muted-foreground">Ainda não há FOs homologados ou rejeitados neste escopo.</p>
                 )}
               </CardContent>
             </Card>
@@ -708,6 +779,143 @@ export default function AdministrativeRoom() {
           </TabsContent>
 
           <TabsContent value="efetivo" className="space-y-5">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-[#1a3a2a]/20 bg-[#1a3a2a]/5 px-3 py-2.5"><p className="text-[10px] font-black uppercase text-muted-foreground">Efetivo no escopo</p><p className="mt-0.5 text-xl font-black text-[#1a3a2a] dark:text-[#e2ca78]">{studentsQuery.isLoading ? "…" : students.length}</p></div>
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-3 py-2.5"><p className="text-[10px] font-black uppercase text-muted-foreground">Baixados ativos</p><p className="mt-0.5 text-xl font-black text-blue-800 dark:text-blue-200">{baixadoItems.length}</p></div>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5"><p className="text-[10px] font-black uppercase text-muted-foreground">Informes internos</p><p className="mt-0.5 text-xl font-black text-amber-800 dark:text-amber-200">{internalReportItems.length}</p></div>
+            </div>
+
+            <Card className="border-[#1a3a2a]/15 bg-white dark:bg-zinc-900">
+              <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-sm font-black">Localizar aluno</p><p className="text-xs text-muted-foreground">Filtre por numérica, nome de guerra ou nome completo antes de iniciar um procedimento.</p></div>
+                <div className="w-full sm:max-w-sm"><Input value={efetivoSearch} onChange={(event) => setEfetivoSearch(event.target.value)} placeholder="Ex.: 4122 ou nome de guerra" /></div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#1a3a2a]/20 bg-white dark:bg-zinc-900">
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-black">
+                  <ClipboardList className="h-4 w-4 text-[#c4a84b]" />
+                  Anotações FO+ / FO-
+                </CardTitle>
+                <CardDescription>Registre e consulte os fatos observados positivos ou negativos do aluno dentro do seu escopo de comando.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="student-observation-student">Aluno</Label>
+                    <select
+                      id="student-observation-student"
+                      value={observationStudentId}
+                      onChange={(event) => {
+                        setObservationStudentId(event.target.value);
+                        setObservationCode("");
+                        setObservationNote("");
+                      }}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o aluno...</option>
+                      {filteredStudents.map((student: any) => (
+                        <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
+                      ))}
+                    </select>
+                    {selectedObservationStudent ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">{selectedObservationStudent.companhia}ª Cia / {selectedObservationStudent.peloton}º Pel</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <Label>Tipo</Label>
+                    <div className="mt-1.5 grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={observationType === "positive" ? "default" : "outline"}
+                        className={observationType === "positive" ? "bg-green-700 text-white hover:bg-green-800" : ""}
+                        onClick={() => { setObservationType("positive"); setObservationCode(""); }}
+                      >
+                        FO+ (Elogio)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={observationType === "negative" ? "default" : "outline"}
+                        className={observationType === "negative" ? "bg-red-700 text-white hover:bg-red-800" : ""}
+                        onClick={() => { setObservationType("negative"); setObservationCode(""); }}
+                      >
+                        FO- (Transgressão)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-code">Código oficial do Manual</Label>
+                    <select
+                      id="student-observation-code"
+                      value={observationCode}
+                      onChange={(event) => setObservationCode(event.target.value)}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o código...</option>
+                      {getFoCodesByType(observationType).map((item) => (
+                        <option key={`${item.type}-${item.code}`} value={item.code}>{item.code} - {item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-note">Relato do fato observado</Label>
+                    <textarea
+                      id="student-observation-note"
+                      value={observationNote}
+                      onChange={(event) => setObservationNote(event.target.value)}
+                      className="mt-1.5 min-h-[96px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      placeholder="Registre data, hora, local e circunstâncias do fato..."
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="w-full bg-[#1a3a2a] text-white hover:bg-[#12281d]"
+                    disabled={!selectedObservationStudentId || addStudentObservation.isPending}
+                    onClick={registerStudentObservation}
+                  >
+                    {addStudentObservation.isPending ? "Registrando..." : "Registrar anotação"}
+                  </Button>
+                  <p className="text-[10px] leading-relaxed text-muted-foreground">Para anexar foto, vídeo ou documento como prova, utilize o botão flutuante FO.</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/10 p-3">
+                  <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">Histórico do aluno</p>
+                  {!selectedObservationStudentId ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Selecione um aluno para consultar suas anotações.</p>
+                  ) : selectedStudentObservationsQuery.isLoading ? (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...</div>
+                  ) : selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Nenhum FO+ ou FO- registrado para este aluno.</p>
+                  ) : (
+                    <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+                      {selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").map((item: any) => {
+                        const approved = item.validation_status === "approved";
+                        const rejected = item.validation_status === "rejected";
+                        const createdAt = item.created_at ? new Date(item.created_at) : null;
+                        return (
+                          <div key={item.id} className="rounded-md border bg-background p-2.5 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"} {item.fo_code || ""}</Badge>
+                              <Badge variant="secondary" className={approved ? "bg-green-100 text-green-800" : rejected ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}>{approved ? "Homologado" : rejected ? "Não homologado" : "Pendente"}</Badge>
+                            </div>
+                            <p className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.note}</p>
+                            <p className="mt-2 text-[10px] text-muted-foreground">{createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString("pt-BR") : "Data não informada"}{item.created_by_name ? ` · ${item.created_by_name}` : ""}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {studentsQuery.isError && <p className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-xs font-semibold text-destructive">Não foi possível carregar o efetivo deste escopo. Tente novamente em instantes.</p>}
+
             <Card className="border-border/50 bg-white dark:bg-zinc-900">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black">
@@ -721,7 +929,7 @@ export default function AdministrativeRoom() {
                   <Label>Aluno</Label>
                   <select value={baixadoStudentId} onChange={(event) => setBaixadoStudentId(event.target.value)} className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm">
                     <option value="">Selecione...</option>
-                    {students.map((student: any) => (
+                    {filteredStudents.map((student: any) => (
                       <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
                     ))}
                   </select>
@@ -771,7 +979,7 @@ export default function AdministrativeRoom() {
               <CardContent className="space-y-3 p-4">
                 <select value={internalStudentId} onChange={(event) => setInternalStudentId(event.target.value)} className="h-9 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">Aluno...</option>
-                  {students.map((student: any) => (
+                  {filteredStudents.map((student: any) => (
                     <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
                   ))}
                 </select>

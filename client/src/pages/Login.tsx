@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
+import { saveEmailSession } from "@/lib/emailSession";
 
 const BRASAO_URL = "/logo/IMG_7728.PNG";
 
@@ -43,7 +44,7 @@ export default function Login() {
 
   const utils = trpc.useUtils();
   const loginMut = trpc.auth.loginEmail.useMutation({
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       toast.success("Login realizado com sucesso!");
       
       // Salvar credenciais se "Lembrar de mim" foi marcado
@@ -55,22 +56,38 @@ export default function Login() {
       } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
       }
+      saveEmailSession(result.sessionToken, rememberMe);
       
-      utils.auth.me.setData(undefined, (current): User => ({
+      const optimisticUser: User = {
         id: result.user.id,
-        openId: current?.openId ?? `session-${result.user.id}`,
+        openId: `session-${result.user.id}`,
         name: result.user.name,
         email: result.user.email,
-        password: current?.password ?? null,
-        loginMethod: current?.loginMethod ?? "email",
+        password: null,
+        loginMethod: "email",
         role: result.user.role,
         forcePasswordChange: (result.user as any).forcePasswordChange,
         fotoUrl: (result.user as any).fotoUrl ?? null,
-        createdAt: current?.createdAt ?? new Date(),
+        createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
-      }));
-      void utils.auth.me.invalidate();
+      };
+      utils.auth.me.setData(undefined, optimisticUser);
+
+      // O cookie HttpOnly precisa ser confirmado na primeira leitura antes de trocar de rota.
+      // Isto evita que uma resposta antiga de cache pareça logout logo após o login.
+      try {
+        const verifiedUser = await utils.auth.me.fetch();
+        if (!verifiedUser) {
+          utils.auth.me.setData(undefined, null);
+          toast.error("A sessão não foi confirmada. Tente entrar novamente.");
+          return;
+        }
+        utils.auth.me.setData(undefined, verifiedUser);
+      } catch {
+        // Se a rede falhar neste instante, preserva o estado otimista em vez de forçar logout.
+        utils.auth.me.setData(undefined, optimisticUser);
+      }
       
       // Redirecionar baseado no role e na flag de primeiro acesso
       const role = result.user.role;

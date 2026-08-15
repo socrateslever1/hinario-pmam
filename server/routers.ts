@@ -22,6 +22,7 @@ import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
 import * as foDb from "./foDb";
 import * as bugleDb from "./bugleDb";
+import * as ordemUnidaAudioDb from "./ordemUnidaAudioDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -76,6 +77,11 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
 ]);
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
+const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
+const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm",
+  "audio/mp4", "audio/x-m4a", "audio/aac", "audio/flac",
+]);
 const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/png",
@@ -92,6 +98,14 @@ const COMMAND_ROLES = [
   "sub_comandante_cfap",
   "comandante_cia",
   "comandante_pel",
+] as const;
+const GLOBAL_COMMAND_ROLES = [
+  "comandante_corpo",
+  "subcomandante_corpo",
+  "sub_comandante_corpo",
+  "comandante_cfap",
+  "subcomandante_cfap",
+  "sub_comandante_cfap",
 ] as const;
 const COMMAND_ACCESS_ROLES = [
   "admin",
@@ -115,6 +129,10 @@ const STUDENT_DOCUMENT_APPROVER_ROLES = [
 
 function isCommandRole(role?: string | null) {
   return COMMAND_ROLES.includes(String(role || "") as any);
+}
+
+function isGlobalCommandRole(role?: string | null) {
+  return GLOBAL_COMMAND_ROLES.includes(String(role || "") as any);
 }
 
 function isGeneralCommandRole(role?: string | null) {
@@ -171,12 +189,19 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const masterOnlyProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "master") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral" });
+  }
+  return next({ ctx });
+});
+
 // Xerife Geral: master/admin, a user explicitly assigned as principal, or any commander.
 const masterProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (
     ctx.user.role === "master" ||
     ctx.user.role === "admin" ||
-    isCommandRole(ctx.user.role)
+    isGlobalCommandRole(ctx.user.role)
   ) {
     return next({ ctx });
   }
@@ -218,7 +243,7 @@ async function requireServiceScaleAccess(
 }
 
 function canCommandViewAllClassrooms(user: any) {
-  return isCommandRole(user?.role);
+  return isGlobalCommandRole(user?.role);
 }
 
 async function requireClassroomViewAccess(
@@ -442,6 +467,8 @@ export const appRouter = router({
       let valid = false;
       if (isBcrypt) {
         valid = await bcrypt.compare(input.password, dbPassword);
+      } else if (dbPassword.startsWith("hash:")) {
+        valid = await bcrypt.compare(input.password, dbPassword);
       } else {
         valid = input.password === dbPassword;
         if (!valid) {
@@ -500,7 +527,7 @@ export const appRouter = router({
       }
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
+      return { success: true, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, forcePasswordChange: user.forcePasswordChange, fotoUrl: user.fotoUrl } };
     }),
   }),
 
@@ -591,8 +618,8 @@ export const appRouter = router({
       return db.getActiveHymns();
     }),
     listAll: protectedProcedure.query(async ({ ctx }) => {
-      const general = await isXerifeGeral(ctx.user);
-      if (!general) {
+      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       return db.getAllHymns();
@@ -629,8 +656,8 @@ export const appRouter = router({
       instrumentalAudioUrl: z.string().optional(),
       lyricsSync: z.any().optional(),
     })).mutation(async ({ ctx, input }) => {
-      const general = await isXerifeGeral(ctx.user);
-      if (!general) {
+      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       await db.createHymn(input);
@@ -654,8 +681,8 @@ export const appRouter = router({
       lyricsSync: z.any().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ ctx, input }) => {
-      const general = await isXerifeGeral(ctx.user);
-      if (!general) {
+      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       const { id, ...data } = input;
@@ -663,8 +690,8 @@ export const appRouter = router({
       return { success: true };
     }),
     delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
-      const general = await isXerifeGeral(ctx.user);
-      if (!general) {
+      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       await db.deleteHymn(input.id);
@@ -676,8 +703,8 @@ export const appRouter = router({
       fileName: z.string(),
       variant: z.enum(["voice", "instrumental"]).default("voice"),
     })).mutation(async ({ ctx, input }) => {
-      const general = await isXerifeGeral(ctx.user);
-      if (!general) {
+      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
+      if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       const validFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'];
@@ -1001,10 +1028,10 @@ export const appRouter = router({
 
   // Gerenciamento de usuários (apenas master)
   users: router({
-    list: masterProcedure.query(async () => {
+    list: masterOnlyProcedure.query(async () => {
       return db.getAllUsers();
     }),
-    create: masterProcedure.input(z.object({
+    create: masterOnlyProcedure.input(z.object({
       name: z.string(),
       email: z.string().email(),
       password: z.string().min(4),
@@ -1016,14 +1043,14 @@ export const appRouter = router({
       await db.createUserWithPassword({ ...input, password: hashedPassword });
       return { success: true };
     }),
-    updateRole: masterProcedure.input(z.object({
+    updateRole: masterOnlyProcedure.input(z.object({
       id: z.number(),
       role: z.enum(["user", "admin"]),
     })).mutation(async ({ input }) => {
       await db.updateUserRole(input.id, input.role);
       return { success: true };
     }),
-    resetPassword: masterProcedure.input(z.object({
+    resetPassword: masterOnlyProcedure.input(z.object({
       id: z.number(),
       password: z.string().min(4),
     })).mutation(async ({ input }) => {
@@ -1031,8 +1058,66 @@ export const appRouter = router({
       await db.resetUserPassword(input.id, hashedPassword);
       return { success: true };
     }),
-    delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    delete: masterOnlyProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       await db.deleteUser(input.id);
+      return { success: true };
+    }),
+  }),
+
+  ordemUnidaAudio: router({
+    list: publicProcedure.query(async () => {
+      return ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
+    }),
+    listAll: masterProcedure.query(async ({ ctx }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      return ordemUnidaAudioDb.listAllOrdemUnidaAudios();
+    }),
+    upload: masterProcedure.input(z.object({
+      itemId: z.string().trim().regex(/^(corneta|dobrado|voz)-[a-z0-9-]+$/, "Identificador do item inválido"),
+      itemTitle: z.string().trim().min(1).max(255),
+      itemType: z.enum(["corneta", "dobrado", "voz"]),
+      fileName: z.string().trim().min(1).max(255),
+      fileSize: z.number().int().positive().max(MAX_ORDEM_UNIDA_AUDIO_SIZE),
+      mimeType: z.string().trim().min(1).max(100),
+      fileData: z.string().min(1),
+      duration: z.number().int().nonnegative().max(60 * 60 * 8).nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      if (!ORDEM_UNIDA_AUDIO_MIME_TYPES.has(input.mimeType.toLowerCase())) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de áudio não permitido" });
+      }
+
+      const buffer = Buffer.from(input.fileData, "base64");
+      if (!buffer.length || buffer.length !== input.fileSize || buffer.length > MAX_ORDEM_UNIDA_AUDIO_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo inválido ou com tamanho divergente" });
+      }
+
+      const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "audio";
+      const fileKey = `ordem-unida/${input.itemType}/${input.itemId}-${Date.now()}-${nanoid(10)}-${safeFileName}`;
+      const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      const audio = await ordemUnidaAudioDb.upsertOrdemUnidaAudio({
+        itemId: input.itemId,
+        itemTitle: input.itemTitle,
+        itemType: input.itemType,
+        audioUrl: url,
+        fileKey: key,
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        mimeType: input.mimeType,
+        duration: input.duration,
+        uploadedBy: ctx.user.id,
+      });
+      return { success: true, audio };
+    }),
+    deactivate: masterProcedure.input(z.object({ itemId: z.string().trim().min(1).max(128) })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
+      }
+      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.itemId);
       return { success: true };
     }),
   }),
@@ -1803,7 +1888,7 @@ export const appRouter = router({
       let companhia = input?.companhia ?? scope.companhia;
       let peloton = input?.peloton ?? scope.peloton;
 
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
       if (isComandante && !input?.companhia) {
         companhia = undefined;
@@ -1826,7 +1911,7 @@ export const appRouter = router({
         weekStart: z.string().trim().min(10).max(10),
       })
     ).query(async ({ ctx, input }) => {
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const isGeneral = await isXerifeGeral(ctx.user);
       if (!isComandante && !isGeneral) {
         await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
@@ -2538,7 +2623,7 @@ export const appRouter = router({
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
-      const isComandante = isCommandRole(ctx.user.role);
+      const isComandante = isGlobalCommandRole(ctx.user.role);
       const general = await isXerifeGeral(ctx.user);
       const needsValidation = input.type === "positive" || input.type === "negative";
       const foCode = input.foCode ? normalizeFoCode(input.foCode) : "";
@@ -2620,6 +2705,28 @@ export const appRouter = router({
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
       }
       return serviceScaleDb.listPendingStudentObservations({ companhia, peloton });
+    }),
+
+    reviewedStudentObservations: masterProcedure.input(
+      z.object({
+        companhia: z.number().int().min(1).max(5).optional(),
+        peloton: z.number().int().min(1).max(2).optional(),
+      }).optional()
+    ).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      let companhia = input?.companhia;
+      let peloton = input?.peloton;
+      if (!scope.unrestricted) {
+        companhia = scope.companhia;
+        peloton = scope.peloton;
+        if (!companhia) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado para este escopo" });
+        }
+      } else if (companhia) {
+        await requireServiceScaleAccess(ctx.user, companhia, peloton);
+      }
+      return serviceScaleDb.listReviewedStudentObservations({ companhia, peloton });
     }),
 
     contestedStudentObservations: masterProcedure.input(
@@ -3291,7 +3398,7 @@ export const appRouter = router({
   }),
 
   access: router({
-    createAccess: masterProcedure.input(
+    createAccess: masterOnlyProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255),
         email: z.string().trim().min(3).max(255),
@@ -3321,11 +3428,11 @@ export const appRouter = router({
       };
     }),
 
-    listAccesses: masterProcedure.query(async () => {
+    listAccesses: masterOnlyProcedure.query(async () => {
       return await db.getAllUsers();
     }),
 
-    updateAccess: masterProcedure.input(
+    updateAccess: masterOnlyProcedure.input(
       z.object({
         id: z.number().int(),
         name: z.string().trim().min(2).max(255).optional(),
@@ -3339,7 +3446,7 @@ export const appRouter = router({
       return { success: true, message: 'Acesso atualizado com sucesso' };
     }),
 
-    deleteAccess: masterProcedure.input(
+    deleteAccess: masterOnlyProcedure.input(
       z.object({
         id: z.number().int(),
       })

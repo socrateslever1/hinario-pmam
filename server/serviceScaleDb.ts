@@ -1640,6 +1640,31 @@ export async function listPendingStudentObservations(scope?: { companhia?: numbe
   );
 }
 
+export async function listReviewedStudentObservations(scope?: { companhia?: number | null; peloton?: number | null }): Promise<any[]> {
+  await ensureServiceScaleTables();
+  const where = ["o.validation_status IN ('approved','rejected')", "o.type IN ('positive','negative')"];
+  const params: any[] = [];
+  if (scope?.companhia) {
+    where.push("o.companhia = ?");
+    params.push(scope.companhia);
+  }
+  if (scope?.peloton) {
+    where.push("o.peloton = ?");
+    params.push(scope.peloton);
+  }
+  return query(
+    `SELECT o.*, s.numerica, s.nome_guerra, u.name AS created_by_name, vu.name AS validated_by_name
+     FROM pmam_student_observations o
+     INNER JOIN pmam_students s ON s.id = o.student_id
+     LEFT JOIN pmam_users u ON u.id = o.created_by
+     LEFT JOIN pmam_users vu ON vu.id = o.validated_by
+     WHERE ${where.join(" AND ")}
+     ORDER BY COALESCE(o.validated_at, o.created_at) DESC
+     LIMIT 50`,
+    params
+  );
+}
+
 export async function getStudentObservation(id: number): Promise<any | null> {
   await ensureServiceScaleTables();
   const rows = await query(

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import type { User } from "@shared/types";
 
 import { clearStudentSession } from "@/lib/studentSession";
+import { clearEmailSession } from "@/lib/emailSession";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -59,6 +60,7 @@ export function useAuth(options?: UseAuthOptions) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("auth-user-info");
         clearStudentSession();
+        clearEmailSession();
       }
     }
   }, [logoutMutation, utils]);

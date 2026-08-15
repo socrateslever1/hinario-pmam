@@ -68,6 +68,8 @@ interface PeculioTabProps {
   setCompanhia?: (val: string) => void;
   peloton?: string;
   setPeloton?: (val: string) => void;
+  date?: string;
+  setDate?: (val: string) => void;
   isAdmin?: boolean;
 }
 
@@ -76,18 +78,22 @@ export function PeculioTab({
   setCompanhia: propSetCompanhia,
   peloton: propPeloton,
   setPeloton: propSetPeloton,
+  date: propDate,
+  setDate: propSetDate,
   isAdmin = false,
 }: PeculioTabProps = {}) {
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
 
   const [localCompanhia, localSetCompanhia] = useState("1");
   const [localPeloton, localSetPeloton] = useState("1");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [localDate, localSetDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const companhia = propCompanhia ?? localCompanhia;
   const setCompanhia = propSetCompanhia ?? localSetCompanhia;
   const peloton = propPeloton ?? localPeloton;
   const setPeloton = propSetPeloton ?? localSetPeloton;
+  const date = propDate ?? localDate;
+  const setDate = propSetDate ?? localSetDate;
 
   const isPropsPassed = propCompanhia !== undefined && propPeloton !== undefined;
 

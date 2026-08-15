@@ -2,24 +2,27 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as studentDb from "./studentDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 
-function generateRandomNumerica() {
-  return Math.floor(Math.random() * 9000) + 1000;
-}
-
 describe("Student Authentication System", () => {
-  const testNumerica = generateRandomNumerica().toString();
+  let testNumerica = "";
+  let missingNumerica = "";
   const testNomeGuerra = "Soldado Teste " + Math.random().toString(36).substring(7);
   const testSenha = "senha123";
 
   beforeAll(async () => {
-    // Limpar dados de teste antes de começar
-    try {
-      const exists = await studentDb.studentExists(testNumerica);
-      if (exists) {
-        // Se existir, vamos usar outro número
+    const initial = Math.floor(Math.random() * 1000);
+    for (let offset = 0; offset < 1000 && (!testNumerica || !missingNumerica); offset += 1) {
+      const candidate = `9${String((initial + offset) % 1000).padStart(3, "0")}`;
+      if (!(await studentDb.studentExists(candidate))) {
+        if (!testNumerica) {
+          testNumerica = candidate;
+        } else {
+          missingNumerica = candidate;
+        }
       }
-    } catch (error) {
-      // Ignorar erros de limpeza
+    }
+
+    if (!testNumerica || !missingNumerica) {
+      throw new Error("Não foi possível reservar numéricas de teste livres.");
     }
   });
 
@@ -150,7 +153,7 @@ describe("Student Authentication System", () => {
     });
 
     it("deve verificar que aluno inexistente não existe", async () => {
-      const exists = await studentDb.studentExists("9999");
+      const exists = await studentDb.studentExists(missingNumerica);
 
       expect(exists).toBe(false);
     });

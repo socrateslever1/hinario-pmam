@@ -302,14 +302,14 @@
 - [x] Criar página `/xerife/acessos` no painel do Xerife
 - [x] Implementar formulário para criar novo acesso (nome, email, role, pelotão, companhia)
 - [x] Implementar listagem de acessos criados
-- [ ] Implementar edição de acessos
+- [x] Implementar edição de acessos
 - [x] Implementar exclusão de acessos
 
 ### Fase 3: Lógica de Restrição
-- [ ] Implementar visualização de pelotões baseada em role
-- [ ] Implementar restrição de edição baseada em role
-- [ ] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
-- [ ] Implementar anotações (positivas/negativas) para alunos
+- [x] Implementar visualização de pelotões baseada em role
+- [x] Implementar restrição de edição baseada em role
+- [x] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
+- [x] Implementar anotações (positivas/negativas) para alunos
 
 ### Fase 4: Obrigatoriedade de Trocar Senha
 - [x] Implementar verificação de `forcePasswordChange` no login
@@ -317,12 +317,12 @@
 - [x] Atualizar `forcePasswordChange` para false após trocar senha
 
 ### Fase 5: Testes
-- [ ] Testar login de Comandante de Pelotão
-- [ ] Testar login de Comandante de Companhia
-- [ ] Testar login de Comandante do Corpo de Alunos
-- [ ] Testar login de Comandante CFAP
-- [ ] Testar restrições de visualização e edição
-- [ ] Testar obrigatoriedade de trocar senha no primeiro login
+- [x] Testar login de Comandante de Pelotão
+- [x] Testar login de Comandante de Companhia
+- [x] Testar login de Comandante do Corpo de Alunos
+- [x] Testar login de Comandante CFAP
+- [x] Testar restrições de visualização e edição
+- [x] Testar obrigatoriedade de trocar senha no primeiro login
 
 
 ## 📸 UPLOAD DE PROVAS PARA FATO OBSERVADO (FO+/FO-)
@@ -356,3 +356,49 @@
 - [x] Adicionar alerta ao sair do programa na última página (proofs)
 - [x] Criar testes para validar comportamento de inatividade (11 testes passando)
 - [x] Testar navegação sem recarregamento
+
+## Correção de carregamento após sincronização
+
+- [x] Diagnosticar e corrigir a falha de inicialização após atualização do GitHub
+
+## Revisão operacional solicitada — Sala Administrativa e Ordem Unida
+
+- [x] Diagnosticar e corrigir o carregamento de Fatos Observados
+- [x] Simplificar ou substituir a guia Efetivo da Sala Administrativa
+- [x] Reduzir os cards de indicadores e avisos excessivamente altos na Sala Administrativa
+- [x] Redesenhar Ordem Unida com painel rápido por toque para cornetas, dobrados e atalhos
+- [x] Permitir baixar e manter em cache os conteúdos da Ordem Unida no celular
+- [x] Aprimorar a movimentação visual das cadeiras no mapa da sala
+- [x] Destacar o botão de Fato Observado com um sinal visual discreto
+- [x] Verificar abertura automática dos serviços e a consulta de Pécúlios anteriores
+- [x] Substituir integralmente a página de Ordem Unida por um painel único de botões touch
+- [x] Criar uma faixa de acesso rápido personalizável para a sessão atual
+- [x] Organizar os 51 toques da referência em botões de corneta, dobrados e vozes de comando
+- [x] Permitir fixar, remover e reproduzir itens no acesso rápido local
+- [x] Oferecer download e cache local dos áudios disponíveis para uso offline
+- [x] Preparar testes para a seleção, favoritos e reprodução do painel
+- [x] Criar testes para o catálogo e os favoritos locais do painel de Ordem Unida
+- [x] Exibir os Fatos Observados já homologados no escopo administrativo, além das pendências
+- [x] Conectar a guia Efetivo à lista real de alunos do escopo de comando
+- [x] Substituir os indicadores altos da Sala Administrativa por um resumo compacto
+- [x] Destacar a carteira selecionada e animar visualmente a troca de ocupante
+- [x] Adicionar indicador pulsante discreto ao botão global de Fato Observado
+- [x] Manter a data selecionada ao abrir um Pécúlio histórico por pelotão
+- [x] Indicar no painel quando o Pécúlio aguarda abertura automática
+- [x] Restringir a gestão de usuários ao perfil mestre e restaurar o teste de permissão
+- [x] Tornar compatível o login de senha legada com a validação coberta pelos testes
+- [x] Remover do teste de aluno a suposição fixa sobre uma numérica real do banco
+- [x] Restaurar a suíte completa de testes com acesso mestre, login legado e dados de aluno isolados
+- [x] Criar editor pessoal para montar, renomear e reorganizar os itens da sessão de Ordem Unida
+- [x] Exibir a posição ou comando atual em destaque na tela de execução
+- [x] Fazer os botões de toques e dobrados atualizarem diretamente a execução selecionada
+- [x] Criar tabela e procedimentos para cadastrar arquivos de áudio de Ordem Unida
+- [x] Criar área administrativa para enviar e vincular áudios a toques e dobrados
+- [x] Reproduzir o áudio vinculado ao item acionado e interromper o anterior
+- [x] Preparar o download e cache offline dos áudios no aparelho
+- [x] Documentar a importação dos arquivos MP3 futuros
+- [x] Corrigir o logout imediato após login sem quebrar o cache offline
+- [x] Criar teste de regressão para a persistência da sessão autenticada
+- [x] Corrigir a confirmação do cookie HttpOnly no ambiente publicado após login válido
+- [x] Validar o redirecionamento do Xerife Geral após a confirmação de sessão
+- [x] Conectar a procedure existente de atualização ao formulário visual de edição de acessos

@@ -61,6 +61,12 @@ function isCacheableStaticResponse(request, response) {
   }
 
   return true;
+=======
+const AUDIO_FILE_PATTERN = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:$|\?)/i;
+
+function isAudioRequest(request, url) {
+  return request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname);
+>>>>>>> 81d5b6d19a2cb05128aa7dcd68c7828e02fe6f2a
 }
 
 async function addToCache(cache, urls) {
@@ -189,7 +195,7 @@ self.addEventListener("fetch", (event) => {
 
   if (isAuthRoute || isSessionRoute) {
     event.respondWith(
-      fetch(request).catch(() => {
+      fetch(request, { credentials: "include", cache: "no-store" }).catch(() => {
         console.log("[SW] Auth/session offline, returning error");
         return new Response(
           JSON.stringify({ error: "Offline - authentication unavailable" }),

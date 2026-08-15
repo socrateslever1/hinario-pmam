@@ -39,24 +39,19 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const { data: user } = trpc.auth.me.useQuery();
   const { data: myAccess } = trpc.serviceScale.myAccess.useQuery();
   const [isCreating, setIsCreating] = useState(false);
+  const [editingAccess, setEditingAccess] = useState<any | null>(null);
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
   
-  const canManageAccess = user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
-  const canDeleteAccess = (access: any) => {
-    if (access.role === 'master') return user?.role === 'master';
-    return user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
-  };
-  const canEditAccess = (access: any) => {
-    if (access.role === 'master') return user?.role === 'master';
-    return user?.role === 'admin' || user?.role === 'master' || myAccess?.isGeneral;
-  };
+  const canManageAccess = user?.role === 'master';
+  const canDeleteAccess = (_access: any) => user?.role === 'master';
+  const canEditAccess = (_access: any) => user?.role === 'master';
 
   useEffect(() => {
     if (!isTab && user !== undefined && myAccess !== undefined) {
       if (!user) {
         setLocation("/login");
       } else {
-        const canManage = user.role === 'admin' || user.role === 'master' || myAccess?.isGeneral;
+        const canManage = user.role === 'master';
         if (!canManage) {
           setLocation("/xerife");
         }
@@ -73,6 +68,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   })
 
   const createAccessMutation = trpc.access.createAccess.useMutation();
+  const updateAccessMutation = trpc.access.updateAccess.useMutation();
   const deleteAccessMutation = trpc.access.deleteAccess.useMutation();
   const listAccessesQuery = trpc.access.listAccesses.useQuery();
 
@@ -108,6 +104,33 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
       listAccessesQuery.refetch();
     } catch (error: any) {
       console.error('Erro ao deletar acesso:', error.message);
+    }
+  };
+
+  const openEditAccess = (access: any) => {
+    setEditingAccess({
+      id: access.id,
+      name: access.name || '',
+      role: access.role,
+      pelotaoId: access.pelotaoId ? String(access.pelotaoId) : '',
+      companhiaId: access.companhiaId ? String(access.companhiaId) : '',
+    });
+  };
+
+  const handleUpdateAccess = async () => {
+    if (!editingAccess?.name) return;
+    try {
+      await updateAccessMutation.mutateAsync({
+        id: editingAccess.id,
+        name: editingAccess.name,
+        role: editingAccess.role,
+        pelotaoId: editingAccess.pelotaoId ? Number(editingAccess.pelotaoId) : null,
+        companhiaId: editingAccess.companhiaId ? Number(editingAccess.companhiaId) : null,
+      });
+      setEditingAccess(null);
+      await listAccessesQuery.refetch();
+    } catch (error: any) {
+      console.error('Erro ao atualizar acesso:', error.message);
     }
   };
 
@@ -265,6 +288,61 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
         )}
       </div>
 
+      <Dialog open={Boolean(editingAccess)} onOpenChange={(open) => !open && setEditingAccess(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Editar acesso de comando</DialogTitle></DialogHeader>
+          {editingAccess && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Nome completo</label>
+                <Input value={editingAccess.name} onChange={(event) => setEditingAccess({ ...editingAccess, name: event.target.value })} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Função</label>
+                <Select value={editingAccess.role} onValueChange={(role) => setEditingAccess({
+                  ...editingAccess,
+                  role,
+                  pelotaoId: role === 'comandante_pel' ? editingAccess.pelotaoId : '',
+                  companhiaId: ['comandante_cia', 'comandante_pel'].includes(role) ? editingAccess.companhiaId : '',
+                })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
+                    <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
+                    <SelectItem value="subcomandante_corpo">Subcomandante do Corpo de Alunos</SelectItem>
+                    <SelectItem value="comandante_cfap">Comandante CFAP</SelectItem>
+                    <SelectItem value="subcomandante_cfap">Subcomandante CFAP</SelectItem>
+                    <SelectItem value="comandante_cia">Comandante de Companhia</SelectItem>
+                    <SelectItem value="comandante_pel">Comandante de Pelotão</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editingAccess.role === 'comandante_pel' && (
+                <div>
+                  <label className="text-sm font-medium">Pelotão</label>
+                  <Select value={editingAccess.pelotaoId} onValueChange={(pelotaoId) => setEditingAccess({ ...editingAccess, pelotaoId })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{PELOTON_OPTIONS.map((pelotao) => <SelectItem key={pelotao.value} value={pelotao.value}>{pelotao.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {['comandante_cia', 'comandante_pel'].includes(editingAccess.role) && (
+                <div>
+                  <label className="text-sm font-medium">Companhia</label>
+                  <Select value={editingAccess.companhiaId} onValueChange={(companhiaId) => setEditingAccess({ ...editingAccess, companhiaId })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{COMPANHIA_OPTIONS.map((companhia) => <SelectItem key={companhia.value} value={companhia.value}>{companhia.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              <Button className="w-full" onClick={handleUpdateAccess} disabled={updateAccessMutation.isPending || !editingAccess.name}>
+                {updateAccessMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {listAccessesQuery.isLoading ? (
         <div className="text-center py-8">Carregando contas...</div>
       ) : listAccessesQuery.data?.length === 0 ? (
@@ -316,6 +394,12 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                 </div>
                 
                 <div className="flex gap-2">
+                  {canEditAccess(access) && (
+                    <Button variant="outline" size="sm" onClick={() => openEditAccess(access)}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                  )}
                   {canDeleteAccess(access) ? (
                     <Button
                       variant="destructive"
