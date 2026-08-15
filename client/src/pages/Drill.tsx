@@ -31,9 +31,12 @@ import {
 } from "@/lib/drillStateMachine";
 import {
   buildMarchCombinationPlan,
+  buildPreparedSequencePlan,
   movePreparedItem,
   sanitizeMarchCombinations,
+  sanitizeSequenceDelay,
   type MarchCombination,
+  type PreparedSequenceStep,
 } from "@/lib/drillPanelPreferences";
 
 type BugleCall = {
@@ -64,6 +67,7 @@ type VoiceCommand = {
 const PREPARED_STORAGE_KEY = "pmam-bugle-prepared-v1";
 const TROOP_STATE_STORAGE_KEY = "pmam-bugle-troop-state-v2";
 const MARCH_COMBINATIONS_STORAGE_KEY = "pmam-bugle-march-combinations-v1";
+const SEQUENCE_DELAY_STORAGE_KEY = "pmam-bugle-sequence-delay-v1";
 const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
 
 function readStoredDrillState(): DrillState {
@@ -116,15 +120,26 @@ function readStoredMarchCombinations() {
   }
 }
 
+function readStoredSequenceDelay() {
+  try {
+    return sanitizeSequenceDelay(localStorage.getItem(SEQUENCE_DELAY_STORAGE_KEY));
+  } catch {
+    return 2;
+  }
+}
+
 export default function Drill() {
   const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
   const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const queuedAudioRef = useRef<{ key: string; label: string; audioUrl: string } | null>(null);
+  const audioQueueRef = useRef<PreparedSequenceStep[]>([]);
+  const sequenceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [preparedIds, setPreparedIds] = useState<number[]>(readStoredIds);
   const [marchCombinations, setMarchCombinations] = useState<MarchCombination[]>(readStoredMarchCombinations);
   const [selectedMarchCallId, setSelectedMarchCallId] = useState("");
   const [selectedMarchId, setSelectedMarchId] = useState("");
+  const [selectedPreparedMarchId, setSelectedPreparedMarchId] = useState("");
+  const [sequenceDelaySeconds, setSequenceDelaySeconds] = useState(readStoredSequenceDelay);
   const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [playingLabel, setPlayingLabel] = useState<string | null>(null);
@@ -157,8 +172,20 @@ export default function Drill() {
     localStorage.setItem(MARCH_COMBINATIONS_STORAGE_KEY, JSON.stringify(marchCombinations));
   }, [marchCombinations]);
 
+  useEffect(() => {
+    localStorage.setItem(SEQUENCE_DELAY_STORAGE_KEY, String(sequenceDelaySeconds));
+  }, [sequenceDelaySeconds]);
+
+  useEffect(() => () => {
+    if (sequenceDelayTimerRef.current) clearTimeout(sequenceDelayTimerRef.current);
+  }, []);
+
   const stopAudio = () => {
-    queuedAudioRef.current = null;
+    audioQueueRef.current = [];
+    if (sequenceDelayTimerRef.current) {
+      clearTimeout(sequenceDelayTimerRef.current);
+      sequenceDelayTimerRef.current = null;
+    }
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
@@ -169,15 +196,8 @@ export default function Drill() {
     setPlayingLabel(null);
   };
 
-  const handleAudioEnded = async () => {
-    const queued = queuedAudioRef.current;
-    queuedAudioRef.current = null;
-    if (!queued) {
-      setPlayingKey(null);
-      setPlayingLabel(null);
-      return;
-    }
-
+  const startQueuedAudio = async (queued: PreparedSequenceStep) => {
+    sequenceDelayTimerRef.current = null;
     const audio = audioRef.current;
     if (!audio) return;
     audio.loop = false;
@@ -187,11 +207,29 @@ export default function Drill() {
       await audio.play();
       setPlayingKey(queued.key);
       setPlayingLabel(queued.label);
+      if (queued.nextState) setDrillState(queued.nextState);
     } catch {
+      audioQueueRef.current = [];
       setPlayingKey(null);
       setPlayingLabel(null);
-      toast.error("O toque terminou, mas não foi possível iniciar o dobrado.");
+      toast.error("O toque terminou, mas não foi possível iniciar o próximo áudio da sequência.");
     }
+  };
+
+  const handleAudioEnded = () => {
+    const [queued, ...remaining] = audioQueueRef.current;
+    audioQueueRef.current = remaining;
+    if (!queued) {
+      setPlayingKey(null);
+      setPlayingLabel(null);
+      return;
+    }
+
+    setPlayingKey(`wait-${queued.key}`);
+    setPlayingLabel(`Próximo em ${sequenceDelaySeconds}s: ${queued.label}`);
+    sequenceDelayTimerRef.current = setTimeout(() => {
+      void startQueuedAudio(queued);
+    }, sequenceDelaySeconds * 1000);
   };
 
   const playAudio = async (key: string, label: string, audioUrl: string | null) => {
@@ -313,17 +351,44 @@ export default function Drill() {
       return;
     }
 
-    queuedAudioRef.current = {
+    audioQueueRef.current = [{
       key: `combination-${combination.id}-march`,
       label: `Dobrado: ${plan.second.label}`,
       audioUrl: plan.second.audioUrl,
-    };
+    }];
     const started = await playAudio(`combination-${combination.id}-call`, `${plan.first.label} → ${plan.second.label}`, plan.first.audioUrl);
     if (!started) {
-      queuedAudioRef.current = null;
+      audioQueueRef.current = [];
       return;
     }
     setDrillState(plan.nextState);
+  };
+
+  const playPreparedSequence = async () => {
+    if (playingKey) {
+      toast.error("Aguarde o áudio atual terminar ou use “Parar áudio”.");
+      return;
+    }
+
+    const selectedMarch = marches.find((march) => march.id === Number(selectedPreparedMarchId));
+    const plan = buildPreparedSequencePlan(prepared, selectedMarch, drillState);
+    if (!plan.ok) {
+      if (plan.requiredCommands?.length) {
+        toast.error(`${plan.reason} Ordem necessária: ${plan.requiredCommands.map(commandLabel).join(" → ")}.`);
+      } else {
+        toast.error(plan.reason);
+      }
+      return;
+    }
+
+    const [first, ...remaining] = plan.steps;
+    audioQueueRef.current = remaining;
+    const started = await playAudio(first.key, first.label, first.audioUrl);
+    if (!started) {
+      audioQueueRef.current = [];
+      return;
+    }
+    if (first.nextState) setDrillState(first.nextState);
   };
 
   const resetOperation = () => {
@@ -345,7 +410,7 @@ export default function Drill() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d] dark:bg-[#141a16] dark:text-[#f4f0df]">
       <Navbar />
-      <audio ref={audioRef} preload="none" loop={false} onEnded={() => { void handleAudioEnded(); }} />
+      <audio ref={audioRef} preload="none" loop={false} onEnded={handleAudioEnded} />
 
       <main className="container space-y-4 px-3 py-3 sm:px-4 md:space-y-6 md:py-7">
         <section className="overflow-hidden rounded-2xl bg-[#10281d] text-white shadow-xl md:rounded-3xl">
@@ -400,20 +465,40 @@ export default function Drill() {
                 Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
               </div>
             ) : (
-              <div className="flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
-                {prepared.map((call, index) => (
-                  <div key={call.id} className="min-w-20">
-                    <CommandSoundButton
-                      compact
-                      title={call.name}
-                      iconKey={call.iconKey}
-                      isPlaying={playingKey === `call-${call.id}`}
-                      isAllowed={isDrillCommandAllowed(call.name, drillState)}
-                      onClick={() => playCall(call)}
-                      action={<div className="mt-1 flex items-center justify-center gap-1"><button type="button" disabled={index === 0} aria-label={`Mover ${call.name} para antes`} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, -1))} className="grid h-6 w-6 place-items-center rounded-full border bg-white text-[#1a3a2a] disabled:opacity-25"><ArrowLeft className="h-3.5 w-3.5" /></button><button type="button" disabled={index === prepared.length - 1} aria-label={`Mover ${call.name} para depois`} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, 1))} className="grid h-6 w-6 place-items-center rounded-full border bg-white text-[#1a3a2a] disabled:opacity-25"><ArrowRight className="h-3.5 w-3.5" /></button><button type="button" aria-label={`Remover ${call.name} dos preparados`} onClick={() => removePrepared(call.id)} className="grid h-6 w-6 place-items-center rounded-full bg-red-700 text-white"><X className="h-3.5 w-3.5" /></button></div>}
-                    />
-                  </div>
-                ))}
+              <div>
+                <div className="flex gap-3 overflow-x-auto px-1 pb-2 pt-1">
+                  {prepared.map((call, index) => (
+                    <div key={call.id} className="min-w-20">
+                      <CommandSoundButton
+                        compact
+                        title={call.name}
+                        iconKey={call.iconKey}
+                        isPlaying={playingKey === `sequence-call-${call.id}` || playingKey === `call-${call.id}`}
+                        isAllowed={isDrillCommandAllowed(call.name, drillState)}
+                        onClick={() => playCall(call)}
+                        action={<div className="mt-1 flex items-center justify-center gap-1"><button type="button" disabled={index === 0} aria-label={`Mover ${call.name} para antes`} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, -1))} className="grid h-6 w-6 place-items-center rounded-full border bg-white text-[#1a3a2a] disabled:opacity-25"><ArrowLeft className="h-3.5 w-3.5" /></button><button type="button" disabled={index === prepared.length - 1} aria-label={`Mover ${call.name} para depois`} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, 1))} className="grid h-6 w-6 place-items-center rounded-full border bg-white text-[#1a3a2a] disabled:opacity-25"><ArrowRight className="h-3.5 w-3.5" /></button><button type="button" aria-label={`Remover ${call.name} dos preparados`} onClick={() => removePrepared(call.id)} className="grid h-6 w-6 place-items-center rounded-full bg-red-700 text-white"><X className="h-3.5 w-3.5" /></button></div>}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 grid gap-2 border-t border-[#1a3a2a]/15 pt-3 dark:border-white/15 sm:grid-cols-[1fr_auto_auto]">
+                  <Select value={selectedPreparedMarchId} onValueChange={setSelectedPreparedMarchId}>
+                    <SelectTrigger aria-label="Dobrado ao final da sequência"><SelectValue placeholder="Escolha o dobrado final" /></SelectTrigger>
+                    <SelectContent>{marches.map((march) => <SelectItem key={march.id} value={String(march.id)}>{march.title}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={String(sequenceDelaySeconds)} onValueChange={(value) => setSequenceDelaySeconds(sanitizeSequenceDelay(value))}>
+                    <SelectTrigger className="sm:w-36" aria-label="Intervalo entre os áudios"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 5].map((seconds) => <SelectItem key={seconds} value={String(seconds)}>{seconds} {seconds === 1 ? "segundo" : "segundos"}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" onClick={playPreparedSequence} disabled={prepared.length === 0 || marches.length === 0 || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
+                    <AudioLines className="mr-1.5 h-4 w-4" /> Executar sequência completa
+                  </Button>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    Ordem automática: {DRILL_STATE_LABELS[drillState]} → {prepared.map((call) => call.name).join(" → ")} → dobrado escolhido. Pausa de {sequenceDelaySeconds}s entre cada áudio.
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
