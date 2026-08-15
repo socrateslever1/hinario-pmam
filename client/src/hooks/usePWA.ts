@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const CACHE_NAME = "hinario-pmam-cache-v3";
+const CACHE_NAME = "hinario-pmam-cache-v5";
 let registrationStarted = false;
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 let updateIntervalId: number | null = null;
@@ -22,6 +22,10 @@ async function cacheEach(urls: string[]) {
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) {
         throw new Error(`Falha ao cachear ${url}: ${response.status}`);
+      }
+      const contentType = response.headers.get("content-type") || "";
+      if (/\.(?:m?js|css)(?:$|\?)/i.test(url) && /text\/html/i.test(contentType)) {
+        throw new Error(`Resposta invÃ¡lida ao cachear asset ${url}`);
       }
       await cache.put(url, response.clone());
     }),

@@ -1,284 +1,424 @@
-import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
-import { ordemUnidaManualHighlights } from "@/lib/studyLibrary";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   ArrowLeft,
-  FileText,
-  Image as ImageIcon,
+  ArrowRight,
+  AudioLines,
+  Bell,
+  Clock3,
+  CloudDownload,
+  Eye,
+  Flag,
+  Flame,
+  Footprints,
+  Gauge,
+  Hand,
+  Lock,
+  Music,
+  Pause,
   Play,
+  Plus,
+  RotateCw,
+  RotateCcw,
+  School,
   Search,
-  ShieldCheck,
-  Target,
-  UploadCloud,
-  Video,
+  Shield,
+  Sun,
+  UserRound,
+  Users,
+  Utensils,
+  Volume2,
+  VolumeX,
+  X,
+  type LucideIcon,
 } from "lucide-react";
+import {
+  applyDrillCommand,
+  DRILL_STATE_LABELS,
+  getPositionCommandsAllowedFrom,
+  getRequiredCommandSequence,
+  isDrillCommandAllowed,
+  MARCH_STATES,
+  type DrillState,
+} from "@/lib/drillStateMachine";
 
-const difficultyLabels: Record<string, string> = {
-  basico: "Básico",
-  intermediario: "Intermediário",
-  avancado: "Avançado",
+type BugleCall = {
+  id: number;
+  name: string;
+  audioUrl: string | null;
+  iconKey: string;
+  troopState: string | null;
+  category: string;
 };
 
-const difficultyClasses: Record<string, string> = {
-  basico: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200",
-  intermediario: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200",
-  avancado: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-200",
+type March = {
+  id: number;
+  title: string;
+  composer: string | null;
+  audioUrl: string | null;
 };
+
+const iconMap: Record<string, LucideIcon> = {
+  "arrow-left": ArrowLeft,
+  "arrow-right": ArrowRight,
+  bell: Bell,
+  clock: Clock3,
+  eye: Eye,
+  flag: Flag,
+  flame: Flame,
+  footprints: Footprints,
+  gauge: Gauge,
+  hand: Hand,
+  relaxed: Pause,
+  rotate: RotateCw,
+  salute: Hand,
+  school: School,
+  search: Search,
+  shield: Shield,
+  sun: Sun,
+  user: UserRound,
+  users: Users,
+  utensils: Utensils,
+  volume: Volume2,
+  "volume-off": VolumeX,
+  music: Music,
+};
+
+const PREPARED_STORAGE_KEY = "pmam-bugle-prepared-v1";
+const TROOP_STATE_STORAGE_KEY = "pmam-bugle-troop-state-v2";
+const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
+
+function readStoredDrillState(): DrillState {
+  try {
+    const stored = localStorage.getItem(TROOP_STATE_STORAGE_KEY) as DrillState | null;
+    return stored && VALID_DRILL_STATES.has(stored) ? stored : "descansar";
+  } catch {
+    return "descansar";
+  }
+}
+
+const COMMAND_LABELS: Record<string, string> = {
+  "a vontade": "À vontade",
+  "descansar": "Descansar",
+  "sentido": "Sentido",
+  "ombro arma": "Ombro arma",
+  "apresentar arma": "Apresentar arma",
+  "cruzar arma": "Cruzar arma",
+  "descansar arma": "Descansar arma",
+  "cobrir": "Cobrir",
+  "firme": "Firme",
+  "olhar a direita": "Olhar à direita",
+  "olhar a esquerda": "Olhar à esquerda",
+  "olhar em frente": "Olhar em frente",
+  "ordinario marche": "Ordinário marche",
+  "marcha batida": "Marcha batida",
+  "marcar passo": "Marcar passo",
+  "acelerado": "Acelerado",
+  "alto": "Alto",
+};
+
+function commandLabel(command: string) {
+  return COMMAND_LABELS[command] || (command.charAt(0).toLocaleUpperCase("pt-BR") + command.slice(1));
+}
+
+function readStoredIds() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter(Number.isInteger) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function Drill() {
-  const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
+  const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [preparedIds, setPreparedIds] = useState<number[]>(readStoredIds);
+  const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+  const [playingLabel, setPlayingLabel] = useState<string | null>(null);
 
-  const { data: drills, isLoading } = trpc.drill.list.useQuery();
+  const calls = (data?.calls || []) as BugleCall[];
+  const marches = (data?.marches || []) as March[];
+  const prepared = useMemo(
+    () => preparedIds.map((id) => calls.find((call) => call.id === id)).filter(Boolean) as BugleCall[],
+    [calls, preparedIds],
+  );
 
-  const categories = useMemo(() => {
-    if (!drills) return [];
-    return Array.from(new Set(drills.map((item: any) => item.category).filter(Boolean))).sort();
-  }, [drills]);
+  useEffect(() => {
+    localStorage.setItem(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
+  }, [preparedIds]);
 
-  const filteredDrills = useMemo(() => {
-    if (!drills) return [];
+  useEffect(() => {
+    localStorage.setItem(TROOP_STATE_STORAGE_KEY, drillState);
+  }, [drillState]);
 
-    const normalizedQuery = query.trim().toLowerCase();
+  const stopAudio = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.removeAttribute("src");
+    }
+    setPlayingKey(null);
+    setPlayingLabel(null);
+  };
 
-    return drills.filter((item: any) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        [item.title, item.subtitle, item.description, item.instructor, item.category]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
+  const playAudio = async (key: string, label: string, audioUrl: string | null) => {
+    if (!audioUrl) {
+      toast.error("Este item ainda não possui áudio. Adicione-o no dashboard.");
+      return false;
+    }
 
-      const matchesCategory = !selectedCategory || item.category === selectedCategory;
-      const matchesDifficulty = !selectedDifficulty || item.difficulty === selectedDifficulty;
+    if (playingKey === key) {
+      stopAudio();
+      return false;
+    }
 
-      return matchesQuery && matchesCategory && matchesDifficulty;
-    });
-  }, [drills, query, selectedCategory, selectedDifficulty]);
+    const audio = audioRef.current;
+    if (!audio) return false;
+    audio.pause();
+    audio.loop = false;
+    audio.src = audioUrl;
+    audio.load();
+    try {
+      await audio.play();
+      setPlayingKey(key);
+      setPlayingLabel(label);
+      return true;
+    } catch {
+      setPlayingKey(null);
+      setPlayingLabel(null);
+      toast.error("Não foi possível reproduzir este áudio.");
+      return false;
+    }
+  };
 
-  const mediaCount = filteredDrills.filter((item: any) => item.videoUrl || item.imageUrl || item.pdfUrl).length;
+  const playCall = async (call: BugleCall) => {
+    const key = `call-${call.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+    if (playingKey) {
+      toast.error("Aguarde o toque atual terminar ou use “Parar áudio”.");
+      return;
+    }
+    if (!isDrillCommandAllowed(call.name, drillState)) {
+      const sequence = getRequiredCommandSequence(call.name, drillState).map(commandLabel).join(" → ");
+      toast.error(`Comando bloqueado. Execute antes: ${sequence}.`);
+      return;
+    }
+    if (await playAudio(key, call.name, call.audioUrl)) {
+      setDrillState((current) => applyDrillCommand(call.name, current));
+    }
+  };
+
+  const playMarch = async (march: March) => {
+    const key = `march-${march.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+    if (playingKey) {
+      toast.error("Aguarde o áudio atual terminar ou use “Parar áudio”.");
+      return;
+    }
+    if (!MARCH_STATES.includes(drillState)) {
+      const prefix = drillState === "descansar" ? "Sentido → Ordinário marche" : "Ordinário marche";
+      toast.error(`Dobrado bloqueado. Coloque a tropa em marcha: ${prefix}.`);
+      return;
+    }
+    await playAudio(key, march.title, march.audioUrl);
+  };
+
+  const resetOperation = () => {
+    if (!confirm("Iniciar uma nova execução na posição Descansar?")) return;
+    stopAudio();
+    setDrillState("descansar");
+  };
+
+  const nextPositionCommands = getPositionCommandsAllowedFrom(drillState).map(commandLabel);
+
+  const addPrepared = (id: number) => {
+    setPreparedIds((current) => (current.includes(id) ? current : [...current, id]));
+  };
+
+  const removePrepared = (id: number) => {
+    setPreparedIds((current) => current.filter((item) => item !== id));
+  };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d]">
       <Navbar />
+      <audio ref={audioRef} preload="none" loop={false} onEnded={() => { setPlayingKey(null); setPlayingLabel(null); }} />
 
-      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12">
-        <div className="container text-center">
-          <Target className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
-            Ordem Unida
-          </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Conteúdo organizado para instrução, consulta e demonstração, com espaço para vídeo, imagem e PDF em cada material.
-          </p>
-        </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
-      </section>
+      <main className="container space-y-5 px-3 py-4 sm:px-4 md:space-y-7 md:py-8">
+        <section className="overflow-hidden rounded-3xl bg-[#10281d] text-white shadow-xl">
+          <div className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#d8c46a]">
+                <AudioLines className="h-5 w-5" /> Painel de corneta
+              </div>
+              <p className="text-sm text-white/65">Situação atual da tropa</p>
+              <h1 className="mt-1 text-3xl font-black leading-tight sm:text-4xl" aria-live="polite">
+                Está: <span className="text-[#ead46e]">{DRILL_STATE_LABELS[drillState]}</span>
+              </h1>
+              <p className="mt-3 min-h-6 text-sm text-white/75" aria-live="polite">
+                {playingLabel ? `Executando agora: ${playingLabel}` : "Nenhum toque em execução"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 md:min-w-48">
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                onClick={stopAudio}
+                disabled={!playingKey}
+                className="h-14 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Pause className="mr-2 h-5 w-5" /> Parar áudio
+              </Button>
+              <Button type="button" variant="ghost" onClick={resetOperation} className="text-white/75 hover:bg-white/10 hover:text-white">
+                <RotateCcw className="mr-2 h-4 w-4" /> Nova execução
+              </Button>
+            </div>
+          </div>
+          <div className="border-t border-white/10 px-5 py-3 text-sm text-white/70 md:px-8">
+            <strong className="text-white">Próximos comandos de posição:</strong> {nextPositionCommands.join(" • ") || "nenhum"}
+          </div>
+        </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
-        <div className="container space-y-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-border/50 bg-card text-foreground shadow-sm">
-              <CardContent className="flex items-center gap-4 p-5">
-                <Target className="h-10 w-10 text-[#1a3a2a]" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Publicados</p>
-                  <p className="text-2xl font-bold">{drills?.length ?? 0}</p>
-                  <p className="text-sm text-muted-foreground">Itens de ordem unida</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-card text-foreground shadow-sm">
-              <CardContent className="flex items-center gap-4 p-5">
-                <Video className="h-10 w-10 text-[#1a3a2a]" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Mídias</p>
-                  <p className="text-2xl font-bold">{mediaCount}</p>
-                  <p className="text-sm text-muted-foreground">Vídeos, imagens e PDFs</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-card text-foreground shadow-sm">
-              <CardContent className="flex items-center gap-4 p-5">
-                <ShieldCheck className="h-10 w-10 text-[#1a3a2a]" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Base Doutrinária</p>
-                  <p className="text-2xl font-bold">CFAP</p>
-                  <p className="text-sm text-muted-foreground">Integrado aos manuais</p>
-                </div>
-              </CardContent>
-            </Card>
+        <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm">
+          <CardContent className="p-4 md:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black">Toques preparados</h2>
+              <p className="text-sm text-muted-foreground">Fixe aqui os comandos que serão usados durante a execução.</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700"><CloudDownload className="h-3.5 w-3.5" /> Os áudios são baixados automaticamente para uso com conexão lenta.</p>
+              </div>
+              {prepared.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPreparedIds([])}>Limpar</Button>
+              )}
+            </div>
+            {prepared.length === 0 ? (
+              <div className="rounded-2xl border-2 border-dashed border-[#1a3a2a]/20 px-4 py-7 text-center text-sm text-muted-foreground">
+                Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
+              </div>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {prepared.map((call) => (
+                  <div key={call.id} className="relative min-w-40">
+                    <Button
+                      type="button"
+                      onClick={() => playCall(call)}
+                      className={`h-20 w-full whitespace-normal px-4 text-left ${playingKey === `call-${call.id}` ? "bg-[#c4a84b] text-[#15251d] hover:bg-[#b89b3e]" : "bg-[#1a3a2a] text-white hover:bg-[#10281d]"}`}
+                    >
+                      <Play className="mr-2 h-5 w-5 shrink-0" /> {call.name}
+                    </Button>
+                    <button
+                      type="button"
+                      aria-label={`Remover ${call.name} dos preparados`}
+                      onClick={() => removePrepared(call.id)}
+                      className="absolute -right-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-700 text-white shadow"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <section aria-labelledby="bugle-calls-title">
+          <div className="mb-4">
+            <h2 id="bugle-calls-title" className="text-2xl font-black">Toques de corneta</h2>
+            <p className="text-sm text-muted-foreground">Toque em um botão para executar. Toque no <Plus className="inline h-4 w-4" /> para prepará-lo.</p>
           </div>
 
-          <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5 text-foreground shadow-sm">
-            <CardContent className="flex items-start gap-4 p-6">
-               <ShieldCheck className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
-              <div className="space-y-2">
-                <h3 className="font-bold text-foreground">Referência no Manual do Aluno</h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {ordemUnidaManualHighlights.map((highlight) => (
-                    <li key={highlight} className="flex gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />
-                      <span>{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50 bg-card text-foreground shadow-sm rounded-xl">
-            <CardContent className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_330px]">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar por título, instrutor, categoria ou descrição"
-                    className="pl-9"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategory === null ? "default" : "outline"}
-                    className={selectedCategory === null ? "bg-[#1a3a2a] text-white hover:bg-[#10281d]" : ""}
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    Todas as categorias
-                  </Button>
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? "default" : "outline"}
-                      className={selectedCategory === category ? "bg-[#1a3a2a] text-white hover:bg-[#10281d]" : ""}
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      {category}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedDifficulty === null ? "outline" : "ghost"}
-                    onClick={() => setSelectedDifficulty(null)}
-                  >
-                    Todas as dificuldades
-                  </Button>
-                  {Object.entries(difficultyLabels).map(([key, label]) => (
-                    <Button
-                      key={key}
-                      variant={selectedDifficulty === key ? "default" : "outline"}
-                      className={selectedDifficulty === key ? "bg-[#c4a84b] text-[#1a1a1a] hover:bg-[#b79834]" : ""}
-                      onClick={() => setSelectedDifficulty(key)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border bg-[#1a3a2a]/5 p-4 text-sm text-muted-foreground">
-                <p className="font-semibold text-[#1a3a2a]">O que já está pronto</p>
-                <ul className="mt-3 space-y-2">
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />Cada item pode carregar vídeo, PDF e imagem.</li>
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />A página pública pode reunir orientação, demonstração e material complementar no mesmo fluxo.</li>
-                  <li className="flex gap-2"><span className="mt-1 h-2 w-2 rounded-full bg-[#c4a84b]" />O admin já serve de base para incluir novos materiais de ordem unida.</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
           {isLoading ? (
-            <Card className="border-border/50 bg-card text-foreground shadow-sm">
-              <CardContent className="p-12 text-center text-muted-foreground">
-                Carregando ordem unida...
-              </CardContent>
-            </Card>
-          ) : filteredDrills.length === 0 ? (
-            <Card className="border-border/50 bg-card text-foreground shadow-sm">
-              <CardContent className="p-12 text-center text-muted-foreground">
-                Nenhum material de ordem unida encontrado com esse filtro.
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">Carregando painel...</div>
+          ) : isError ? (
+            <div className="rounded-2xl border border-red-300 bg-red-50 p-6 text-center text-red-800">Não foi possível carregar os toques.</div>
+          ) : calls.length === 0 ? (
+            <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">Nenhum toque ativo cadastrado.</div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredDrills.map((item: any) => (
-                <Link key={item.id} href={`/drill/${item.id}`}>
-                  <Card className="h-full cursor-pointer overflow-hidden border-border/50 bg-card text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/50">
-                    <div className="relative aspect-[16/9] overflow-hidden bg-[#0f1f18]">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#10281d] to-[#1f4735]">
-                          <Target className="h-14 w-14 text-[#c4a84b]" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <div className="flex flex-wrap gap-2">
-                          {item.videoUrl && <Badge className="bg-red-600 text-white"><Play className="mr-1 h-3 w-3" />Vídeo</Badge>}
-                          {item.pdfUrl && <Badge className="bg-blue-600 text-white"><FileText className="mr-1 h-3 w-3" />PDF</Badge>}
-                          {item.imageUrl && <Badge className="bg-emerald-600 text-white"><ImageIcon className="mr-1 h-3 w-3" />Imagem</Badge>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <CardContent className="space-y-4 p-5">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {item.category && <Badge variant="outline">{item.category}</Badge>}
-                          {item.difficulty && (
-                            <Badge className={difficultyClasses[item.difficulty] ?? "bg-slate-100 text-slate-800"}>
-                              {difficultyLabels[item.difficulty] ?? item.difficulty}
-                            </Badge>
-                          )}
-                        </div>
-                        <h3 className="text-xl font-semibold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
-                          {item.title}
-                        </h3>
-                        {item.subtitle && (
-                          <p className="text-sm text-muted-foreground">{item.subtitle}</p>
-                        )}
-                      </div>
-
-                      {item.description && (
-                        <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                          {item.description}
-                        </p>
-                      )}
-
-                      <div className="rounded-2xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                        <p><strong className="text-foreground">Instrutor:</strong> {item.instructor || "Não informado"}</p>
-                        <p className="mt-1"><strong className="text-foreground">Duração:</strong> {item.duration ? `${item.duration} min` : "Livre"}</p>
-                      </div>
-
-                      <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d]">
-                        Abrir material
-                      </Button>
-                    </CardContent>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {calls.map((call) => {
+                const Icon = iconMap[call.iconKey] || Music;
+                const isPlaying = playingKey === `call-${call.id}`;
+                const isPrepared = preparedIds.includes(call.id);
+                const isAllowed = isDrillCommandAllowed(call.name, drillState);
+                return (
+                  <Card key={call.id} className={`relative overflow-hidden border-2 shadow-sm transition ${isPlaying ? "border-[#c4a84b] bg-[#fff9d9]" : "border-transparent bg-white"}`}>
+                    <button
+                      type="button"
+                      onClick={() => playCall(call)}
+                      className={`flex min-h-36 w-full flex-col items-center justify-center gap-3 p-4 text-center outline-none focus-visible:ring-4 focus-visible:ring-[#c4a84b]/50 ${!isAllowed && !isPlaying ? "cursor-not-allowed opacity-45" : ""}`}
+                      aria-disabled={!isAllowed && !isPlaying}
+                      aria-label={`${isPlaying ? "Parar" : isAllowed ? "Executar" : "Bloqueado"} toque ${call.name}`}
+                    >
+                      <span className={`grid h-14 w-14 place-items-center rounded-2xl ${isPlaying ? "bg-[#c4a84b] text-[#15251d]" : "bg-[#1a3a2a] text-[#ead46e]"}`}>
+                        {isPlaying ? <Pause className="h-7 w-7" /> : isAllowed ? <Icon className="h-7 w-7" /> : <Lock className="h-7 w-7" />}
+                      </span>
+                      <span className="text-sm font-extrabold leading-tight">{call.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPrepared}
+                      onClick={() => addPrepared(call.id)}
+                      aria-label={`Adicionar ${call.name} aos preparados`}
+                      className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full border bg-white text-[#1a3a2a] shadow-sm disabled:opacity-35"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
                   </Card>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
-      </section>
+        </section>
 
+        <section aria-labelledby="marches-title" className="rounded-3xl bg-[#1a3a2a] p-4 text-white md:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#c4a84b] text-[#15251d]"><Footprints className="h-7 w-7" /></span>
+            <div>
+              <h2 id="marches-title" className="text-2xl font-black">Dobrados</h2>
+              <p className="text-sm text-white/65">Músicas para marcha e deslocamento da tropa.</p>
+            </div>
+          </div>
+          {marches.length === 0 ? (
+            <div className="rounded-2xl border border-white/20 bg-white/5 px-5 py-8 text-center text-sm text-white/65">
+              Espaço pronto. Cadastre os dobrados no dashboard para exibi-los aqui.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {marches.map((march) => {
+                const isPlaying = playingKey === `march-${march.id}`;
+                return (
+                  <Button
+                    key={march.id}
+                    type="button"
+                    variant="outline"
+                    onClick={() => playMarch(march)}
+                    aria-disabled={!MARCH_STATES.includes(drillState) && !isPlaying}
+                    className={`h-auto min-h-20 justify-start whitespace-normal border-white/20 px-4 py-3 text-left ${isPlaying ? "bg-[#c4a84b] text-[#15251d]" : MARCH_STATES.includes(drillState) ? "bg-white/10 text-white hover:bg-white/20 hover:text-white" : "cursor-not-allowed bg-white/5 text-white/40"}`}
+                  >
+                    {isPlaying ? <Pause className="mr-3 h-6 w-6 shrink-0" /> : MARCH_STATES.includes(drillState) ? <Music className="mr-3 h-6 w-6 shrink-0" /> : <Lock className="mr-3 h-6 w-6 shrink-0" />}
+                    <span><strong className="block">{march.title}</strong>{march.composer && <small className="opacity-70">{march.composer}</small>}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
       <Footer />
     </div>
   );

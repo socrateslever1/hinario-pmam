@@ -1,0 +1,241 @@
+import { useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Music, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+type Kind = "call" | "march";
+
+const ICON_OPTIONS = [
+  ["music", "Música"], ["shield", "Militar"], ["users", "Tropa"], ["user", "Autoridade"],
+  ["footprints", "Marcha"], ["flag", "Bandeira"], ["clock", "Horário"], ["bell", "Alerta"],
+  ["hand", "Alto"], ["relaxed", "Descansar"], ["rotate", "Volver"], ["eye", "Olhar"],
+  ["sun", "Alvorada"], ["utensils", "Rancho"], ["volume-off", "Silêncio"],
+] as const;
+
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.readAsDataURL(file);
+  });
+}
+
+function emptyForm(kind: Kind) {
+  return kind === "call"
+    ? { name: "", audioUrl: "", iconKey: "music", troopState: "", category: "geral", sourceUrl: "", sortOrder: 0, isActive: true }
+    : { title: "", composer: "", audioUrl: "", sourceUrl: "", sortOrder: 0, isActive: true };
+}
+
+export function BuglePanelAdmin() {
+  const utils = trpc.useUtils();
+  const { data, isLoading } = trpc.buglePanel.listAll.useQuery();
+  const [kind, setKind] = useState<Kind>("call");
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState<any>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [search, setSearch] = useState("");
+
+  const invalidate = () => Promise.all([utils.buglePanel.list.invalidate(), utils.buglePanel.listAll.invalidate()]);
+  const createCall = trpc.buglePanel.createCall.useMutation();
+  const updateCall = trpc.buglePanel.updateCall.useMutation();
+  const deleteCall = trpc.buglePanel.deleteCall.useMutation();
+  const createMarch = trpc.buglePanel.createMarch.useMutation();
+  const updateMarch = trpc.buglePanel.updateMarch.useMutation();
+  const deleteMarch = trpc.buglePanel.deleteMarch.useMutation();
+  const uploadAudio = trpc.buglePanel.uploadAudio.useMutation();
+
+  const openCreate = (nextKind: Kind) => {
+    setKind(nextKind);
+    setEditing(null);
+    setForm(emptyForm(nextKind));
+    setAudioFile(null);
+  };
+
+  const openEdit = (nextKind: Kind, item: any) => {
+    setKind(nextKind);
+    setEditing(item);
+    setForm({ ...emptyForm(nextKind), ...item, audioUrl: item.audioUrl || "", sourceUrl: item.sourceUrl || "", troopState: item.troopState || "", composer: item.composer || "" });
+    setAudioFile(null);
+  };
+
+  const closeDialog = () => {
+    setEditing(null);
+    setForm(null);
+    setAudioFile(null);
+  };
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      let id = editing?.id as number | undefined;
+      if (kind === "call") {
+        const payload = {
+          name: String(form.name).trim(),
+          audioUrl: form.audioUrl || null,
+          iconKey: form.iconKey || "music",
+          troopState: form.troopState || null,
+          category: form.category || "geral",
+          sourceUrl: form.sourceUrl || null,
+          sortOrder: Number(form.sortOrder) || 0,
+          isActive: Boolean(form.isActive),
+        };
+        if (id) await updateCall.mutateAsync({ id, ...payload });
+        else id = (await createCall.mutateAsync(payload)).id;
+      } else {
+        const payload = {
+          title: String(form.title).trim(),
+          composer: form.composer || null,
+          audioUrl: form.audioUrl || null,
+          sourceUrl: form.sourceUrl || null,
+          sortOrder: Number(form.sortOrder) || 0,
+          isActive: Boolean(form.isActive),
+        };
+        if (id) await updateMarch.mutateAsync({ id, ...payload });
+        else id = (await createMarch.mutateAsync(payload)).id;
+      }
+      if (audioFile) {
+        if (!id) throw new Error("O item foi salvo, mas não foi possível identificar o registro para enviar o áudio.");
+        await uploadAudio.mutateAsync({ kind, id, fileName: audioFile.name, fileData: await fileToBase64(audioFile) });
+      }
+      await invalidate();
+      toast.success(kind === "call" ? "Toque salvo." : "Dobrado salvo.");
+      closeDialog();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar.");
+    }
+  };
+
+  const toggleActive = async (nextKind: Kind, item: any, isActive: boolean) => {
+    try {
+      if (nextKind === "call") await updateCall.mutateAsync({ id: item.id, isActive });
+      else await updateMarch.mutateAsync({ id: item.id, isActive });
+      await invalidate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar.");
+    }
+  };
+
+  const remove = async (nextKind: Kind, item: any) => {
+    const label = nextKind === "call" ? item.name : item.title;
+    if (!confirm(`Remover “${label}”?`)) return;
+    try {
+      if (nextKind === "call") await deleteCall.mutateAsync({ id: item.id });
+      else await deleteMarch.mutateAsync({ id: item.id });
+      await invalidate();
+      toast.success("Item removido.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover.");
+    }
+  };
+
+  const filteredCalls = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    return (data?.calls || []).filter((item: any) => !term || `${item.name} ${item.category} ${item.troopState || ""}`.toLocaleLowerCase("pt-BR").includes(term));
+  }, [data?.calls, search]);
+
+  const filteredMarches = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    return (data?.marches || []).filter((item: any) => !term || `${item.title} ${item.composer || ""}`.toLocaleLowerCase("pt-BR").includes(term));
+  }, [data?.marches, search]);
+
+  const renderItems = (nextKind: Kind, items: any[]) => (
+    <div className="space-y-2">
+      {items.map((item) => (
+        <Card key={item.id} className="border-border/50">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{nextKind === "call" ? item.name : item.title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {nextKind === "call" ? `${item.category} • sequência operacional automática` : item.composer || "Compositor não informado"}
+              </p>
+              <p className={`mt-1 text-xs ${item.audioUrl ? "text-emerald-700" : "text-amber-700"}`}>{item.audioUrl ? "Áudio disponível" : "Aguardando áudio"}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={item.isActive} onCheckedChange={(checked) => toggleActive(nextKind, item, checked)} aria-label={`Ativar ${nextKind === "call" ? item.name : item.title}`} />
+              <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(nextKind, item)}><Pencil className="h-4 w-4" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(nextKind, item)}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      {!isLoading && items.length === 0 && <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum item encontrado.</div>}
+    </div>
+  );
+
+  const dialogOpen = Boolean(form);
+  const saving = createCall.isPending || updateCall.isPending || createMarch.isPending || updateMarch.isPending || uploadAudio.isPending;
+
+  return (
+    <div>
+      <Tabs defaultValue="calls">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Painel de Ordem Unida</h2>
+            <p className="text-sm text-muted-foreground">Gerencie os botões, estados da tropa, áudios de corneta e dobrados.</p>
+          </div>
+          <TabsList><TabsTrigger value="calls">Toques</TabsTrigger><TabsTrigger value="marches">Dobrados</TabsTrigger></TabsList>
+        </div>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar..." /></div>
+        </div>
+        <TabsContent value="calls" className="space-y-4">
+          <Button type="button" onClick={() => openCreate("call")} className="w-full bg-[#1a3a2a] text-white sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Novo toque</Button>
+          {renderItems("call", filteredCalls)}
+        </TabsContent>
+        <TabsContent value="marches" className="space-y-4">
+          <Button type="button" onClick={() => openCreate("march")} className="w-full bg-[#1a3a2a] text-white sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Novo dobrado</Button>
+          {renderItems("march", filteredMarches)}
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+        <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar" : "Cadastrar"} {kind === "call" ? "toque" : "dobrado"}</DialogTitle>
+            <DialogDescription>Informe uma URL de áudio ou envie o arquivo diretamente.</DialogDescription>
+          </DialogHeader>
+          {form && (
+            <form onSubmit={save} className="space-y-4">
+              {kind === "call" ? (
+                <>
+                  <div><Label htmlFor="bugle-name">Nome *</Label><Input id="bugle-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div><Label>Ícone</Label><Select value={form.iconKey} onValueChange={(value) => setForm({ ...form, iconKey: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ICON_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label htmlFor="bugle-category">Categoria</Label><Input id="bugle-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+                  </div>
+                  <div className="rounded-xl border border-[#c4a84b]/40 bg-[#c4a84b]/10 p-3 text-sm text-muted-foreground">
+                    A sequência operacional é aplicada automaticamente conforme o comando. Toques novos ficam restritos à posição <strong className="text-foreground">Sentido</strong> até receberem uma regra no sistema.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div><Label htmlFor="march-title">Título *</Label><Input id="march-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+                  <div><Label htmlFor="march-composer">Compositor</Label><Input id="march-composer" value={form.composer} onChange={(e) => setForm({ ...form, composer: e.target.value })} /></div>
+                </>
+              )}
+              <div><Label htmlFor="audio-url">URL do áudio</Label><Input id="audio-url" type="url" value={form.audioUrl} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} placeholder="https://.../audio.mp3" /></div>
+              <div><Label htmlFor="source-url">URL da fonte/crédito</Label><Input id="source-url" type="url" value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://..." /></div>
+              <div><Label htmlFor="sort-order">Ordem de exibição</Label><Input id="sort-order" type="number" min={0} max={10000} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} /></div>
+              <div className="rounded-xl border border-dashed p-4">
+                <Label htmlFor="audio-file" className="flex cursor-pointer items-center gap-2"><Upload className="h-4 w-4" /> Enviar arquivo de áudio</Label>
+                <Input id="audio-file" type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/aac,audio/webm" className="mt-2" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
+                <p className="mt-2 text-xs text-muted-foreground">MP3, WAV, OGG, M4A, AAC ou WEBM, até 50 MB.</p>
+              </div>
+              <label className="flex items-center justify-between rounded-xl border p-3"><span className="text-sm font-medium">Visível no painel</span><Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} /></label>
+              <Button type="submit" disabled={saving} className="w-full bg-[#1a3a2a] text-white"><Music className="mr-2 h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}</Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

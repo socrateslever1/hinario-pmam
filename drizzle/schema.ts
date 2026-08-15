@@ -116,6 +116,38 @@ export const pmamDrill = mysqlTable("pmam_drill", {
 export type PmamDrill = typeof pmamDrill.$inferSelect;
 export type InsertPmamDrill = typeof pmamDrill.$inferInsert;
 
+export const pmamBugleCalls = mysqlTable("pmam_bugle_calls", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  audioUrl: text("audio_url"),
+  iconKey: varchar("icon_key", { length: 64 }).default("music"),
+  troopState: varchar("troop_state", { length: 120 }),
+  category: varchar("category", { length: 100 }).default("geral"),
+  sourceUrl: text("source_url"),
+  sortOrder: int("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamBugleCall = typeof pmamBugleCalls.$inferSelect;
+export type InsertPmamBugleCall = typeof pmamBugleCalls.$inferInsert;
+
+export const pmamMarches = mysqlTable("pmam_marches", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  composer: varchar("composer", { length: 255 }),
+  audioUrl: text("audio_url"),
+  sourceUrl: text("source_url"),
+  sortOrder: int("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamMarch = typeof pmamMarches.$inferSelect;
+export type InsertPmamMarch = typeof pmamMarches.$inferInsert;
+
 export const pmamComments = mysqlTable("pmam_comments", {
   id: int("id").autoincrement().primaryKey(),
   targetType: varchar("target_type", { length: 50 }),
@@ -359,6 +391,8 @@ export const runtimeTables = {
   pmamHymns,
   pmamCfapMissions,
   pmamDrill,
+  pmamBugleCalls,
+  pmamMarches,
   pmamComments,
   pmamLikes,
   pmamSiteSettings,

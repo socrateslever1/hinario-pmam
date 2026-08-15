@@ -1,4 +1,5 @@
-const CACHE_NAME = "hinario-pmam-cache-v3";
+const CACHE_NAME = "hinario-pmam-cache-v5";
+const AUDIO_CACHE_NAME = "hinario-pmam-audio-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -38,6 +39,30 @@ const STATIC_CACHE_PATHS = [
   "/study/",
 ];
 
+function urlLooksLikeScriptOrStyle(value) {
+  return /\.(?:m?js|css)(?:$|\?)/i.test(value);
+}
+
+function isCacheableStaticResponse(request, response) {
+  if (!response || response.status !== 200) return false;
+
+  const contentType = response.headers.get("content-type") || "";
+
+  // Some SPA hosts answer a missing hashed asset with index.html and status 200.
+  // Caching that HTML under a JS/CSS URL makes the next load render a white page.
+  if (request.destination === "script") {
+    return /(?:javascript|ecmascript)/i.test(contentType);
+  }
+  if (request.destination === "style") {
+    return /text\/css/i.test(contentType);
+  }
+  if (urlLooksLikeScriptOrStyle(request.url) && /text\/html/i.test(contentType)) {
+    return false;
+  }
+
+  return true;
+}
+
 async function addToCache(cache, urls) {
   const results = await Promise.allSettled(
     urls.map(async (url) => {
@@ -54,6 +79,37 @@ async function addToCache(cache, urls) {
   });
 }
 
+async function syncAudioCache(urls) {
+  const cache = await caches.open(AUDIO_CACHE_NAME);
+  const uniqueUrls = [...new Set(urls.filter((url) => typeof url === "string" && /^https?:\/\//i.test(url)))];
+  const expected = new Set(uniqueUrls);
+
+  const results = await Promise.allSettled(
+    uniqueUrls.map(async (url) => {
+      const parsed = new URL(url);
+      const isCrossOrigin = parsed.origin !== self.location.origin;
+      const request = new Request(url, {
+        mode: isCrossOrigin ? "no-cors" : "same-origin",
+        credentials: isCrossOrigin ? "omit" : "include",
+      });
+      const response = await fetch(request);
+      if (!response.ok && response.type !== "opaque") throw new Error(`${url}: ${response.status}`);
+      await cache.put(url, response.clone());
+    }),
+  );
+
+  const cachedRequests = await cache.keys();
+  await Promise.all(
+    cachedRequests
+      .filter((request) => !expected.has(request.url))
+      .map((request) => cache.delete(request)),
+  );
+
+  const cached = results.filter((result) => result.status === "fulfilled").length;
+  const clients = await self.clients.matchAll({ type: "window" });
+  clients.forEach((client) => client.postMessage({ type: "AUDIO_CACHE_STATUS", cached, total: uniqueUrls.length }));
+}
+
 self.addEventListener("install", (event) => {
   console.log("[SW] Installing...");
   event.waitUntil(
@@ -68,7 +124,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== AUDIO_CACHE_NAME) {
             console.log("[SW] Deleting old cache:", key);
             return caches.delete(key);
           }
@@ -85,6 +141,25 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET") return;
+
+  const isAudioRequest = request.destination === "audio" || /\.(mp3|wav|ogg|m4a|aac|webm)(?:$|\?)/i.test(url.pathname + url.search);
+  if (isAudioRequest) {
+    event.respondWith(
+      caches.open(AUDIO_CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request.url);
+        if (cached) return cached;
+        try {
+          const response = await fetch(request);
+          if (response.ok || response.type === "opaque") await cache.put(request.url, response.clone());
+          return response;
+        } catch {
+          return new Response("Áudio indisponível offline", { status: 503 });
+        }
+      }),
+    );
+    return;
+  }
+
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
@@ -158,7 +233,7 @@ self.addEventListener("fetch", (event) => {
       if (cachedResponse) {
         fetch(request)
           .then((response) => {
-            if (response.status === 200 && shouldCacheStatic) {
+            if (shouldCacheStatic && isCacheableStaticResponse(request, response)) {
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(request, response.clone());
                 console.log("[SW] Updated cached asset:", url.pathname);
@@ -171,7 +246,7 @@ self.addEventListener("fetch", (event) => {
 
       return fetch(request)
         .then((response) => {
-          if (response.status === 200 && shouldCacheStatic) {
+          if (shouldCacheStatic && isCacheableStaticResponse(request, response)) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseClone);
@@ -189,9 +264,14 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data.type === "CLEAR_CACHE") {
+  if (event.data?.type === "CACHE_AUDIO_URLS" && Array.isArray(event.data.urls)) {
+    event.waitUntil(syncAudioCache(event.data.urls));
+    return;
+  }
+
+  if (event.data?.type === "CLEAR_CACHE") {
     console.log("[SW] Clearing cache on request from client");
-    caches.delete(CACHE_NAME).then(() => {
+    Promise.all([caches.delete(CACHE_NAME), caches.delete(AUDIO_CACHE_NAME)]).then(() => {
       event.ports[0]?.postMessage({ success: true });
     });
   }

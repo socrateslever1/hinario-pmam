@@ -21,6 +21,7 @@ import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
 import * as foDb from "./foDb";
+import * as bugleDb from "./bugleDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
 
@@ -33,6 +34,26 @@ const lcTimeSchema = z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
+
+const optionalContentUrl = z.string().trim().max(2048).url("Informe uma URL válida.").nullable().optional();
+const bugleCallFields = {
+  name: z.string().trim().min(1).max(255),
+  audioUrl: optionalContentUrl,
+  iconKey: z.string().trim().min(1).max(64).default("music"),
+  troopState: z.string().trim().max(120).nullable().optional(),
+  category: z.string().trim().min(1).max(100).default("geral"),
+  sourceUrl: optionalContentUrl,
+  sortOrder: z.number().int().min(0).max(10000).default(0),
+  isActive: z.boolean().default(true),
+};
+const marchFields = {
+  title: z.string().trim().min(1).max(255),
+  composer: z.string().trim().max(255).nullable().optional(),
+  audioUrl: optionalContentUrl,
+  sourceUrl: optionalContentUrl,
+  sortOrder: z.number().int().min(0).max(10000).default(0),
+  isActive: z.boolean().default(true),
+};
 
 const cfapPersonnelInputSchema = z.object({
   category: z.enum(["comando", "administracao", "corpo_alunos", "apoio"]),
@@ -1093,6 +1114,91 @@ export const appRouter = router({
       await db.updateDrill(input.drillId, updateData);
       return { success: true, url };
     }),
+  }),
+
+  buglePanel: router({
+    list: publicProcedure.query(async () => ({
+      calls: await bugleDb.listBugleCalls(true),
+      marches: await bugleDb.listMarches(true),
+    })),
+    listAll: masterProcedure.query(async () => ({
+      calls: await bugleDb.listBugleCalls(false),
+      marches: await bugleDb.listMarches(false),
+    })),
+    createCall: masterProcedure
+      .input(z.object(bugleCallFields))
+      .mutation(async ({ input }) => ({ id: await bugleDb.createBugleCall(input) })),
+    updateCall: masterProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        name: bugleCallFields.name.optional(),
+        audioUrl: optionalContentUrl,
+        iconKey: bugleCallFields.iconKey.optional(),
+        troopState: bugleCallFields.troopState,
+        category: bugleCallFields.category.optional(),
+        sourceUrl: optionalContentUrl,
+        sortOrder: bugleCallFields.sortOrder.optional(),
+        isActive: bugleCallFields.isActive.optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await bugleDb.updateBugleCall(id, data);
+        return { success: true };
+      }),
+    deleteCall: masterProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        await bugleDb.deleteBugleCall(input.id);
+        return { success: true };
+      }),
+    createMarch: masterProcedure
+      .input(z.object(marchFields))
+      .mutation(async ({ input }) => ({ id: await bugleDb.createMarch(input) })),
+    updateMarch: masterProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        title: marchFields.title.optional(),
+        composer: marchFields.composer,
+        audioUrl: optionalContentUrl,
+        sourceUrl: optionalContentUrl,
+        sortOrder: marchFields.sortOrder.optional(),
+        isActive: marchFields.isActive.optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await bugleDb.updateMarch(id, data);
+        return { success: true };
+      }),
+    deleteMarch: masterProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        await bugleDb.deleteMarch(input.id);
+        return { success: true };
+      }),
+    uploadAudio: masterProcedure
+      .input(z.object({
+        kind: z.enum(["call", "march"]),
+        id: z.number().int().positive(),
+        fileData: z.string().min(1).max(70 * 1024 * 1024),
+        fileName: z.string().trim().min(1).max(255),
+      }))
+      .mutation(async ({ input }) => {
+        const validFormats = new Set(["mp3", "wav", "ogg", "m4a", "aac", "webm"]);
+        const ext = input.fileName.split(".").pop()?.toLowerCase() || "";
+        if (!validFormats.has(ext)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Use um áudio MP3, WAV, OGG, M4A, AAC ou WEBM." });
+        }
+        const buffer = Buffer.from(input.fileData, "base64");
+        if (buffer.length > 50 * 1024 * 1024) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "O áudio deve ter no máximo 50 MB." });
+        }
+        const mimeType = `audio/${ext === "mp3" ? "mpeg" : ext}`;
+        const folder = input.kind === "call" ? "calls" : "marches";
+        const { url } = await storagePut(`bugle/${folder}/${input.id}-${nanoid(8)}.${ext}`, buffer, mimeType);
+        if (input.kind === "call") await bugleDb.updateBugleCall(input.id, { audioUrl: url });
+        else await bugleDb.updateMarch(input.id, { audioUrl: url });
+        return { success: true, url };
+      }),
   }),
 
   blog: router({

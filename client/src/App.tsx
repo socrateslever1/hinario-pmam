@@ -10,6 +10,7 @@ import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import { usePWA } from "./hooks/usePWA";
 import { useOfflineCache } from "./hooks/useOfflineCache";
 import { useBackgroundSync } from "./hooks/useBackgroundSync";
+import { useBugleAudioCache } from "./hooks/useBugleAudioCache";
 import { useSessionRefresh } from "./hooks/useSessionRefresh";
 import { useSessionManager } from "./_core/hooks/useSessionManager";
 import { useEffect } from "react";
@@ -103,6 +104,9 @@ function App() {
   
   // Sincronizar em background quando voltar online
   useBackgroundSync();
+
+  // Baixar e manter os toques e dobrados disponíveis com conexão lenta/offline
+  useBugleAudioCache();
   
   // Pré-cachear assets para offline
   const { precacheAssets } = usePWA();
