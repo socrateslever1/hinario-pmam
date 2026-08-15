@@ -14,6 +14,7 @@ import {
   CloudDownload,
   Footprints,
   Link2,
+  Music2,
   Pause,
   Plus,
   RotateCcw,
@@ -131,6 +132,7 @@ function readStoredSequenceDelay() {
 export default function Drill() {
   const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
   const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
+  const hymnsQuery = trpc.hymns.list.useQuery(undefined, { staleTime: 60_000 });
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioQueueRef = useRef<PreparedSequenceStep[]>([]);
   const sequenceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -447,6 +449,28 @@ export default function Drill() {
             <strong className="text-white">Próximos comandos de posição:</strong> {nextPositionCommands.join(" • ") || "nenhum"}
           </div>
         </section>
+
+        <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
+          <CardContent className="p-3 md:p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Music2 className="h-5 w-5 text-[#806919]" />
+              <div>
+                <h2 className="text-base font-black md:text-lg">Hinos disponíveis</h2>
+                <p className="text-xs text-muted-foreground">Toque aqui os hinos que já estão carregados no sistema.</p>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => (
+                <Button key={hymn.id} type="button" variant="outline" className="justify-start gap-2" onClick={() => playAudio(`hymn-${hymn.id}`, hymn.title, hymn.audioUrl || hymn.instrumentalAudioUrl)}>
+                  <Music2 className="h-4 w-4 shrink-0 text-[#806919]" />
+                  <span className="truncate">{hymn.title}</span>
+                </Button>
+              ))}
+            </div>
+            {hymnsQuery.isLoading && <p className="text-xs text-muted-foreground">Carregando hinos...</p>}
+            {!hymnsQuery.isLoading && !(hymnsQuery.data ?? []).some((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl) && <p className="text-xs text-muted-foreground">Nenhum hino com áudio carregado.</p>}
+          </CardContent>
+        </Card>
 
         <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
           <CardContent className="p-3 md:p-5">

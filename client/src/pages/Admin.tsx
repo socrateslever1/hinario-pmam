@@ -349,7 +349,6 @@ export default function Admin() {
               {(canManageGlobalContent || isComandante) && (
                 <>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
-                  {canManageGlobalContent && <TabsTrigger value="ordem_unida_audio" className="gap-2"><Volume2 className="h-4 w-4" /> Comandos de voz</TabsTrigger>}
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                   <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>
@@ -588,10 +587,9 @@ export default function Admin() {
             </TabsContent>
 
             {/* DRILL (ORDEM UNIDA) TAB */}
-            {canManageGlobalContent && <TabsContent value="ordem_unida_audio"><OrdemUnidaAudioManager /></TabsContent>}
-
             <TabsContent value="drill">
               <BuglePanelAdmin />
+              {canManageGlobalContent && <div className="mt-6 border-t border-border/60 pt-6"><OrdemUnidaAudioManager /></div>}
             </TabsContent>
 
             {/* BLOG/COMUNICADOS TAB */}
