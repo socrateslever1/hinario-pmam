@@ -5,7 +5,7 @@
  * Mudancas aqui devem preservar escopo, permissoes, fechamento, liberacao e revisao dos Peculios.
  */
 import { useState } from "react";
-import { ArrowLeft, Check, ClipboardList, Lock, ShieldCheck, UnlockKeyhole } from "lucide-react";
+import { ArrowLeft, Check, ClipboardList, History, Lock, ShieldCheck, UnlockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,10 @@ export function PeculioOverview() {
   const [selectedScope, setSelectedScope] = useState<SelectedScope>(null);
 
   const summariesQuery = trpc.peculio.list.useQuery({ date }, { refetchInterval: 5000 });
+  const historyQuery = trpc.peculio.history.useQuery({ limit: 120 });
+  const summaries = summariesQuery.data ?? [];
+  const closedCount = summaries.filter((row: any) => row.closedAt).length;
+  const pendingCount = summaries.reduce((total: number, row: any) => total + Number(row.totalAbsences || 0) + Number(row.totalLate || 0), 0);
 
   const closePeculio = trpc.peculio.close.useMutation({
     onSuccess: async () => {
@@ -95,6 +99,34 @@ export function PeculioOverview() {
           <div className="max-w-xs">
             <label className="mb-1 block text-xs font-bold uppercase text-muted-foreground">Data</label>
             <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          </div>
+
+          <div className="rounded-xl border border-[#c4a84b]/35 bg-[#c4a84b]/5 p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <History className="h-4 w-4 text-[#806919]" />
+              <p className="text-xs font-black uppercase tracking-wide text-[#806919]">Histórico de dias trabalhados</p>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {(historyQuery.data ?? []).map((item: any) => (
+                <button
+                  key={item.date}
+                  type="button"
+                  onClick={() => setDate(item.date)}
+                  className={`min-w-[9rem] rounded-lg border px-3 py-2 text-left text-xs transition ${item.date === date ? "border-[#1a3a2a] bg-[#1a3a2a] text-white" : "border-border bg-white hover:border-[#c4a84b] dark:bg-zinc-950"}`}
+                >
+                  <span className="block font-black">{new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR")}</span>
+                  <span className="block opacity-80">{item.scopes} pelotões · {item.closedScopes} fechados</span>
+                </button>
+              ))}
+              {!historyQuery.isLoading && !(historyQuery.data ?? []).length && <p className="text-xs text-muted-foreground">Nenhum dia de Pecúlio registrado ainda.</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xl font-black">{summaries.filter((row: any) => row.hasReport).length}</p><p className="text-xs text-muted-foreground">Pelotões com extrato</p></div>
+            <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xl font-black">{closedCount}</p><p className="text-xs text-muted-foreground">Pecúlios fechados</p></div>
+            <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xl font-black text-amber-600">{pendingCount}</p><p className="text-xs text-muted-foreground">Faltas/atrasos</p></div>
+            <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xl font-black">{summaries.reduce((total: number, row: any) => total + Number(row.totalStudents || 0), 0)}</p><p className="text-xs text-muted-foreground">Alunos abrangidos</p></div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">

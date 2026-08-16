@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ClipboardList, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
+import { FO_LC_THRESHOLD, classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,22 @@ interface ProofFile {
   file: File;
   preview?: string;
   type: "foto" | "video" | "audio" | "documento";
+}
+
+function getUploadMimeType(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  return file.type || (
+    extension === "jpg" || extension === "jpeg" ? "image/jpeg" :
+    extension === "png" ? "image/png" :
+    extension === "webp" ? "image/webp" :
+    extension === "gif" ? "image/gif" :
+    extension === "heic" ? "image/heic" :
+    extension === "heif" ? "image/heif" :
+    extension === "mov" ? "video/quicktime" :
+    extension === "mp4" ? "video/mp4" :
+    extension === "pdf" ? "application/pdf" :
+    "application/octet-stream"
+  );
 }
 
 const COMMAND_ROLES = new Set([
@@ -141,6 +157,22 @@ export function GlobalFOButton() {
     const note = `[${selectedCode}] ${selectedDefinition.label} - Relato: ${cleanFoText}`;
 
     try {
+      if (foType === "negative") {
+        const balance = await utils.serviceScale.foCodeBalance.fetch({
+          studentId: selectedStudent.id,
+          foCode: selectedCode,
+        });
+        if (balance.negativeCount > 0) {
+          const nextNetCount = balance.netCount + 1;
+          const canCauseLc = nextNetCount >= FO_LC_THRESHOLD;
+          const confirmed = window.confirm(
+            `${selectedStudent.nomeGuerra || "Aluno"} já possui ${balance.negativeCount} FO- aprovado(s) do código ${selectedCode}.\n\n` +
+            `Deseja lançar o mesmo FO novamente?${canCauseLc ? "\n\nAtenção: este lançamento pode gerar LC por reincidência." : ""}`
+          );
+          if (!confirmed) return;
+        }
+      }
+
       toast.loading("Registrando Fato Observado...", { id: "global-fo" });
 
       const result = await addStudentObservation.mutateAsync({
@@ -184,7 +216,7 @@ export function GlobalFOButton() {
                 studentObservationId,
                 fileName: file.name,
                 fileSize: file.size,
-                mimeType: file.type,
+                mimeType: getUploadMimeType(file),
                 fileData,
               });
               onProgress(95, Math.round(file.size * 0.95));

@@ -3,11 +3,13 @@ import {
   date,
   datetime,
   decimal,
+  index,
   int,
   json,
   longtext,
   mysqlEnum,
   mysqlTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -406,6 +408,54 @@ export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
 export type PmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferSelect;
 export type InsertPmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferInsert;
 
+export const pmamAdministrativeDaily = mysqlTable(
+  "pmam_administrative_daily",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    date: date("date").notNull(),
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    locationStatus: varchar("location_status", { length: 32 }).notNull().default("sala"),
+    formationStatus: varchar("formation_status", { length: 32 }).notNull().default("nao_informado"),
+    lunchStatus: varchar("lunch_status", { length: 32 }).notNull().default("nao_informado"),
+    snackStatus: varchar("snack_status", { length: 32 }).notNull().default("nao_informado"),
+    ranchAdvance: boolean("ranch_advance").notNull().default(false),
+    punishmentSummary: text("punishment_summary"),
+    factsSummary: text("facts_summary"),
+    pendingSummary: text("pending_summary"),
+    pendingResolvedAt: timestamp("pending_resolved_at"),
+    updatedBy: int("updated_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_pmam_administrative_daily_scope").on(t.date, t.companhia, t.peloton),
+    index("idx_pmam_administrative_daily_pending").on(t.pendingResolvedAt, t.date),
+  ]
+);
+
+export type PmamAdministrativeDaily = typeof pmamAdministrativeDaily.$inferSelect;
+export type InsertPmamAdministrativeDaily = typeof pmamAdministrativeDaily.$inferInsert;
+
+export const pmamAdministrativeWeeklyConfig = mysqlTable(
+  "pmam_administrative_weekly_config",
+  {
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    ranchWeekdays: varchar("ranch_weekdays", { length: 32 }).notNull().default(""),
+    lunchWeekdays: varchar("lunch_weekdays", { length: 32 }).notNull().default(""),
+    snackWeekdays: varchar("snack_weekdays", { length: 32 }).notNull().default(""),
+    updatedBy: int("updated_by"),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companhia, t.peloton] }),
+  ]
+);
+
+export type PmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferSelect;
+export type InsertPmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferInsert;
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -429,5 +479,8 @@ export const runtimeTables = {
   pmamFatoObservado,
   pmamFatoObservadoProvas,
   pmamOrdemUnidaAudios,
+  pmamAdministrativeDaily,
+  pmamAdministrativeWeeklyConfig,
 };
+
 

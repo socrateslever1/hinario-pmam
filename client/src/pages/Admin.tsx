@@ -57,19 +57,19 @@ function CommandDashboardWidget() {
 
       <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Card className="border-amber-500/25 bg-amber-500/10 transition-colors hover:bg-amber-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 md:text-xs">Fatos Observados</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-amber-600" /> : <p className="mt-1 text-2xl font-black text-amber-800 dark:text-amber-100 md:text-3xl">{pendingFoQuery.data?.length ?? 0}</p>}
           </CardContent>
         </Card>
         <Card className="border-red-500/25 bg-red-500/10 transition-colors hover:bg-red-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-red-700 dark:text-red-300 md:text-xs">Licenças Caçadas</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-red-600" /> : <p className="mt-1 text-2xl font-black text-red-800 dark:text-red-100 md:text-3xl">{lcCasesQuery.data?.length ?? 0}</p>}
           </CardContent>
         </Card>
         <Card className="border-blue-500/25 bg-blue-500/10 transition-colors hover:bg-blue-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-300 md:text-xs">Documentos Oficiais</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-blue-600" /> : <p className="mt-1 text-2xl font-black text-blue-800 dark:text-blue-100 md:text-3xl">{partesQuery.data?.length ?? 0}</p>}
           </CardContent>

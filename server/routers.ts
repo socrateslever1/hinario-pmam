@@ -17,6 +17,7 @@ import * as gradeDb from "./gradeDb";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
+import * as administrativeDailyDb from "./administrativeDailyDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
@@ -2681,6 +2682,18 @@ export const appRouter = router({
       return serviceScaleDb.listStudentLcCases(input.studentId);
     }),
 
+    foCodeBalance: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        foCode: z.string().trim().min(1).max(32),
+      })
+    ).query(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
+      return serviceScaleDb.getFoCodeBalance(student.id, input.foCode);
+    }),
+
     pendingStudentObservations: masterProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
@@ -3001,7 +3014,50 @@ export const appRouter = router({
    * Nao alterar deliberadamente estas rotas sem autorizacao explicita do dono do projeto.
    * Preservar regras de escopo, fechamento, liberacao, chegada tardia, justificativa e revisao pelo Xerife Geral.
    */
+  administrativeDaily: router({
+    list: scaleManagerProcedure.input(z.object({ date: z.string().trim().length(10) })).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      return administrativeDailyDb.listAdministrativeDaily(input.date, scope.unrestricted ? undefined : scope.companhia ?? undefined, scope.unrestricted ? undefined : scope.peloton ?? undefined);
+    }),
+    openPendings: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      return administrativeDailyDb.listOpenAdministrativePendings(scope.unrestricted ? undefined : scope.companhia ?? undefined, scope.unrestricted ? undefined : scope.peloton ?? undefined);
+    }),
+    peculioSummary: scaleManagerProcedure.input(z.object({ date: z.string().trim().length(10) })).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const rows = await peculioDb.listPeculioSummaries(input.date);
+      return rows.filter((row) => scope.unrestricted || (row.companhia === scope.companhia && (!scope.peloton || row.peloton === scope.peloton)));
+    }),
+    weeklyConfig: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id); const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const rows = await administrativeDailyDb.listWeeklyConfig();
+      return rows.filter((row) => scope.unrestricted || (row.companhia === scope.companhia && (!scope.peloton || row.peloton === scope.peloton)));
+    }),
+    saveWeeklyConfig: scaleManagerProcedure.input(z.object({ companhia: z.number().int().min(1).max(5), peloton: z.number().int().min(1).max(2), ranchWeekdays: z.array(z.number().int().min(0).max(6)), lunchWeekdays: z.array(z.number().int().min(0).max(6)), snackWeekdays: z.array(z.number().int().min(0).max(6)) })).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return administrativeDailyDb.saveWeeklyConfig({ ...input, updatedBy: ctx.user.id });
+    }),
+    save: scaleManagerProcedure.input(z.object({
+      date: z.string().trim().length(10), companhia: z.number().int().min(1).max(5), peloton: z.number().int().min(1).max(2),
+      locationStatus: z.enum(["sala", "fora_sala", "formatura", "rancho", "dispensado"]),
+      formationStatus: z.enum(["nao_informado", "nao_houve", "prevista", "realizada"]),
+      lunchStatus: z.enum(["nao_informado", "aguardando", "avancou", "concluido"]),
+      snackStatus: z.enum(["nao_informado", "aguardando", "concluido"]), ranchAdvance: z.boolean(),
+      punishmentSummary: z.string().max(2000).nullable(), factsSummary: z.string().max(4000).nullable(), pendingSummary: z.string().max(2000).nullable(), pendingResolved: z.boolean(),
+    })).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return administrativeDailyDb.saveAdministrativeDaily({ ...input, updatedBy: ctx.user.id });
+    }),
+  }),
+
   peculio: router({
+    history: masterProcedure.input(
+      z.object({ limit: z.number().int().min(1).max(365).optional() }).optional()
+    ).query(async ({ input }) => peculioDb.listPeculioHistory(input?.limit ?? 90)),
+
     list: masterProcedure.input(
       z.object({
         date: z.string().trim().min(10).max(10),
@@ -3495,7 +3551,7 @@ export const appRouter = router({
         studentObservationId: z.number().int(),
         fileName: z.string().trim().min(1).max(255),
         fileSize: z.number().int().min(1),
-        mimeType: z.string().trim().min(1).max(100),
+        mimeType: z.string().trim().max(100).default(""),
         fileData: z.string(), // Base64 encoded file data
       })
     ).mutation(async ({ ctx, input }) => {
@@ -3508,13 +3564,22 @@ export const appRouter = router({
 
       // Validar tipo de arquivo
       const validTypes = [
-        "image/jpeg", "image/png", "image/webp", "image/gif",
+        "image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif",
         "video/mp4", "video/webm", "video/quicktime",
         "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
         "application/pdf", "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ];
-      if (!validTypes.includes(input.mimeType)) {
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "";
+      const inferredMimeType =
+        input.mimeType ||
+        (extension === "jpg" || extension === "jpeg" ? "image/jpeg" :
+        extension === "png" ? "image/png" :
+        extension === "webp" ? "image/webp" :
+        extension === "gif" ? "image/gif" :
+        extension === "heic" ? "image/heic" :
+        extension === "heif" ? "image/heif" : "");
+      if (!validTypes.includes(inferredMimeType)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
       }
 
@@ -3532,16 +3597,16 @@ export const appRouter = router({
 
       // Determinar tipo de prova
       let proofType: "foto" | "video" | "audio" | "documento" = "documento";
-      if (input.mimeType.startsWith("image/")) proofType = "foto";
-      else if (input.mimeType.startsWith("video/")) proofType = "video";
-      else if (input.mimeType.startsWith("audio/")) proofType = "audio";
+      if (inferredMimeType.startsWith("image/")) proofType = "foto";
+      else if (inferredMimeType.startsWith("video/")) proofType = "video";
+      else if (inferredMimeType.startsWith("audio/")) proofType = "audio";
 
       // Upload para S3
       const safeFileName = input.fileName
         .replace(/[^a-zA-Z0-9._-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "prova";
       const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${safeFileName}`;
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      const { url } = await storagePut(fileKey, buffer, inferredMimeType);
 
       // Salvar no banco de dados
       const provaId = await foDb.createFatoObservadoProva({
@@ -3550,7 +3615,7 @@ export const appRouter = router({
         tipo: proofType,
         nomeArquivo: input.fileName,
         tamanho: input.fileSize,
-        mimeType: input.mimeType,
+        mimeType: inferredMimeType,
         criadoPor: ctx.user.id,
       });
 

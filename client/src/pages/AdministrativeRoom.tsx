@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, ArrowLeft, BadgeCheck, ClipboardList, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, CalendarDays, ClipboardList, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
@@ -82,6 +82,21 @@ export default function AdministrativeRoom() {
   const [observationType, setObservationType] = useState<"positive" | "negative">("positive");
   const [observationCode, setObservationCode] = useState("");
   const [observationNote, setObservationNote] = useState("");
+  const [dailyHistoryDate, setDailyHistoryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dailyCompanhia, setDailyCompanhia] = useState("1");
+  const [dailyPeloton, setDailyPeloton] = useState("1");
+  const [dailyLocation, setDailyLocation] = useState("sala");
+  const [dailyFormation, setDailyFormation] = useState("nao_informado");
+  const [dailyLunch, setDailyLunch] = useState("nao_informado");
+  const [dailySnack, setDailySnack] = useState("nao_informado");
+  const [dailyRanch, setDailyRanch] = useState(false);
+  const [dailyPunishment, setDailyPunishment] = useState("");
+  const [dailyFacts, setDailyFacts] = useState("");
+  const [dailyPending, setDailyPending] = useState("");
+  const [dailyPendingResolved, setDailyPendingResolved] = useState(false);
+  const [ranchWeekdays, setRanchWeekdays] = useState<number[]>([]);
+  const [lunchWeekdays, setLunchWeekdays] = useState<number[]>([]);
+  const [snackWeekdays, setSnackWeekdays] = useState<number[]>([]);
 
   const role = String(access?.role || "");
   const canHomologateFoLc = Boolean((access as any)?.canHomologateFoLc);
@@ -129,6 +144,16 @@ export default function AdministrativeRoom() {
     { status: "active" },
     { enabled: Boolean(canViewAdministrativeRoom) }
   );
+  const lcHistoryQuery = trpc.serviceScale.lcCases.useQuery({ status: "all" }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const dailyRecordsQuery = trpc.administrativeDaily.list.useQuery({ date: dailyHistoryDate }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const dailyPeculioQuery = trpc.administrativeDaily.peculioSummary.useQuery({ date: dailyHistoryDate }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const weeklyConfigQuery = trpc.administrativeDaily.weeklyConfig.useQuery(undefined, { enabled: Boolean(canViewAdministrativeRoom) });
+  const openDailyPendingsQuery = trpc.administrativeDaily.openPendings.useQuery(undefined, { enabled: Boolean(canViewAdministrativeRoom) });
+  const saveDailyRecord = trpc.administrativeDaily.save.useMutation({
+    onSuccess: async () => { toast.success("Rotina diária salva."); await Promise.all([dailyRecordsQuery.refetch(), openDailyPendingsQuery.refetch()]); },
+    onError: (error) => toast.error(error.message),
+  });
+  const saveWeeklyConfig = trpc.administrativeDaily.saveWeeklyConfig.useMutation({ onSuccess: async () => { toast.success("Rotina semanal salva."); await weeklyConfigQuery.refetch(); }, onError: (error) => toast.error(error.message) });
 
   const validateFo = trpc.serviceScale.validateStudentObservation.useMutation({
     onSuccess: async () => {
@@ -227,6 +252,36 @@ export default function AdministrativeRoom() {
   const partesItems = partesQuery.data ?? [];
   const scopedPartesItems = partesItems;
   const internalReportItems = internalReportsQuery.data ?? [];
+  const isOnDailyDate = (item: any, ...keys: string[]) => keys.some((key) => {
+    const value = item?.[key];
+    return value && String(value).slice(0, 10) === dailyHistoryDate;
+  });
+  const allFoHistoryItems = [...pendingFoItems, ...(reviewedFoQuery.data ?? [])].filter((item: any, index, values) => values.findIndex((other: any) => other.id === item.id) === index);
+  const dailyFoItems = allFoHistoryItems.filter((item: any) => isOnDailyDate(item, "created_at", "createdAt", "updated_at", "updatedAt", "validated_at"));
+  const dailyLcItems = (lcHistoryQuery.data ?? []).filter((item: any) => isOnDailyDate(item, "createdAt", "updatedAt", "created_at", "updated_at", "recolhimentoDate"));
+  const dailyParteItems = scopedPartesItems.filter((item: any) => isOnDailyDate(item, "createdAt", "created_at", "updatedAt", "updated_at"));
+  const dailyBaixadoItems = baixadoItems.filter((item: any) => isOnDailyDate(item, "latestDocumentAt", "createdAt", "created_at"));
+  const dailyInternalItems = internalReportItems.filter((item: any) => isOnDailyDate(item, "createdAt", "created_at", "updatedAt", "updated_at"));
+  const dailyRecords = dailyRecordsQuery.data ?? [];
+  const openDailyPendings = openDailyPendingsQuery.data ?? [];
+  const dailyPeculios = dailyPeculioQuery.data ?? [];
+
+  useEffect(() => {
+    const assignment = (access as any)?.assignment;
+    if (assignment?.companhia) setDailyCompanhia(String(assignment.companhia));
+    if (assignment?.peloton) setDailyPeloton(String(assignment.peloton));
+  }, [access]);
+
+  useEffect(() => {
+    const record: any = dailyRecords.find((item: any) => item.companhia === Number(dailyCompanhia) && item.peloton === Number(dailyPeloton));
+    setDailyLocation(record?.locationStatus || "sala"); setDailyFormation(record?.formationStatus || "nao_informado");
+    setDailyLunch(record?.lunchStatus || "nao_informado"); setDailySnack(record?.snackStatus || "nao_informado"); setDailyRanch(Boolean(record?.ranchAdvance));
+    setDailyPunishment(record?.punishmentSummary || ""); setDailyFacts(record?.factsSummary || ""); setDailyPending(record?.pendingSummary || ""); setDailyPendingResolved(Boolean(record?.pendingResolvedAt));
+  }, [dailyCompanhia, dailyPeloton, dailyHistoryDate, dailyRecordsQuery.data]);
+  useEffect(() => {
+    const config: any = (weeklyConfigQuery.data ?? []).find((item: any) => item.companhia === Number(dailyCompanhia) && item.peloton === Number(dailyPeloton));
+    setRanchWeekdays(config?.ranchWeekdays ?? []); setLunchWeekdays(config?.lunchWeekdays ?? []); setSnackWeekdays(config?.snackWeekdays ?? []);
+  }, [dailyCompanhia, dailyPeloton, weeklyConfigQuery.data]);
   const selectedObservationStudent = students.find((student: any) => Number(student.id) === selectedObservationStudentId) ?? null;
   const selectedStudentObservationItems = selectedStudentObservationsQuery.data ?? [];
   const contestableObservations = (contestStudentObservationsQuery.data ?? []).filter((item: any) =>
@@ -495,6 +550,52 @@ export default function AdministrativeRoom() {
             </div>
           </div>
         </div>
+
+        <Card className="mb-5 border-[#1a3a2a]/15 bg-white shadow-sm dark:bg-zinc-900">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-[#1a3a2a] dark:text-[#c4a84b]"><History className="h-5 w-5" /> Histórico diário administrativo</CardTitle>
+            <CardDescription>Extrato dos fatos registrados para a data selecionada. Pendências continuam visíveis até serem solucionadas.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-0">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="max-w-xs flex-1"><Label htmlFor="daily-history-date">Dia trabalhado</Label><div className="relative mt-1"><CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="daily-history-date" type="date" value={dailyHistoryDate} onChange={(event) => setDailyHistoryDate(event.target.value)} className="pl-9" /></div></div>
+              <Button type="button" variant="outline" onClick={() => setDailyHistoryDate(new Date().toISOString().slice(0, 10))}>Hoje</Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <div className="rounded-lg border bg-amber-500/10 p-3"><p className="text-xl font-black">{dailyFoItems.length}</p><p className="text-xs text-muted-foreground">FO/punições</p></div>
+              <div className="rounded-lg border bg-red-500/10 p-3"><p className="text-xl font-black">{dailyLcItems.length}</p><p className="text-xs text-muted-foreground">LC</p></div>
+              <div className="rounded-lg border bg-blue-500/10 p-3"><p className="text-xl font-black">{dailyParteItems.length}</p><p className="text-xs text-muted-foreground">Partes/documentos</p></div>
+              <div className="rounded-lg border bg-violet-500/10 p-3"><p className="text-xl font-black">{dailyBaixadoItems.length}</p><p className="text-xs text-muted-foreground">Baixados</p></div>
+              <div className="rounded-lg border bg-emerald-500/10 p-3"><p className="text-xl font-black">{dailyInternalItems.length}</p><p className="text-xs text-muted-foreground">Informes internos</p></div>
+            </div>
+            <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+              <span className="font-bold text-foreground">Resumo do dia:</span> {dailyFoItems.length + dailyLcItems.length + dailyParteItems.length + dailyBaixadoItems.length + dailyInternalItems.length} ocorrência(s), {dailyRecords.length} rotina(s) e {dailyPeculios.filter((item: any) => item.hasReport).length} Pecúlio(s) registrados.
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {dailyPeculios.filter((item: any) => item.hasReport).map((item: any) => <div key={`${item.companhia}-${item.peloton}`} className="rounded-lg border bg-muted/20 p-3 text-xs"><p className="font-black">{item.companhia}ª Companhia / {item.peloton}º Pelotão</p><p className="mt-1 text-muted-foreground">Pecúlio: {item.closedAt ? "fechado" : "aberto"} · {item.totalAbsences} falta(s) · {item.totalLate} atraso(s) · {item.totalChanges} alteração(ões)</p></div>)}
+            </div>
+            <div className="grid gap-3 rounded-xl border p-3 md:grid-cols-2 lg:grid-cols-4">
+              <label className="text-xs font-bold">Companhia<select value={dailyCompanhia} onChange={(e) => setDailyCompanhia(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2">{[1,2,3,4,5].map(n => <option key={n} value={n}>{n}ª Companhia</option>)}</select></label>
+              <label className="text-xs font-bold">Pelotão<select value={dailyPeloton} onChange={(e) => setDailyPeloton(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2">{[1,2].map(n => <option key={n} value={n}>{n}º Pelotão</option>)}</select></label>
+              <label className="text-xs font-bold">Situação<select value={dailyLocation} onChange={(e) => setDailyLocation(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="sala">Em sala</option><option value="fora_sala">Fora de sala</option><option value="formatura">Em formatura</option><option value="rancho">No rancho</option><option value="dispensado">Dispensado</option></select></label>
+              <label className="text-xs font-bold">Formatura<select value={dailyFormation} onChange={(e) => setDailyFormation(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="nao_houve">Não houve</option><option value="prevista">Prevista</option><option value="realizada">Realizada</option></select></label>
+              <label className="text-xs font-bold">Almoço<select value={dailyLunch} onChange={(e) => setDailyLunch(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="aguardando">Aguardando</option><option value="avancou">Avançou</option><option value="concluido">Concluído</option></select></label>
+              <label className="text-xs font-bold">Merenda<select value={dailySnack} onChange={(e) => setDailySnack(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="aguardando">Aguardando</option><option value="concluido">Concluída</option></select></label>
+              <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-bold"><input type="checkbox" checked={dailyRanch} onChange={(e) => setDailyRanch(e.target.checked)} /> Avança para o rancho neste dia</label>
+              <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-bold"><input type="checkbox" checked={dailyPendingResolved} onChange={(e) => setDailyPendingResolved(e.target.checked)} /> Pendência sanada</label>
+              <textarea value={dailyPunishment} onChange={(e) => setDailyPunishment(e.target.value)} placeholder="Punições do pelotão" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2" />
+              <textarea value={dailyFacts} onChange={(e) => setDailyFacts(e.target.value)} placeholder="Fatos e resumo do dia" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2" />
+              <textarea value={dailyPending} onChange={(e) => setDailyPending(e.target.value)} placeholder="Pendências — permanecem abertas até serem sanadas" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2 lg:col-span-3" />
+              <Button className="self-end bg-[#1a3a2a] text-white" disabled={saveDailyRecord.isPending} onClick={() => saveDailyRecord.mutate({ date: dailyHistoryDate, companhia: Number(dailyCompanhia), peloton: Number(dailyPeloton), locationStatus: dailyLocation as any, formationStatus: dailyFormation as any, lunchStatus: dailyLunch as any, snackStatus: dailySnack as any, ranchAdvance: dailyRanch, punishmentSummary: dailyPunishment || null, factsSummary: dailyFacts || null, pendingSummary: dailyPending || null, pendingResolved: dailyPendingResolved })}>Salvar rotina do dia</Button>
+            </div>
+            <div className="rounded-xl border p-3">
+              <p className="mb-2 text-xs font-black uppercase">Configuração semanal do pelotão</p>
+              {[{ label: "Avança ao rancho", values: ranchWeekdays, set: setRanchWeekdays }, { label: "Almoço", values: lunchWeekdays, set: setLunchWeekdays }, { label: "Merenda", values: snackWeekdays, set: setSnackWeekdays }].map((group) => <div key={group.label} className="mb-2 flex flex-wrap items-center gap-1"><span className="w-32 text-xs font-bold">{group.label}</span>{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day, index) => <button key={day} type="button" onClick={() => group.set(group.values.includes(index) ? group.values.filter((value) => value !== index) : [...group.values, index])} className={`rounded-md border px-2 py-1 text-xs ${group.values.includes(index) ? "bg-[#1a3a2a] text-white" : "bg-background"}`}>{day}</button>)}</div>)}
+              <Button size="sm" variant="outline" disabled={saveWeeklyConfig.isPending} onClick={() => saveWeeklyConfig.mutate({ companhia: Number(dailyCompanhia), peloton: Number(dailyPeloton), ranchWeekdays, lunchWeekdays, snackWeekdays })}>Salvar configuração semanal</Button>
+            </div>
+            {openDailyPendings.length > 0 && <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3"><p className="mb-2 text-xs font-black uppercase text-red-700">Pendências ainda abertas</p>{openDailyPendings.map((item: any) => <button key={item.id} className="mb-1 block w-full rounded-md border bg-background p-2 text-left text-xs" onClick={() => { setDailyHistoryDate(item.date); setDailyCompanhia(String(item.companhia)); setDailyPeloton(String(item.peloton)); }}><b>{item.date} · {item.companhia}ª Cia/{item.peloton}º Pel:</b> {item.pendingSummary}</button>)}</div>}
+          </CardContent>
+        </Card>
 
         <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
           <div className="flex min-h-16 items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-2.5 shadow-sm">
