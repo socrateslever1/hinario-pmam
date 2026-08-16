@@ -74,7 +74,6 @@ export function buildPreparedSequencePlan(
   initialState: DrillState,
 ) {
   if (calls.length === 0) return { ok: false as const, reason: "Adicione os comandos que serão executados." };
-  if (!march) return { ok: false as const, reason: "Escolha o dobrado que encerrará a sequência." };
 
   const steps: PreparedSequenceStep[] = [];
   let currentState = initialState;
@@ -99,12 +98,13 @@ export function buildPreparedSequencePlan(
     });
   }
 
-  if (!MARCH_STATES.includes(currentState)) {
+  if (march && !MARCH_STATES.includes(currentState)) {
     return {
       ok: false as const,
       reason: "A sequência precisa terminar com Ordinário marche, Marcha batida ou Acelerado antes do dobrado.",
     };
   }
+  if (!march) return { ok: true as const, steps, finalState: currentState };
   if (!march.audioUrl) return { ok: false as const, reason: `${march.title} está sem áudio.` };
 
   steps.push({

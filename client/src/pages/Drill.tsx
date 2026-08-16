@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CommandSoundButton, getCommandVisual } from "@/components/CommandSoundButton";
+import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import {
@@ -277,7 +277,7 @@ export default function Drill() {
 
   const handleAudioEnded = () => {
     const [queued, ...remaining] = audioQueueRef.current;
-    audioQueueRef.current = [...remaining, ...sequenceMedia.map((item) => ({ key: `sequence-${item.key}`, label: item.label, audioUrl: item.audioUrl }))];
+    audioQueueRef.current = remaining;
     if (!queued) {
       setPlayingKey(null);
       setPlayingLabel(null);
@@ -436,7 +436,7 @@ export default function Drill() {
       return;
     }
 
-    const selectedMarch = marches.find((march) => march.id === Number(selectedPreparedMarchId));
+    const selectedMarch = selectedPreparedMarchId ? marches.find((march) => march.id === Number(selectedPreparedMarchId)) : undefined;
     const plan = buildPreparedSequencePlan(prepared, selectedMarch, drillState);
     if (!plan.ok) {
       if (plan.requiredCommands?.length) {
@@ -447,7 +447,11 @@ export default function Drill() {
       return;
     }
 
-    const [first, ...remaining] = plan.steps;
+    const preparedQueue: PreparedSequenceStep[] = [
+      ...plan.steps,
+      ...sequenceMedia.map((item) => ({ key: `sequence-${item.key}`, label: item.label, audioUrl: item.audioUrl })),
+    ];
+    const [first, ...remaining] = preparedQueue;
     audioQueueRef.current = remaining;
     const started = await playAudio(first.key, first.label, first.audioUrl);
     if (!started) {
@@ -567,7 +571,6 @@ export default function Drill() {
                 )}
               </div>
             </div>
-            {sequenceMedia.length > 0 && <div className="mb-3 space-y-2">{sequenceMedia.map((item, index) => <div key={item.key} className="flex items-center gap-3 rounded-lg border bg-background p-2"><button type="button" onClick={() => playSequenceMedia(item)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#c4a84b] text-[#15251d] shadow-sm active:scale-95" title={`Tocar ${item.label}`}><Music2 className={`h-5 w-5 ${playingKey === `sequence-${item.key}` ? "animate-pulse" : ""}`} /></button><div className="min-w-0 flex-1"><p className="truncate text-xs font-black">{index + 1}. {item.label}</p><p className="text-[10px] uppercase text-muted-foreground">{item.kind}</p></div><div className="flex gap-1"><button disabled={index === 0} onClick={() => moveSequenceMedia(index, -1)} className="rounded border p-1.5 disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button><button disabled={index === sequenceMedia.length - 1} onClick={() => moveSequenceMedia(index, 1)} className="rounded border p-1.5 disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button><button onClick={() => setSequenceMedia((current) => current.filter((entry) => entry.key !== item.key))} className="rounded bg-red-700 p-1.5 text-white"><X className="h-3.5 w-3.5" /></button></div></div>)}</div>}
             {prepared.length === 0 && sequenceMedia.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-[#1a3a2a]/20 px-3 py-3 text-center text-xs text-muted-foreground md:text-sm">
                 Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
@@ -576,17 +579,16 @@ export default function Drill() {
               <div>
                 <div className="grid grid-cols-2 gap-2 px-1 pb-2 pt-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {prepared.map((call, index) => (
-                    <div key={call.id} className="rounded-lg border bg-background p-2 text-center shadow-sm">
-                      {(() => {
-                        const { Icon } = getCommandVisual(call.name, call.iconKey);
-                        return (
-                          <button type="button" onClick={() => playCall(call)} className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#1a3a2a] text-white shadow-md active:scale-95" title={`Tocar ${call.name}`}>
-                            {playingKey === `call-${call.id}` ? <Music2 className="h-7 w-7 animate-pulse" /> : <Icon className="h-7 w-7" />}
-                          </button>
-                        );
-                      })()}
-                      <p className="mt-1.5 line-clamp-2 min-h-8 text-xs font-black leading-tight">{index + 1}. {call.name}</p>
-                      <p className="text-[10px] uppercase text-muted-foreground">Toque</p>
+                    <div key={call.id} className="rounded-lg border bg-background p-2 shadow-sm">
+                      <CommandSoundButton
+                        compact
+                        title={`${index + 1}. ${call.name}`}
+                        subtitle="Toque"
+                        iconKey={call.iconKey}
+                        isPlaying={playingKey === `call-${call.id}` || playingKey === `sequence-call-${call.id}`}
+                        isAllowed={isDrillCommandAllowed(call.name, drillState)}
+                        onClick={() => playCall(call)}
+                      />
                       <div className="mt-2 grid grid-cols-3 gap-1">
                         <button type="button" disabled={index === 0} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, -1))} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
                         <button type="button" disabled={index === prepared.length - 1} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, 1))} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
@@ -594,10 +596,27 @@ export default function Drill() {
                       </div>
                     </div>
                   ))}
+                  {sequenceMedia.map((item, index) => (
+                    <div key={item.key} className="rounded-lg border bg-background p-2 shadow-sm">
+                      <CommandSoundButton
+                        compact
+                        title={`${prepared.length + index + 1}. ${item.label}`}
+                        subtitle={item.kind === "dobrado" ? "Dobrado" : item.kind === "instrumental" ? "Instrumental" : "Hino"}
+                        iconKey="music"
+                        isPlaying={playingKey === `sequence-${item.key}`}
+                        onClick={() => playSequenceMedia(item)}
+                      />
+                      <div className="mt-2 grid grid-cols-3 gap-1">
+                        <button type="button" disabled={index === 0} onClick={() => moveSequenceMedia(index, -1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
+                        <button type="button" disabled={index === sequenceMedia.length - 1} onClick={() => moveSequenceMedia(index, 1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
+                        <button type="button" onClick={() => setSequenceMedia((current) => current.filter((entry) => entry.key !== item.key))} className="grid h-8 place-items-center rounded bg-red-700 text-white" title="Remover"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-3 flex flex-col gap-2 border-t border-[#1a3a2a]/15 pt-3 dark:border-white/15">
                   <Select value={selectedPreparedMarchId} onValueChange={setSelectedPreparedMarchId}>
-                    <SelectTrigger aria-label="Dobrado ao final da sequência"><SelectValue placeholder="Escolha o dobrado final" /></SelectTrigger>
+                    <SelectTrigger aria-label="Dobrado opcional ao final da sequência"><SelectValue placeholder="Dobrado final opcional" /></SelectTrigger>
                     <SelectContent>{marches.map((march) => <SelectItem key={march.id} value={String(march.id)}>{march.title}</SelectItem>)}</SelectContent>
                   </Select>
                   <Select value={String(sequenceDelaySeconds)} onValueChange={(value) => setSequenceDelaySeconds(sanitizeSequenceDelay(value))}>
@@ -606,7 +625,7 @@ export default function Drill() {
                       {[1, 2, 3, 5].map((seconds) => <SelectItem key={seconds} value={String(seconds)}>{seconds} {seconds === 1 ? "segundo" : "segundos"}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button type="button" onClick={playPreparedSequence} disabled={(prepared.length === 0 && sequenceMedia.length === 0) || (prepared.length > 0 && marches.length === 0) || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
+                  <Button type="button" onClick={playPreparedSequence} disabled={(prepared.length === 0 && sequenceMedia.length === 0) || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
                     <AudioLines className="mr-1.5 h-4 w-4" /> Executar sequência completa
                   </Button>
                   <p className="text-xs text-muted-foreground">
@@ -687,9 +706,11 @@ export default function Drill() {
         </section>
 
         <details className="rounded-2xl border border-[#c4a84b]/40 bg-white/90 p-3 shadow-sm dark:bg-[#202720]/95">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-black"><span className="flex items-center gap-2"><Music2 className="h-5 w-5 text-[#806919]" />Hinos e instrumentais</span><Plus className="h-4 w-4" /></summary>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-black"><span className="flex items-center gap-2"><Music2 className="h-5 w-5 text-[#806919]" />Importar hinos do sistema</span><Plus className="h-4 w-4" /></summary>
           <div className="mt-3 space-y-2 border-t pt-3">
             {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => <div key={hymn.id} className="rounded-lg border bg-background p-2"><p className="mb-2 text-xs font-black">{hymn.title}</p><div className="space-y-1.5">{hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino" })} className="flex w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-xs font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}{hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental" })} className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}</div></div>)}
+            {hymnsQuery.isLoading && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Carregando hinos...</p>}
+            {!hymnsQuery.isLoading && !(hymnsQuery.data ?? []).some((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl) && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Nenhum hino com áudio no sistema.</p>}
           </div>
         </details>
 
