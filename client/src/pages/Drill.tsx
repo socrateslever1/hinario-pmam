@@ -73,12 +73,15 @@ const TROOP_STATE_STORAGE_KEY = "pmam-bugle-troop-state-v2";
 const MARCH_COMBINATIONS_STORAGE_KEY = "pmam-bugle-march-combinations-v1";
 const SEQUENCE_DELAY_STORAGE_KEY = "pmam-bugle-sequence-delay-v1";
 const SEQUENCE_MEDIA_STORAGE_KEY = "pmam-bugle-sequence-media-v2";
+const SEQUENCE_ITEMS_STORAGE_KEY = "pmam-bugle-sequence-items-v1";
 const USER_SELECTION_STORAGE_PREFIX = "pmam-bugle-user-selection-v1";
 const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
 type SequenceMedia = { key: string; label: string; audioUrl: string; kind: "hino" | "instrumental" | "dobrado" };
+type SequenceItem = { key: string; type: "call"; callId: number } | { key: string; type: "media"; media: SequenceMedia };
 type SavedDrillSelection = {
   preparedIds: number[];
   sequenceMedia: SequenceMedia[];
+  sequenceItems?: SequenceItem[];
   selectedPreparedMarchId: string;
   sequenceDelaySeconds: number;
 };
@@ -91,6 +94,13 @@ function readStoredSequenceMedia(): SequenceMedia[] {
   try {
     const value = JSON.parse(localStorage.getItem(SEQUENCE_MEDIA_STORAGE_KEY) || "[]");
     return Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && typeof item.label === "string" && typeof item.audioUrl === "string") : [];
+  } catch { return []; }
+}
+
+function readStoredSequenceItems(): SequenceItem[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(SEQUENCE_ITEMS_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "media")) : [];
   } catch { return []; }
 }
 
@@ -167,6 +177,7 @@ export default function Drill() {
   const [selectedMarchId, setSelectedMarchId] = useState("");
   const [selectedPreparedMarchId, setSelectedPreparedMarchId] = useState("");
   const [sequenceMedia, setSequenceMedia] = useState<SequenceMedia[]>(readStoredSequenceMedia);
+  const [sequenceItems, setSequenceItems] = useState<SequenceItem[]>(readStoredSequenceItems);
   const [sequenceDelaySeconds, setSequenceDelaySeconds] = useState(readStoredSequenceDelay);
   const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
@@ -191,10 +202,24 @@ export default function Drill() {
     () => preparedIds.map((id) => calls.find((call) => call.id === id)).filter(Boolean) as BugleCall[],
     [calls, preparedIds],
   );
+  const preparedWorkItems = useMemo(() => {
+    const currentItems = sequenceItems.length
+      ? sequenceItems
+      : [
+        ...preparedIds.map((id) => ({ key: `legacy-call-${id}`, type: "call" as const, callId: id })),
+        ...sequenceMedia.map((media) => ({ key: `legacy-media-${media.key}`, type: "media" as const, media })),
+      ];
+    return currentItems
+      .map((item) => item.type === "call"
+        ? { ...item, call: calls.find((call) => call.id === item.callId) }
+        : item)
+      .filter((item) => item.type === "media" || Boolean(item.call));
+  }, [calls, preparedIds, sequenceItems, sequenceMedia]);
 
   useEffect(() => {
     localStorage.setItem(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
   }, [preparedIds]);
+  useEffect(() => { localStorage.setItem(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems)); }, [sequenceItems]);
 
   useEffect(() => {
     localStorage.setItem(TROOP_STATE_STORAGE_KEY, drillState);
@@ -218,6 +243,7 @@ export default function Drill() {
       if (!saved) return;
       if (Array.isArray(saved.preparedIds)) setPreparedIds(saved.preparedIds.filter(Number.isInteger));
       if (Array.isArray(saved.sequenceMedia)) setSequenceMedia(saved.sequenceMedia);
+      if (Array.isArray(saved.sequenceItems)) setSequenceItems(saved.sequenceItems);
       if (typeof saved.selectedPreparedMarchId === "string") setSelectedPreparedMarchId(saved.selectedPreparedMarchId);
       setSequenceDelaySeconds(sanitizeSequenceDelay(String(saved.sequenceDelaySeconds || sequenceDelaySeconds)));
     } catch {
@@ -351,11 +377,6 @@ export default function Drill() {
       showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
       return;
     }
-    if (!MARCH_STATES.includes(drillState)) {
-      const prefix = drillState === "descansar" ? "Sentido → Ordinário marche" : "Ordinário marche";
-      showDrillAlert(`Dobrado bloqueado. Coloque a tropa em marcha: ${prefix}.`);
-      return;
-    }
     await playAudio(key, march.title, march.audioUrl);
   };
 
@@ -429,29 +450,28 @@ export default function Drill() {
       return;
     }
 
-    if (prepared.length === 0 && sequenceMedia.length > 0) {
-      const [first, ...remaining] = sequenceMedia;
-      audioQueueRef.current = remaining.map((item) => ({ key: `sequence-${item.key}`, label: item.label, audioUrl: item.audioUrl }));
-      await playAudio(`sequence-${first.key}`, first.label, first.audioUrl);
-      return;
-    }
-
-    const selectedMarch = selectedPreparedMarchId ? marches.find((march) => march.id === Number(selectedPreparedMarchId)) : undefined;
-    const plan = buildPreparedSequencePlan(prepared, selectedMarch, drillState);
-    if (!plan.ok) {
-      if (plan.requiredCommands?.length) {
-        showDrillAlert(`${plan.reason} Ordem necessária: ${plan.requiredCommands.map(commandLabel).join(" → ")}.`);
-      } else {
-        showDrillAlert(plan.reason);
+    const preparedQueue: PreparedSequenceStep[] = [];
+    let currentState = drillState;
+    for (const item of preparedWorkItems) {
+      if (item.type === "media") {
+        preparedQueue.push({ key: `sequence-${item.media.key}`, label: item.media.label, audioUrl: item.media.audioUrl });
+        continue;
       }
-      return;
+      const call = item.call as BugleCall;
+      if (!call.audioUrl) {
+        showDrillAlert(`${call.name} está sem áudio.`);
+        return;
+      }
+      if (!isDrillCommandAllowed(call.name, currentState)) {
+        const sequence = getRequiredCommandSequence(call.name, currentState).map(commandLabel).join(" → ");
+        showDrillAlert(`Sequência bloqueada em ${call.name}. Ordem necessária: ${sequence}.`);
+        return;
+      }
+      currentState = applyDrillCommand(call.name, currentState);
+      preparedQueue.push({ key: `sequence-call-${call.id}`, label: call.name, audioUrl: call.audioUrl, nextState: currentState });
     }
-
-    const preparedQueue: PreparedSequenceStep[] = [
-      ...plan.steps,
-      ...sequenceMedia.map((item) => ({ key: `sequence-${item.key}`, label: item.label, audioUrl: item.audioUrl })),
-    ];
     const [first, ...remaining] = preparedQueue;
+    if (!first) return;
     audioQueueRef.current = remaining;
     const started = await playAudio(first.key, first.label, first.audioUrl);
     if (!started) {
@@ -471,15 +491,35 @@ export default function Drill() {
 
   const addPrepared = (id: number) => {
     setPreparedIds((current) => (current.includes(id) ? current : [...current, id]));
+    setSequenceItems((current) => current.some((item) => item.type === "call" && item.callId === id) ? current : [...current, { key: `call-${id}-${Date.now()}-${current.length}`, type: "call", callId: id }]);
   };
 
   const removePrepared = (id: number) => {
     setPreparedIds((current) => current.filter((item) => item !== id));
+    setSequenceItems((current) => current.filter((item) => item.type !== "call" || item.callId !== id));
   };
-  const addSequenceMedia = (item: SequenceMedia) => setSequenceMedia((current) => [...current, { ...item, key: `${item.key}-${Date.now()}-${current.length}` }]);
+  const addSequenceMedia = (item: SequenceMedia) => {
+    const media = { ...item, key: `${item.key}-${Date.now()}-${sequenceMedia.length}` };
+    setSequenceMedia((current) => [...current, media]);
+    setSequenceItems((current) => [...current, { key: `media-${media.key}`, type: "media", media }]);
+    toast.success(`${item.label} adicionado ao final da área personalizada.`);
+  };
   const moveSequenceMedia = (index: number, direction: -1 | 1) => setSequenceMedia((current) => { const next = index + direction; if (next < 0 || next >= current.length) return current; const copy = [...current]; [copy[index], copy[next]] = [copy[next], copy[index]]; return copy; });
+  const moveSequenceItem = (key: string, direction: -1 | 1) => setSequenceItems((current) => {
+    const index = current.findIndex((item) => item.key === key);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= current.length) return current;
+    const copy = [...current];
+    [copy[index], copy[next]] = [copy[next], copy[index]];
+    return copy;
+  });
+  const removeSequenceItem = (item: SequenceItem) => {
+    setSequenceItems((current) => current.filter((entry) => entry.key !== item.key));
+    if (item.type === "call") setPreparedIds((current) => current.filter((id) => id !== item.callId));
+    if (item.type === "media") setSequenceMedia((current) => current.filter((entry) => entry.key !== item.media.key));
+  };
   const saveSelectionPreference = () => {
-    const payload: SavedDrillSelection = { preparedIds, sequenceMedia, selectedPreparedMarchId, sequenceDelaySeconds };
+    const payload: SavedDrillSelection = { preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
     localStorage.setItem(userSelectionKey(user?.id), JSON.stringify(payload));
     toast.success(user?.id ? "Seleção salva para seu usuário." : "Seleção salva neste aparelho.");
   };
@@ -557,27 +597,51 @@ export default function Drill() {
             <div className="mb-2 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-black md:text-lg">Toques preparados</h2>
-              <p className="text-xs text-muted-foreground md:text-sm">Monte e organize a sequência que será usada.</p>
+              <p className="text-xs text-muted-foreground md:text-sm">Use o + dos toques, hinos ou dobrados; o item entra no final desta área.</p>
               <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700 dark:!text-emerald-400"><CloudDownload className="h-3.5 w-3.5" /> Os áudios são baixados automaticamente para uso com conexão lenta.</p>
               </div>
               <div className="flex shrink-0 gap-2">
-                {(prepared.length > 0 || sequenceMedia.length > 0) && (
+                {preparedWorkItems.length > 0 && (
                   <>
                     <Button type="button" variant="outline" size="sm" onClick={saveSelectionPreference} className="h-8 px-2 text-xs">
                       <Save className="mr-1.5 h-3.5 w-3.5" /> Salvar
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setPreparedIds([]); setSequenceMedia([]); }}>Limpar</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setPreparedIds([]); setSequenceMedia([]); setSequenceItems([]); }}>Limpar</Button>
                   </>
                 )}
               </div>
             </div>
-            {prepared.length === 0 && sequenceMedia.length === 0 ? (
+            {preparedWorkItems.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-[#1a3a2a]/20 px-3 py-3 text-center text-xs text-muted-foreground md:text-sm">
                 Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
               </div>
             ) : (
               <div>
                 <div className="grid grid-cols-2 gap-2 px-1 pb-2 pt-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {preparedWorkItems.map((item, index) => {
+                    const isCall = item.type === "call";
+                    const call = isCall ? (item.call as BugleCall) : null;
+                    const media = item.type === "media" ? item.media : null;
+                    return (
+                      <div key={item.key} className="rounded-lg border bg-background p-2 shadow-sm">
+                        <CommandSoundButton
+                          compact
+                          title={`${index + 1}. ${isCall ? call?.name : media?.label}`}
+                          subtitle={isCall ? "Toque" : media?.kind === "dobrado" ? "Dobrado" : media?.kind === "instrumental" ? "Instrumental" : "Hino"}
+                          iconKey={isCall ? call?.iconKey : "music"}
+                          isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
+                          isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
+                          onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
+                        />
+                        <div className="mt-2 grid grid-cols-3 gap-1">
+                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
+                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
+                          <button type="button" onClick={() => removeSequenceItem(item as SequenceItem)} className="grid h-8 place-items-center rounded bg-red-700 text-white" title="Remover"><X className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="hidden">
                   {prepared.map((call, index) => (
                     <div key={call.id} className="rounded-lg border bg-background p-2 shadow-sm">
                       <CommandSoundButton
@@ -613,12 +677,9 @@ export default function Drill() {
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-col gap-2 border-t border-[#1a3a2a]/15 pt-3 dark:border-white/15">
-                  <Select value={selectedPreparedMarchId} onValueChange={setSelectedPreparedMarchId}>
-                    <SelectTrigger aria-label="Dobrado opcional ao final da sequência"><SelectValue placeholder="Dobrado final opcional" /></SelectTrigger>
-                    <SelectContent>{marches.map((march) => <SelectItem key={march.id} value={String(march.id)}>{march.title}</SelectItem>)}</SelectContent>
-                  </Select>
                   <Select value={String(sequenceDelaySeconds)} onValueChange={(value) => setSequenceDelaySeconds(sanitizeSequenceDelay(value))}>
                     <SelectTrigger className="w-full" aria-label="Intervalo entre os áudios"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -723,7 +784,7 @@ export default function Drill() {
               <p className="mt-1 text-xs font-semibold text-[#e4cf87]">Envio: Dashboard → Ordem Unida → Dobrados.</p>
             </div>
           </div>
-          <div className="mb-5 rounded-2xl border border-white/15 bg-white/10 p-3">
+          <div className="hidden">
             <div className="mb-3 flex items-start gap-2">
               <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-[#e4cf87]" />
               <div>
@@ -772,7 +833,7 @@ export default function Drill() {
                     darkSurface
                     onClick={() => playMarch(march)}
                     isPlaying={isPlaying}
-                    isAllowed={MARCH_STATES.includes(drillState)}
+                    isAllowed
                     action={<button type="button" disabled={!march.audioUrl} onClick={() => march.audioUrl && addSequenceMedia({ key: `march-${march.id}`, label: `Dobrado: ${march.title}`, audioUrl: march.audioUrl, kind: "dobrado" })} className="mx-auto mt-1 grid h-7 w-7 place-items-center rounded-full bg-[#c4a84b] text-[#15251d] disabled:opacity-30" title="Adicionar dobrado à sequência"><Plus className="h-4 w-4" /></button>}
                   />
                 );
