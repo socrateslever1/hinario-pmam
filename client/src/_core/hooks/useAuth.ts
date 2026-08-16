@@ -66,7 +66,7 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const cachedUser = useMemo(() => readCachedUser(), [meQuery.data]);
-  const resolvedUser = meQuery.isSuccess ? meQuery.data : cachedUser;
+  const resolvedUser = meQuery.data ?? cachedUser;
 
   const state = useMemo(() => {
     return {
@@ -88,7 +88,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
 
     try {
-      localStorage.setItem("auth-user-info", JSON.stringify(resolvedUser ?? null));
+      if (resolvedUser) localStorage.setItem("auth-user-info", JSON.stringify(resolvedUser));
     } catch {
       // Ignore storage failures so auth state never crashes the UI.
     }
