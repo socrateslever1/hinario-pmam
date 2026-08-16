@@ -1265,7 +1265,7 @@ export const appRouter = router({
       .input(z.object({
         kind: z.enum(["call", "march"]),
         id: z.number().int().positive(),
-        fileData: z.string().min(1).max(70 * 1024 * 1024),
+        fileData: z.string().min(1).max(80 * 1024 * 1024),
         fileName: z.string().trim().min(1).max(255),
       }))
       .mutation(async ({ input }) => {
@@ -1275,6 +1275,9 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Use um áudio MP3, WAV, OGG, M4A, AAC ou WEBM." });
         }
         const buffer = Buffer.from(input.fileData, "base64");
+        if (buffer.length === 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo de áudio está vazio ou inválido." });
+        }
         if (buffer.length > 50 * 1024 * 1024) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "O áudio deve ter no máximo 50 MB." });
         }
