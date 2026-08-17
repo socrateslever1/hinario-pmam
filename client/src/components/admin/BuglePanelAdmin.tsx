@@ -46,7 +46,12 @@ export function BuglePanelAdmin() {
   const [uploadingItemKey, setUploadingItemKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const invalidate = () => Promise.all([utils.buglePanel.list.invalidate(), utils.buglePanel.listAll.invalidate()]);
+  const invalidate = () => Promise.all([
+    utils.buglePanel.list.invalidate(),
+    utils.buglePanel.listAll.invalidate(),
+    utils.ordemUnidaAudio.list.invalidate(),
+    utils.ordemUnidaAudio.listAll.invalidate(),
+  ]);
   const createCall = trpc.buglePanel.createCall.useMutation();
   const updateCall = trpc.buglePanel.updateCall.useMutation();
   const deleteCall = trpc.buglePanel.deleteCall.useMutation();

@@ -146,6 +146,15 @@ function commandLabel(command: string) {
   return COMMAND_LABELS[command] || (command.charAt(0).toLocaleUpperCase("pt-BR") + command.slice(1));
 }
 
+function favoriteLabel(label: string) {
+  return label
+    .replace(/^Ajudante-geral$/i, "Aj.-geral")
+    .replace(/^Comandante de batalhão$/i, "Cmt. Batalhão")
+    .replace(/^Comandante de companhia$/i, "Cmt. Companhia")
+    .replace(/^Comandante-geral$/i, "Cmt.-geral")
+    .replace(/^Chefe do Estado-Maior$/i, "Ch. Estado-Maior");
+}
+
 function readStoredIds() {
   try {
     const value = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
@@ -631,7 +640,7 @@ export default function Drill() {
                       <div key={item.key} className="relative min-w-0">
                         <CommandSoundButton
                           compact
-                          title={isCall ? call?.name || "Toque" : media?.label || "Áudio"}
+                          title={favoriteLabel(isCall ? call?.name || "Toque" : media?.label || "Áudio")}
                           iconKey={isCall ? call?.iconKey : "music"}
                           isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
                           isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}

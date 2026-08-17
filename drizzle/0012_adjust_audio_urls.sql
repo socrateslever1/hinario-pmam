@@ -1,0 +1,10 @@
+ALTER TABLE `pmam_bugle_calls` MODIFY COLUMN `audio_url` LONGTEXT NULL;
+ALTER TABLE `pmam_bugle_calls` MODIFY COLUMN `source_url` LONGTEXT NULL;
+ALTER TABLE `pmam_marches` MODIFY COLUMN `audio_url` LONGTEXT NULL;
+ALTER TABLE `pmam_marches` MODIFY COLUMN `source_url` LONGTEXT NULL;
+ALTER TABLE `pmam_hymns` MODIFY COLUMN `audio_url` LONGTEXT NULL;
+ALTER TABLE `pmam_hymns` MODIFY COLUMN `instrumental_audio_url` LONGTEXT NULL;
+ALTER TABLE `pmam_drill` MODIFY COLUMN `cornetta_audio_url` LONGTEXT NULL;
+ALTER TABLE `pmam_drill` MODIFY COLUMN `video_url` LONGTEXT NULL;
+ALTER TABLE `pmam_drill` MODIFY COLUMN `pdf_url` LONGTEXT NULL;
+ALTER TABLE `pmam_drill` MODIFY COLUMN `image_url` LONGTEXT NULL;

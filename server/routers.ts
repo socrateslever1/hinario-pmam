@@ -80,8 +80,9 @@ const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
 const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
-  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm",
-  "audio/mp4", "audio/x-m4a", "audio/aac", "audio/flac",
+  "audio/mpeg", "audio/mp3", "audio/x-mp3", "audio/wav", "audio/x-wav", "audio/wave",
+  "audio/ogg", "audio/webm", "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
+  "audio/x-aac", "audio/flac", "application/octet-stream",
 ]);
 const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",

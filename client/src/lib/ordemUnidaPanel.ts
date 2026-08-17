@@ -18,7 +18,7 @@ export type OrdemUnidaSessionConfig = {
 const cornetas: OrdemUnidaPanelItem[] = [
   "A Vontade", "Acelerado", "Ajudante Geral", "Alto", "Alvorada",
   "Apresentar Arma", "Avançar ao Rancho", "Bandeira Nacional", "Batalhão", "Bombeiro",
-  "Cavalaria", "Chefe Estado Maior", "Comandante de Batalhão", "Comandante de Companhia", "Comandante Geral",
+  "Cavalaria", "Cessar o À Vontade", "Chefe Estado Maior", "Comandante de Batalhão", "Comandante de Companhia", "Comandante Geral",
   "Cobrir", "Companhia", "Contingente", "Cruzar Arma", "Descansar",
   "Descansar Arma", "Direita Volver", "Em Continência", "Em Direção à Direita", "Em Direção à Esquerda",
   "Escola", "Esquerda Volver", "Firme", "Governador", "Granadeira",
@@ -58,6 +58,7 @@ export const VOZES_DE_COMANDO: OrdemUnidaPanelItem[] = [
   { id: "voz-ombro-arma", title: "Ombro Arma", type: "voz" },
   { id: "voz-cruzar-arma", title: "Cruzar Arma", type: "voz" },
   { id: "voz-descansar-arma", title: "Descansar Arma", type: "voz" },
+  { id: "voz-cessar-o-a-vontade", title: "Cessar o À Vontade", subtitle: "Retorno a Descansar", type: "voz" },
 ];
 
 export const TOQUES_DE_CORNETA = cornetas;

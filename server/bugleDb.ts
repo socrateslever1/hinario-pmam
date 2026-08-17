@@ -2,6 +2,62 @@ import { query } from "./mysql";
 
 export type BugleContentKind = "call" | "march";
 
+let schemaPromise: Promise<void> | null = null;
+
+export async function ensureBugleSchema() {
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_bugle_calls (
+          id INT NOT NULL AUTO_INCREMENT,
+          name VARCHAR(255) NOT NULL,
+          audio_url LONGTEXT NULL,
+          icon_key VARCHAR(64) DEFAULT 'music',
+          troop_state VARCHAR(120) NULL,
+          category VARCHAR(100) DEFAULT 'geral',
+          source_url LONGTEXT NULL,
+          sort_order INT DEFAULT 0,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_pmam_bugle_calls_name (name)
+        )
+      `);
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_marches (
+          id INT NOT NULL AUTO_INCREMENT,
+          title VARCHAR(255) NOT NULL,
+          composer VARCHAR(255) NULL,
+          audio_url LONGTEXT NULL,
+          source_url LONGTEXT NULL,
+          sort_order INT DEFAULT 0,
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id)
+        )
+      `);
+      try {
+        await query("ALTER TABLE pmam_bugle_calls MODIFY COLUMN audio_url LONGTEXT NULL");
+      } catch (_) {}
+      try {
+        await query("ALTER TABLE pmam_bugle_calls MODIFY COLUMN source_url LONGTEXT NULL");
+      } catch (_) {}
+      try {
+        await query("ALTER TABLE pmam_marches MODIFY COLUMN audio_url LONGTEXT NULL");
+      } catch (_) {}
+      try {
+        await query("ALTER TABLE pmam_marches MODIFY COLUMN source_url LONGTEXT NULL");
+      } catch (_) {}
+    })().catch((error) => {
+      schemaPromise = null;
+      throw error;
+    });
+  }
+  await schemaPromise;
+}
+
 function mapBugleCall(row: any) {
   if (!row) return row;
   return {
@@ -35,18 +91,21 @@ function mapMarch(row: any) {
 }
 
 export async function listBugleCalls(activeOnly = true) {
+  await ensureBugleSchema();
   const where = activeOnly ? "WHERE is_active = 1" : "";
   const rows = await query(`SELECT * FROM pmam_bugle_calls ${where} ORDER BY sort_order, name`);
   return rows.map(mapBugleCall);
 }
 
 export async function listMarches(activeOnly = true) {
+  await ensureBugleSchema();
   const where = activeOnly ? "WHERE is_active = 1" : "";
   const rows = await query(`SELECT * FROM pmam_marches ${where} ORDER BY sort_order, title`);
   return rows.map(mapMarch);
 }
 
 export async function createBugleCall(input: any) {
+  await ensureBugleSchema();
   const result = await query(
     `INSERT INTO pmam_bugle_calls
       (name, audio_url, icon_key, troop_state, category, source_url, sort_order, is_active)
@@ -66,6 +125,7 @@ export async function createBugleCall(input: any) {
 }
 
 export async function createMarch(input: any) {
+  await ensureBugleSchema();
   const result = await query(
     `INSERT INTO pmam_marches
       (title, composer, audio_url, source_url, sort_order, is_active)
@@ -103,6 +163,7 @@ const MARCH_FIELDS: Record<string, string> = {
 };
 
 async function updateRecord(table: string, id: number, input: any, fields: Record<string, string>) {
+  await ensureBugleSchema();
   const updates: string[] = [];
   const values: any[] = [];
   for (const [key, column] of Object.entries(fields)) {
@@ -129,9 +190,11 @@ export function updateMarch(id: number, input: any) {
 }
 
 export async function deleteBugleCall(id: number) {
+  await ensureBugleSchema();
   await query("DELETE FROM pmam_bugle_calls WHERE id = ?", [id]);
 }
 
 export async function deleteMarch(id: number) {
+  await ensureBugleSchema();
   await query("DELETE FROM pmam_marches WHERE id = ?", [id]);
 }

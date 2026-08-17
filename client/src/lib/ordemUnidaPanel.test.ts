@@ -13,8 +13,8 @@ import {
 } from "./ordemUnidaPanel";
 
 describe("ordemUnidaPanel", () => {
-  it("mantém os 51 toques confirmados na referência", () => {
-    expect(TOQUES_DE_CORNETA).toHaveLength(51);
+  it("mantém os toques confirmados na referência", () => {
+    expect(TOQUES_DE_CORNETA).toHaveLength(52);
     expect(TOQUES_DE_CORNETA.map((item) => item.title)).toEqual(expect.arrayContaining([
       "Sentido",
       "Cavalaria",

@@ -49,11 +49,13 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
     // Attach insertId and affectedRows metadata to the returned array
     if (result && typeof result === 'object' && !Array.isArray(result)) {
       const resultAny = result as any;
-      if (resultAny.lastInsertId !== undefined && resultAny.lastInsertId !== null) {
-        (rows as any).insertId = Number(resultAny.lastInsertId);
+      const insertIdVal = resultAny.lastInsertId ?? resultAny.insertId;
+      if (insertIdVal !== undefined && insertIdVal !== null) {
+        (rows as any).insertId = Number(insertIdVal);
       }
-      if (resultAny.rowsAffected !== undefined && resultAny.rowsAffected !== null) {
-        (rows as any).affectedRows = Number(resultAny.rowsAffected);
+      const affectedRowsVal = resultAny.rowsAffected ?? resultAny.affectedRows;
+      if (affectedRowsVal !== undefined && affectedRowsVal !== null) {
+        (rows as any).affectedRows = Number(affectedRowsVal);
       }
     }
 
