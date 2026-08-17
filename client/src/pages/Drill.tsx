@@ -13,9 +13,9 @@ import {
   ArrowLeft,
   ArrowRight,
   AlertTriangle,
-  CloudDownload,
   Footprints,
   Link2,
+  Minus,
   Music2,
   Pause,
   Plus,
@@ -36,7 +36,6 @@ import {
 import {
   buildMarchCombinationPlan,
   buildPreparedSequencePlan,
-  movePreparedItem,
   sanitizeMarchCombinations,
   sanitizeSequenceDelay,
   type MarchCombination,
@@ -100,7 +99,15 @@ function readStoredSequenceMedia(): SequenceMedia[] {
 function readStoredSequenceItems(): SequenceItem[] {
   try {
     const value = JSON.parse(localStorage.getItem(SEQUENCE_ITEMS_STORAGE_KEY) || "[]");
-    return Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "media")) : [];
+    const stored = Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "media")) : [];
+    if (stored.length) return stored;
+
+    const legacyIds = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
+    const legacyMedia = readStoredSequenceMedia();
+    return [
+      ...(Array.isArray(legacyIds) ? legacyIds.filter(Number.isInteger).map((callId, index) => ({ key: `legacy-call-${callId}-${index}`, type: "call" as const, callId })) : []),
+      ...legacyMedia.map((media, index) => ({ key: `legacy-media-${media.key}-${index}`, type: "media" as const, media })),
+    ];
   } catch { return []; }
 }
 
@@ -115,6 +122,8 @@ function readStoredDrillState(): DrillState {
 
 const COMMAND_LABELS: Record<string, string> = {
   "a vontade": "À vontade",
+  "cessar o a vontade": "Cessar o À Vontade",
+  "cessar a vontade": "Cessar o À Vontade",
   "descansar": "Descansar",
   "sentido": "Sentido",
   "ombro arma": "Ombro arma",
@@ -491,20 +500,15 @@ export default function Drill() {
 
   const addPrepared = (id: number) => {
     setPreparedIds((current) => (current.includes(id) ? current : [...current, id]));
-    setSequenceItems((current) => current.some((item) => item.type === "call" && item.callId === id) ? current : [...current, { key: `call-${id}-${Date.now()}-${current.length}`, type: "call", callId: id }]);
+    setSequenceItems((current) => [...current, { key: `call-${id}-${Date.now()}-${current.length}`, type: "call", callId: id }]);
   };
 
-  const removePrepared = (id: number) => {
-    setPreparedIds((current) => current.filter((item) => item !== id));
-    setSequenceItems((current) => current.filter((item) => item.type !== "call" || item.callId !== id));
-  };
   const addSequenceMedia = (item: SequenceMedia) => {
     const media = { ...item, key: `${item.key}-${Date.now()}-${sequenceMedia.length}` };
     setSequenceMedia((current) => [...current, media]);
     setSequenceItems((current) => [...current, { key: `media-${media.key}`, type: "media", media }]);
     toast.success(`${item.label} adicionado ao final da área personalizada.`);
   };
-  const moveSequenceMedia = (index: number, direction: -1 | 1) => setSequenceMedia((current) => { const next = index + direction; if (next < 0 || next >= current.length) return current; const copy = [...current]; [copy[index], copy[next]] = [copy[next], copy[index]]; return copy; });
   const moveSequenceItem = (key: string, direction: -1 | 1) => setSequenceItems((current) => {
     const index = current.findIndex((item) => item.key === key);
     const next = index + direction;
@@ -514,8 +518,13 @@ export default function Drill() {
     return copy;
   });
   const removeSequenceItem = (item: SequenceItem) => {
-    setSequenceItems((current) => current.filter((entry) => entry.key !== item.key));
-    if (item.type === "call") setPreparedIds((current) => current.filter((id) => id !== item.callId));
+    setSequenceItems((current) => {
+      const remaining = current.filter((entry) => entry.key !== item.key);
+      if (item.type === "call" && !remaining.some((entry) => entry.type === "call" && entry.callId === item.callId)) {
+        setPreparedIds((ids) => ids.filter((id) => id !== item.callId));
+      }
+      return remaining;
+    });
     if (item.type === "media") setSequenceMedia((current) => current.filter((entry) => entry.key !== item.media.key));
   };
   const saveSelectionPreference = () => {
@@ -595,11 +604,7 @@ export default function Drill() {
         <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
           <CardContent className="p-3 md:p-5">
             <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-black md:text-lg">Toques preparados</h2>
-              <p className="text-xs text-muted-foreground md:text-sm">Use o + dos toques, hinos ou dobrados; o item entra no final desta área.</p>
-              <p className="mt-1 flex items-center gap-1 text-xs text-emerald-700 dark:!text-emerald-400"><CloudDownload className="h-3.5 w-3.5" /> Os áudios são baixados automaticamente para uso com conexão lenta.</p>
-              </div>
+              <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
               <div className="flex shrink-0 gap-2">
                 {preparedWorkItems.length > 0 && (
                   <>
@@ -613,71 +618,42 @@ export default function Drill() {
             </div>
             {preparedWorkItems.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-[#1a3a2a]/20 px-3 py-3 text-center text-xs text-muted-foreground md:text-sm">
-                Use o botão <Plus className="mx-1 inline h-4 w-4" /> nos toques abaixo para preparar sua sequência.
+                Nenhum item adicionado. Use <Plus className="mx-1 inline h-4 w-4" /> para incluir um toque, hino ou dobrado.
               </div>
             ) : (
               <div>
-                <div className="grid grid-cols-2 gap-2 px-1 pb-2 pt-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 pb-2 pt-1 sm:gap-x-3 md:grid-cols-6 lg:grid-cols-8">
                   {preparedWorkItems.map((item, index) => {
                     const isCall = item.type === "call";
                     const call = isCall ? (item.call as BugleCall) : null;
                     const media = item.type === "media" ? item.media : null;
                     return (
-                      <div key={item.key} className="rounded-lg border bg-background p-2 shadow-sm">
+                      <div key={item.key} className="relative min-w-0">
                         <CommandSoundButton
                           compact
-                          title={`${index + 1}. ${isCall ? call?.name : media?.label}`}
-                          subtitle={isCall ? "Toque" : media?.kind === "dobrado" ? "Dobrado" : media?.kind === "instrumental" ? "Instrumental" : "Hino"}
+                          title={isCall ? call?.name || "Toque" : media?.label || "Áudio"}
                           iconKey={isCall ? call?.iconKey : "music"}
                           isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
                           isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
                           onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
+                          action={
+                            <button
+                              type="button"
+                              onClick={() => removeSequenceItem(item as SequenceItem)}
+                              aria-label={`Remover ${isCall ? call?.name : media?.label} dos favoritos`}
+                              className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
+                            >
+                              <Minus className="h-3 w-3" strokeWidth={3} />
+                            </button>
+                          }
                         />
-                        <div className="mt-2 grid grid-cols-3 gap-1">
-                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
-                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
-                          <button type="button" onClick={() => removeSequenceItem(item as SequenceItem)} className="grid h-8 place-items-center rounded bg-red-700 text-white" title="Remover"><X className="h-3.5 w-3.5" /></button>
+                        <div className="mx-auto mt-1 flex w-full max-w-[4.25rem] justify-between gap-1">
+                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
+                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a direita" title="Mover para a direita"><ArrowRight className="h-3.5 w-3.5" /></button>
                         </div>
                       </div>
                     );
                   })}
-                  <div className="hidden">
-                  {prepared.map((call, index) => (
-                    <div key={call.id} className="rounded-lg border bg-background p-2 shadow-sm">
-                      <CommandSoundButton
-                        compact
-                        title={`${index + 1}. ${call.name}`}
-                        subtitle="Toque"
-                        iconKey={call.iconKey}
-                        isPlaying={playingKey === `call-${call.id}` || playingKey === `sequence-call-${call.id}`}
-                        isAllowed={isDrillCommandAllowed(call.name, drillState)}
-                        onClick={() => playCall(call)}
-                      />
-                      <div className="mt-2 grid grid-cols-3 gap-1">
-                        <button type="button" disabled={index === 0} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, -1))} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
-                        <button type="button" disabled={index === prepared.length - 1} onClick={() => setPreparedIds((current) => movePreparedItem(current, call.id, 1))} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
-                        <button type="button" onClick={() => removePrepared(call.id)} className="grid h-8 place-items-center rounded bg-red-700 text-white" title="Remover"><X className="h-3.5 w-3.5" /></button>
-                      </div>
-                    </div>
-                  ))}
-                  {sequenceMedia.map((item, index) => (
-                    <div key={item.key} className="rounded-lg border bg-background p-2 shadow-sm">
-                      <CommandSoundButton
-                        compact
-                        title={`${prepared.length + index + 1}. ${item.label}`}
-                        subtitle={item.kind === "dobrado" ? "Dobrado" : item.kind === "instrumental" ? "Instrumental" : "Hino"}
-                        iconKey="music"
-                        isPlaying={playingKey === `sequence-${item.key}`}
-                        onClick={() => playSequenceMedia(item)}
-                      />
-                      <div className="mt-2 grid grid-cols-3 gap-1">
-                        <button type="button" disabled={index === 0} onClick={() => moveSequenceMedia(index, -1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Subir"><ArrowLeft className="h-3.5 w-3.5 rotate-90" /></button>
-                        <button type="button" disabled={index === sequenceMedia.length - 1} onClick={() => moveSequenceMedia(index, 1)} className="grid h-8 place-items-center rounded border disabled:opacity-25" title="Descer"><ArrowRight className="h-3.5 w-3.5 rotate-90" /></button>
-                        <button type="button" onClick={() => setSequenceMedia((current) => current.filter((entry) => entry.key !== item.key))} className="grid h-8 place-items-center rounded bg-red-700 text-white" title="Remover"><X className="h-3.5 w-3.5" /></button>
-                      </div>
-                    </div>
-                  ))}
-                  </div>
                 </div>
                 <div className="mt-3 flex flex-col gap-2 border-t border-[#1a3a2a]/15 pt-3 dark:border-white/15">
                   <Select value={String(sequenceDelaySeconds)} onValueChange={(value) => setSequenceDelaySeconds(sanitizeSequenceDelay(value))}>
@@ -686,11 +662,11 @@ export default function Drill() {
                       {[1, 2, 3, 5].map((seconds) => <SelectItem key={seconds} value={String(seconds)}>{seconds} {seconds === 1 ? "segundo" : "segundos"}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button type="button" onClick={playPreparedSequence} disabled={(prepared.length === 0 && sequenceMedia.length === 0) || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
+                  <Button type="button" onClick={playPreparedSequence} disabled={preparedWorkItems.length === 0 || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
                     <AudioLines className="mr-1.5 h-4 w-4" /> Executar sequência completa
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Sequência: {prepared.map((call) => call.name).concat(sequenceMedia.map((item) => item.label)).join(" → ") || "nenhum item"}. Pausa de {sequenceDelaySeconds}s entre cada áudio.
+                    Sequência: {preparedWorkItems.map((item) => item.type === "call" ? (item.call as BugleCall).name : item.media.label).join(" → ")}. Pausa de {sequenceDelaySeconds}s entre cada áudio.
                   </p>
                 </div>
               </div>
@@ -720,7 +696,6 @@ export default function Drill() {
             <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
               {filteredCalls.map((call) => {
                 const isPlaying = playingKey === `call-${call.id}`;
-                const isPrepared = preparedIds.includes(call.id);
                 const isAllowed = isDrillCommandAllowed(call.name, drillState);
                 return (
                   <CommandSoundButton
@@ -730,7 +705,7 @@ export default function Drill() {
                     isPlaying={isPlaying}
                     isAllowed={isAllowed}
                     onClick={() => playCall(call)}
-                    action={<button type="button" disabled={isPrepared} onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} aos preparados`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md disabled:opacity-35"><Plus className="h-3.5 w-3.5" /></button>}
+                    action={<button type="button" onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} ao final dos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
                   />
                 );
               })}

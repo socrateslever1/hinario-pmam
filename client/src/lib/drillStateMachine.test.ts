@@ -13,6 +13,13 @@ describe("drill state machine", () => {
     expect(isDrillCommandAllowed("Ombro arma", "descansar")).toBe(false);
   });
 
+  it("uses Cessar o À Vontade to return to Descansar", () => {
+    expect(applyDrillCommand("À Vontade", "descansar")).toBe("a_vontade");
+    expect(isDrillCommandAllowed("Cessar o À Vontade", "a_vontade")).toBe(true);
+    expect(applyDrillCommand("Cessar o À Vontade", "a_vontade")).toBe("descansar");
+    expect(isDrillCommandAllowed("Cessar o À Vontade", "sentido")).toBe(false);
+  });
+
   it("requires Descansar-Arma before leaving Ombro-Arma for Descansar", () => {
     expect(isDrillCommandAllowed("Sentido", "ombro_arma")).toBe(false);
     expect(getRequiredCommandSequence("Sentido", "ombro_arma")).toEqual([

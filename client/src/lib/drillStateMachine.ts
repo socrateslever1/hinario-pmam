@@ -45,6 +45,8 @@ export function normalizeDrillCommand(value: string) {
 
 const RULES: CommandRule[] = [
   { command: "a vontade", allowedFrom: ["descansar"], nextState: "a_vontade", changesPosition: true },
+  { command: "cessar o a vontade", allowedFrom: ["a_vontade"], nextState: "descansar", changesPosition: true },
+  { command: "cessar a vontade", allowedFrom: ["a_vontade"], nextState: "descansar", changesPosition: true },
   { command: "descansar", allowedFrom: ["sentido", "a_vontade"], nextState: "descansar", changesPosition: true },
   { command: "sentido", allowedFrom: ["descansar"], nextState: "sentido", changesPosition: true },
   { command: "ombro arma", allowedFrom: ["sentido", "apresentar_arma", "cruzar_arma"], nextState: "ombro_arma", changesPosition: true },
