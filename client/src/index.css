@@ -411,3 +411,19 @@ button[role="tab"][data-state="active"] {
 .animate-fade-out {
   animation: fadeOut 2s ease-out forwards;
 }
+
+@keyframes favorite-delete-wiggle {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.favorite-delete-wiggle {
+  animation: favorite-delete-wiggle 0.24s ease-in-out infinite;
+  transform-origin: 50% 62%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-delete-wiggle {
+    animation: none;
+  }
+}

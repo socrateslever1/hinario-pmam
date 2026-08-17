@@ -106,6 +106,7 @@ type Props = {
   action?: React.ReactNode;
   compact?: boolean;
   darkSurface?: boolean;
+  isWiggling?: boolean;
 };
 
 export function CommandSoundButton({
@@ -118,6 +119,7 @@ export function CommandSoundButton({
   action,
   compact = false,
   darkSurface = false,
+  isWiggling = false,
 }: Props) {
   const { Icon, tone } = getCommandVisual(title, iconKey);
 
@@ -128,7 +130,7 @@ export function CommandSoundButton({
         onClick={onClick}
         aria-disabled={!isAllowed && !isPlaying}
         aria-label={`${isPlaying ? "Parar" : isAllowed ? "Executar" : "Comando bloqueado"}: ${title}`}
-        className={`group relative grid aspect-square w-full place-items-center rounded-full border-4 outline-none transition duration-150 focus-visible:ring-4 focus-visible:ring-amber-400/70 active:translate-y-1 active:scale-[.97] ${compact ? "max-w-[4.25rem]" : "max-w-[6.25rem]"} ${TONE_STYLES[tone]} ${!isAllowed && !isPlaying ? "cursor-not-allowed grayscale-[.45] opacity-45" : "hover:brightness-110"}`}
+        className={`group relative grid aspect-square w-full place-items-center rounded-full border-4 outline-none transition duration-150 focus-visible:ring-4 focus-visible:ring-amber-400/70 active:translate-y-1 active:scale-[.97] ${isWiggling ? "favorite-delete-wiggle" : ""} ${compact ? "max-w-[4.25rem]" : "max-w-[6.25rem]"} ${TONE_STYLES[tone]} ${!isAllowed && !isPlaying ? "cursor-not-allowed grayscale-[.45] opacity-45" : "hover:brightness-110"}`}
       >
         <span className="absolute inset-[8%] rounded-full border-2 border-white/45 bg-black/10 shadow-[inset_0_3px_8px_rgba(0,0,0,.3)]" />
         <span className="absolute left-[19%] top-[10%] h-[17%] w-[50%] rotate-[-8deg] rounded-full bg-white/35 blur-[1px]" />

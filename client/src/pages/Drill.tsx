@@ -21,6 +21,7 @@ import {
   Plus,
   RotateCcw,
   Save,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -198,6 +199,7 @@ export default function Drill() {
   const [sequenceItems, setSequenceItems] = useState<SequenceItem[]>(readStoredSequenceItems);
   const [sequenceDelaySeconds, setSequenceDelaySeconds] = useState(readStoredSequenceDelay);
   const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
+  const [isDeletingFavorites, setIsDeletingFavorites] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [playingLabel, setPlayingLabel] = useState<string | null>(null);
   const [drillAlert, setDrillAlert] = useState<string | null>(null);
@@ -237,6 +239,9 @@ export default function Drill() {
   useEffect(() => {
     localStorage.setItem(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
   }, [preparedIds]);
+  useEffect(() => {
+    if (preparedWorkItems.length === 0) setIsDeletingFavorites(false);
+  }, [preparedWorkItems.length]);
   useEffect(() => { localStorage.setItem(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems)); }, [sequenceItems]);
 
   useEffect(() => {
@@ -560,7 +565,15 @@ export default function Drill() {
   const saveSelectionPreference = () => {
     const payload: SavedDrillSelection = { preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
     localStorage.setItem(userSelectionKey(user?.id), JSON.stringify(payload));
-    toast.success(user?.id ? "Seleção salva para seu usuário." : "Seleção salva neste aparelho.");
+    toast.success(user?.id ? "Favoritos salvos neste aparelho para este usuário." : "Favoritos salvos neste aparelho.");
+  };
+
+  const clearFavorites = () => {
+    if (!confirm("Excluir todos os toques favoritos?")) return;
+    setPreparedIds([]);
+    setSequenceMedia([]);
+    setSequenceItems([]);
+    setIsDeletingFavorites(false);
   };
 
   const playSequenceMedia = async (item: SequenceMedia) => {
@@ -633,19 +646,32 @@ export default function Drill() {
 
         <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
           <CardContent className="p-3 md:p-5">
-            <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
               <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 gap-1 sm:gap-2">
                 {preparedWorkItems.length > 0 && (
                   <>
                     <Button type="button" variant="outline" size="sm" onClick={saveSelectionPreference} className="h-8 px-2 text-xs">
                       <Save className="mr-1.5 h-3.5 w-3.5" /> Salvar
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setPreparedIds([]); setSequenceMedia([]); setSequenceItems([]); }}>Limpar</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDeletingFavorites((current) => !current)}
+                      aria-pressed={isDeletingFavorites}
+                      className={`h-8 px-2 text-xs ${isDeletingFavorites ? "border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white" : ""}`}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {isDeletingFavorites ? "Concluir" : "Excluir"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearFavorites} className="h-8 px-2 text-xs">Limpar</Button>
                   </>
                 )}
               </div>
             </div>
+            {isDeletingFavorites && preparedWorkItems.length > 0 && (
+              <p className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">Toque no sinal − apenas nos favoritos que deseja excluir.</p>
+            )}
             {preparedWorkItems.length === 0 ? (
               <div className="rounded-xl border-2 border-dashed border-[#1a3a2a]/20 px-3 py-3 text-center text-xs text-muted-foreground md:text-sm">
                 Nenhum item adicionado. Use <Plus className="mx-1 inline h-4 w-4" /> para incluir um toque, hino ou dobrado.
@@ -663,10 +689,11 @@ export default function Drill() {
                           compact
                           title={favoriteLabel(isCall ? call?.name || "Toque" : media?.label || "Áudio")}
                           iconKey={isCall ? call?.iconKey : "music"}
+                          isWiggling={isDeletingFavorites}
                           isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
                           isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
                           onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
-                          action={
+                          action={isDeletingFavorites ? (
                             <button
                               type="button"
                               onClick={() => removeSequenceItem(item as SequenceItem)}
@@ -675,7 +702,7 @@ export default function Drill() {
                             >
                               <Minus className="h-3 w-3" strokeWidth={3} />
                             </button>
-                          }
+                          ) : undefined}
                         />
                         <div className="mx-auto mt-1 flex w-full max-w-[4.25rem] justify-between gap-1">
                           <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
