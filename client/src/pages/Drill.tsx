@@ -685,25 +685,26 @@ export default function Drill() {
                     const media = item.type === "media" ? item.media : null;
                     return (
                       <div key={item.key} className="relative min-w-0">
-                        <CommandSoundButton
-                          compact
-                          title={favoriteLabel(isCall ? call?.name || "Toque" : media?.label || "Áudio")}
-                          iconKey={isCall ? call?.iconKey : "music"}
-                          isWiggling={isDeletingFavorites}
-                          isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
-                          isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
-                          onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
-                          action={isDeletingFavorites ? (
-                            <button
-                              type="button"
-                              onClick={() => removeSequenceItem(item as SequenceItem)}
-                              aria-label={`Remover ${isCall ? call?.name : media?.label} dos favoritos`}
-                              className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
-                            >
-                              <Minus className="h-3 w-3" strokeWidth={3} />
-                            </button>
-                          ) : undefined}
-                        />
+                        <div className={isDeletingFavorites ? "favorite-delete-wiggle" : ""}>
+                          <CommandSoundButton
+                            compact
+                            title={favoriteLabel(isCall ? call?.name || "Toque" : media?.label || "Áudio")}
+                            iconKey={isCall ? call?.iconKey : "music"}
+                            isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
+                            isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
+                            onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
+                            action={isDeletingFavorites ? (
+                              <button
+                                type="button"
+                                onClick={() => removeSequenceItem(item as SequenceItem)}
+                                aria-label={`Remover ${isCall ? call?.name : media?.label} dos favoritos`}
+                                className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
+                              >
+                                <Minus className="h-3 w-3" strokeWidth={3} />
+                              </button>
+                            ) : undefined}
+                          />
+                        </div>
                         <div className="mx-auto mt-1 flex w-full max-w-[4.25rem] justify-between gap-1">
                           <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
                           <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a direita" title="Mover para a direita"><ArrowRight className="h-3.5 w-3.5" /></button>

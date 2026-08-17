@@ -413,17 +413,12 @@ button[role="tab"][data-state="active"] {
 }
 
 @keyframes favorite-delete-wiggle {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
+  0%, 100% { transform: translateX(-1px) rotate(-4deg); }
+  50% { transform: translateX(1px) rotate(4deg); }
 }
 
 .favorite-delete-wiggle {
-  animation: favorite-delete-wiggle 0.24s ease-in-out infinite;
+  animation: favorite-delete-wiggle 0.28s ease-in-out infinite !important;
   transform-origin: 50% 62%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .favorite-delete-wiggle {
-    animation: none;
-  }
+  will-change: transform;
 }
