@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { listBugleCalls, createBugleCall, updateBugleCall } from './server/bugleDb.ts';
 
 const bugleCallsData = [
-  { name: 'À vontade', audioUrl: 'https://www.bombeiros.go.gov.br/wp-content/uploads/2012/05/%C3%80-Vontade-1.mp3', iconKey: 'relaxed', troopState: 'À vontade', category: 'comandos', sourceUrl: 'https://www.bombeiros.go.gov.br/corpo-musical-bombeiro-militar/hinos-e-toques.html', sortOrder: 1 },
+  { name: 'À vontade', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/01-a_vontade.mp3', iconKey: 'relaxed', troopState: 'À vontade', category: 'comandos', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 1 },
   { name: 'Acelerado', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/02-acelerado.mp3', iconKey: 'gauge', troopState: 'Em acelerado', category: 'marcha', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 2 },
   { name: 'Ajudante-geral', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/03-ajudante_geral.mp3', iconKey: 'user', troopState: null, category: 'autoridades', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 3 },
   { name: 'Alto', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/04-alto.mp3', iconKey: 'hand', troopState: 'Alto', category: 'comandos', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 4 },
@@ -13,7 +13,7 @@ const bugleCallsData = [
   { name: 'Batalhão', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/09-batalhao.mp3', iconKey: 'users', troopState: null, category: 'frações', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 9 },
   { name: 'Bombeiro', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/10-bombeiro.mp3', iconKey: 'flame', troopState: null, category: 'institucional', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 10 },
   { name: 'Cavalaria', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/11-cavalaria.mp3', iconKey: 'shield', troopState: null, category: 'institucional', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 11 },
-  { name: 'Cessar o À Vontade', audioUrl: '/audio/toques/cessar-a-vontade.wav', iconKey: 'relaxed', troopState: 'Descansar', category: 'comandos', sourceUrl: null, sortOrder: 12 },
+  { name: 'Cessar o À Vontade', audioUrl: '/audio/toques/cessar-a-vontade.mp3', iconKey: 'relaxed', troopState: 'Descansar', category: 'comandos', sourceUrl: null, sortOrder: 12 },
   { name: 'Chefe do Estado-Maior', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/12-chefe_estado_maior.mp3', iconKey: 'user', troopState: null, category: 'autoridades', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 13 },
   { name: 'Comandante de batalhão', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/13-cmt_batalhao.mp3', iconKey: 'user', troopState: null, category: 'autoridades', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 14 },
   { name: 'Comandante de companhia', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/14-cmt_companhia.mp3', iconKey: 'user', troopState: null, category: 'autoridades', sourceUrl: 'https://cpmlondrina.com.br/alunos/toques-corneta/', sortOrder: 15 },
@@ -77,6 +77,31 @@ async function seedBugleCalls() {
     }
   }
   console.log(`Seeded ${bugleCallsData.length} bugle calls successfully.`);
+
+  const marchesData = [
+    { title: 'Batista de Melo', composer: 'Manoel Alves', audioUrl: '/audio/toques/cessar-a-vontade.mp3', sortOrder: 1 },
+    { title: 'Cavalaria', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/11-cavalaria.mp3', sortOrder: 2 },
+    { title: 'Granadeira', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/30-granadeira.mp3', sortOrder: 3 },
+    { title: 'Início Expediente', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/31-inicio_expediente.mp3', sortOrder: 4 },
+  ];
+
+  const { listMarches, createMarch, updateMarch } = await import('./server/bugleDb.ts');
+  const existingMarches = await listMarches(false);
+  const existingMarchMap = new Map(existingMarches.map((m) => [m.title.toLowerCase(), m]));
+
+  for (const march of marchesData) {
+    const existing = existingMarchMap.get(march.title.toLowerCase());
+    if (existing) {
+      await updateMarch(existing.id, {
+        composer: march.composer,
+        audioUrl: existing.audioUrl || march.audioUrl,
+        sortOrder: march.sortOrder,
+      });
+    } else {
+      await createMarch(march);
+    }
+  }
+  console.log(`Seeded ${marchesData.length} marches successfully.`);
 }
 
 seedBugleCalls().catch((err) => {

@@ -350,17 +350,38 @@ export default function Drill() {
     if (!audio) return false;
     audio.pause();
     audio.loop = false;
-    audio.src = audioUrl;
+
+    const primaryUrl = audioUrl;
+    const fallbackUrl = audioUrl.endsWith(".wav")
+      ? audioUrl.replace(/\.wav$/, ".mp3")
+      : audioUrl.endsWith(".mp3")
+      ? audioUrl.replace(/\.mp3$/, ".wav")
+      : null;
+
+    audio.src = primaryUrl;
     audio.load();
     try {
       await audio.play();
       setPlayingKey(key);
       setPlayingLabel(label);
       return true;
-    } catch {
+    } catch (primaryErr) {
+      if (fallbackUrl) {
+        try {
+          audio.src = fallbackUrl;
+          audio.load();
+          await audio.play();
+          setPlayingKey(key);
+          setPlayingLabel(label);
+          return true;
+        } catch {
+          // ignore fallback failure and report primary error
+        }
+      }
+      console.warn("[Drill Audio] Falha ao reproduzir áudio:", primaryUrl, primaryErr);
       setPlayingKey(null);
       setPlayingLabel(null);
-      toast.error("Não foi possível reproduzir este áudio.");
+      toast.error(`Não foi possível reproduzir "${label}". Verifique a conexão ou envie o arquivo no painel.`);
       return false;
     }
   };
