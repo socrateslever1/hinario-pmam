@@ -201,7 +201,7 @@ export function OrdemUnidaAudioManager() {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-md">
+        <div className="relative w-full sm:max-w-xs md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -211,11 +211,11 @@ export function OrdemUnidaAudioManager() {
           />
         </div>
         <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="voz">Voz</TabsTrigger>
-            <TabsTrigger value="corneta">Toques</TabsTrigger>
-            <TabsTrigger value="dobrado">Dobrados</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto">
+            <TabsTrigger value="all" className="px-1.5 text-xs">Todos</TabsTrigger>
+            <TabsTrigger value="voz" className="px-1.5 text-xs">Voz</TabsTrigger>
+            <TabsTrigger value="corneta" className="px-1.5 text-xs">Toques</TabsTrigger>
+            <TabsTrigger value="dobrado" className="px-1.5 text-xs">Dobrados</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -273,68 +273,72 @@ export function OrdemUnidaAudioManager() {
             const isUploading = uploadingItemId === item.id;
             return (
               <Card key={item.id} className="border-border/60 py-0">
-                <CardContent className="flex min-w-0 items-center gap-2 p-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] dark:bg-[#c4a84b]/10 dark:text-[#e5ce7c]">
-                    <Volume2 className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black">{item.title}</p>
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                        {getBadgeLabel(item.type)}
-                      </Badge>
-                      {audio?.isActive ? (
-                        <span className="truncate text-[11px] text-emerald-700 dark:text-emerald-300">
-                          {audio.fileName}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">Sem áudio</span>
-                      )}
+                <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] dark:bg-[#c4a84b]/10 dark:text-[#e5ce7c]">
+                      <Volume2 className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black">{item.title}</p>
+                      <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                          {getBadgeLabel(item.type)}
+                        </Badge>
+                        {audio?.isActive ? (
+                          <span className="truncate text-[11px] text-emerald-700 dark:text-emerald-300">
+                            {audio.fileName}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">Sem áudio</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <input
-                    id={`ordem-unida-audio-${item.id}`}
-                    type="file"
-                    accept={ACCEPTED_AUDIO}
-                    className="sr-only"
-                    onChange={(event) => {
-                      void handleFile(item, event.target.files?.[0]);
-                      event.currentTarget.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploading}
-                    onClick={() => document.getElementById(`ordem-unida-audio-${item.id}`)?.click()}
-                    className="shrink-0 font-bold min-w-[110px]"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
-                        {uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Enviando..."}
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-1.5 h-3.5 w-3.5" />
-                        {audio?.isActive ? "Trocar" : "Enviar"}
-                      </>
-                    )}
-                  </Button>
-                  {audio?.isActive && (
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <input
+                      id={`ordem-unida-audio-${item.id}`}
+                      type="file"
+                      accept={ACCEPTED_AUDIO}
+                      className="sr-only"
+                      onChange={(event) => {
+                        void handleFile(item, event.target.files?.[0]);
+                        event.currentTarget.value = "";
+                      }}
+                    />
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deactivateMutation.mutate({ id: audio.id })}
-                      disabled={deactivateMutation.isPending}
-                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-                      aria-label={`Remover áudio de ${item.title}`}
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading}
+                      onClick={() => document.getElementById(`ordem-unida-audio-${item.id}`)?.click()}
+                      className="shrink-0 font-bold min-w-[110px]"
                     >
-                      <X className="h-4 w-4" />
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
+                          {uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Enviando..."}
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-1.5 h-3.5 w-3.5" />
+                          {audio?.isActive ? "Trocar" : "Enviar"}
+                        </>
+                      )}
                     </Button>
-                  )}
+                    {audio?.isActive && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deactivateMutation.mutate({ id: audio.id })}
+                        disabled={deactivateMutation.isPending}
+                        className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                        aria-label={`Remover áudio de ${item.title}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
