@@ -23,7 +23,7 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-    if (url.startsWith("/api") || url.startsWith("/uploads") || url.startsWith("/audio") || /\.[a-zA-Z0-9]+$/.test(url.split("?")[0])) {
+    if (url.startsWith("/api") || url.startsWith("/uploads") || url.startsWith("/audio")) {
       return next();
     }
 

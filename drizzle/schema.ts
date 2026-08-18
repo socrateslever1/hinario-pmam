@@ -390,7 +390,7 @@ export type InsertPmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$infer
 
 export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
   id: int("id").autoincrement().primaryKey(),
-  itemId: varchar("item_id", { length: 128 }).notNull().unique(),
+  itemId: varchar("item_id", { length: 128 }).notNull(),
   itemTitle: varchar("item_title", { length: 255 }).notNull(),
   itemType: mysqlEnum("item_type", ["corneta", "dobrado", "voz"]).notNull(),
   audioUrl: longtext("audio_url").notNull(),
@@ -399,11 +399,16 @@ export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
   fileSize: int("file_size"),
   mimeType: varchar("mime_type", { length: 100 }),
   duration: int("duration"),
+  voiceProfileKey: varchar("voice_profile_key", { length: 128 }).notNull().default("default"),
+  voiceAuthorName: varchar("voice_author_name", { length: 255 }),
+  voiceAuthorPhotoUrl: longtext("voice_author_photo_url"),
   isActive: boolean("is_active").default(true),
   uploadedBy: int("uploaded_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  itemVoiceProfileUnique: uniqueIndex("uq_pmam_ordem_unida_audios_item_voice").on(table.itemId, table.voiceProfileKey),
+}));
 
 export type PmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferSelect;
 export type InsertPmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferInsert;

@@ -28,6 +28,10 @@ describe("ordemUnidaAudioDb", () => {
   it("lista e converte os áudios ativos para o painel de execução", async () => {
     (query as any)
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ index_name: "uq_pmam_ordem_unida_audios_item_voice" }])
       .mockResolvedValueOnce([audioRow]);
 
     const audios = await ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
@@ -69,11 +73,11 @@ describe("ordemUnidaAudioDb", () => {
   it("desativa o vínculo sem apagar o registro de auditoria", async () => {
     (query as any).mockResolvedValueOnce({ affectedRows: 1 });
 
-    await ordemUnidaAudioDb.deactivateOrdemUnidaAudio("corneta-sentido");
+    await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(7);
 
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining("SET is_active = 0"),
-      ["corneta-sentido"],
+      [7],
     );
   });
 });

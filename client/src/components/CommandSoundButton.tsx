@@ -1,31 +1,64 @@
 import type { LucideIcon } from "lucide-react";
 import {
   AlarmClock,
+  AlignJustify,
+  Armchair,
   ArrowLeft,
   ArrowRight,
+  Badge,
+  Ban,
   Bell,
   BedDouble,
+  Briefcase,
+  Building2,
   CircleStop,
   Clock3,
+  Combine,
+  CornerUpLeft,
+  CornerUpRight,
+  Crown,
+  Drum,
   Eye,
+  EyeOff,
   Flag,
   Flame,
+  FlipHorizontal2,
   Footprints,
+  Gauge,
   GraduationCap,
   Hand,
+  Landmark,
   Megaphone,
+  Medal,
+  MoveUpRight,
   Music2,
+  Network,
+  Octagon,
   PersonStanding,
   RotateCcw,
+  RotateCw,
+  Rows3,
+  ScanSearch,
+  Search,
   Shield,
+  ShieldCheck,
+  ShieldOff,
   Star,
   Sun,
+  Sunrise,
   Swords,
+  TimerOff,
+  Undo2,
+  UserCheck,
+  UserCog,
   UserRound,
+  UserRoundCheck,
   Users,
+  UsersRound,
   UtensilsCrossed,
   Volume2,
   VolumeX,
+  Waves,
 } from "lucide-react";
 import { normalizeDrillCommand } from "@/lib/drillStateMachine";
 
@@ -66,34 +99,95 @@ const ICON_BY_KEY: Record<string, LucideIcon> = {
   music: Music2,
 };
 
+const UNIQUE_COMMAND_ICONS: Record<string, LucideIcon> = {
+  "a vontade": Armchair,
+  acelerado: Gauge,
+  "ajudante geral": UserCog,
+  alto: Octagon,
+  alvorada: Sunrise,
+  "apresentar arma": Hand,
+  "avancar ao rancho": UtensilsCrossed,
+  "bandeira nacional": Flag,
+  batalhao: Building2,
+  bombeiro: Flame,
+  cavalaria: Shield,
+  "cessar o a vontade": Ban,
+  "chefe estado maior": Star,
+  "chefe do estado maior": Star,
+  "comandante de batalhao": UserRound,
+  "comandante de companhia": UsersRound,
+  "comandante geral": Crown,
+  cobrir: AlignJustify,
+  companhia: Rows3,
+  contingente: Network,
+  "cruzar arma": Swords,
+  descansar: BedDouble,
+  "descansar arma": ShieldOff,
+  "direita volver": RotateCw,
+  "em continencia": Medal,
+  "em direcao a direita": CornerUpRight,
+  "em direcao a esquerda": CornerUpLeft,
+  escola: GraduationCap,
+  "esquerda volver": RotateCcw,
+  firme: UserCheck,
+  governador: Landmark,
+  granadeira: Drum,
+  "inicio expediente": Clock3,
+  "inicio do expediente": Clock3,
+  "inspecoes policiais": ScanSearch,
+  "marcar passo": Footprints,
+  "marcha batida": Waves,
+  "meia volta volver": FlipHorizontal2,
+  "oficial superior": Badge,
+  "olhar a direita": Eye,
+  "olhar em frente": EyeOff,
+  "ombro arma": Briefcase,
+  ordem: Megaphone,
+  "ordinario marche": MoveUpRight,
+  "para prontidao": Bell,
+  pelotao: Users,
+  "policia militar": ShieldCheck,
+  presidente: UserRoundCheck,
+  reunir: Combine,
+  "revista do recolher": Search,
+  sentido: PersonStanding,
+  silencio: VolumeX,
+  "termino expediente": TimerOff,
+  "termino do expediente": TimerOff,
+  "ultima forma": Undo2,
+};
+
 export function getCommandVisual(title: string, iconKey?: string | null): { Icon: LucideIcon; tone: Tone } {
   const command = normalizeDrillCommand(title);
+  const uniqueIcon = UNIQUE_COMMAND_ICONS[command];
+  let semanticIcon: LucideIcon | undefined;
+  let tone: Tone | undefined;
 
-  if (/silencio/.test(command)) return { Icon: VolumeX, tone: "blue" };
-  if (/alvorada/.test(command)) return { Icon: Sun, tone: "yellow" };
-  if (/expediente|recolher|horario/.test(command)) return { Icon: AlarmClock, tone: "yellow" };
-  if (/rancho/.test(command)) return { Icon: UtensilsCrossed, tone: "orange" };
-  if (/bandeira/.test(command)) return { Icon: Flag, tone: "green" };
-  if (/bombeiro/.test(command)) return { Icon: Flame, tone: "red" };
-  if (/escola/.test(command)) return { Icon: GraduationCap, tone: "blue" };
-  if (/governador|presidente|comandante|oficial|chefe/.test(command)) return { Icon: Star, tone: "purple" };
-  if (/batalhao|companhia|pelotao|contingente|reunir|cobrir/.test(command)) return { Icon: Users, tone: "orange" };
-  if (/a vontade|descansar$/.test(command)) return { Icon: BedDouble, tone: "green" };
-  if (/sentido|firme/.test(command)) return { Icon: PersonStanding, tone: "red" };
-  if (/apresentar arma/.test(command)) return { Icon: Hand, tone: "red" };
-  if (/ombro arma|cruzar arma|descansar arma/.test(command)) return { Icon: Swords, tone: "orange" };
-  if (/olhar/.test(command)) return { Icon: Eye, tone: "blue" };
-  if (/direita/.test(command)) return { Icon: ArrowRight, tone: "blue" };
-  if (/esquerda/.test(command)) return { Icon: ArrowLeft, tone: "blue" };
-  if (/volta volver/.test(command)) return { Icon: RotateCcw, tone: "blue" };
-  if (/alto/.test(command)) return { Icon: CircleStop, tone: "red" };
-  if (/marcha|marche|marcar passo|acelerado|avancar/.test(command)) return { Icon: Footprints, tone: "yellow" };
-  if (/ordem|prontidao|inspec/.test(command)) return { Icon: Shield, tone: "red" };
+  if (/silencio/.test(command)) [semanticIcon, tone] = [VolumeX, "blue"];
+  else if (/alvorada/.test(command)) [semanticIcon, tone] = [Sun, "yellow"];
+  else if (/expediente|recolher|horario/.test(command)) [semanticIcon, tone] = [AlarmClock, "yellow"];
+  else if (/rancho/.test(command)) [semanticIcon, tone] = [UtensilsCrossed, "orange"];
+  else if (/bandeira/.test(command)) [semanticIcon, tone] = [Flag, "green"];
+  else if (/bombeiro/.test(command)) [semanticIcon, tone] = [Flame, "red"];
+  else if (/escola/.test(command)) [semanticIcon, tone] = [GraduationCap, "blue"];
+  else if (/governador|presidente|comandante|oficial|chefe/.test(command)) [semanticIcon, tone] = [Star, "purple"];
+  else if (/batalhao|companhia|pelotao|contingente|reunir|cobrir/.test(command)) [semanticIcon, tone] = [Users, "orange"];
+  else if (/a vontade|descansar$/.test(command)) [semanticIcon, tone] = [BedDouble, "green"];
+  else if (/sentido|firme/.test(command)) [semanticIcon, tone] = [PersonStanding, "red"];
+  else if (/apresentar arma/.test(command)) [semanticIcon, tone] = [Hand, "red"];
+  else if (/ombro arma|cruzar arma|descansar arma/.test(command)) [semanticIcon, tone] = [Swords, "orange"];
+  else if (/olhar/.test(command)) [semanticIcon, tone] = [Eye, "blue"];
+  else if (/direita/.test(command)) [semanticIcon, tone] = [ArrowRight, "blue"];
+  else if (/esquerda/.test(command)) [semanticIcon, tone] = [ArrowLeft, "blue"];
+  else if (/volta volver/.test(command)) [semanticIcon, tone] = [RotateCcw, "blue"];
+  else if (/alto/.test(command)) [semanticIcon, tone] = [CircleStop, "red"];
+  else if (/marcha|marche|marcar passo|acelerado|avancar/.test(command)) [semanticIcon, tone] = [Footprints, "yellow"];
+  else if (/ordem|prontidao|inspec/.test(command)) [semanticIcon, tone] = [Shield, "red"];
 
-  const Icon = (iconKey && ICON_BY_KEY[iconKey]) || Megaphone;
+  const Icon = uniqueIcon || semanticIcon || (iconKey && ICON_BY_KEY[iconKey]) || Megaphone;
   const tones: Tone[] = ["red", "yellow", "blue", "green", "orange", "purple"];
   const hash = command.split("").reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  return { Icon, tone: tones[hash % tones.length] };
+  return { Icon, tone: tone || tones[hash % tones.length] };
 }
 
 type Props = {

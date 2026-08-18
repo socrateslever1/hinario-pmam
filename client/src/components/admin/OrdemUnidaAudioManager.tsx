@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Search, Upload, Volume2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Camera, Search, Upload, UserRound, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { TODOS_OS_ITENS_DE_ORDEM_UNIDA, OrdemUnidaPanelItem } from "@/lib/ordemU
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const ACCEPTED_AUDIO = "audio/*,.mp3,.wav,.ogg,.webm,.mp4,.m4a,.aac,.flac";
 const VALID_AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "webm", "mp4", "m4a", "aac", "flac"]);
+const ACCEPTED_PHOTO = "image/jpeg,image/png,image/webp";
 
 async function fileToBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -30,6 +31,8 @@ export function OrdemUnidaAudioManager() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
+  const [voiceAuthorName, setVoiceAuthorName] = useState("");
+  const [voiceAuthorPhoto, setVoiceAuthorPhoto] = useState<File | null>(null);
   const utils = trpc.useUtils();
   const audiosQuery = trpc.ordemUnidaAudio.listAll.useQuery();
 
@@ -50,10 +53,18 @@ export function OrdemUnidaAudioManager() {
     onError: (error) => toast.error(error.message),
   });
 
+  const profileKey = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "default";
   const audioByItemId = useMemo(
-    () => new Map((audiosQuery.data ?? []).map((audio) => [audio.itemId, audio])),
+    () => new Map((audiosQuery.data ?? []).map((audio) => [`${audio.itemId}:${audio.voiceProfileKey || "default"}`, audio])),
     [audiosQuery.data],
   );
+  const knownVoiceAuthors = useMemo(
+    () => Array.from(new Map((audiosQuery.data ?? []).filter((audio) => audio.itemType === "voz" && audio.voiceAuthorName).map((audio) => [audio.voiceProfileKey, audio.voiceAuthorName as string])).values()),
+    [audiosQuery.data],
+  );
+  useEffect(() => {
+    if (!voiceAuthorName && knownVoiceAuthors[0]) setVoiceAuthorName(knownVoiceAuthors[0]);
+  }, [knownVoiceAuthors, voiceAuthorName]);
 
   const visibleItems = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
@@ -75,10 +86,15 @@ export function OrdemUnidaAudioManager() {
       toast.error("O arquivo não pode exceder 100 MB");
       return;
     }
+    if (item.type === "voz" && !voiceAuthorName.trim()) {
+      toast.error("Informe o nome do militar autor da voz antes de enviar");
+      return;
+    }
     try {
       setUploadingItemId(item.id);
       const fileData = await fileToBase64(file);
       const mimeType = file.type || `audio/${ext === "mp3" ? "mpeg" : ext}`;
+      const photoData = item.type === "voz" && voiceAuthorPhoto ? await fileToBase64(voiceAuthorPhoto) : null;
       await uploadMutation.mutateAsync({
         itemId: item.id,
         itemTitle: item.title,
@@ -88,6 +104,11 @@ export function OrdemUnidaAudioManager() {
         mimeType,
         fileData,
         duration: null,
+        voiceAuthorName: item.type === "voz" ? voiceAuthorName.trim() : null,
+        voiceAuthorPhotoFileName: voiceAuthorPhoto?.name || null,
+        voiceAuthorPhotoFileSize: voiceAuthorPhoto?.size || null,
+        voiceAuthorPhotoMimeType: voiceAuthorPhoto?.type || null,
+        voiceAuthorPhotoFileData: photoData,
       });
     } catch (error) {
       setUploadingItemId(null);
@@ -135,6 +156,24 @@ export function OrdemUnidaAudioManager() {
         </Tabs>
       </div>
 
+      {categoryFilter === "voz" && (
+        <div className="grid gap-3 rounded-2xl border border-[#c4a84b]/40 bg-[#c4a84b]/10 p-4 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <label htmlFor="voice-author-name" className="mb-1.5 block text-xs font-black uppercase tracking-wide">Militar autor da voz</label>
+            <Input id="voice-author-name" list="voice-author-list" value={voiceAuthorName} onChange={(event) => setVoiceAuthorName(event.target.value)} placeholder="Ex.: 2º SGT Silva" />
+            <datalist id="voice-author-list">{knownVoiceAuthors.map((name) => <option key={name} value={name} />)}</datalist>
+            <p className="mt-1 text-xs text-muted-foreground">Use o mesmo nome para vincular vários comandos ao mesmo militar.</p>
+          </div>
+          <div>
+            <input id="voice-author-photo" type="file" accept={ACCEPTED_PHOTO} className="sr-only" onChange={(event) => setVoiceAuthorPhoto(event.target.files?.[0] || null)} />
+            <Button type="button" variant="outline" onClick={() => document.getElementById("voice-author-photo")?.click()}>
+              {voiceAuthorPhoto ? <Camera className="mr-2 h-4 w-4" /> : <UserRound className="mr-2 h-4 w-4" />}
+              {voiceAuthorPhoto ? voiceAuthorPhoto.name : "Carregar foto"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {audiosQuery.isLoading ? (
         <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
           Carregando catálogo de áudio…
@@ -142,7 +181,8 @@ export function OrdemUnidaAudioManager() {
       ) : (
         <div className="grid gap-2 lg:grid-cols-2">
           {visibleItems.map((item) => {
-            const audio = audioByItemId.get(item.id);
+            const selectedProfileKey = item.type === "voz" ? profileKey(voiceAuthorName) : "default";
+            const audio = audioByItemId.get(`${item.id}:${selectedProfileKey}`);
             const isUploading = uploadingItemId === item.id;
             return (
               <Card key={item.id} className="border-border/60 py-0">
@@ -191,7 +231,7 @@ export function OrdemUnidaAudioManager() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => deactivateMutation.mutate({ itemId: item.id })}
+                      onClick={() => deactivateMutation.mutate({ id: audio.id })}
                       disabled={deactivateMutation.isPending}
                       className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                       aria-label={`Remover áudio de ${item.title}`}

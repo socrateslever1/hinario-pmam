@@ -79,11 +79,23 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
+const MAX_VOICE_AUTHOR_PHOTO_SIZE = 8 * 1024 * 1024;
 const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
   "audio/mpeg", "audio/mp3", "audio/x-mp3", "audio/wav", "audio/x-wav", "audio/wave",
   "audio/ogg", "audio/webm", "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
   "audio/x-aac", "audio/flac", "application/octet-stream",
 ]);
+const VOICE_AUTHOR_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function voiceProfileKey(authorName: string) {
+  return authorName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100) || "default";
+}
 const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/png",
@@ -1085,12 +1097,20 @@ export const appRouter = router({
       mimeType: z.string().trim().min(1).max(100),
       fileData: z.string().min(1),
       duration: z.number().int().nonnegative().max(60 * 60 * 8).nullable().optional(),
+      voiceAuthorName: z.string().trim().max(255).nullable().optional(),
+      voiceAuthorPhotoFileName: z.string().trim().max(255).nullable().optional(),
+      voiceAuthorPhotoMimeType: z.string().trim().max(100).nullable().optional(),
+      voiceAuthorPhotoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
+      voiceAuthorPhotoFileData: z.string().nullable().optional(),
     })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
       }
       if (!ORDEM_UNIDA_AUDIO_MIME_TYPES.has(input.mimeType.toLowerCase())) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de áudio não permitido" });
+      }
+      if (input.itemType === "voz" && !input.voiceAuthorName) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Informe o nome do militar autor da voz" });
       }
 
       const buffer = Buffer.from(input.fileData, "base64");
@@ -1101,6 +1121,20 @@ export const appRouter = router({
       const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "audio";
       const fileKey = `ordem-unida/${input.itemType}/${input.itemId}-${Date.now()}-${nanoid(10)}-${safeFileName}`;
       const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      let voiceAuthorPhotoUrl: string | null = null;
+      if (input.itemType === "voz" && input.voiceAuthorPhotoFileData) {
+        const photoMimeType = input.voiceAuthorPhotoMimeType?.toLowerCase() || "";
+        if (!VOICE_AUTHOR_PHOTO_MIME_TYPES.has(photoMimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A foto deve ser JPG, PNG ou WEBP" });
+        }
+        const photoBuffer = Buffer.from(input.voiceAuthorPhotoFileData, "base64");
+        if (!photoBuffer.length || photoBuffer.length !== input.voiceAuthorPhotoFileSize || photoBuffer.length > MAX_VOICE_AUTHOR_PHOTO_SIZE) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Foto do militar inválida" });
+        }
+        const extension = photoMimeType === "image/png" ? "png" : photoMimeType === "image/webp" ? "webp" : "jpg";
+        const photoKey = `ordem-unida/vozes/militares/${voiceProfileKey(input.voiceAuthorName || "default")}-${Date.now()}-${nanoid(8)}.${extension}`;
+        voiceAuthorPhotoUrl = (await storagePut(photoKey, photoBuffer, photoMimeType)).url;
+      }
       const audio = await ordemUnidaAudioDb.upsertOrdemUnidaAudio({
         itemId: input.itemId,
         itemTitle: input.itemTitle,
@@ -1111,15 +1145,18 @@ export const appRouter = router({
         fileSize: input.fileSize,
         mimeType: input.mimeType,
         duration: input.duration,
+        voiceProfileKey: input.itemType === "voz" ? voiceProfileKey(input.voiceAuthorName || "default") : "default",
+        voiceAuthorName: input.itemType === "voz" ? input.voiceAuthorName : null,
+        voiceAuthorPhotoUrl,
         uploadedBy: ctx.user.id,
       });
       return { success: true, audio };
     }),
-    deactivate: masterProcedure.input(z.object({ itemId: z.string().trim().min(1).max(128) })).mutation(async ({ ctx, input }) => {
+    deactivate: masterProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
       }
-      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.itemId);
+      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.id);
       return { success: true };
     }),
   }),

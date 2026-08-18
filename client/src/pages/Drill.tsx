@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -66,6 +67,9 @@ type VoiceCommand = {
   audioUrl: string;
   fileName: string;
   itemType: "corneta" | "dobrado" | "voz";
+  voiceProfileKey: string;
+  voiceAuthorName: string | null;
+  voiceAuthorPhotoUrl: string | null;
 };
 
 const PREPARED_STORAGE_KEY = "pmam-bugle-prepared-v2";
@@ -77,7 +81,10 @@ const SEQUENCE_ITEMS_STORAGE_KEY = "pmam-bugle-sequence-items-v1";
 const USER_SELECTION_STORAGE_PREFIX = "pmam-bugle-user-selection-v1";
 const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
 type SequenceMedia = { key: string; label: string; audioUrl: string; kind: "hino" | "instrumental" | "dobrado" };
-type SequenceItem = { key: string; type: "call"; callId: number } | { key: string; type: "media"; media: SequenceMedia };
+type SequenceItem =
+  | { key: string; type: "call"; callId: number }
+  | { key: string; type: "voice"; voiceId: number }
+  | { key: string; type: "media"; media: SequenceMedia };
 type SavedDrillSelection = {
   preparedIds: number[];
   sequenceMedia: SequenceMedia[];
@@ -100,7 +107,7 @@ function readStoredSequenceMedia(): SequenceMedia[] {
 function readStoredSequenceItems(): SequenceItem[] {
   try {
     const value = JSON.parse(localStorage.getItem(SEQUENCE_ITEMS_STORAGE_KEY) || "[]");
-    const stored = Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "media")) : [];
+    const stored = Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "voice" || item.type === "media")) : [];
     if (stored.length) return stored;
 
     const legacyIds = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
@@ -205,10 +212,23 @@ export default function Drill() {
   const [drillAlert, setDrillAlert] = useState<string | null>(null);
   const [callSearch, setCallSearch] = useState("");
   const [selectionLoadedFor, setSelectionLoadedFor] = useState<string | null>(null);
+  const [selectedVoiceProfileKey, setSelectedVoiceProfileKey] = useState("");
 
   const calls = (data?.calls || []) as BugleCall[];
   const marches = (data?.marches || []) as March[];
   const voiceCommands = ((voiceAudioQuery.data || []) as VoiceCommand[]).filter((audio) => audio.itemType === "voz");
+  const voiceProfiles = Array.from(new Map(voiceCommands.map((voice) => [
+    voice.voiceProfileKey || "default",
+    {
+      key: voice.voiceProfileKey || "default",
+      name: voice.voiceAuthorName || "Voz padrão",
+      photoUrl: voice.voiceAuthorPhotoUrl,
+    },
+  ])).values());
+  const selectedVoiceProfile = voiceProfiles.find((profile) => profile.key === selectedVoiceProfileKey) || voiceProfiles[0];
+  const selectedVoiceCommands = selectedVoiceProfile
+    ? voiceCommands.filter((voice) => (voice.voiceProfileKey || "default") === selectedVoiceProfile.key)
+    : [];
   const marchCalls = calls.filter((call) => /^(ordinario marche|marcha batida|acelerado)$/.test(normalizeDrillCommand(call.name)));
   const filteredCalls = calls.filter((call) => normalizeDrillCommand(call.name).includes(normalizeDrillCommand(callSearch)));
   const resolvedMarchCombinations = marchCombinations
@@ -230,11 +250,19 @@ export default function Drill() {
         ...sequenceMedia.map((media) => ({ key: `legacy-media-${media.key}`, type: "media" as const, media })),
       ];
     return currentItems
-      .map((item) => item.type === "call"
-        ? { ...item, call: calls.find((call) => call.id === item.callId) }
-        : item)
-      .filter((item) => item.type === "media" || Boolean(item.call));
-  }, [calls, preparedIds, sequenceItems, sequenceMedia]);
+      .map((item) => {
+        if (item.type === "call") return { ...item, call: calls.find((call) => call.id === item.callId) };
+        if (item.type === "voice") return { ...item, voice: voiceCommands.find((voice) => voice.id === item.voiceId) };
+        return item;
+      })
+      .filter((item) => item.type === "media" || (item.type === "call" ? Boolean(item.call) : Boolean(item.voice)));
+  }, [calls, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
+
+  useEffect(() => {
+    if (voiceProfiles.length && !voiceProfiles.some((profile) => profile.key === selectedVoiceProfileKey)) {
+      setSelectedVoiceProfileKey(voiceProfiles[0].key);
+    }
+  }, [selectedVoiceProfileKey, voiceProfiles]);
 
   useEffect(() => {
     localStorage.setItem(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
@@ -501,18 +529,20 @@ export default function Drill() {
         preparedQueue.push({ key: `sequence-${item.media.key}`, label: item.media.label, audioUrl: item.media.audioUrl });
         continue;
       }
-      const call = item.call as BugleCall;
-      if (!call.audioUrl) {
-        showDrillAlert(`${call.name} está sem áudio.`);
+      const commandItem = item.type === "call"
+        ? (() => { const call = item.call as BugleCall; return { id: call.id, name: call.name, audioUrl: call.audioUrl, kind: "call" as const }; })()
+        : (() => { const voice = item.voice as VoiceCommand; return { id: voice.id, name: voice.itemTitle, audioUrl: voice.audioUrl, kind: "voice" as const }; })();
+      if (!commandItem.audioUrl) {
+        showDrillAlert(`${commandItem.name} está sem áudio.`);
         return;
       }
-      if (!isDrillCommandAllowed(call.name, currentState)) {
-        const sequence = getRequiredCommandSequence(call.name, currentState).map(commandLabel).join(" → ");
-        showDrillAlert(`Sequência bloqueada em ${call.name}. Ordem necessária: ${sequence}.`);
+      if (!isDrillCommandAllowed(commandItem.name, currentState)) {
+        const sequence = getRequiredCommandSequence(commandItem.name, currentState).map(commandLabel).join(" → ");
+        showDrillAlert(`Sequência bloqueada em ${commandItem.name}. Ordem necessária: ${sequence}.`);
         return;
       }
-      currentState = applyDrillCommand(call.name, currentState);
-      preparedQueue.push({ key: `sequence-call-${call.id}`, label: call.name, audioUrl: call.audioUrl, nextState: currentState });
+      currentState = applyDrillCommand(commandItem.name, currentState);
+      preparedQueue.push({ key: `sequence-${commandItem.kind}-${commandItem.id}`, label: commandItem.name, audioUrl: commandItem.audioUrl, nextState: currentState });
     }
     const [first, ...remaining] = preparedQueue;
     if (!first) return;
@@ -566,6 +596,11 @@ export default function Drill() {
     const payload: SavedDrillSelection = { preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
     localStorage.setItem(userSelectionKey(user?.id), JSON.stringify(payload));
     toast.success(user?.id ? "Favoritos salvos neste aparelho para este usuário." : "Favoritos salvos neste aparelho.");
+  };
+
+  const addVoiceToFavorites = (voice: VoiceCommand) => {
+    setSequenceItems((current) => [...current, { key: `voice-${voice.id}-${Date.now()}-${current.length}`, type: "voice", voiceId: voice.id }]);
+    toast.success(`${voice.itemTitle} (${voice.voiceAuthorName || "voz padrão"}) adicionado aos favoritos.`);
   };
 
   const clearFavorites = () => {
@@ -681,23 +716,26 @@ export default function Drill() {
                 <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 pb-2 pt-1 sm:gap-x-3 md:grid-cols-6 lg:grid-cols-8">
                   {preparedWorkItems.map((item, index) => {
                     const isCall = item.type === "call";
+                    const isVoice = item.type === "voice";
                     const call = isCall ? (item.call as BugleCall) : null;
+                    const voice = isVoice ? (item.voice as VoiceCommand) : null;
                     const media = item.type === "media" ? item.media : null;
+                    const itemLabel = isCall ? call?.name || "Toque" : isVoice ? voice?.itemTitle || "Voz" : media?.label || "Áudio";
                     return (
                       <div key={item.key} className="relative min-w-0">
                         <div className={isDeletingFavorites ? "favorite-delete-wiggle" : ""}>
                           <CommandSoundButton
                             compact
-                            title={favoriteLabel(isCall ? call?.name || "Toque" : media?.label || "Áudio")}
-                            iconKey={isCall ? call?.iconKey : "music"}
-                            isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : playingKey === `sequence-${media?.key}`}
-                            isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : true}
-                            onClick={() => isCall && call ? playCall(call) : media ? playSequenceMedia(media) : undefined}
+                            title={favoriteLabel(itemLabel)}
+                            iconKey={isCall ? call?.iconKey : isVoice ? "volume" : "music"}
+                            isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : isVoice ? playingKey === `voice-${voice?.id}` || playingKey === `sequence-voice-${voice?.id}` : playingKey === `sequence-${media?.key}`}
+                            isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : isVoice ? isDrillCommandAllowed(voice?.itemTitle || "", drillState) : true}
+                            onClick={() => isCall && call ? playCall(call) : isVoice && voice ? playVoiceCommand(voice) : media ? playSequenceMedia(media) : undefined}
                             action={isDeletingFavorites ? (
                               <button
                                 type="button"
                                 onClick={() => removeSequenceItem(item as SequenceItem)}
-                                aria-label={`Remover ${isCall ? call?.name : media?.label} dos favoritos`}
+                                aria-label={`Remover ${itemLabel} dos favoritos`}
                                 className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
                               >
                                 <Minus className="h-3 w-3" strokeWidth={3} />
@@ -724,7 +762,7 @@ export default function Drill() {
                     <AudioLines className="mr-1.5 h-4 w-4" /> Executar sequência completa
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Sequência: {preparedWorkItems.map((item) => item.type === "call" ? (item.call as BugleCall).name : item.media.label).join(" → ")}. Pausa de {sequenceDelaySeconds}s entre cada áudio.
+                    Sequência: {preparedWorkItems.map((item) => item.type === "call" ? (item.call as BugleCall).name : item.type === "voice" ? (item.voice as VoiceCommand).itemTitle : item.media.label).join(" → ")}. Pausa de {sequenceDelaySeconds}s entre cada áudio.
                   </p>
                 </div>
               </div>
@@ -783,18 +821,35 @@ export default function Drill() {
           ) : voiceCommands.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-[#1a3a2a]/20 px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma voz enviada. No dashboard, abra “Comandos de voz” e envie a gravação de Firme ou de outro comando.</div>
           ) : (
-            <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
-              {voiceCommands.map((voice) => (
-                <CommandSoundButton
-                  key={voice.id}
-                  title={voice.itemTitle}
-                  subtitle={voice.fileName}
-                  iconKey="volume"
-                  isPlaying={playingKey === `voice-${voice.id}`}
-                  isAllowed={isDrillCommandAllowed(voice.itemTitle, drillState)}
-                  onClick={() => playVoiceCommand(voice)}
-                />
-              ))}
+            <div>
+              <div className="mb-5 grid gap-3 rounded-2xl border border-[#1a3a2a]/15 bg-[#1a3a2a]/5 p-3 sm:grid-cols-[auto_1fr] sm:items-center">
+                <Avatar className="h-16 w-16 border-2 border-[#c4a84b]">
+                  <AvatarImage src={selectedVoiceProfile?.photoUrl || undefined} alt={selectedVoiceProfile?.name || "Militar"} className="object-cover" />
+                  <AvatarFallback className="bg-[#1a3a2a] font-black text-white">{selectedVoiceProfile?.name?.slice(0, 2).toUpperCase() || "VZ"}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <label htmlFor="voice-profile" className="mb-1 block text-xs font-black uppercase tracking-wide text-muted-foreground">Voz do militar</label>
+                  <Select value={selectedVoiceProfile?.key || ""} onValueChange={setSelectedVoiceProfileKey}>
+                    <SelectTrigger id="voice-profile" className="w-full"><SelectValue placeholder="Escolha o militar" /></SelectTrigger>
+                    <SelectContent>{voiceProfiles.map((profile) => <SelectItem key={profile.key} value={profile.key}>{profile.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{selectedVoiceProfile?.name || "Voz padrão"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                {selectedVoiceCommands.map((voice) => (
+                  <CommandSoundButton
+                    key={voice.id}
+                    title={voice.itemTitle}
+                    subtitle={voice.voiceAuthorName || voice.fileName}
+                    iconKey="volume"
+                    isPlaying={playingKey === `voice-${voice.id}`}
+                    isAllowed={isDrillCommandAllowed(voice.itemTitle, drillState)}
+                    onClick={() => playVoiceCommand(voice)}
+                    action={<button type="button" onClick={() => addVoiceToFavorites(voice)} aria-label={`Adicionar ${voice.itemTitle} na voz de ${voice.voiceAuthorName || "militar"} aos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </section>
