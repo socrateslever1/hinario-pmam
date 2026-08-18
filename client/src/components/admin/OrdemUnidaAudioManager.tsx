@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Camera, Plus, Save, Search, Upload, UserRound, Volume2, X } from "lucide-react";
+import { Camera, Loader2, Plus, Save, Search, Upload, UserRound, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,18 @@ const ACCEPTED_AUDIO = "audio/*,.mp3,.wav,.ogg,.webm,.mp4,.m4a,.aac,.flac";
 const VALID_AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "webm", "mp4", "m4a", "aac", "flac"]);
 const ACCEPTED_PHOTO = "image/jpeg,image/png,image/webp";
 
-async function fileToBase64(file: File) {
+async function fileToBase64(file: File, onProgress?: (percent: number) => void) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Não foi possível ler o arquivo"));
+    reader.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 30);
+        onProgress(percent);
+      }
+    };
     reader.onload = () => {
+      if (onProgress) onProgress(30);
       const result = String(reader.result || "");
       const commaIndex = result.indexOf(",");
       resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
@@ -28,10 +35,44 @@ async function fileToBase64(file: File) {
   });
 }
 
+function uploadWithXHRProgress(payload: any, onProgress: (percent: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/trpc/ordemUnidaAudio.upload", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = 30 + Math.round((event.loaded / event.total) * 65);
+        onProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          const msg = json?.error?.json?.message || json?.error?.message || `Erro HTTP ${xhr.status}`;
+          reject(new Error(msg));
+        } catch {
+          reject(new Error(`Erro HTTP ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Erro de rede ao enviar arquivo"));
+    xhr.send(JSON.stringify({ json: payload }));
+  });
+}
+
 export function OrdemUnidaAudioManager() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [voiceAuthorName, setVoiceAuthorName] = useState("");
   const [voiceAuthorPhoto, setVoiceAuthorPhoto] = useState<File | null>(null);
   const [selectedVoiceProfileKey, setSelectedVoiceProfileKey] = useState("new");
@@ -47,15 +88,6 @@ export function OrdemUnidaAudioManager() {
       toast.success("Militar salvo no banco de vozes");
     },
     onError: (error) => toast.error(error.message),
-  });
-
-  const uploadMutation = trpc.ordemUnidaAudio.upload.useMutation({
-    onSuccess: async () => {
-      await Promise.all([utils.ordemUnidaAudio.list.invalidate(), utils.ordemUnidaAudio.listAll.invalidate()]);
-      toast.success("Áudio vinculado à Ordem Unida");
-    },
-    onError: (error) => toast.error(error.message),
-    onSettled: () => setUploadingItemId(null),
   });
 
   const deactivateMutation = trpc.ordemUnidaAudio.deactivate.useMutation({
@@ -117,10 +149,12 @@ export function OrdemUnidaAudioManager() {
     }
     try {
       setUploadingItemId(item.id);
-      const fileData = await fileToBase64(file);
+      setUploadProgress(0);
+      const fileData = await fileToBase64(file, (percent) => setUploadProgress(percent));
       const mimeType = file.type || `audio/${ext === "mp3" ? "mpeg" : ext}`;
       const photoData = item.type === "voz" && voiceAuthorPhoto ? await fileToBase64(voiceAuthorPhoto) : null;
-      await uploadMutation.mutateAsync({
+
+      await uploadWithXHRProgress({
         itemId: item.id,
         itemTitle: item.title,
         itemType: item.type,
@@ -134,10 +168,15 @@ export function OrdemUnidaAudioManager() {
         voiceAuthorPhotoFileSize: voiceAuthorPhoto?.size || null,
         voiceAuthorPhotoMimeType: voiceAuthorPhoto?.type || null,
         voiceAuthorPhotoFileData: photoData,
-      });
+      }, (percent) => setUploadProgress(percent));
+
+      await Promise.all([utils.ordemUnidaAudio.list.invalidate(), utils.ordemUnidaAudio.listAll.invalidate()]);
+      toast.success(`Áudio "${item.title}" enviado com sucesso!`);
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao enviar o áudio");
+    } finally {
       setUploadingItemId(null);
-      toast.error(error instanceof Error ? error.message : "Falha ao preparar o áudio");
+      setUploadProgress(0);
     }
   };
 
@@ -267,12 +306,21 @@ export function OrdemUnidaAudioManager() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={isUploading || uploadMutation.isPending}
+                    disabled={isUploading}
                     onClick={() => document.getElementById(`ordem-unida-audio-${item.id}`)?.click()}
-                    className="shrink-0"
+                    className="shrink-0 font-bold min-w-[110px]"
                   >
-                    <Upload className="mr-1.5 h-3.5 w-3.5" />
-                    {isUploading ? "Enviando" : audio?.isActive ? "Trocar" : "Enviar"}
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
+                        {uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Enviando..."}
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-1.5 h-3.5 w-3.5" />
+                        {audio?.isActive ? "Trocar" : "Enviar"}
+                      </>
+                    )}
                   </Button>
                   {audio?.isActive && (
                     <Button
