@@ -26,6 +26,9 @@ describe("ordemUnidaPanel", () => {
   it("separa dobrados e vozes de comando em grupos próprios", () => {
     expect(DOBRADOS.map((item) => item.title)).toEqual([
       "Baptista de Melo",
+      "Cavalaria",
+      "Granadeira",
+      "Início Expediente",
     ]);
     expect(VOZES_DE_COMANDO.some((item) => item.title === "Sentido")).toBe(true);
     expect(VOZES_DE_COMANDO.every((item) => item.type === "voz")).toBe(true);
