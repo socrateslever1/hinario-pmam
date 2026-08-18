@@ -5,15 +5,21 @@ let connection: ReturnType<typeof connect> | null = null;
 
 function getConnection() {
   if (!ENV.tidbConfigured) {
-    const envKeys = (globalThis as any).cloudflareEnv ? Object.keys((globalThis as any).cloudflareEnv).join(", ") : "none";
+    const cfKeys = (globalThis as any).cloudflareEnv ? Object.keys((globalThis as any).cloudflareEnv).join(", ") : "none";
+    const procKeys = typeof process !== "undefined" && process.env ? Object.keys(process.env).join(", ") : "none";
     throw new Error(
-      `TiDB is not configured. HOST: ${!!ENV.tidbHost}, USER: ${!!ENV.tidbUser}, PASS: ${!!ENV.tidbPassword}, DB: ${!!ENV.tidbDatabase}. Keys in env: ${envKeys}`
+      `TiDB is not configured. HOST: ${!!ENV.tidbHost}, USER: ${!!ENV.tidbUser}, PASS: ${!!ENV.tidbPassword}, DB: ${!!ENV.tidbDatabase}. CF env keys: [${cfKeys}], Proc env keys: [${procKeys}]`
     );
   }
 
-  if (!connection) {
-    const url = `mysql://${ENV.tidbUser}:${ENV.tidbPassword}@${ENV.tidbHost}/${ENV.tidbDatabase}?ssl={"rejectUnauthorized":true}`;
+  const userEnc = encodeURIComponent(ENV.tidbUser);
+  const passEnc = encodeURIComponent(ENV.tidbPassword);
+  const portStr = ENV.tidbPort ? `:${ENV.tidbPort}` : "";
+  const url = `mysql://${userEnc}:${passEnc}@${ENV.tidbHost}${portStr}/${ENV.tidbDatabase}?ssl={"rejectUnauthorized":true}`;
+
+  if (!connection || (connection as any)._lastUrl !== url) {
     connection = connect({ url, fullResult: true });
+    (connection as any)._lastUrl = url;
   }
 
   return connection;
