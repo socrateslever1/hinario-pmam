@@ -10,41 +10,42 @@ import { useAutoUpdate } from "./hooks/useAutoUpdate";
 import { usePWA } from "./hooks/usePWA";
 import { useOfflineCache } from "./hooks/useOfflineCache";
 import { useBackgroundSync } from "./hooks/useBackgroundSync";
-import { useBugleAudioCache } from "./hooks/useBugleAudioCache";
 import { useSessionRefresh } from "./hooks/useSessionRefresh";
 import { useSessionManager } from "./_core/hooks/useSessionManager";
-import { useEffect } from "react";
-import Home from "./pages/Home";
-import Hymns from "./pages/Hymns";
-import HymnDetail from "./pages/HymnDetail";
-import Cfap2026 from "./pages/Cfap2026";
-import About from "./pages/About";
-import Admin from "./pages/Admin";
-import Login from "./pages/Login";
-import CharlieMike from "./pages/CharlieMike";
-import EducationCenter from "./pages/EducationCenter";
-import EducationModule from "./pages/EducationModule";
-import SyncStudio from "./pages/SyncStudio";
-import Drill from "./pages/Drill";
-import DrillDetail from "./pages/DrillDetail";
-import BlogDetail from "./pages/BlogDetail";
-import GradesLogin from "./pages/GradesLogin";
-import Grades from "./pages/Grades";
-import GradesManagement from "./pages/GradesManagement";
-import Documents from "./pages/Documents";
-import StudentProfilePage from "./pages/StudentProfile";
-import UserProfilePage from "./pages/UserProfile";
-import XerifeSystemDocs from "./pages/XerifeSystemDocs";
-import ServiceBoard from "./pages/ServiceBoard";
-import ClassroomMap from "./pages/ClassroomMap";
-import AdministrativeRoom from "./pages/AdministrativeRoom";
-import { ChangePassword } from "./pages/ChangePassword";
-import { AccessManagement } from "./pages/AccessManagement";
+import { lazy, Suspense, useEffect } from "react";
 import BottomNavigation from "./components/BottomNavigation";
 import { GlobalFOButton } from "./components/GlobalFOButton";
 
+const Home = lazy(() => import("./pages/Home"));
+const Hymns = lazy(() => import("./pages/Hymns"));
+const HymnDetail = lazy(() => import("./pages/HymnDetail"));
+const Cfap2026 = lazy(() => import("./pages/Cfap2026"));
+const About = lazy(() => import("./pages/About"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Login = lazy(() => import("./pages/Login"));
+const CharlieMike = lazy(() => import("./pages/CharlieMike"));
+const EducationCenter = lazy(() => import("./pages/EducationCenter"));
+const EducationModule = lazy(() => import("./pages/EducationModule"));
+const SyncStudio = lazy(() => import("./pages/SyncStudio"));
+const Drill = lazy(() => import("./pages/Drill"));
+const DrillDetail = lazy(() => import("./pages/DrillDetail"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail"));
+const GradesLogin = lazy(() => import("./pages/GradesLogin"));
+const Grades = lazy(() => import("./pages/Grades"));
+const GradesManagement = lazy(() => import("./pages/GradesManagement"));
+const Documents = lazy(() => import("./pages/Documents"));
+const StudentProfilePage = lazy(() => import("./pages/StudentProfile"));
+const UserProfilePage = lazy(() => import("./pages/UserProfile"));
+const XerifeSystemDocs = lazy(() => import("./pages/XerifeSystemDocs"));
+const ServiceBoard = lazy(() => import("./pages/ServiceBoard"));
+const ClassroomMap = lazy(() => import("./pages/ClassroomMap"));
+const AdministrativeRoom = lazy(() => import("./pages/AdministrativeRoom"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword").then((module) => ({ default: module.ChangePassword })));
+const AccessManagement = lazy(() => import("./pages/AccessManagement").then((module) => ({ default: module.AccessManagement })));
+
 function Router() {
   return (
+    <Suspense fallback={<div className="grid min-h-[45vh] place-items-center text-sm font-semibold text-muted-foreground">Carregando…</div>}>
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/hinos" component={Hymns} />
@@ -78,6 +79,7 @@ function Router() {
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 
@@ -106,7 +108,6 @@ function App() {
   useBackgroundSync();
 
   // Baixar e manter os toques e dobrados disponíveis com conexão lenta/offline
-  useBugleAudioCache();
   
   // Pré-cachear assets para offline
   const { precacheAssets } = usePWA();

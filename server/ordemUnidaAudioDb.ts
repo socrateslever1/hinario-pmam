@@ -22,6 +22,13 @@ export interface OrdemUnidaAudioRecord {
   updatedAt: Date | string;
 }
 
+export interface VoiceProfileRecord {
+  profileKey: string;
+  name: string;
+  photoUrl: string | null;
+  isActive: boolean;
+}
+
 let schemaPromise: Promise<void> | null = null;
 
 function mapAudio(row: any): OrdemUnidaAudioRecord {
@@ -73,26 +80,56 @@ export async function ensureOrdemUnidaAudioSchema() {
         KEY idx_pmam_ordem_unida_audios_active (is_active)
       )
       `);
-      await query("ALTER TABLE pmam_ordem_unida_audios ADD COLUMN IF NOT EXISTS voice_profile_key VARCHAR(128) NOT NULL DEFAULT 'default' AFTER duration");
-      await query("ALTER TABLE pmam_ordem_unida_audios ADD COLUMN IF NOT EXISTS voice_author_name VARCHAR(255) NULL AFTER voice_profile_key");
-      await query("ALTER TABLE pmam_ordem_unida_audios ADD COLUMN IF NOT EXISTS voice_author_photo_url LONGTEXT NULL AFTER voice_author_name");
+      await query(`
+        CREATE TABLE IF NOT EXISTS pmam_voice_profiles (
+          profile_key VARCHAR(128) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          photo_url LONGTEXT NULL,
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (profile_key),
+          KEY idx_pmam_voice_profiles_active (is_active)
+        )
+      `);
+      await query(`
+        INSERT IGNORE INTO pmam_voice_profiles (profile_key, name, photo_url, is_active)
+        SELECT voice_profile_key, MAX(voice_author_name), MAX(voice_author_photo_url), 1
+        FROM pmam_ordem_unida_audios
+        WHERE item_type = 'voz' AND voice_author_name IS NOT NULL AND voice_author_name <> ''
+        GROUP BY voice_profile_key
+      `);
 
-      const indexes = await query(
-        "SELECT DISTINCT INDEX_NAME AS index_name FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pmam_ordem_unida_audios'",
-      );
-      const indexNames = new Set(indexes.map((row: any) => String(row.index_name)));
-      if (indexNames.has("uq_pmam_ordem_unida_audios_item")) {
-        await query("ALTER TABLE pmam_ordem_unida_audios DROP INDEX uq_pmam_ordem_unida_audios_item");
-      }
-      if (!indexNames.has("uq_pmam_ordem_unida_audios_item_voice")) {
-        await query("ALTER TABLE pmam_ordem_unida_audios ADD UNIQUE INDEX uq_pmam_ordem_unida_audios_item_voice (item_id, voice_profile_key)");
-      }
     })().catch((error) => {
       schemaPromise = null;
       throw error;
     });
   }
   await schemaPromise;
+}
+
+export async function listVoiceProfiles(activeOnly = true): Promise<VoiceProfileRecord[]> {
+  await ensureOrdemUnidaAudioSchema();
+  const rows = await query(`SELECT profile_key, name, photo_url, is_active FROM pmam_voice_profiles ${activeOnly ? "WHERE is_active = 1" : ""} ORDER BY name`);
+  return rows.map((row: any) => ({
+    profileKey: row.profile_key,
+    name: row.name,
+    photoUrl: row.photo_url ?? null,
+    isActive: row.is_active === 1 || row.is_active === true,
+  }));
+}
+
+export async function upsertVoiceProfile(input: { profileKey: string; name: string; photoUrl?: string | null }) {
+  await ensureOrdemUnidaAudioSchema();
+  await query(
+    `INSERT INTO pmam_voice_profiles (profile_key, name, photo_url, is_active)
+     VALUES (?, ?, ?, 1)
+     ON DUPLICATE KEY UPDATE name = VALUES(name), photo_url = COALESCE(VALUES(photo_url), photo_url), is_active = 1, updated_at = CURRENT_TIMESTAMP`,
+    [input.profileKey, input.name, input.photoUrl ?? null],
+  );
+  const rows = await query("SELECT profile_key, name, photo_url, is_active FROM pmam_voice_profiles WHERE profile_key = ? LIMIT 1", [input.profileKey]);
+  const row: any = rows[0];
+  return { profileKey: row.profile_key, name: row.name, photoUrl: row.photo_url ?? null, isActive: row.is_active === 1 || row.is_active === true } as VoiceProfileRecord;
 }
 
 export async function listActiveOrdemUnidaAudios() {

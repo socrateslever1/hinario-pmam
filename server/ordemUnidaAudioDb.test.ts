@@ -30,8 +30,6 @@ describe("ordemUnidaAudioDb", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ index_name: "uq_pmam_ordem_unida_audios_item_voice" }])
       .mockResolvedValueOnce([audioRow]);
 
     const audios = await ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
@@ -43,6 +41,20 @@ describe("ordemUnidaAudioDb", () => {
       audioUrl: "/manus-storage/ordem-unida/sentido.mp3",
       isActive: true,
     })]);
+  });
+
+  it("salva um perfil de militar separado dos comandos de voz", async () => {
+    (query as any)
+      .mockResolvedValueOnce({ affectedRows: 1 })
+      .mockResolvedValueOnce([{ profile_key: "2-sgt-silva", name: "2º SGT Silva", photo_url: "/silva.webp", is_active: 1 }]);
+
+    const profile = await ordemUnidaAudioDb.upsertVoiceProfile({
+      profileKey: "2-sgt-silva",
+      name: "2º SGT Silva",
+      photoUrl: "/silva.webp",
+    });
+
+    expect(profile).toEqual({ profileKey: "2-sgt-silva", name: "2º SGT Silva", photoUrl: "/silva.webp", isActive: true });
   });
 
   it("vincula um novo arquivo ao item e preserva apenas uma versão ativa por toque", async () => {

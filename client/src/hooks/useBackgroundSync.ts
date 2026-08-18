@@ -12,7 +12,7 @@ const CRITICAL_URLS = [
 ];
 
 export function useBackgroundSync() {
-  const { isOnline, swReady } = usePWA();
+  const { swReady } = usePWA();
 
   useEffect(() => {
     if (!swReady) return;
@@ -55,13 +55,9 @@ export function useBackgroundSync() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    if (isOnline) {
-      handleOnline();
-    }
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [isOnline, swReady]);
+  }, [swReady]);
 }

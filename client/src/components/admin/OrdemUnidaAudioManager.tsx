@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Camera, Search, Upload, UserRound, Volume2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Camera, Plus, Save, Search, Upload, UserRound, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TODOS_OS_ITENS_DE_ORDEM_UNIDA, OrdemUnidaPanelItem } from "@/lib/ordemUnidaPanel";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -33,8 +34,20 @@ export function OrdemUnidaAudioManager() {
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
   const [voiceAuthorName, setVoiceAuthorName] = useState("");
   const [voiceAuthorPhoto, setVoiceAuthorPhoto] = useState<File | null>(null);
+  const [selectedVoiceProfileKey, setSelectedVoiceProfileKey] = useState("new");
   const utils = trpc.useUtils();
   const audiosQuery = trpc.ordemUnidaAudio.listAll.useQuery();
+  const voiceProfilesQuery = trpc.ordemUnidaAudio.listVoiceProfiles.useQuery();
+
+  const saveVoiceProfileMutation = trpc.ordemUnidaAudio.saveVoiceProfile.useMutation({
+    onSuccess: async (profile) => {
+      await voiceProfilesQuery.refetch();
+      setSelectedVoiceProfileKey(profile.profileKey);
+      setVoiceAuthorPhoto(null);
+      toast.success("Militar salvo no banco de vozes");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const uploadMutation = trpc.ordemUnidaAudio.upload.useMutation({
     onSuccess: async () => {
@@ -58,13 +71,25 @@ export function OrdemUnidaAudioManager() {
     () => new Map((audiosQuery.data ?? []).map((audio) => [`${audio.itemId}:${audio.voiceProfileKey || "default"}`, audio])),
     [audiosQuery.data],
   );
-  const knownVoiceAuthors = useMemo(
-    () => Array.from(new Map((audiosQuery.data ?? []).filter((audio) => audio.itemType === "voz" && audio.voiceAuthorName).map((audio) => [audio.voiceProfileKey, audio.voiceAuthorName as string])).values()),
-    [audiosQuery.data],
-  );
-  useEffect(() => {
-    if (!voiceAuthorName && knownVoiceAuthors[0]) setVoiceAuthorName(knownVoiceAuthors[0]);
-  }, [knownVoiceAuthors, voiceAuthorName]);
+  const voiceProfiles = voiceProfilesQuery.data ?? [];
+
+  const selectVoiceProfile = (key: string) => {
+    setSelectedVoiceProfileKey(key);
+    setVoiceAuthorPhoto(null);
+    setVoiceAuthorName(key === "new" ? "" : voiceProfiles.find((profile) => profile.profileKey === key)?.name || "");
+  };
+
+  const saveVoiceProfile = async () => {
+    if (!voiceAuthorName.trim()) return toast.error("Informe o nome do militar");
+    const photoData = voiceAuthorPhoto ? await fileToBase64(voiceAuthorPhoto) : null;
+    await saveVoiceProfileMutation.mutateAsync({
+      name: voiceAuthorName.trim(),
+      photoFileName: voiceAuthorPhoto?.name || null,
+      photoFileSize: voiceAuthorPhoto?.size || null,
+      photoMimeType: voiceAuthorPhoto?.type || null,
+      photoFileData: photoData,
+    });
+  };
 
   const visibleItems = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
@@ -157,20 +182,43 @@ export function OrdemUnidaAudioManager() {
       </div>
 
       {categoryFilter === "voz" && (
-        <div className="grid gap-3 rounded-2xl border border-[#c4a84b]/40 bg-[#c4a84b]/10 p-4 sm:grid-cols-[1fr_auto] sm:items-end">
-          <div>
-            <label htmlFor="voice-author-name" className="mb-1.5 block text-xs font-black uppercase tracking-wide">Militar autor da voz</label>
-            <Input id="voice-author-name" list="voice-author-list" value={voiceAuthorName} onChange={(event) => setVoiceAuthorName(event.target.value)} placeholder="Ex.: 2º SGT Silva" />
-            <datalist id="voice-author-list">{knownVoiceAuthors.map((name) => <option key={name} value={name} />)}</datalist>
-            <p className="mt-1 text-xs text-muted-foreground">Use o mesmo nome para vincular vários comandos ao mesmo militar.</p>
+        <div className="rounded-2xl border border-[#c4a84b]/40 bg-[#c4a84b]/10 p-4">
+          <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-2 border-[#c4a84b] bg-[#1a3a2a] text-white">
+              {voiceAuthorPhoto ? (
+                <img src={URL.createObjectURL(voiceAuthorPhoto)} alt="Nova foto do militar" className="h-full w-full object-cover" />
+              ) : voiceProfiles.find((profile) => profile.profileKey === selectedVoiceProfileKey)?.photoUrl ? (
+                <img src={voiceProfiles.find((profile) => profile.profileKey === selectedVoiceProfileKey)?.photoUrl || ""} alt={voiceAuthorName} className="h-full w-full object-cover" />
+              ) : <UserRound className="h-8 w-8" />}
+            </div>
+            <div>
+              <label htmlFor="voice-profile-select" className="mb-1.5 block text-xs font-black uppercase tracking-wide">Escolher militar</label>
+              <Select value={selectedVoiceProfileKey} onValueChange={selectVoiceProfile}>
+                <SelectTrigger id="voice-profile-select"><SelectValue placeholder="Escolha o militar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new"><span className="flex items-center gap-2"><Plus className="h-4 w-4" />Adicionar novo militar</span></SelectItem>
+                  {voiceProfiles.map((profile) => <SelectItem key={profile.profileKey} value={profile.profileKey}>{profile.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <input id="voice-author-photo" type="file" accept={ACCEPTED_PHOTO} className="sr-only" onChange={(event) => setVoiceAuthorPhoto(event.target.files?.[0] || null)} />
-            <Button type="button" variant="outline" onClick={() => document.getElementById("voice-author-photo")?.click()}>
-              {voiceAuthorPhoto ? <Camera className="mr-2 h-4 w-4" /> : <UserRound className="mr-2 h-4 w-4" />}
-              {voiceAuthorPhoto ? voiceAuthorPhoto.name : "Carregar foto"}
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+            <div>
+              <label htmlFor="voice-author-name" className="mb-1.5 block text-xs font-black uppercase tracking-wide">Militar autor da voz</label>
+              <Input id="voice-author-name" value={voiceAuthorName} onChange={(event) => setVoiceAuthorName(event.target.value)} placeholder="Ex.: 2º SGT Silva" />
+            </div>
+            <div>
+              <input id="voice-author-photo" type="file" accept={ACCEPTED_PHOTO} className="sr-only" onChange={(event) => setVoiceAuthorPhoto(event.target.files?.[0] || null)} />
+              <Button type="button" variant="outline" onClick={() => document.getElementById("voice-author-photo")?.click()}>
+                {voiceAuthorPhoto ? <Camera className="mr-2 h-4 w-4" /> : <UserRound className="mr-2 h-4 w-4" />}
+                {voiceAuthorPhoto ? voiceAuthorPhoto.name : "Carregar foto"}
+              </Button>
+            </div>
+            <Button type="button" onClick={() => void saveVoiceProfile()} disabled={saveVoiceProfileMutation.isPending || !voiceAuthorName.trim()} className="bg-[#1a3a2a] text-white hover:bg-[#244c38]">
+              <Save className="mr-2 h-4 w-4" />{saveVoiceProfileMutation.isPending ? "Salvando" : "Salvar militar"}
             </Button>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">Depois de salvar, selecione este militar e envie todos os comandos gravados com a voz dele.</p>
         </div>
       )}
 

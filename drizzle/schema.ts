@@ -150,6 +150,20 @@ export const pmamMarches = mysqlTable("pmam_marches", {
 export type PmamMarch = typeof pmamMarches.$inferSelect;
 export type InsertPmamMarch = typeof pmamMarches.$inferInsert;
 
+export const pmamVoiceProfiles = mysqlTable("pmam_voice_profiles", {
+  profileKey: varchar("profile_key", { length: 128 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  photoUrl: longtext("photo_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  activeIdx: index("idx_pmam_voice_profiles_active").on(table.isActive),
+}));
+
+export type PmamVoiceProfile = typeof pmamVoiceProfiles.$inferSelect;
+export type InsertPmamVoiceProfile = typeof pmamVoiceProfiles.$inferInsert;
+
 export const pmamComments = mysqlTable("pmam_comments", {
   id: int("id").autoincrement().primaryKey(),
   targetType: varchar("target_type", { length: 50 }),

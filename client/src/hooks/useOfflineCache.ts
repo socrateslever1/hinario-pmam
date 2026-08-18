@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { studyModules } from "@/content/studyModules";
 import { usePWA } from "./usePWA";
 
 const CRITICAL_API_URLS = [
@@ -14,10 +13,6 @@ const CRITICAL_STATIC_URLS = [
   "/index.html",
   "/manifest.json",
   "/logo/IMG_7728.PNG",
-  "/documents/peculio_cfsd_2026.pdf",
-  "/documents/modelo_de_parte.docx",
-  "/documents/matriz_curricular_cfsd2025.docx",
-  ...studyModules.map((module) => module.textPath),
 ];
 
 export function useOfflineCache() {

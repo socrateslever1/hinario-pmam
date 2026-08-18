@@ -1079,6 +1079,36 @@ export const appRouter = router({
   }),
 
   ordemUnidaAudio: router({
+    listVoiceProfiles: publicProcedure.query(async () => {
+      return ordemUnidaAudioDb.listVoiceProfiles(true);
+    }),
+    saveVoiceProfile: masterProcedure.input(z.object({
+      name: z.string().trim().min(2).max(255),
+      photoFileName: z.string().trim().max(255).nullable().optional(),
+      photoMimeType: z.string().trim().max(100).nullable().optional(),
+      photoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
+      photoFileData: z.string().nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de voz restrito ao comando geral" });
+      }
+      const profileKey = voiceProfileKey(input.name);
+      let photoUrl: string | null = null;
+      if (input.photoFileData) {
+        const mimeType = input.photoMimeType?.toLowerCase() || "";
+        if (!VOICE_AUTHOR_PHOTO_MIME_TYPES.has(mimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A foto deve ser JPG, PNG ou WEBP" });
+        }
+        const photoBuffer = Buffer.from(input.photoFileData, "base64");
+        if (!photoBuffer.length || photoBuffer.length !== input.photoFileSize || photoBuffer.length > MAX_VOICE_AUTHOR_PHOTO_SIZE) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Foto do militar inválida" });
+        }
+        const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+        const photoKey = `ordem-unida/vozes/militares/${profileKey}-${Date.now()}-${nanoid(8)}.${extension}`;
+        photoUrl = (await storagePut(photoKey, photoBuffer, mimeType)).url;
+      }
+      return ordemUnidaAudioDb.upsertVoiceProfile({ profileKey, name: input.name, photoUrl });
+    }),
     list: publicProcedure.query(async () => {
       return ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
     }),
@@ -1150,6 +1180,13 @@ export const appRouter = router({
         voiceAuthorPhotoUrl,
         uploadedBy: ctx.user.id,
       });
+      if (input.itemType === "voz" && input.voiceAuthorName) {
+        await ordemUnidaAudioDb.upsertVoiceProfile({
+          profileKey: voiceProfileKey(input.voiceAuthorName),
+          name: input.voiceAuthorName,
+          photoUrl: voiceAuthorPhotoUrl,
+        });
+      }
       return { success: true, audio };
     }),
     deactivate: masterProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {

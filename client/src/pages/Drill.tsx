@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useBugleAudioCache } from "@/hooks/useBugleAudioCache";
 import { toast } from "sonner";
 import {
   AudioLines,
@@ -189,9 +190,11 @@ function readStoredSequenceDelay() {
 }
 
 export default function Drill() {
+  useBugleAudioCache();
   const { user } = useAuth();
   const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
   const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
+  const voiceProfilesQuery = trpc.ordemUnidaAudio.listVoiceProfiles.useQuery(undefined, { staleTime: 5 * 60_000 });
   const hymnsQuery = trpc.hymns.list.useQuery(undefined, { staleTime: 60_000 });
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioQueueRef = useRef<PreparedSequenceStep[]>([]);
@@ -217,14 +220,11 @@ export default function Drill() {
   const calls = (data?.calls || []) as BugleCall[];
   const marches = (data?.marches || []) as March[];
   const voiceCommands = ((voiceAudioQuery.data || []) as VoiceCommand[]).filter((audio) => audio.itemType === "voz");
-  const voiceProfiles = Array.from(new Map(voiceCommands.map((voice) => [
-    voice.voiceProfileKey || "default",
-    {
-      key: voice.voiceProfileKey || "default",
-      name: voice.voiceAuthorName || "Voz padrão",
-      photoUrl: voice.voiceAuthorPhotoUrl,
-    },
-  ])).values());
+  const voiceProfiles = (voiceProfilesQuery.data ?? []).map((profile) => ({
+    key: profile.profileKey,
+    name: profile.name,
+    photoUrl: profile.photoUrl,
+  }));
   const selectedVoiceProfile = voiceProfiles.find((profile) => profile.key === selectedVoiceProfileKey) || voiceProfiles[0];
   const selectedVoiceCommands = selectedVoiceProfile
     ? voiceCommands.filter((voice) => (voice.voiceProfileKey || "default") === selectedVoiceProfile.key)
