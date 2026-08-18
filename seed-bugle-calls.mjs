@@ -79,10 +79,7 @@ async function seedBugleCalls() {
   console.log(`Seeded ${bugleCallsData.length} bugle calls successfully.`);
 
   const marchesData = [
-    { title: 'Batista de Melo', composer: 'Manoel Alves', audioUrl: '/audio/toques/cessar-a-vontade.mp3', sortOrder: 1 },
-    { title: 'Cavalaria', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/11-cavalaria.mp3', sortOrder: 2 },
-    { title: 'Granadeira', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/30-granadeira.mp3', sortOrder: 3 },
-    { title: 'Início Expediente', composer: 'Domínio Público', audioUrl: 'https://cpmlondrina.com.br/wp-content/uploads/2018/06/31-inicio_expediente.mp3', sortOrder: 4 },
+    { title: 'Baptista de Melo', composer: 'Manoel Alves', audioUrl: null, sortOrder: 1 },
   ];
 
   const { listMarches, createMarch, updateMarch } = await import('./server/bugleDb.ts');

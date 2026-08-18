@@ -5,6 +5,7 @@ import { verifyStudentSession } from '../../../server/studentDb';
 import { query } from '../../../server/mysql';
 import type { User } from '../../../shared/types';
 import type { TrpcContext } from '../../../server/_core/context';
+import { HttpError } from '../../../shared/_core/errors';
 
 async function createFetchContext(req: Request): Promise<TrpcContext> {
   let user: User | null = null;
@@ -14,13 +15,31 @@ async function createFetchContext(req: Request): Promise<TrpcContext> {
       cookie: req.headers.get("cookie") || undefined,
       "x-student-id": req.headers.get("x-student-id") || undefined,
       "x-student-token": req.headers.get("x-student-token") || undefined,
+      "x-email-session": req.headers.get("x-email-session") || undefined,
     }
   } as any;
 
   try {
     user = await sdk.authenticateRequest(pseudoReq);
   } catch (error) {
-    user = null;
+    if (error instanceof HttpError && error.statusCode === 403) {
+      user = null;
+    } else {
+      throw error;
+    }
+  }
+
+  if (!user) {
+    const emailSessionToken = pseudoReq.headers["x-email-session"];
+    if (emailSessionToken) {
+      try {
+        user = await sdk.authenticateSessionToken(String(emailSessionToken));
+      } catch (error) {
+        if (!(error instanceof HttpError && error.statusCode === 403)) {
+          throw error;
+        }
+      }
+    }
   }
 
   if (!user) {

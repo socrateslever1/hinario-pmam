@@ -25,10 +25,7 @@ describe("ordemUnidaPanel", () => {
 
   it("separa dobrados e vozes de comando em grupos próprios", () => {
     expect(DOBRADOS.map((item) => item.title)).toEqual([
-      "Cavalaria",
-      "Granadeira",
-      "Início Expediente",
-      "Ordinário Marche",
+      "Baptista de Melo",
     ]);
     expect(VOZES_DE_COMANDO.some((item) => item.title === "Sentido")).toBe(true);
     expect(VOZES_DE_COMANDO.every((item) => item.type === "voz")).toBe(true);
@@ -48,7 +45,7 @@ describe("ordemUnidaPanel", () => {
   });
 
   it("recupera os favoritos na mesma ordem escolhida para a sessão", () => {
-    const expectedIds = [DOBRADOS[2]!.id, VOZES_DE_COMANDO[0]!.id, TOQUES_DE_CORNETA[3]!.id];
+    const expectedIds = [DOBRADOS[0]!.id, VOZES_DE_COMANDO[0]!.id, TOQUES_DE_CORNETA[3]!.id];
 
     expect(getSessionItems(expectedIds).map((item) => item.id)).toEqual(expectedIds);
   });

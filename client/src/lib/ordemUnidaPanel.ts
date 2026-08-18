@@ -33,10 +33,7 @@ const cornetas: OrdemUnidaPanelItem[] = [
 }));
 
 export const DOBRADOS: OrdemUnidaPanelItem[] = [
-  { id: "dobrado-cavalaria", title: "Cavalaria", subtitle: "Dobrado / marcha", type: "dobrado" },
-  { id: "dobrado-granadeira", title: "Granadeira", subtitle: "Dobrado / marcha", type: "dobrado" },
-  { id: "dobrado-inicio-expediente", title: "Início Expediente", subtitle: "Dobrado / marcha", type: "dobrado" },
-  { id: "dobrado-ordinario-marche", title: "Ordinário Marche", subtitle: "Dobrado / marcha", type: "dobrado" },
+  { id: "dobrado-baptista-de-melo", title: "Baptista de Melo", subtitle: "Manoel Alves", type: "dobrado" },
 ];
 
 export const VOZES_DE_COMANDO: OrdemUnidaPanelItem[] = [
