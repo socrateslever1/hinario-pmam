@@ -68,9 +68,14 @@ function uploadWithXHRProgress(payload: any, onProgress: (percent: number) => vo
   });
 }
 
-export function OrdemUnidaAudioManager() {
+interface OrdemUnidaAudioManagerProps {
+  initialCategory?: string;
+  showSubTabs?: boolean;
+}
+
+export function OrdemUnidaAudioManager({ initialCategory = "all", showSubTabs = true }: OrdemUnidaAudioManagerProps = {}) {
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [voiceAuthorName, setVoiceAuthorName] = useState("");
@@ -210,14 +215,16 @@ export function OrdemUnidaAudioManager() {
             placeholder="Buscar por comando, toque ou dobrado"
           />
         </div>
-        <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
-          <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto">
-            <TabsTrigger value="all" className="px-1.5 text-xs">Todos</TabsTrigger>
-            <TabsTrigger value="voz" className="px-1.5 text-xs">Voz</TabsTrigger>
-            <TabsTrigger value="corneta" className="px-1.5 text-xs">Toques</TabsTrigger>
-            <TabsTrigger value="dobrado" className="px-1.5 text-xs">Dobrados</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {showSubTabs && (
+          <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
+            <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto">
+              <TabsTrigger value="all" className="px-1.5 text-xs">Todos</TabsTrigger>
+              <TabsTrigger value="voz" className="px-1.5 text-xs">Voz</TabsTrigger>
+              <TabsTrigger value="corneta" className="px-1.5 text-xs">Toques</TabsTrigger>
+              <TabsTrigger value="dobrado" className="px-1.5 text-xs">Dobrados</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
       </div>
 
       {categoryFilter === "voz" && (

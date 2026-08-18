@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Music, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { BUGLE_AUDIO_ACCEPT, validateBugleAudioFile } from "@/lib/bugleAudioUpload";
+import { OrdemUnidaAudioManager } from "./OrdemUnidaAudioManager";
 
 type Kind = "call" | "march";
 
@@ -232,20 +233,44 @@ export function BuglePanelAdmin() {
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-lg font-bold">Painel de Ordem Unida</h2>
-            <p className="text-sm text-muted-foreground">Gerencie os botões, estados da tropa, áudios de corneta e dobrados.</p>
+            <p className="text-sm text-muted-foreground">Gerencie botões, comandos, dobrados, vozes de comando e áudios de execução.</p>
           </div>
-          <TabsList><TabsTrigger value="calls">Toques</TabsTrigger><TabsTrigger value="marches">Dobrados</TabsTrigger></TabsList>
+          <TabsList className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto">
+            <TabsTrigger value="calls">Toques</TabsTrigger>
+            <TabsTrigger value="marches">Dobrados</TabsTrigger>
+            <TabsTrigger value="voices">Vozes de Comando</TabsTrigger>
+            <TabsTrigger value="audios">Áudios de Execução</TabsTrigger>
+          </TabsList>
         </div>
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar..." /></div>
-        </div>
+
         <TabsContent value="calls" className="space-y-4">
-          <Button type="button" onClick={() => openCreate("call")} className="w-full bg-[#1a3a2a] text-white sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Novo toque</Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar toques..." />
+            </div>
+            <Button type="button" onClick={() => openCreate("call")} className="bg-[#1a3a2a] text-white shrink-0"><Plus className="mr-2 h-4 w-4" /> Novo toque</Button>
+          </div>
           {renderItems("call", filteredCalls)}
         </TabsContent>
+
         <TabsContent value="marches" className="space-y-4">
-          <Button type="button" onClick={() => openCreate("march")} className="w-full bg-[#1a3a2a] text-white sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Novo dobrado</Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Buscar dobrados..." />
+            </div>
+            <Button type="button" onClick={() => openCreate("march")} className="bg-[#1a3a2a] text-white shrink-0"><Plus className="mr-2 h-4 w-4" /> Novo dobrado</Button>
+          </div>
           {renderItems("march", filteredMarches)}
+        </TabsContent>
+
+        <TabsContent value="voices" className="space-y-4">
+          <OrdemUnidaAudioManager initialCategory="voz" showSubTabs={false} />
+        </TabsContent>
+
+        <TabsContent value="audios" className="space-y-4">
+          <OrdemUnidaAudioManager initialCategory="all" showSubTabs={true} />
         </TabsContent>
       </Tabs>
 
