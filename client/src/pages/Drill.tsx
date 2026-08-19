@@ -164,6 +164,14 @@ function favoriteLabel(label: string) {
     .replace(/^Chefe do Estado-Maior$/i, "Ch. Estado-Maior");
 }
 
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`[localStorage] Impossível salvar '${key}' (cota excedida):`, err);
+  }
+}
+
 function readStoredIds() {
   try {
     const value = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
@@ -265,25 +273,34 @@ export default function Drill() {
   }, [selectedVoiceProfileKey, voiceProfiles]);
 
   useEffect(() => {
-    localStorage.setItem(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
+    safeSetLocalStorage(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
   }, [preparedIds]);
   useEffect(() => {
     if (preparedWorkItems.length === 0) setIsDeletingFavorites(false);
   }, [preparedWorkItems.length]);
-  useEffect(() => { localStorage.setItem(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems)); }, [sequenceItems]);
+  useEffect(() => {
+    safeSetLocalStorage(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems));
+  }, [sequenceItems]);
 
   useEffect(() => {
-    localStorage.setItem(TROOP_STATE_STORAGE_KEY, drillState);
+    safeSetLocalStorage(TROOP_STATE_STORAGE_KEY, drillState);
   }, [drillState]);
 
   useEffect(() => {
-    localStorage.setItem(MARCH_COMBINATIONS_STORAGE_KEY, JSON.stringify(marchCombinations));
+    safeSetLocalStorage(MARCH_COMBINATIONS_STORAGE_KEY, JSON.stringify(marchCombinations));
   }, [marchCombinations]);
 
   useEffect(() => {
-    localStorage.setItem(SEQUENCE_DELAY_STORAGE_KEY, String(sequenceDelaySeconds));
+    safeSetLocalStorage(SEQUENCE_DELAY_STORAGE_KEY, String(sequenceDelaySeconds));
   }, [sequenceDelaySeconds]);
-  useEffect(() => { localStorage.setItem(SEQUENCE_MEDIA_STORAGE_KEY, JSON.stringify(sequenceMedia)); }, [sequenceMedia]);
+
+  useEffect(() => {
+    const sanitizedMedia = sequenceMedia.map((media) => ({
+      ...media,
+      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
+    }));
+    safeSetLocalStorage(SEQUENCE_MEDIA_STORAGE_KEY, JSON.stringify(sanitizedMedia));
+  }, [sequenceMedia]);
 
   useEffect(() => {
     const key = userSelectionKey(user?.id);
@@ -593,8 +610,12 @@ export default function Drill() {
     if (item.type === "media") setSequenceMedia((current) => current.filter((entry) => entry.key !== item.media.key));
   };
   const saveSelectionPreference = () => {
-    const payload: SavedDrillSelection = { preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
-    localStorage.setItem(userSelectionKey(user?.id), JSON.stringify(payload));
+    const sanitizedMedia = sequenceMedia.map((media) => ({
+      ...media,
+      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
+    }));
+    const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
+    safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
     toast.success(user?.id ? "Favoritos salvos neste aparelho para este usuário." : "Favoritos salvos neste aparelho.");
   };
 
