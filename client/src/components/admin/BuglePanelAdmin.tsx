@@ -303,9 +303,14 @@ export function BuglePanelAdmin() {
                   type="button"
                   variant="secondary"
                   size="icon"
-                  onClick={() => togglePlay(item.audioUrl)}
+                  onClick={() => {
+                    const url = item.audioUrl.startsWith("data:") || item.audioUrl.startsWith("http")
+                      ? item.audioUrl
+                      : `/api/bugle-audio/${nextKind}/${item.id}`;
+                    togglePlay(url);
+                  }}
                   className="h-8 w-8 shrink-0 bg-primary/10 text-primary hover:bg-primary/20"
-                  title={playingUrl === item.audioUrl ? "Pausar prévia" : "Ouvir áudio cadastrado"}
+                  title={playingUrl ? "Pausar prévia" : "Ouvir áudio cadastrado"}
                 >
                   {playingUrl === item.audioUrl ? (
                     <Square className="h-3.5 w-3.5 fill-current" />

@@ -76,22 +76,6 @@ export async function storagePut(
   const key = normalizeKey(relKey);
 
   if (config.isLocalFallback) {
-    try {
-      const fileName = key.split("/").pop() ?? key;
-      const uploadsDir = path.resolve(process.cwd(), "uploads");
-      if (typeof fs.existsSync === "function" && typeof fs.mkdirSync === "function" && typeof fs.writeFileSync === "function") {
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-        const filePath = path.join(uploadsDir, fileName);
-        fs.writeFileSync(filePath, typeof data === "string" ? data : Buffer.from(data as any));
-        const url = `/uploads/${fileName}`;
-        return { key, url };
-      }
-    } catch (err) {
-      console.warn("[storagePut] Local filesystem write unavailable in edge/unenv environment, falling back to Data URL:", err);
-    }
-
     const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
     const base64 = buffer.toString("base64");
     const url = `data:${contentType};base64,${base64}`;
