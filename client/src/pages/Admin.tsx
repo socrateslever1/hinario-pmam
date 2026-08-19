@@ -589,7 +589,6 @@ export default function Admin() {
             {/* DRILL (ORDEM UNIDA) TAB */}
             <TabsContent value="drill">
               <BuglePanelAdmin />
-              {canManageGlobalContent && <div className="mt-6 border-t border-border/60 pt-6"><OrdemUnidaAudioManager /></div>}
             </TabsContent>
 
             {/* BLOG/COMUNICADOS TAB */}
