@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Camera, Loader2, Plus, Save, Search, Upload, UserRound, Volume2, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Camera, Loader2, Play, Plus, Save, Search, Square, Upload, UserRound, Volume2, X } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,32 @@ export function OrdemUnidaAudioManager({ initialCategory = "all", showSubTabs = 
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlay = (url: string) => {
+    if (playingUrl === url) {
+      audioPreviewRef.current?.pause();
+      setPlayingUrl(null);
+      return;
+    }
+    if (!audioPreviewRef.current) {
+      audioPreviewRef.current = new Audio();
+      audioPreviewRef.current.onended = () => setPlayingUrl(null);
+      audioPreviewRef.current.onerror = () => {
+        setPlayingUrl(null);
+        toast.error("Não foi possível reproduzir o áudio.");
+      };
+    }
+    audioPreviewRef.current.pause();
+    audioPreviewRef.current.src = url;
+    audioPreviewRef.current.play().then(() => {
+      setPlayingUrl(url);
+    }).catch(() => {
+      setPlayingUrl(null);
+      toast.error("Erro ao iniciar prévia do áudio.");
+    });
+  };
   const [voiceAuthorName, setVoiceAuthorName] = useState("");
   const [voiceAuthorPhoto, setVoiceAuthorPhoto] = useState<File | null>(null);
   const [selectedVoiceProfileKey, setSelectedVoiceProfileKey] = useState("new");
@@ -332,6 +358,22 @@ export function OrdemUnidaAudioManager({ initialCategory = "all", showSubTabs = 
                         </>
                       )}
                     </Button>
+                    {audio?.isActive && audio.audioUrl && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        onClick={() => togglePlay(audio.audioUrl)}
+                        className="h-8 w-8 shrink-0 bg-primary/10 text-primary hover:bg-primary/20"
+                        title={playingUrl === audio.audioUrl ? "Pausar prévia" : "Ouvir áudio cadastrado"}
+                      >
+                        {playingUrl === audio.audioUrl ? (
+                          <Square className="h-3.5 w-3.5 fill-current" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                        )}
+                      </Button>
+                    )}
                     {audio?.isActive && (
                       <Button
                         type="button"

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Music, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Music, Pause, Play, Pencil, Plus, Search, Square, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { BUGLE_AUDIO_ACCEPT, validateBugleAudioFile } from "@/lib/bugleAudioUpload";
 import { OrdemUnidaAudioManager } from "./OrdemUnidaAudioManager";
@@ -46,6 +46,32 @@ export function BuglePanelAdmin() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [uploadingItemKey, setUploadingItemKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlay = (url: string) => {
+    if (playingUrl === url) {
+      audioPreviewRef.current?.pause();
+      setPlayingUrl(null);
+      return;
+    }
+    if (!audioPreviewRef.current) {
+      audioPreviewRef.current = new Audio();
+      audioPreviewRef.current.onended = () => setPlayingUrl(null);
+      audioPreviewRef.current.onerror = () => {
+        setPlayingUrl(null);
+        toast.error("Não foi possível reproduzir o áudio.");
+      };
+    }
+    audioPreviewRef.current.pause();
+    audioPreviewRef.current.src = url;
+    audioPreviewRef.current.play().then(() => {
+      setPlayingUrl(url);
+    }).catch(() => {
+      setPlayingUrl(null);
+      toast.error("Erro ao iniciar prévia do áudio.");
+    });
+  };
 
   const invalidate = () => Promise.all([
     utils.buglePanel.list.invalidate(),
@@ -213,6 +239,22 @@ export function BuglePanelAdmin() {
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
                 {uploadingItemKey === `${nextKind}-${item.id}` ? "Enviando" : item.audioUrl ? "Trocar áudio" : "Enviar áudio"}
               </Button>
+              {item.audioUrl && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => togglePlay(item.audioUrl)}
+                  className="h-8 w-8 shrink-0 bg-primary/10 text-primary hover:bg-primary/20"
+                  title={playingUrl === item.audioUrl ? "Pausar prévia" : "Ouvir áudio cadastrado"}
+                >
+                  {playingUrl === item.audioUrl ? (
+                    <Square className="h-3.5 w-3.5 fill-current" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                  )}
+                </Button>
+              )}
               <Switch checked={item.isActive} onCheckedChange={(checked) => toggleActive(nextKind, item, checked)} aria-label={`Ativar ${nextKind === "call" ? item.name : item.title}`} />
               <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(nextKind, item)}><Pencil className="h-4 w-4" /></Button>
               <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(nextKind, item)}><Trash2 className="h-4 w-4" /></Button>
@@ -303,6 +345,25 @@ export function BuglePanelAdmin() {
                 <Label htmlFor="audio-file" className="flex cursor-pointer items-center gap-2"><Upload className="h-4 w-4" /> {editing?.audioUrl ? "Trocar arquivo de áudio" : "Enviar arquivo de áudio"}</Label>
                 <Input id="audio-file" type="file" accept={BUGLE_AUDIO_ACCEPT} className="mt-2" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
                 <p className="mt-2 text-xs text-muted-foreground">Esta opção está sempre disponível. MP3, WAV, OGG, M4A, AAC ou WEBM, até 50 MB.</p>
+                {(audioFile || form.audioUrl) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 flex items-center gap-1.5 font-semibold text-primary"
+                    onClick={() => {
+                      const url = audioFile ? URL.createObjectURL(audioFile) : form.audioUrl;
+                      if (url) togglePlay(url);
+                    }}
+                  >
+                    {playingUrl && (playingUrl === form.audioUrl || audioFile) ? (
+                      <Square className="h-3.5 w-3.5 fill-current" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                    )}
+                    Ouvir prévia do áudio
+                  </Button>
+                )}
               </div>
               <div><Label htmlFor="audio-url">URL do áudio (alternativa)</Label><Input id="audio-url" type="url" value={form.audioUrl} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} placeholder="https://.../audio.mp3" /></div>
               <div><Label htmlFor="source-url">URL da fonte/crédito</Label><Input id="source-url" type="url" value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://..." /></div>
