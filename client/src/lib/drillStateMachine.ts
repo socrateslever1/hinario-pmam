@@ -82,10 +82,12 @@ export function getDrillCommandRule(commandName: string): CommandRule {
 }
 
 export function isDrillCommandAllowed(commandName: string, state: DrillState) {
+  if (normalizeDrillCommand(commandName) === "ultima forma") return true;
   return getDrillCommandRule(commandName).allowedFrom.includes(state);
 }
 
 export function applyDrillCommand(commandName: string, state: DrillState): DrillState {
+  if (normalizeDrillCommand(commandName) === "ultima forma") return state;
   const rule = getDrillCommandRule(commandName);
   return rule.allowedFrom.includes(state) ? rule.nextState : state;
 }

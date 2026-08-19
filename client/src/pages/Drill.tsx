@@ -205,6 +205,7 @@ export default function Drill() {
   const voiceProfilesQuery = trpc.ordemUnidaAudio.listVoiceProfiles.useQuery(undefined, { staleTime: 5 * 60_000 });
   const hymnsQuery = trpc.hymns.list.useQuery(undefined, { staleTime: 60_000 });
   const audioRef = useRef<HTMLAudioElement>(null);
+  const sfxAudioRef = useRef<HTMLAudioElement>(null);
   const audioQueueRef = useRef<PreparedSequenceStep[]>([]);
   const sequenceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drillAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,6 +218,9 @@ export default function Drill() {
   const [sequenceItems, setSequenceItems] = useState<SequenceItem[]>(readStoredSequenceItems);
   const [sequenceDelaySeconds, setSequenceDelaySeconds] = useState(readStoredSequenceDelay);
   const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
+  const [callUsage, setCallUsage] = useState<Record<number, number>>(() => {
+    try { return JSON.parse(localStorage.getItem("pmam-bugle-usage") || "{}"); } catch { return {}; }
+  });
   const [isDeletingFavorites, setIsDeletingFavorites] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [playingLabel, setPlayingLabel] = useState<string | null>(null);
@@ -238,7 +242,14 @@ export default function Drill() {
     ? voiceCommands.filter((voice) => (voice.voiceProfileKey || "default") === selectedVoiceProfile.key)
     : [];
   const marchCalls = calls.filter((call) => /^(ordinario marche|marcha batida|acelerado)$/.test(normalizeDrillCommand(call.name)));
-  const filteredCalls = calls.filter((call) => normalizeDrillCommand(call.name).includes(normalizeDrillCommand(callSearch)));
+  const filteredCalls = calls
+    .filter((call) => normalizeDrillCommand(call.name).includes(normalizeDrillCommand(callSearch)))
+    .sort((a, b) => {
+      const usageA = callUsage[a.id] || 0;
+      const usageB = callUsage[b.id] || 0;
+      if (usageA !== usageB) return usageB - usageA;
+      return a.name.localeCompare(b.name);
+    });
   const resolvedMarchCombinations = marchCombinations
     .map((combination) => ({
       ...combination,
@@ -345,13 +356,19 @@ export default function Drill() {
       audio.currentTime = 0;
       audio.removeAttribute("src");
     }
+    const sfx = sfxAudioRef.current;
+    if (sfx) {
+      sfx.pause();
+      sfx.currentTime = 0;
+      sfx.removeAttribute("src");
+    }
     setPlayingKey(null);
     setPlayingLabel(null);
   };
 
-  const startQueuedAudio = async (queued: PreparedSequenceStep) => {
+  const startQueuedAudio = async (queued: PreparedSequenceStep, useSfx = false) => {
     sequenceDelayTimerRef.current = null;
-    const audio = audioRef.current;
+    const audio = useSfx ? sfxAudioRef.current : audioRef.current;
     if (!audio) return;
     audio.loop = false;
     audio.src = queued.audioUrl;
@@ -369,7 +386,12 @@ export default function Drill() {
     }
   };
 
-  const handleAudioEnded = () => {
+  const handleAudioEnded = (isSfx = false) => {
+    const otherAudio = isSfx ? audioRef.current : sfxAudioRef.current;
+    if (otherAudio && !otherAudio.paused && otherAudio.currentTime > 0) {
+      return; // A transição em crossfade ocorreu, o outro canal assumiu.
+    }
+
     const [queued, ...remaining] = audioQueueRef.current;
     audioQueueRef.current = remaining;
     if (!queued) {
@@ -378,11 +400,31 @@ export default function Drill() {
       return;
     }
 
+    const delayMs = sequenceDelaySeconds * 1000;
     setPlayingKey(`wait-${queued.key}`);
-    setPlayingLabel(`Próximo em ${sequenceDelaySeconds}s: ${queued.label}`);
+    setPlayingLabel(delayMs > 0 ? `Próximo em ${sequenceDelaySeconds}s: ${queued.label}` : `Iniciando: ${queued.label}`);
     sequenceDelayTimerRef.current = setTimeout(() => {
-      void startQueuedAudio(queued);
-    }, sequenceDelaySeconds * 1000);
+      void startQueuedAudio(queued, isSfx);
+    }, delayMs);
+  };
+
+  const handleTimeUpdate = (isSfx = false) => {
+    const audio = isSfx ? sfxAudioRef.current : audioRef.current;
+    if (!audio) return;
+    
+    const nextQueued = audioQueueRef.current[0];
+    if (!nextQueued) return;
+
+    const currentLabel = playingLabel || "";
+    const isNextBumbo = nextQueued.label.toLowerCase().includes("bumbo");
+    const isMarcheAndDobrado = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase()) && nextQueued.label.toLowerCase().includes("dobrado");
+    
+    const overlapTime = isNextBumbo ? 1.5 : (isMarcheAndDobrado ? 1.5 : 0);
+    
+    if (overlapTime > 0 && audio.duration && (audio.duration - audio.currentTime) <= overlapTime) {
+      audioQueueRef.current.shift();
+      void startQueuedAudio(nextQueued, !isSfx);
+    }
   };
 
   const playAudio = async (key: string, label: string, audioUrl: string | null) => {
@@ -397,9 +439,10 @@ export default function Drill() {
     }
 
     const audio = audioRef.current;
+    const sfx = sfxAudioRef.current;
+    if (audio) { audio.pause(); audio.loop = false; }
+    if (sfx) { sfx.pause(); sfx.loop = false; }
     if (!audio) return false;
-    audio.pause();
-    audio.loop = false;
 
     const primaryUrl = audioUrl;
     const fallbackUrl = audioUrl.endsWith(".wav")
@@ -436,7 +479,16 @@ export default function Drill() {
     }
   };
 
+  const incrementCallUsage = (id: number) => {
+    setCallUsage((curr) => {
+      const next = { ...curr, [id]: (curr[id] || 0) + 1 };
+      safeSetLocalStorage("pmam-bugle-usage", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const playCall = async (call: BugleCall) => {
+    incrementCallUsage(call.id);
     const key = `call-${call.id}`;
     if (playingKey === key) {
       stopAudio();
@@ -588,27 +640,16 @@ export default function Drill() {
 
       if (!isDrillCommandAllowed(commandItem.name, currentState)) {
         const reqSequence = getRequiredCommandSequence(commandItem.name, currentState);
+        // Atualiza a máquina de estado silenciosamente para seguir a sequência de movimentos
         for (const reqCmd of reqSequence) {
-          const transVoice = voiceCommands.find(
-            (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(reqCmd)
-          ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(reqCmd));
-          const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(reqCmd));
-          const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
-
           currentState = applyDrillCommand(reqCmd, currentState);
-
-          if (transUrl) {
-            preparedQueue.push({
-              key: `sequence-trans-${reqCmd}-${Date.now()}-${preparedQueue.length}`,
-              label: `${commandLabel(reqCmd)}`,
-              audioUrl: transUrl,
-              nextState: currentState,
-            });
-          }
         }
+      } else {
+        // Se já era permitido, só aplica o estado do comando
+        currentState = applyDrillCommand(commandItem.name, currentState);
       }
 
-      currentState = applyDrillCommand(commandItem.name, currentState);
+      // Adiciona na fila apenas o áudio que o usuário realmente adicionou aos favoritos
       preparedQueue.push({
         key: `sequence-${commandItem.kind}-${commandItem.id}-${preparedQueue.length}`,
         label: commandItem.name,
@@ -641,6 +682,7 @@ export default function Drill() {
   const nextPositionCommands = getPositionCommandsAllowedFrom(drillState).map(commandLabel);
 
   const addPrepared = (id: number) => {
+    incrementCallUsage(id);
     setPreparedIds((current) => (current.includes(id) ? current : [...current, id]));
     setSequenceItems((current) => [...current, { key: `call-${id}-${Date.now()}-${current.length}`, type: "call", callId: id }]);
   };
@@ -708,7 +750,8 @@ export default function Drill() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d] dark:bg-[#141a16] dark:text-[#f4f0df]">
       <Navbar />
-      <audio ref={audioRef} preload="none" loop={false} onEnded={handleAudioEnded} />
+      <audio ref={audioRef} preload="none" loop={false} onEnded={() => handleAudioEnded(false)} onTimeUpdate={() => handleTimeUpdate(false)} />
+      <audio ref={sfxAudioRef} preload="none" loop={false} onEnded={() => handleAudioEnded(true)} onTimeUpdate={() => handleTimeUpdate(true)} />
 
       <main className="container space-y-4 px-3 py-3 sm:px-4 md:space-y-6 md:py-7">
         <section className="sticky top-2 z-30 overflow-hidden rounded-2xl bg-[#10281d] text-white shadow-xl md:top-4 md:rounded-3xl">
