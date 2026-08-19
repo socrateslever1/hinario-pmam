@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
@@ -283,6 +283,15 @@ export default function Drill() {
     }
   }, [selectedVoiceProfileKey, voiceProfiles]);
 
+  const saveSelectionPreference = useCallback(() => {
+    const sanitizedMedia = sequenceMedia.map((media) => ({
+      ...media,
+      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
+    }));
+    const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
+    safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
+  }, [preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds, user?.id]);
+
   useEffect(() => {
     safeSetLocalStorage(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
   }, [preparedIds]);
@@ -291,7 +300,11 @@ export default function Drill() {
   }, [preparedWorkItems.length]);
   useEffect(() => {
     safeSetLocalStorage(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems));
-  }, [sequenceItems]);
+    // Auto-save user preference on changes
+    if (selectionLoadedFor === userSelectionKey(user?.id)) {
+      saveSelectionPreference();
+    }
+  }, [sequenceItems, saveSelectionPreference, selectionLoadedFor, user?.id]);
 
   useEffect(() => {
     safeSetLocalStorage(TROOP_STATE_STORAGE_KEY, drillState);
@@ -400,7 +413,10 @@ export default function Drill() {
       return;
     }
 
-    const delayMs = sequenceDelaySeconds * 1000;
+    const wasMarche = playingLabel && /ordin(a|á)rio marche|marcha batida|acelerado/.test(playingLabel.toLowerCase());
+    const isNextDobrado = queued.label.toLowerCase().includes("dobrado");
+    const delayMs = (wasMarche && isNextDobrado) ? 0 : sequenceDelaySeconds * 1000;
+
     setPlayingKey(`wait-${queued.key}`);
     setPlayingLabel(delayMs > 0 ? `Próximo em ${sequenceDelaySeconds}s: ${queued.label}` : `Iniciando: ${queued.label}`);
     sequenceDelayTimerRef.current = setTimeout(() => {
@@ -412,14 +428,28 @@ export default function Drill() {
     const audio = isSfx ? sfxAudioRef.current : audioRef.current;
     if (!audio) return;
     
-    const nextQueued = audioQueueRef.current[0];
+    let nextQueued = audioQueueRef.current[0];
+    if (!nextQueued) return;
+
+    // Dispara "Bumbos" como efeitos sonoros isolados, sem travar a fila
+    while (nextQueued && nextQueued.label.toLowerCase().includes("bumbo")) {
+      if (audio.duration && (audio.duration - audio.currentTime) <= 1.5) {
+        audioQueueRef.current.shift();
+        const bumboAudio = new Audio(nextQueued.audioUrl);
+        bumboAudio.play().catch(() => {});
+        nextQueued = audioQueueRef.current[0]; // Verifica se o próximo também é algo a processar
+      } else {
+        break; // Ainda não está na hora de tocar o bumbo
+      }
+    }
+
     if (!nextQueued) return;
 
     const currentLabel = playingLabel || "";
-    const isNextBumbo = nextQueued.label.toLowerCase().includes("bumbo");
     const isMarcheAndDobrado = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase()) && nextQueued.label.toLowerCase().includes("dobrado");
     
-    const overlapTime = isNextBumbo ? 1.5 : (isMarcheAndDobrado ? 1.5 : 0);
+    // Crossfade de 1.5s entre marcha e dobrado
+    const overlapTime = isMarcheAndDobrado ? 1.5 : 0;
     
     if (overlapTime > 0 && audio.duration && (audio.duration - audio.currentTime) <= overlapTime) {
       audioQueueRef.current.shift();
@@ -495,6 +525,12 @@ export default function Drill() {
       return;
     }
 
+    if (call.name.toLowerCase().includes("bumbo") && call.audioUrl) {
+      const bumboAudio = new Audio(call.audioUrl);
+      bumboAudio.play().catch(() => {});
+      return;
+    }
+
     if (!isDrillCommandAllowed(call.name, drillState)) {
       const reqSequence = getRequiredCommandSequence(call.name, drillState);
       const firstReq = reqSequence[0];
@@ -535,6 +571,22 @@ export default function Drill() {
       stopAudio();
       return;
     }
+    
+    const currentLabel = playingLabel || "";
+    const isMarchePlaying = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase());
+    
+    if (isMarchePlaying && march.audioUrl) {
+      const sfx = sfxAudioRef.current;
+      if (sfx) {
+        sfx.src = march.audioUrl;
+        sfx.load();
+        sfx.play().catch(()=>{});
+        setPlayingKey(key);
+        setPlayingLabel(`Dobrado: ${march.title}`);
+      }
+      return;
+    }
+
     await playAudio(key, march.title, march.audioUrl);
   };
 
@@ -711,20 +763,6 @@ export default function Drill() {
     });
     if (item.type === "media") setSequenceMedia((current) => current.filter((entry) => entry.key !== item.media.key));
   };
-  const saveSelectionPreference = () => {
-    const sanitizedMedia = sequenceMedia.map((media) => ({
-      ...media,
-      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
-    }));
-    const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
-    safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
-    toast.success(user?.id ? "Favoritos salvos neste aparelho para este usuário." : "Favoritos salvos neste aparelho.");
-  };
-
-  const addVoiceToFavorites = (voice: VoiceCommand) => {
-    setSequenceItems((current) => [...current, { key: `voice-${voice.id}-${Date.now()}-${current.length}`, type: "voice", voiceId: voice.id }]);
-    toast.success(`${voice.itemTitle} (${voice.voiceAuthorName || "voz padrão"}) adicionado aos favoritos.`);
-  };
 
   const clearFavorites = () => {
     if (!confirm("Excluir todos os toques favoritos?")) return;
@@ -734,12 +772,33 @@ export default function Drill() {
     setIsDeletingFavorites(false);
   };
 
+  const addVoiceToFavorites = (voice: VoiceCommand) => {
+    setSequenceItems((current) => [...current, { key: `voice-${voice.id}-${Date.now()}-${current.length}`, type: "voice", voiceId: voice.id }]);
+    toast.success(`${voice.itemTitle} (${voice.voiceAuthorName || "voz padrão"}) adicionado aos favoritos.`);
+  };
+
   const playSequenceMedia = async (item: SequenceMedia) => {
     const key = `sequence-${item.key}`;
     if (playingKey === key) {
       stopAudio();
       return;
     }
+    
+    const currentLabel = playingLabel || "";
+    const isMarchePlaying = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase());
+    
+    if (isMarchePlaying && item.kind === "dobrado" && item.audioUrl) {
+      const sfx = sfxAudioRef.current;
+      if (sfx) {
+        sfx.src = item.audioUrl;
+        sfx.load();
+        sfx.play().catch(()=>{});
+        setPlayingKey(key);
+        setPlayingLabel(item.label);
+      }
+      return;
+    }
+
     if (playingKey) {
       showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
       return;
@@ -810,9 +869,6 @@ export default function Drill() {
               <div className="flex shrink-0 gap-1 sm:gap-2">
                 {preparedWorkItems.length > 0 && (
                   <>
-                    <Button type="button" variant="outline" size="sm" onClick={saveSelectionPreference} className="h-8 px-2 text-xs">
-                      <Save className="mr-1.5 h-3.5 w-3.5" /> Salvar
-                    </Button>
                     <Button
                       type="button"
                       variant="outline"
