@@ -239,7 +239,7 @@ export function BuglePanelAdmin() {
             <TabsTrigger value="calls">Toques</TabsTrigger>
             <TabsTrigger value="marches">Dobrados</TabsTrigger>
             <TabsTrigger value="voices">Vozes de Comando</TabsTrigger>
-            <TabsTrigger value="audios">Áudios de Execução</TabsTrigger>
+            <TabsTrigger value="audios">Treino de corneta</TabsTrigger>
           </TabsList>
         </div>
 
