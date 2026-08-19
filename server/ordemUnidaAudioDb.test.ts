@@ -26,11 +26,7 @@ describe("ordemUnidaAudioDb", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("lista e converte os áudios ativos para o painel de execução", async () => {
-    (query as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([audioRow]);
+    (query as any).mockResolvedValueOnce([audioRow]);
 
     const audios = await ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
 

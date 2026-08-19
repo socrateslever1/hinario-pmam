@@ -5,56 +5,8 @@ export type BugleContentKind = "call" | "march";
 let schemaPromise: Promise<void> | null = null;
 
 export async function ensureBugleSchema() {
-  if (!schemaPromise) {
-    schemaPromise = (async () => {
-      await query(`
-        CREATE TABLE IF NOT EXISTS pmam_bugle_calls (
-          id INT NOT NULL AUTO_INCREMENT,
-          name VARCHAR(255) NOT NULL,
-          audio_url LONGTEXT NULL,
-          icon_key VARCHAR(64) DEFAULT 'music',
-          troop_state VARCHAR(120) NULL,
-          category VARCHAR(100) DEFAULT 'geral',
-          source_url LONGTEXT NULL,
-          sort_order INT DEFAULT 0,
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (id),
-          UNIQUE KEY uq_pmam_bugle_calls_name (name)
-        )
-      `);
-      await query(`
-        CREATE TABLE IF NOT EXISTS pmam_marches (
-          id INT NOT NULL AUTO_INCREMENT,
-          title VARCHAR(255) NOT NULL,
-          composer VARCHAR(255) NULL,
-          audio_url LONGTEXT NULL,
-          source_url LONGTEXT NULL,
-          sort_order INT DEFAULT 0,
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (id)
-        )
-      `);
-      try {
-        await query("ALTER TABLE pmam_bugle_calls MODIFY COLUMN audio_url LONGTEXT NULL");
-      } catch (_) {}
-      try {
-        await query("ALTER TABLE pmam_bugle_calls MODIFY COLUMN source_url LONGTEXT NULL");
-      } catch (_) {}
-      try {
-        await query("ALTER TABLE pmam_marches MODIFY COLUMN audio_url LONGTEXT NULL");
-      } catch (_) {}
-      try {
-        await query("ALTER TABLE pmam_marches MODIFY COLUMN source_url LONGTEXT NULL");
-      } catch (_) {}
-    })().catch((error) => {
-      schemaPromise = null;
-      throw error;
-    });
-  }
+  // Tabelas e alterações são aplicadas pelas migrações, não durante leituras.
+  schemaPromise ??= Promise.resolve();
   await schemaPromise;
 }
 

@@ -442,15 +442,36 @@ export default function Drill() {
       stopAudio();
       return;
     }
-    if (playingKey) {
-      showDrillAlert("Desfaça ou pare o toque anterior antes de executar outro.");
-      return;
-    }
+
     if (!isDrillCommandAllowed(call.name, drillState)) {
-      const sequence = getRequiredCommandSequence(call.name, drillState).map(commandLabel).join(" → ");
-      showDrillAlert(`Comando bloqueado. Execute antes: ${sequence}.`);
-      return;
+      const reqSequence = getRequiredCommandSequence(call.name, drillState);
+      const firstReq = reqSequence[0];
+      const transVoice = voiceCommands.find(
+        (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq)
+      ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq));
+      const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(firstReq));
+      const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
+
+      if (transUrl && call.audioUrl) {
+        stopAudio();
+        const transState = applyDrillCommand(firstReq, drillState);
+        const finalState = applyDrillCommand(call.name, transState);
+        audioQueueRef.current = [{
+          key,
+          label: call.name,
+          audioUrl: call.audioUrl,
+          nextState: finalState,
+        }];
+        const started = await playAudio(`call-preparatory-${firstReq}`, `${commandLabel(firstReq)}`, transUrl);
+        if (started) {
+          setDrillState(transState);
+        } else {
+          audioQueueRef.current = [];
+        }
+        return;
+      }
     }
+
     if (await playAudio(key, call.name, call.audioUrl)) {
       setDrillState((current) => applyDrillCommand(call.name, current));
     }
@@ -462,10 +483,6 @@ export default function Drill() {
       stopAudio();
       return;
     }
-    if (playingKey) {
-      showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
-      return;
-    }
     await playAudio(key, march.title, march.audioUrl);
   };
 
@@ -475,15 +492,36 @@ export default function Drill() {
       stopAudio();
       return;
     }
-    if (playingKey) {
-      showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
-      return;
-    }
+
     if (!isDrillCommandAllowed(voice.itemTitle, drillState)) {
-      const sequence = getRequiredCommandSequence(voice.itemTitle, drillState).map(commandLabel).join(" → ");
-      showDrillAlert(`Comando bloqueado. Execute antes: ${sequence}.`);
-      return;
+      const reqSequence = getRequiredCommandSequence(voice.itemTitle, drillState);
+      const firstReq = reqSequence[0];
+      const transVoice = voiceCommands.find(
+        (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq)
+      ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq));
+      const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(firstReq));
+      const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
+
+      if (transUrl && voice.audioUrl) {
+        stopAudio();
+        const transState = applyDrillCommand(firstReq, drillState);
+        const finalState = applyDrillCommand(voice.itemTitle, transState);
+        audioQueueRef.current = [{
+          key,
+          label: voice.itemTitle,
+          audioUrl: voice.audioUrl,
+          nextState: finalState,
+        }];
+        const started = await playAudio(`voice-preparatory-${firstReq}`, `${commandLabel(firstReq)}`, transUrl);
+        if (started) {
+          setDrillState(transState);
+        } else {
+          audioQueueRef.current = [];
+        }
+        return;
+      }
     }
+
     if (await playAudio(key, voice.itemTitle, voice.audioUrl)) {
       setDrillState((current) => applyDrillCommand(voice.itemTitle, current));
     }
@@ -505,10 +543,7 @@ export default function Drill() {
   };
 
   const playMarchCombination = async (combination: MarchCombination & { call: BugleCall; march: March }) => {
-    if (playingKey) {
-      showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
-      return;
-    }
+    stopAudio();
 
     const plan = buildMarchCombinationPlan(combination.call, combination.march, drillState);
     if (!plan.ok) {
@@ -534,10 +569,7 @@ export default function Drill() {
   };
 
   const playPreparedSequence = async () => {
-    if (playingKey) {
-      showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
-      return;
-    }
+    stopAudio();
 
     const preparedQueue: PreparedSequenceStep[] = [];
     let currentState = drillState;
@@ -549,20 +581,48 @@ export default function Drill() {
       const commandItem = item.type === "call"
         ? (() => { const call = item.call as BugleCall; return { id: call.id, name: call.name, audioUrl: call.audioUrl, kind: "call" as const }; })()
         : (() => { const voice = item.voice as VoiceCommand; return { id: voice.id, name: voice.itemTitle, audioUrl: voice.audioUrl, kind: "voice" as const }; })();
+
       if (!commandItem.audioUrl) {
-        showDrillAlert(`${commandItem.name} está sem áudio.`);
-        return;
+        continue;
       }
+
       if (!isDrillCommandAllowed(commandItem.name, currentState)) {
-        const sequence = getRequiredCommandSequence(commandItem.name, currentState).map(commandLabel).join(" → ");
-        showDrillAlert(`Sequência bloqueada em ${commandItem.name}. Ordem necessária: ${sequence}.`);
-        return;
+        const reqSequence = getRequiredCommandSequence(commandItem.name, currentState);
+        for (const reqCmd of reqSequence) {
+          const transVoice = voiceCommands.find(
+            (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(reqCmd)
+          ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(reqCmd));
+          const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(reqCmd));
+          const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
+
+          currentState = applyDrillCommand(reqCmd, currentState);
+
+          if (transUrl) {
+            preparedQueue.push({
+              key: `sequence-trans-${reqCmd}-${Date.now()}-${preparedQueue.length}`,
+              label: `${commandLabel(reqCmd)}`,
+              audioUrl: transUrl,
+              nextState: currentState,
+            });
+          }
+        }
       }
+
       currentState = applyDrillCommand(commandItem.name, currentState);
-      preparedQueue.push({ key: `sequence-${commandItem.kind}-${commandItem.id}`, label: commandItem.name, audioUrl: commandItem.audioUrl, nextState: currentState });
+      preparedQueue.push({
+        key: `sequence-${commandItem.kind}-${commandItem.id}-${preparedQueue.length}`,
+        label: commandItem.name,
+        audioUrl: commandItem.audioUrl,
+        nextState: currentState,
+      });
     }
+
+    if (preparedQueue.length === 0) {
+      toast.error("Adicione toques ou comandos de voz à sequência personalizada antes de executar.");
+      return;
+    }
+
     const [first, ...remaining] = preparedQueue;
-    if (!first) return;
     audioQueueRef.current = remaining;
     const started = await playAudio(first.key, first.label, first.audioUrl);
     if (!started) {

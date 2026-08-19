@@ -320,28 +320,8 @@ export async function getUserByOpenId(openId: string) {
 let hymnSchemaPromise: Promise<void> | null = null;
 
 async function ensureHymnSchema() {
-  if (!hymnSchemaPromise) {
-    hymnSchemaPromise = (async () => {
-      const instrumentalAudioRows = await query<{ Field: string }>(
-        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
-        ["instrumental_audio_url"]
-      );
-      if (instrumentalAudioRows.length === 0) {
-        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_audio_url LONGTEXT NULL AFTER audio_url`);
-      }
-      const instrumentalYoutubeRows = await query<{ Field: string }>(
-        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
-        ["instrumental_youtube_url"]
-      );
-      if (instrumentalYoutubeRows.length === 0) {
-        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_youtube_url VARCHAR(512) NULL AFTER youtube_url`);
-      }
-    })().catch((error) => {
-      hymnSchemaPromise = null;
-      throw error;
-    });
-  }
-
+  // O esquema já é versionado; SHOW/ALTER em cold start atrasava todas as listas.
+  hymnSchemaPromise ??= Promise.resolve();
   await hymnSchemaPromise;
 }
 
