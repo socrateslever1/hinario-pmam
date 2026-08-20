@@ -36,6 +36,8 @@ export function saveEmailSession(token: string, rememberMe: boolean) {
 
 export function clearEmailSession() {
   if (typeof window === "undefined") return;
+  window.localStorage.removeItem(SESSION_KEY);
   window.localStorage.removeItem(PERSISTENT_SESSION_KEY);
   window.sessionStorage.removeItem(SESSION_KEY);
+  window.sessionStorage.removeItem(PERSISTENT_SESSION_KEY);
 }

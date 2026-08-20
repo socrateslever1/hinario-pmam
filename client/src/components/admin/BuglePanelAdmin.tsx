@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Music, Pause, Play, Pencil, Plus, Search, Square, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { BUGLE_AUDIO_ACCEPT, validateBugleAudioFile } from "@/lib/bugleAudioUpload";
+import { getEmailSessionToken } from "@/lib/emailSession";
 import { OrdemUnidaAudioManager } from "./OrdemUnidaAudioManager";
 
 type Kind = "call" | "march";
@@ -22,33 +23,27 @@ const ICON_OPTIONS = [
   ["sun", "Alvorada"], ["utensils", "Rancho"], ["volume-off", "Silêncio"],
 ] as const;
 
-function fileToBase64(file: File, onProgress?: (percent: number) => void) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
-    reader.onprogress = (event) => {
-      if (event.lengthComputable && onProgress) {
-        const percent = Math.round((event.loaded / event.total) * 30);
-        onProgress(percent);
-      }
-    };
-    reader.onload = () => {
-      if (onProgress) onProgress(30);
-      resolve(String(reader.result || "").split(",")[1] || "");
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function uploadWithXHRProgress(payload: any, onProgress: (percent: number) => void): Promise<void> {
+function uploadWithXHRProgress(
+  payload: { kind: Kind; id: number; file: File },
+  onProgress: (percent: number) => void,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/trpc/buglePanel.uploadAudio", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.open("POST", "/api/bugle-upload", true);
+    xhr.withCredentials = true;
+
+    const studentId = window.localStorage.getItem("gradeStudentId");
+    const studentToken = window.localStorage.getItem("gradeStudentToken");
+    if (studentId && studentToken) {
+      xhr.setRequestHeader("x-student-id", studentId);
+      xhr.setRequestHeader("x-student-token", studentToken);
+    }
+    const emailSessionToken = getEmailSessionToken();
+    if (emailSessionToken) xhr.setRequestHeader("x-email-session", emailSessionToken);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
-        const percent = 30 + Math.round((event.loaded / event.total) * 65);
+        const percent = Math.min(95, Math.round((event.loaded / event.total) * 95));
         onProgress(percent);
       }
     };
@@ -60,7 +55,9 @@ function uploadWithXHRProgress(payload: any, onProgress: (percent: number) => vo
       } else {
         try {
           const json = JSON.parse(xhr.responseText);
-          const msg = json?.error?.json?.message || json?.error?.message || `Erro HTTP ${xhr.status}`;
+          const msg = typeof json?.error === "string"
+            ? json.error
+            : json?.error?.json?.message || json?.error?.message || `Erro HTTP ${xhr.status}`;
           reject(new Error(msg));
         } catch {
           reject(new Error(`Erro HTTP ${xhr.status}`));
@@ -69,7 +66,11 @@ function uploadWithXHRProgress(payload: any, onProgress: (percent: number) => vo
     };
 
     xhr.onerror = () => reject(new Error("Erro de rede ao enviar arquivo"));
-    xhr.send(JSON.stringify({ json: payload }));
+    const formData = new FormData();
+    formData.append("kind", payload.kind);
+    formData.append("id", String(payload.id));
+    formData.append("file", payload.file, payload.file.name);
+    xhr.send(formData);
   });
 }
 
@@ -128,7 +129,6 @@ export function BuglePanelAdmin() {
   const createMarch = trpc.buglePanel.createMarch.useMutation();
   const updateMarch = trpc.buglePanel.updateMarch.useMutation();
   const deleteMarch = trpc.buglePanel.deleteMarch.useMutation();
-  const uploadAudio = trpc.buglePanel.uploadAudio.useMutation();
 
   const openCreate = (nextKind: Kind) => {
     setKind(nextKind);
@@ -185,7 +185,8 @@ export function BuglePanelAdmin() {
       }
       if (audioFile) {
         if (!id) throw new Error("O item foi salvo, mas não foi possível identificar o registro para enviar o áudio.");
-        await uploadAudio.mutateAsync({ kind, id, fileName: audioFile.name, fileData: await fileToBase64(audioFile) });
+        setUploadProgress(5);
+        await uploadWithXHRProgress({ kind, id, file: audioFile }, setUploadProgress);
       }
       await invalidate();
       toast.success(kind === "call" ? "Toque salvo." : "Dobrado salvo.");
@@ -217,9 +218,8 @@ export function BuglePanelAdmin() {
     try {
       setUploadingItemKey(itemKey);
       setUploadProgress(5);
-      const base64Data = await fileToBase64(file, (percent) => setUploadProgress(percent));
       await uploadWithXHRProgress(
-        { kind: nextKind, id: item.id, fileName: file.name, fileData: base64Data },
+        { kind: nextKind, id: item.id, file },
         (percent) => setUploadProgress(percent)
       );
       await invalidate();
@@ -286,7 +286,7 @@ export function BuglePanelAdmin() {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={Boolean(uploadingItemKey) || uploadAudio.isPending}
+                disabled={Boolean(uploadingItemKey)}
                 onClick={() => document.getElementById(`bugle-audio-${nextKind}-${item.id}`)?.click()}
                 className="h-8 shrink-0 font-bold px-3 text-xs"
               >
@@ -335,7 +335,7 @@ export function BuglePanelAdmin() {
   );
 
   const dialogOpen = Boolean(form);
-  const saving = createCall.isPending || updateCall.isPending || createMarch.isPending || updateMarch.isPending || uploadAudio.isPending;
+  const saving = createCall.isPending || updateCall.isPending || createMarch.isPending || updateMarch.isPending;
 
   return (
     <div>

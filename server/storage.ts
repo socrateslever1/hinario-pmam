@@ -1,14 +1,20 @@
 // Preconfigured storage helpers
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 //
-// Fallback (no Forge API configured):
-//   - Node.js / Express: saves the file to the local `uploads/` directory on disk.
-//   - Cloudflare Workers: saves as a data: URI in-memory (max 500 KB; larger files
-//     require Forge API to be configured in the environment variables).
+// Storage order: Cloudflare R2, Forge, Supabase, then local disk in Node.js.
+// Cloudflare never stores binary files inline in the relational database.
 
 import { ENV } from './_core/env';
+import { normalizeStorageKey, publicStorageUrl } from './storagePath';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
+type R2BucketLike = {
+  put: (
+    key: string,
+    value: Uint8Array,
+    options?: { httpMetadata?: { contentType?: string; cacheControl?: string } },
+  ) => Promise<unknown>;
+};
 
 function getStorageConfig(): StorageConfig & { isLocalFallback?: boolean } {
   const baseUrl = ENV.forgeApiUrl;
@@ -49,7 +55,15 @@ function ensureTrailingSlash(value: string): string {
 }
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  return normalizeStorageKey(relKey);
+}
+
+function getCloudflareBucket(): R2BucketLike | null {
+  return (globalThis as any).cloudflareEnv?.UPLOADS_BUCKET ?? null;
+}
+
+function isCloudflareRuntime() {
+  return typeof (globalThis as any).cloudflareEnv !== "undefined";
 }
 
 function toFormData(
@@ -140,9 +154,6 @@ async function tryUploadToSupabase(key: string, buffer: Buffer, contentType: str
   }
 }
 
-// 4.2 MB (4,400,000 bytes) — absolute safe ceiling for TiDB single entry limit (max 6,291,456 bytes) after base64 (+33%)
-const MAX_INLINE_BYTES = 4_400_000;
-
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -151,6 +162,19 @@ export async function storagePut(
   const config = getStorageConfig();
   const key = normalizeKey(relKey);
   const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
+
+  // Cloudflare Pages must use persistent object storage. Filesystem writes are
+  // ephemeral there, and binary audio must not be embedded in a TiDB row.
+  const bucket = getCloudflareBucket();
+  if (bucket) {
+    await bucket.put(key, new Uint8Array(buffer), {
+      httpMetadata: {
+        contentType,
+        cacheControl: "public, max-age=31536000, immutable",
+      },
+    });
+    return { key, url: publicStorageUrl(key) };
+  }
 
   // 1. If Forge API is configured, upload to Forge
   if (!config.isLocalFallback) {
@@ -179,31 +203,35 @@ export async function storagePut(
     return { key, url: supabaseUrl };
   }
 
+  if (isCloudflareRuntime()) {
+    throw new Error(
+      "Armazenamento de áudio não configurado. Vincule o bucket R2 UPLOADS_BUCKET ao projeto Cloudflare.",
+    );
+  }
+
   // 3. Try to save to the local filesystem (works in Node.js / Express dev server).
   const localUrl = await trySaveToLocalFs(key, buffer);
   if (localUrl) {
     return { key, url: localUrl };
   }
 
-  // 4. Workers environment without external storage — store as data: URI inline for files within TiDB limits.
-  if (buffer.length > MAX_INLINE_BYTES) {
-    const sizeMb = (buffer.length / (1024 * 1024)).toFixed(1);
-    throw new Error(
-      `O áudio (${sizeMb} MB) excede o limite máximo permitido pelo banco de dados (máx. 4.2 MB). ` +
-      `Converta o áudio para MP3 (taxa de 128 kbps) para reduzir o tamanho do arquivo.`
-    );
-  }
-
-  const base64 = buffer.toString("base64");
-  const mimeType = contentType || "application/octet-stream";
-  return { key, url: `data:${mimeType};base64,${base64}` };
+  throw new Error("Não foi possível acessar um armazenamento persistente para o arquivo.");
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const config = getStorageConfig();
   const key = normalizeKey(relKey);
 
+  if (getCloudflareBucket()) {
+    return { key, url: publicStorageUrl(key) };
+  }
+
   if (config.isLocalFallback) {
+    if (isCloudflareRuntime()) {
+      throw new Error(
+        "Armazenamento de áudio não configurado. Vincule o bucket R2 UPLOADS_BUCKET ao projeto Cloudflare.",
+      );
+    }
     // Reconstruct the same path used by storagePut
     const safeFileName = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
     return { key, url: `/uploads/${safeFileName}` };

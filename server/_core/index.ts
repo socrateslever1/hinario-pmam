@@ -13,6 +13,14 @@ import crypto from "crypto";
 import { getVersionInfo } from "./version";
 import cors from "cors";
 import path from "path";
+import {
+  MAX_BUGLE_AUDIO_SIZE,
+  canManageBugleUploads,
+  getCurrentBugleAudioUrl,
+  setBugleAudioUrl,
+  validateBugleUpload,
+  type BugleUploadKind,
+} from "../bugleUpload";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -93,6 +101,55 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
       res.status(500).json({ error: "Upload failed" });
     }
   });
+
+  const bugleAudioUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_BUGLE_AUDIO_SIZE },
+  });
+
+  app.post(
+    "/api/bugle-upload",
+    (req, res, next) => {
+      bugleAudioUpload.single("file")(req, res, (error) => {
+        if (!error) return next();
+        if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ error: "O áudio deve ter no máximo 50 MB." });
+        }
+        return res.status(400).json({ error: "Não foi possível ler o arquivo enviado." });
+      });
+    },
+    async (req, res) => {
+      try {
+        const ctx = await createContext({ req, res } as any);
+        if (!ctx.user) return res.status(401).json({ error: "Sessão expirada. Entre novamente." });
+        if (!await canManageBugleUploads(ctx.user)) {
+          return res.status(403).json({ error: "Acesso restrito ao comando ou Xerife Geral." });
+        }
+
+        const kind = req.body.kind as BugleUploadKind;
+        const id = Number(req.body.id);
+        if ((kind !== "call" && kind !== "march") || !Number.isInteger(id) || id <= 0) {
+          return res.status(400).json({ error: "Destino do áudio inválido." });
+        }
+        if (!req.file) return res.status(400).json({ error: "Selecione um arquivo de áudio." });
+
+        const validation = validateBugleUpload(req.file.originalname, req.file.size);
+        if ("error" in validation) return res.status(400).json({ error: validation.error });
+        if (await getCurrentBugleAudioUrl(kind, id) === undefined) {
+          return res.status(404).json({ error: "Toque ou dobrado não encontrado." });
+        }
+
+        const folder = kind === "call" ? "calls" : "marches";
+        const fileKey = `bugle/${folder}/${id}-${crypto.randomBytes(5).toString("hex")}.${validation.extension}`;
+        const { url } = await storagePut(fileKey, req.file.buffer, validation.mimeType);
+        await setBugleAudioUrl(kind, id, url);
+        return res.json({ success: true, url });
+      } catch (error) {
+        console.error("[Bugle upload]", error);
+        return res.status(500).json({ error: "Não foi possível armazenar o áudio. Tente novamente." });
+      }
+    },
+  );
   
   // tRPC API
   app.use(
