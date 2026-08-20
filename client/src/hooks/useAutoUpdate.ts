@@ -2,6 +2,28 @@ import { useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'hinario_pmam_version';
 
+export function hashDeploymentDocument(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `index-${(hash >>> 0).toString(16)}`;
+}
+
+async function fetchDeploymentVersion() {
+  const response = await fetch('/index.html?version-check=1', {
+    method: 'GET',
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
+  });
+  if (!response.ok) return null;
+  return hashDeploymentDocument(await response.text());
+}
+
 /**
  * Hook de atualização automática.
  *
@@ -20,18 +42,8 @@ export function useAutoUpdate() {
     if (isReloadingRef.current) return;
 
     try {
-      const response = await fetch('/api/version', {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
-      });
-
-      if (!response.ok) return;
-
-      const { version } = await response.json() as { version: string };
+      const version = await fetchDeploymentVersion();
+      if (!version) return;
       const stored = currentVersionRef.current;
 
       if (!stored) {

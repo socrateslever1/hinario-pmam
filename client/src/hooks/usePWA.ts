@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const CACHE_NAME = "hinario-pmam-cache-v6";
+export const PWA_CACHE_NAME = "hinario-pmam-cache-v8";
 let registrationStarted = false;
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 let updateIntervalId: number | null = null;
@@ -28,7 +28,7 @@ export async function cacheUrlsForOffline(urls: string[]): Promise<CachedUrlsRes
     return { cachedUrls: [], failedUrls: unique };
   }
 
-  const cache = await caches.open(CACHE_NAME);
+  const cache = await caches.open(PWA_CACHE_NAME);
   const results = await Promise.all(unique.map(async (url) => {
     try {
       const response = await fetch(url, { credentials: "include" });
@@ -56,7 +56,7 @@ export async function getOfflineCachedUrls(urls: string[]): Promise<string[]> {
   const unique = uniqueUrls(urls);
   if (typeof caches === "undefined") return [];
 
-  const cache = await caches.open(CACHE_NAME);
+  const cache = await caches.open(PWA_CACHE_NAME);
   const results = await Promise.all(unique.map(async (url) => ({ url, response: await cache.match(url) })));
   return results.filter((result) => Boolean(result.response)).map((result) => result.url);
 }

@@ -50,5 +50,11 @@ describe("service worker distribuído", () => {
     expect(source).not.toMatch(/^(?:<<<<<<<|=======|>>>>>>>)/m);
     expect(source).toContain("AUDIO_FILE_PATTERN");
     expect(source).toContain("AUDIO_CACHE_NAME");
+    expect(source).toContain('CACHE_NAME = "hinario-pmam-cache-v8"');
+    expect(source).toContain("AUDIO_DOWNLOAD_CONCURRENCY = 3");
+    expect(source).toContain("audioSyncQueue = audioSyncQueue");
+    expect(source).toContain('url.searchParams.has("version-check")');
+    expect(source).toContain("isPublicCatalogRequest(url)");
+    expect(source).toContain("event.waitUntil(refreshPromise.then(() => undefined).catch(() => undefined))");
   });
 });

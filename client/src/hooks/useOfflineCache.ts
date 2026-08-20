@@ -3,8 +3,8 @@ import { usePWA } from "./usePWA";
 
 const CRITICAL_API_URLS = [
   "/api/trpc/hymns.list?batch=1",
-  "/api/trpc/drill.list?batch=1",
   "/api/trpc/buglePanel.list?batch=1",
+  "/api/trpc/ordemUnidaAudio.list?batch=1",
   "/api/trpc/blog.list?batch=1",
 ];
 

@@ -36,8 +36,8 @@ describe("usePWA Hook", () => {
 
   describe("Cache management", () => {
     it("deve ter cache name correto", () => {
-      const CACHE_NAME = "hinario-pmam-cache-v6";
-      expect(CACHE_NAME).toBe("hinario-pmam-cache-v6");
+      const CACHE_NAME = "hinario-pmam-cache-v8";
+      expect(CACHE_NAME).toBe("hinario-pmam-cache-v8");
     });
 
     it("deve não deletar cache ao inicializar", () => {
@@ -48,12 +48,12 @@ describe("usePWA Hook", () => {
 
     it("deve permitir limpeza manual de cache", async () => {
       const mockCaches = {
-        keys: vi.fn().mockResolvedValue(["hinario-pmam-cache-v6"]),
+        keys: vi.fn().mockResolvedValue(["hinario-pmam-cache-v8"]),
         delete: vi.fn().mockResolvedValue(true),
       };
 
       const keys = await mockCaches.keys();
-      expect(keys).toContain("hinario-pmam-cache-v6");
+      expect(keys).toContain("hinario-pmam-cache-v8");
     });
 
     it("deve permitir pré-cache de assets", async () => {
@@ -118,7 +118,7 @@ describe("usePWA Hook", () => {
       const CRITICAL_ROUTES = [
         "/api/trpc/hymns.list",
         "/api/trpc/hymns.getById",
-        "/api/trpc/drill.list",
+        "/api/trpc/buglePanel.list",
         "/api/trpc/blog.list",
       ];
 

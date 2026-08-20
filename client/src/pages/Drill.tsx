@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useBugleAudioCache } from "@/hooks/useBugleAudioCache";
 import { HIGH_FIDELITY_BUMBO_DATA_URI } from "@/lib/bumboSound";
 import { resolvePlayableMediaUrl } from "@/lib/media";
 import { toast } from "sonner";
@@ -201,10 +200,9 @@ function readStoredSequenceDelay() {
 }
 
 export default function Drill() {
-  useBugleAudioCache();
   const { user } = useAuth();
-  const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
-  const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
+  const { data, isLoading, isError } = trpc.buglePanel.list.useQuery(undefined, { staleTime: 5 * 60_000 });
+  const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery(undefined, { staleTime: 5 * 60_000 });
   const voiceProfilesQuery = trpc.ordemUnidaAudio.listVoiceProfiles.useQuery(undefined, { staleTime: 5 * 60_000 });
   const hymnsQuery = trpc.hymns.list.useQuery(undefined, { staleTime: 60_000 });
   const audioRef = useRef<HTMLAudioElement>(null);

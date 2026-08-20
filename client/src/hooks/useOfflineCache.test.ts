@@ -6,13 +6,13 @@ describe("useOfflineCache Hook", () => {
       const criticalUrls = [
         "/api/trpc/hymns.list?batch=1",
         "/api/trpc/education.listModules?batch=1",
-        "/api/trpc/drill.list?batch=1",
+        "/api/trpc/buglePanel.list?batch=1",
         "/api/trpc/blog.list?batch=1",
       ];
 
       expect(criticalUrls).toHaveLength(4);
       expect(criticalUrls).toContain("/api/trpc/hymns.list?batch=1");
-      expect(criticalUrls).toContain("/api/trpc/drill.list?batch=1");
+      expect(criticalUrls).toContain("/api/trpc/buglePanel.list?batch=1");
     });
 
     it("deve ter URLs de hinos", () => {
@@ -35,11 +35,11 @@ describe("useOfflineCache Hook", () => {
 
     it("deve ter URLs de drill", () => {
       const drillUrls = [
-        "/api/trpc/drill.list?batch=1",
-        "/api/trpc/drill.getById",
+        "/api/trpc/buglePanel.list?batch=1",
+        "/api/trpc/ordemUnidaAudio.list?batch=1",
       ];
 
-      expect(drillUrls).toContain("/api/trpc/drill.list?batch=1");
+      expect(drillUrls).toContain("/api/trpc/buglePanel.list?batch=1");
     });
   });
 
@@ -81,8 +81,8 @@ describe("useOfflineCache Hook", () => {
 
   describe("Cache name", () => {
     it("deve usar cache name correto", () => {
-      const CACHE_NAME = "hinario-pmam-cache-v2";
-      expect(CACHE_NAME).toBe("hinario-pmam-cache-v2");
+      const CACHE_NAME = "hinario-pmam-cache-v8";
+      expect(CACHE_NAME).toBe("hinario-pmam-cache-v8");
     });
   });
 
@@ -140,7 +140,7 @@ describe("useBackgroundSync Hook", () => {
       const syncUrls = [
         "/api/trpc/hymns.list?batch=1",
         "/api/trpc/education.listModules?batch=1",
-        "/api/trpc/drill.list?batch=1",
+        "/api/trpc/buglePanel.list?batch=1",
         "/api/trpc/blog.list?batch=1",
       ];
 

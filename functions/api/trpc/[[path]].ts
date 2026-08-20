@@ -6,6 +6,7 @@ import { query } from '../../../server/mysql';
 import type { User } from '../../../shared/types';
 import type { TrpcContext } from '../../../server/_core/context';
 import { HttpError } from '../../../shared/_core/errors';
+import { PUBLIC_CATALOG_CACHE_CONTROL, isPublicCatalogRequest } from '../../_shared/publicCatalogCache';
 
 async function createFetchContext(req: Request): Promise<TrpcContext> {
   let user: User | null = null;
@@ -86,11 +87,23 @@ async function createFetchContext(req: Request): Promise<TrpcContext> {
 export const onRequest: PagesFunction = async (context) => {
   (globalThis as any).cloudflareEnv = context.env;
   const resHeaders = new Headers();
+  const publicCatalogRequest = isPublicCatalogRequest(context.request);
+  if (publicCatalogRequest) {
+    resHeaders.set("Cache-Control", PUBLIC_CATALOG_CACHE_CONTROL);
+  }
   return fetchRequestHandler({
     endpoint: '/api/trpc',
     req: context.request,
     router: appRouter,
     createContext: async () => {
+      if (publicCatalogRequest) {
+        return {
+          req: { headers: {} } as any,
+          res: {},
+          user: null,
+          resHeaders,
+        } satisfies TrpcContext;
+      }
       const ctx = await createFetchContext(context.request);
       ctx.resHeaders = resHeaders;
       return ctx;

@@ -1,5 +1,7 @@
-const CACHE_NAME = "hinario-pmam-cache-v7";
+const CACHE_NAME = "hinario-pmam-cache-v8";
 const AUDIO_CACHE_NAME = "hinario-pmam-audio-v2";
+const AUDIO_DOWNLOAD_CONCURRENCY = 3;
+let audioSyncQueue = Promise.resolve();
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -32,6 +34,14 @@ const SESSION_ROUTES = [
   "/api/trpc/student.register",
 ];
 
+const PUBLIC_CATALOG_PROCEDURES = new Set([
+  "blog.list",
+  "buglePanel.list",
+  "hymns.list",
+  "ordemUnidaAudio.list",
+  "ordemUnidaAudio.listVoiceProfiles",
+]);
+
 const STATIC_CACHE_PATHS = [
   "/assets/",
   "/logo/",
@@ -61,6 +71,12 @@ function isCacheableStaticResponse(request, response) {
   }
 
   return true;
+}
+
+function isPublicCatalogRequest(url) {
+  if (!url.pathname.startsWith("/api/trpc/")) return false;
+  const procedures = decodeURIComponent(url.pathname.slice("/api/trpc/".length)).split(",");
+  return procedures.length > 0 && procedures.every((procedure) => PUBLIC_CATALOG_PROCEDURES.has(procedure));
 }
 
 const AUDIO_FILE_PATTERN = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:$|\?)/i;
@@ -100,23 +116,40 @@ async function syncAudioCache(urls) {
   const uniqueUrls = [...new Set(normalizedUrls)];
   const expected = new Set(uniqueUrls);
 
-  const results = await Promise.allSettled(
-    uniqueUrls.map(async (url) => {
-      // Check if already in cache first to save bandwidth
-      const existing = await cache.match(url);
-      if (existing) return;
+  const results = new Array(uniqueUrls.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(AUDIO_DOWNLOAD_CONCURRENCY, uniqueUrls.length) },
+    async () => {
+      while (nextIndex < uniqueUrls.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        const url = uniqueUrls[index];
+        try {
+          // Check if already in cache first to save bandwidth
+          const existing = await cache.match(url);
+          if (existing) {
+            results[index] = { status: "fulfilled" };
+            continue;
+          }
 
-      const parsed = new URL(url);
-      const isCrossOrigin = parsed.origin !== self.location.origin;
-      const request = new Request(url, {
-        mode: isCrossOrigin ? "no-cors" : "same-origin",
-        credentials: isCrossOrigin ? "omit" : "include",
-      });
-      const response = await fetch(request);
-      if (!response.ok && response.type !== "opaque") throw new Error(`${url}: ${response.status}`);
-      await cache.put(url, response.clone());
-    }),
+          const parsed = new URL(url);
+          const isCrossOrigin = parsed.origin !== self.location.origin;
+          const request = new Request(url, {
+            mode: isCrossOrigin ? "no-cors" : "same-origin",
+            credentials: isCrossOrigin ? "omit" : "include",
+          });
+          const response = await fetch(request);
+          if (!response.ok && response.type !== "opaque") throw new Error(`${url}: ${response.status}`);
+          await cache.put(url, response.clone());
+          results[index] = { status: "fulfilled" };
+        } catch (reason) {
+          results[index] = { status: "rejected", reason };
+        }
+      }
+    },
   );
+  await Promise.all(workers);
 
   const cachedRequests = await cache.keys();
   await Promise.all(
@@ -195,6 +228,11 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
 
+  if (url.pathname === "/index.html" && url.searchParams.has("version-check")) {
+    event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -228,6 +266,32 @@ self.addEventListener("fetch", (event) => {
           { status: 503, headers: { "Content-Type": "application/json" } },
         );
       }),
+    );
+    return;
+  }
+
+  if (isPublicCatalogRequest(url)) {
+    const cachePromise = caches.open(CACHE_NAME);
+    const cachedResponsePromise = cachePromise.then((cache) => cache.match(request));
+    const refreshPromise = cachePromise.then((cache) =>
+      fetch(request).then((response) => {
+        if (response.status === 200) {
+          return cache.put(request, response.clone()).then(() => response);
+        }
+        return response;
+      }),
+    );
+
+    event.waitUntil(refreshPromise.then(() => undefined).catch(() => undefined));
+    event.respondWith(
+      cachedResponsePromise.then((cached) =>
+        cached || refreshPromise.catch(() =>
+          new Response(
+            JSON.stringify({ error: "Offline - catalogo indisponivel" }),
+            { status: 503, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+      ),
     );
     return;
   }
@@ -294,12 +358,21 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "CACHE_AUDIO_URLS") {
     const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
-    syncAudioCache(urls).catch((error) => console.warn("[SW] Audio cache sync failed:", error));
+    audioSyncQueue = audioSyncQueue
+      .catch(() => undefined)
+      .then(() => syncAudioCache(urls));
+    event.waitUntil(audioSyncQueue.catch((error) => console.warn("[SW] Audio cache sync failed:", error)));
   }
 
   if (event.data && event.data.type === "CLEAR_CACHE") {
-    caches.keys().then((keys) => {
-      keys.forEach((key) => caches.delete(key));
-    });
+    event.waitUntil(
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== AUDIO_CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+    );
   }
 });

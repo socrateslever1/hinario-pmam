@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import { studyModules } from "@/content/studyModules";
 import { usePWA } from "./usePWA";
-
-const CACHE_NAME = "hinario-pmam-cache-v6";
+import { PWA_CACHE_NAME } from "./usePWA";
 const CRITICAL_URLS = [
   "/api/trpc/hymns.list?batch=1",
-  "/api/trpc/drill.list?batch=1",
+  "/api/trpc/ordemUnidaAudio.list?batch=1",
   "/api/trpc/buglePanel.list?batch=1",
   "/api/trpc/blog.list?batch=1",
   ...studyModules.map((module) => module.textPath),
@@ -21,7 +20,7 @@ export function useBackgroundSync() {
       console.log("[BackgroundSync] Voltou online, sincronizando...");
 
       try {
-        const cache = await caches.open(CACHE_NAME);
+        const cache = await caches.open(PWA_CACHE_NAME);
 
         for (const url of CRITICAL_URLS) {
           try {
