@@ -107,8 +107,41 @@ async function trySaveToLocalFs(key: string, buffer: Buffer): Promise<string | n
   }
 }
 
-// 5 MB limit for inline base64 data URIs
-const MAX_INLINE_BYTES = 5 * 1024 * 1024;
+/**
+ * Attempt to upload to Supabase Storage if credentials are configured in environment variables.
+ */
+async function tryUploadToSupabase(key: string, buffer: Buffer, contentType: string): Promise<string | null> {
+  const supabaseUrl = ENV.supabaseUrl;
+  const supabaseKey = ENV.supabaseServiceKey;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const bucket = "uploads";
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(key, buffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (error) {
+      console.warn("[Supabase Storage] Upload error:", error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(key);
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.warn("[Supabase Storage] Exception:", err);
+    return null;
+  }
+}
+
+// 4.2 MB (4,400,000 bytes) — absolute safe ceiling for TiDB single entry limit (max 6,291,456 bytes) after base64 (+33%)
+const MAX_INLINE_BYTES = 4_400_000;
 
 export async function storagePut(
   relKey: string,
@@ -117,46 +150,53 @@ export async function storagePut(
 ): Promise<{ key: string; url: string }> {
   const config = getStorageConfig();
   const key = normalizeKey(relKey);
+  const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
 
-  if (config.isLocalFallback) {
-    const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
+  // 1. If Forge API is configured, upload to Forge
+  if (!config.isLocalFallback) {
+    const { baseUrl, apiKey } = config;
+    const uploadUrl = buildUploadUrl(baseUrl, key);
+    const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: buildAuthHeaders(apiKey),
+      body: formData,
+    });
 
-    // 1. Try to save to the local filesystem (works in Node.js / Express dev server).
-    const localUrl = await trySaveToLocalFs(key, buffer);
-    if (localUrl) {
-      return { key, url: localUrl };
-    }
-
-    // 2. Workers environment — store as data: URI inline for files within database limits.
-    if (buffer.length > MAX_INLINE_BYTES) {
+    if (!response.ok) {
+      const message = await response.text().catch(() => response.statusText);
       throw new Error(
-        `O arquivo (${(buffer.length / (1024 * 1024)).toFixed(1)} MB) excede o limite máximo permitido sem armazenamento externo (${(MAX_INLINE_BYTES / (1024 * 1024)).toFixed(1)} MB). ` +
-        `Otimize o áudio em formato MP3 (taxa de 128kbps) para reduzir o tamanho.`
+        `Storage upload failed (${response.status} ${response.statusText}): ${message}`
       );
     }
-
-    const base64 = buffer.toString("base64");
-    const mimeType = contentType || "application/octet-stream";
-    return { key, url: `data:${mimeType};base64,${base64}` };
+    const url = (await response.json()).url;
+    return { key, url };
   }
 
-  const { baseUrl, apiKey } = config;
-  const uploadUrl = buildUploadUrl(baseUrl, key);
-  const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
-  });
+  // 2. Try Supabase Storage if configured
+  const supabaseUrl = await tryUploadToSupabase(key, buffer, contentType);
+  if (supabaseUrl) {
+    return { key, url: supabaseUrl };
+  }
 
-  if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
+  // 3. Try to save to the local filesystem (works in Node.js / Express dev server).
+  const localUrl = await trySaveToLocalFs(key, buffer);
+  if (localUrl) {
+    return { key, url: localUrl };
+  }
+
+  // 4. Workers environment without external storage — store as data: URI inline for files within TiDB limits.
+  if (buffer.length > MAX_INLINE_BYTES) {
+    const sizeMb = (buffer.length / (1024 * 1024)).toFixed(1);
     throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
+      `O áudio (${sizeMb} MB) excede o limite máximo permitido pelo banco de dados (máx. 4.2 MB). ` +
+      `Converta o áudio para MP3 (taxa de 128 kbps) para reduzir o tamanho do arquivo.`
     );
   }
-  const url = (await response.json()).url;
-  return { key, url };
+
+  const base64 = buffer.toString("base64");
+  const mimeType = contentType || "application/octet-stream";
+  return { key, url: `data:${mimeType};base64,${base64}` };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
