@@ -19,10 +19,11 @@ export async function ensureBugleSchema() {
  */
 function resolveAudioUrl(audioUrl: string | null | undefined, kind: "call" | "march", id: number): string | null {
   if (!audioUrl) return null;
-  // data: URI or local file path — serve via the proxy endpoint that reads from DB
-  if (audioUrl.startsWith("data:") || audioUrl.startsWith("/uploads/")) {
+  // If stored as inline data: URI in DB, route through proxy endpoint
+  if (audioUrl.startsWith("data:")) {
     return `/api/bugle-audio/${kind}/${id}`;
   }
+  // Return direct path (/uploads/... or https://...)
   return audioUrl;
 }
 

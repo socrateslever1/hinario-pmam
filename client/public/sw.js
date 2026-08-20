@@ -37,6 +37,8 @@ const STATIC_CACHE_PATHS = [
   "/logo/",
   "/documents/",
   "/study/",
+  "/uploads/",
+  "/audio/",
 ];
 
 function urlLooksLikeScriptOrStyle(value) {
@@ -79,13 +81,31 @@ async function addToCache(cache, urls) {
   });
 }
 
+function normalizeAudioUrl(url) {
+  if (typeof url !== "string" || !url.trim()) return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("data:")) return null;
+  try {
+    return new URL(trimmed, self.location.origin).href;
+  } catch {
+    return null;
+  }
+}
+
 async function syncAudioCache(urls) {
   const cache = await caches.open(AUDIO_CACHE_NAME);
-  const uniqueUrls = [...new Set(urls.filter((url) => typeof url === "string" && /^https?:\/\//i.test(url)))];
+  const normalizedUrls = urls
+    .map(normalizeAudioUrl)
+    .filter((url) => Boolean(url));
+  const uniqueUrls = [...new Set(normalizedUrls)];
   const expected = new Set(uniqueUrls);
 
   const results = await Promise.allSettled(
     uniqueUrls.map(async (url) => {
+      // Check if already in cache first to save bandwidth
+      const existing = await cache.match(url);
+      if (existing) return;
+
       const parsed = new URL(url);
       const isCrossOrigin = parsed.origin !== self.location.origin;
       const request = new Request(url, {
@@ -145,20 +165,30 @@ self.addEventListener("fetch", (event) => {
   const audioRequest = request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname + url.search);
   if (audioRequest) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
+      caches.open(AUDIO_CACHE_NAME).then(async (cache) => {
+        // 1. Cache-First: Play immediately from cache with 0ms latency (even when internet is slow or offline)
+        const cached = await cache.match(request.url, { ignoreSearch: true });
+        if (cached) {
+          return cached;
+        }
+
+        // 2. Network fallback: Fetch and cache for future instant offline playback
+        try {
+          const parsed = new URL(request.url);
+          const isCrossOrigin = parsed.origin !== self.location.origin;
+          const req = new Request(request.url, {
+            mode: isCrossOrigin ? "no-cors" : "same-origin",
+            credentials: isCrossOrigin ? "omit" : "include",
+          });
+          const response = await fetch(req);
           if (response.ok || response.type === "opaque") {
-            const clone = response.clone();
-            caches.open(AUDIO_CACHE_NAME).then((cache) => cache.put(request.url, clone));
+            cache.put(request.url, response.clone());
           }
           return response;
-        })
-        .catch(async () => {
-          const cache = await caches.open(AUDIO_CACHE_NAME);
-          const cached = await cache.match(request.url);
-          if (cached) return cached;
+        } catch {
           return new Response("Áudio indisponível offline", { status: 503 });
-        })
+        }
+      })
     );
     return;
   }

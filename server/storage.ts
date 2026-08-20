@@ -87,15 +87,19 @@ async function trySaveToLocalFs(key: string, buffer: Buffer): Promise<string | n
       import("node:path") as Promise<{ default: typeof import("path") }>,
     ]);
 
-    const uploadsDir = path.resolve(process.cwd(), "uploads");
-    // Create subdirectories from the key (e.g. "bugle/calls/1-abc.mp3" → uploads/bugle/calls/)
-    const subDir = path.join(uploadsDir, path.dirname(key));
-    if (!fs.existsSync(subDir)) {
-      fs.mkdirSync(subDir, { recursive: true });
-    }
+    const rootUploadsDir = path.resolve(process.cwd(), "uploads");
+    const clientUploadsDir = path.resolve(process.cwd(), "client", "public", "uploads");
+
     const safeFileName = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
-    const filePath = path.join(uploadsDir, safeFileName);
-    fs.writeFileSync(filePath, buffer);
+
+    for (const dir of [rootUploadsDir, clientUploadsDir]) {
+      const subDir = path.join(dir, path.dirname(key));
+      if (!fs.existsSync(subDir)) {
+        fs.mkdirSync(subDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(dir, safeFileName), buffer);
+    }
+
     return `/uploads/${safeFileName}`;
   } catch {
     // Workers runtime or any other environment where fs is unavailable

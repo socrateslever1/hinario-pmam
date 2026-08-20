@@ -103,9 +103,56 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
     })
   );
 
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "client/public/uploads")));
   app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
   app.use("/audio", express.static(path.resolve(process.cwd(), "client/public/audio")));
   app.use("/audio", express.static(path.resolve(process.cwd(), "public/audio")));
+
+  // Proxy endpoint for inline data: bugle audio in dev
+  app.get("/api/bugle-audio/:kind/:id", async (req, res) => {
+    try {
+      const { query } = await import("../mysql");
+      const kind = String(req.params.kind);
+      const id = Number(req.params.id);
+      const table = kind === "march" ? "pmam_marches" : "pmam_bugle_calls";
+      const rows = await query(`SELECT audio_url FROM ${table} WHERE id = ? AND is_active = 1 LIMIT 1`, [id]);
+      const row: any = rows[0];
+      if (!row?.audio_url) return res.status(404).send("Áudio não encontrado");
+      const value = String(row.audio_url);
+      if (value.startsWith("data:")) {
+        const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(value);
+        if (!match) return res.status(500).send("Áudio inválido");
+        const buffer = Buffer.from(match[2], "base64");
+        res.set("Content-Type", match[1] || "audio/mpeg");
+        return res.send(buffer);
+      }
+      return res.redirect(value);
+    } catch (e) {
+      return res.status(500).send("Erro interno");
+    }
+  });
+
+  // Proxy endpoint for inline data: ordem unida audio in dev
+  app.get("/api/ordem-unida-audio/:id", async (req, res) => {
+    try {
+      const { query } = await import("../mysql");
+      const id = Number(req.params.id);
+      const rows = await query("SELECT audio_url, mime_type FROM pmam_ordem_unida_audios WHERE id = ? AND is_active = 1 LIMIT 1", [id]);
+      const row: any = rows[0];
+      if (!row?.audio_url) return res.status(404).send("Áudio não encontrado");
+      const value = String(row.audio_url);
+      if (value.startsWith("data:")) {
+        const match = /^data:([^;,]+)?;base64,([\s\S]+)$/.exec(value);
+        if (!match) return res.status(500).send("Áudio inválido");
+        const buffer = Buffer.from(match[2], "base64");
+        res.set("Content-Type", row.mime_type || match[1] || "audio/mpeg");
+        return res.send(buffer);
+      }
+      return res.redirect(value);
+    } catch (e) {
+      return res.status(500).send("Erro interno");
+    }
+  });
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
