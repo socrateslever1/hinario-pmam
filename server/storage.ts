@@ -107,8 +107,8 @@ async function trySaveToLocalFs(key: string, buffer: Buffer): Promise<string | n
   }
 }
 
-// 500 KB — safe ceiling for a TiDB row (max 6 MB) when base64-encoded (~33% overhead)
-const MAX_INLINE_BYTES = 500 * 1024;
+// 5 MB limit for inline base64 data URIs
+const MAX_INLINE_BYTES = 5 * 1024 * 1024;
 
 export async function storagePut(
   relKey: string,
@@ -127,11 +127,11 @@ export async function storagePut(
       return { key, url: localUrl };
     }
 
-    // 2. Workers environment — store as data: URI only for small files.
+    // 2. Workers environment — store as data: URI inline for files within database limits.
     if (buffer.length > MAX_INLINE_BYTES) {
       throw new Error(
-        `Arquivo muito grande para armazenamento local (${Math.round(buffer.length / 1024)} KB). ` +
-        `Configure BUILT_IN_FORGE_API_URL e BUILT_IN_FORGE_API_KEY no ambiente para envios acima de ${Math.round(MAX_INLINE_BYTES / 1024)} KB.`
+        `O arquivo (${(buffer.length / (1024 * 1024)).toFixed(1)} MB) excede o limite máximo permitido sem armazenamento externo (${(MAX_INLINE_BYTES / (1024 * 1024)).toFixed(1)} MB). ` +
+        `Otimize o áudio em formato MP3 (taxa de 128kbps) para reduzir o tamanho.`
       );
     }
 

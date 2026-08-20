@@ -258,16 +258,20 @@ export function BuglePanelAdmin() {
   const renderItems = (nextKind: Kind, items: any[]) => (
     <div className="space-y-2">
       {items.map((item) => (
-        <Card key={item.id} className="border-border/50">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+        <Card key={item.id} className="border-border/60 shadow-none hover:border-border transition-colors">
+          <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{nextKind === "call" ? item.name : item.title}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {nextKind === "call" ? `${item.category} • sequência operacional automática` : item.composer || "Compositor não informado"}
+              <p className="truncate text-sm font-bold">{nextKind === "call" ? item.name : item.title}</p>
+              <p className="truncate text-xs text-muted-foreground mt-0.5">
+                {nextKind === "call" ? item.category : item.composer || "Sem compositor"}
               </p>
-              <p className={`mt-1 text-xs ${item.audioUrl ? "text-emerald-700" : "text-amber-700"}`}>{item.audioUrl ? "Áudio disponível" : "Aguardando áudio"}</p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${item.audioUrl ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>
+                  {item.audioUrl ? "Áudio ativo" : "Sem áudio"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap sm:flex-nowrap">
               <input
                 id={`bugle-audio-${nextKind}-${item.id}`}
                 type="file"
@@ -284,17 +288,17 @@ export function BuglePanelAdmin() {
                 size="sm"
                 disabled={Boolean(uploadingItemKey) || uploadAudio.isPending}
                 onClick={() => document.getElementById(`bugle-audio-${nextKind}-${item.id}`)?.click()}
-                className="shrink-0 font-bold min-w-[120px]"
+                className="h-8 shrink-0 font-bold px-3 text-xs"
               >
                 {uploadingItemKey === `${nextKind}-${item.id}` ? (
                   <>
                     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
-                    {uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Enviando..."}
+                    {uploadProgress > 0 ? `${uploadProgress}%` : "Enviando..."}
                   </>
                 ) : (
                   <>
                     <Upload className="mr-1.5 h-3.5 w-3.5" />
-                    {item.audioUrl ? "Trocar áudio" : "Enviar áudio"}
+                    {item.audioUrl ? "Trocar" : "Enviar"}
                   </>
                 )}
               </Button>
@@ -320,8 +324,8 @@ export function BuglePanelAdmin() {
                 </Button>
               )}
               <Switch checked={item.isActive} onCheckedChange={(checked) => toggleActive(nextKind, item, checked)} aria-label={`Ativar ${nextKind === "call" ? item.name : item.title}`} />
-              <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(nextKind, item)}><Pencil className="h-4 w-4" /></Button>
-              <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(nextKind, item)}><Trash2 className="h-4 w-4" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(nextKind, item)}><Pencil className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(nextKind, item)}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           </CardContent>
         </Card>
@@ -336,16 +340,16 @@ export function BuglePanelAdmin() {
   return (
     <div>
       <Tabs defaultValue="calls">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Painel de Ordem Unida</h2>
-            <p className="text-sm text-muted-foreground">Gerencie botões, comandos, dobrados, vozes de comando e áudios de execução.</p>
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-black tracking-tight">Painel de Ordem Unida</h2>
+            <p className="hidden sm:block text-xs text-muted-foreground">Toques, dobrados e comandos.</p>
           </div>
-          <TabsList className="grid w-full grid-cols-2 gap-1 sm:flex sm:w-auto">
-            <TabsTrigger value="calls">Toques</TabsTrigger>
-            <TabsTrigger value="marches">Dobrados</TabsTrigger>
-            <TabsTrigger value="voices">Vozes de Comando</TabsTrigger>
-            <TabsTrigger value="audios">Treino de corneta</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 gap-1.5 p-1.5 bg-muted/80 rounded-2xl h-auto sm:flex sm:w-auto">
+            <TabsTrigger value="calls" className="py-2 px-3 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Toques</TabsTrigger>
+            <TabsTrigger value="marches" className="py-2 px-3 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Dobrados</TabsTrigger>
+            <TabsTrigger value="voices" className="py-2 px-3 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Vozes de Comando</TabsTrigger>
+            <TabsTrigger value="audios" className="py-2 px-3 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Treino de corneta</TabsTrigger>
           </TabsList>
         </div>
 

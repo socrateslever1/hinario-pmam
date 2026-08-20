@@ -221,33 +221,36 @@ export function OrdemUnidaAudioManager({ initialCategory = "all", showSubTabs = 
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-[#1a3a2a]/20 bg-[#1a3a2a] p-4 text-white sm:p-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[#e4cf87]">Ordem Unida</p>
-        <h2 className="mt-1 text-xl font-black">Áudios de Execução (Voz, Dobrados e Toques)</h2>
-        <p className="mt-1 max-w-3xl text-sm text-white/75">
-          Envie os áudios gravados para cada comando de voz, toque de corneta ou dobrado.
-          Os arquivos serão salvos e preparados para execução online e offline no painel.
-        </p>
+    <div className="space-y-3">
+      <div className="rounded-xl border border-[#1a3a2a]/20 bg-[#1a3a2a] p-3 sm:p-4 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#e4cf87]">Ordem Unida</p>
+            <h2 className="text-base sm:text-lg font-black">Áudios de Execução</h2>
+          </div>
+          <p className="hidden sm:block text-xs text-white/70 max-w-sm text-right">
+            Vozes de comando, toques e dobrados para execução online e offline.
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="pl-9"
-            placeholder="Buscar por comando, toque ou dobrado"
+            className="pl-9 h-9 text-xs sm:text-sm"
+            placeholder="Buscar comando, toque ou dobrado..."
           />
         </div>
         {showSubTabs && (
           <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto">
-            <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto">
-              <TabsTrigger value="all" className="px-1.5 text-xs">Todos</TabsTrigger>
-              <TabsTrigger value="voz" className="px-1.5 text-xs">Voz</TabsTrigger>
-              <TabsTrigger value="corneta" className="px-1.5 text-xs">Toques</TabsTrigger>
-              <TabsTrigger value="dobrado" className="px-1.5 text-xs">Dobrados</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 gap-1 p-1 bg-muted/80 rounded-xl h-auto sm:flex sm:w-auto">
+              <TabsTrigger value="all" className="py-1.5 px-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Todos</TabsTrigger>
+              <TabsTrigger value="voz" className="py-1.5 px-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Voz</TabsTrigger>
+              <TabsTrigger value="corneta" className="py-1.5 px-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Toques</TabsTrigger>
+              <TabsTrigger value="dobrado" className="py-1.5 px-2 text-xs font-bold rounded-lg data-[state=active]:bg-[#1a3a2a] data-[state=active]:text-white">Dobrados</TabsTrigger>
             </TabsList>
           </Tabs>
         )}
@@ -344,12 +347,12 @@ export function OrdemUnidaAudioManager({ initialCategory = "all", showSubTabs = 
                       size="sm"
                       disabled={isUploading}
                       onClick={() => document.getElementById(`ordem-unida-audio-${item.id}`)?.click()}
-                      className="shrink-0 font-bold min-w-[110px]"
+                      className="h-8 shrink-0 font-bold px-3 text-xs"
                     >
                       {isUploading ? (
                         <>
                           <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
-                          {uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Enviando..."}
+                          {uploadProgress > 0 ? `${uploadProgress}%` : "Enviando..."}
                         </>
                       ) : (
                         <>
