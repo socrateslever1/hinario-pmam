@@ -36,8 +36,8 @@ describe("usePWA Hook", () => {
 
   describe("Cache management", () => {
     it("deve ter cache name correto", () => {
-      const CACHE_NAME = "hinario-pmam-cache-v5";
-      expect(CACHE_NAME).toBe("hinario-pmam-cache-v5");
+      const CACHE_NAME = "hinario-pmam-cache-v4";
+      expect(CACHE_NAME).toBe("hinario-pmam-cache-v4");
     });
 
     it("deve não deletar cache ao inicializar", () => {
@@ -48,12 +48,12 @@ describe("usePWA Hook", () => {
 
     it("deve permitir limpeza manual de cache", async () => {
       const mockCaches = {
-        keys: vi.fn().mockResolvedValue(["hinario-pmam-cache-v5"]),
+        keys: vi.fn().mockResolvedValue(["hinario-pmam-cache-v4"]),
         delete: vi.fn().mockResolvedValue(true),
       };
 
       const keys = await mockCaches.keys();
-      expect(keys).toContain("hinario-pmam-cache-v5");
+      expect(keys).toContain("hinario-pmam-cache-v4");
     });
 
     it("deve permitir pré-cache de assets", async () => {

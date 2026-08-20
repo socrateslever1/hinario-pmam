@@ -4,9 +4,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { getOfflineCachedUrls, usePWA } from "@/hooks/usePWA";
-import { getOrdemUnidaPlaybackPlan } from "@/lib/ordemUnidaPlayback";
-import { toast } from "sonner";
+import { usePWA } from "@/hooks/usePWA";
 import {
   createDefaultSessionConfig,
   DOBRADOS,
@@ -108,7 +106,6 @@ export default function Drill() {
   const [customType, setCustomType] = useState<OrdemUnidaItemType>("corneta");
   const [isCachingAudios, setIsCachingAudios] = useState(false);
   const [audiosCached, setAudiosCached] = useState(false);
-  const [audioCacheMessage, setAudioCacheMessage] = useState("");
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const audioCatalogQuery = trpc.ordemUnidaAudio.list.useQuery();
   const { cacheUrls, isOnline } = usePWA();
@@ -137,24 +134,6 @@ export default function Drill() {
     audioPlayerRef.current?.pause();
     audioPlayerRef.current = null;
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    if (!audioUrls.length) {
-      setAudiosCached(false);
-      setAudioCacheMessage("");
-      return () => { active = false; };
-    }
-
-    void getOfflineCachedUrls(audioUrls).then((cachedUrls) => {
-      if (!active) return;
-      const complete = cachedUrls.length === audioUrls.length;
-      setAudiosCached(complete);
-      setAudioCacheMessage(complete ? `${cachedUrls.length} áudio${cachedUrls.length === 1 ? "" : "s"} pronto${cachedUrls.length === 1 ? "" : "s"} para uso offline.` : cachedUrls.length ? `${cachedUrls.length} de ${audioUrls.length} áudio${audioUrls.length === 1 ? "" : "s"} já está${cachedUrls.length === 1 ? "" : "ão"} no aparelho.` : "");
-    }).catch(() => undefined);
-
-    return () => { active = false; };
-  }, [audioUrls]);
 
   const isInSession = (item: OrdemUnidaPanelItem) => sessionConfig.itemIds.includes(item.id);
 
@@ -185,14 +164,13 @@ export default function Drill() {
     stopPlayback();
     setSessionConfig((current) => ({ ...current, currentItemId: item.id }));
     const audio = audioByItemId.get(item.id);
-    const playback = getOrdemUnidaPlaybackPlan(item, audio?.audioUrl);
-    if (playback.mode === "audio" && typeof window !== "undefined") {
-      const player = new Audio(playback.audioUrl);
+    if (audio?.audioUrl && typeof window !== "undefined") {
+      const player = new Audio(audio.audioUrl);
       audioPlayerRef.current = player;
       void player.play().catch(() => undefined);
-    } else if (playback.mode === "speech" && typeof window !== "undefined" && "speechSynthesis" in window) {
+    } else if (item.type === "voz" && typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(playback.text);
+      const utterance = new SpeechSynthesisUtterance(item.title);
       utterance.lang = "pt-BR";
       utterance.rate = 0.92;
       window.speechSynthesis.speak(utterance);
@@ -203,18 +181,8 @@ export default function Drill() {
     if (!audioUrls.length || !isOnline) return;
     setIsCachingAudios(true);
     try {
-      const result = await cacheUrls(audioUrls);
-      const completed = result.cachedUrls.length === audioUrls.length;
-      setAudiosCached(completed);
-      if (completed) {
-        const message = `${result.cachedUrls.length} áudio${result.cachedUrls.length === 1 ? "" : "s"} pronto${result.cachedUrls.length === 1 ? "" : "s"} para uso offline.`;
-        setAudioCacheMessage(message);
-        toast.success(message);
-      } else {
-        const message = `${result.cachedUrls.length} de ${audioUrls.length} áudios foram preparados. Tente novamente para concluir os restantes.`;
-        setAudioCacheMessage(message);
-        toast.warning(message);
-      }
+      await cacheUrls(audioUrls);
+      setAudiosCached(true);
     } finally {
       setIsCachingAudios(false);
     }
@@ -289,7 +257,6 @@ export default function Drill() {
                   {currentItem && <Button type="button" variant="outline" size="sm" onClick={stopExecution} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"><CircleStop className="mr-1.5 h-4 w-4" /> Encerrar</Button>}
                 </div>
               </div>
-              {audioUrls.length > 0 && <p className="mt-2 text-[11px] text-white/70">{audioCacheMessage || (isOnline ? "Baixe os áudios vinculados para mantê-los disponíveis mesmo sem conexão." : "Conecte-se para baixar os áudios disponíveis neste aparelho.")}</p>}
             </div>
           </section>
 

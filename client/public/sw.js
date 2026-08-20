@@ -1,4 +1,4 @@
-const CACHE_NAME = "hinario-pmam-cache-v5";
+const CACHE_NAME = "hinario-pmam-cache-v4";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -37,12 +37,6 @@ const STATIC_CACHE_PATHS = [
   "/documents/",
   "/study/",
 ];
-
-const AUDIO_FILE_PATTERN = /\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:$|\?)/i;
-
-function isAudioRequest(request, url) {
-  return request.destination === "audio" || AUDIO_FILE_PATTERN.test(url.pathname);
-}
 
 async function addToCache(cache, urls) {
   const results = await Promise.allSettled(
@@ -91,22 +85,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET") return;
-
-  if (isAudioRequest(request, url)) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-        return fetch(request).then((response) => {
-          if (response.ok || response.type === "opaque") {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-          }
-          return response;
-        });
-      }),
-    );
-    return;
-  }
-
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {

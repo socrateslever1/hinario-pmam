@@ -597,8 +597,8 @@ export const appRouter = router({
       return db.getActiveHymns();
     }),
     listAll: protectedProcedure.query(async ({ ctx }) => {
-      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
-      if (!canManageHymns) {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       return db.getAllHymns();
@@ -635,8 +635,8 @@ export const appRouter = router({
       instrumentalAudioUrl: z.string().optional(),
       lyricsSync: z.any().optional(),
     })).mutation(async ({ ctx, input }) => {
-      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
-      if (!canManageHymns) {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       await db.createHymn(input);
@@ -660,8 +660,8 @@ export const appRouter = router({
       lyricsSync: z.any().optional(),
       isActive: z.boolean().optional(),
     })).mutation(async ({ ctx, input }) => {
-      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
-      if (!canManageHymns) {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       const { id, ...data } = input;
@@ -669,8 +669,8 @@ export const appRouter = router({
       return { success: true };
     }),
     delete: masterProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
-      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
-      if (!canManageHymns) {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       await db.deleteHymn(input.id);
@@ -682,8 +682,8 @@ export const appRouter = router({
       fileName: z.string(),
       variant: z.enum(["voice", "instrumental"]).default("voice"),
     })).mutation(async ({ ctx, input }) => {
-      const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
-      if (!canManageHymns) {
+      const general = await isXerifeGeral(ctx.user);
+      if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       const validFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'];
