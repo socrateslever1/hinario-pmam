@@ -10,6 +10,7 @@ import { CommandSoundButton } from "@/components/CommandSoundButton";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useBugleAudioCache } from "@/hooks/useBugleAudioCache";
 import { HIGH_FIDELITY_BUMBO_DATA_URI } from "@/lib/bumboSound";
+import { resolvePlayableMediaUrl } from "@/lib/media";
 import { toast } from "sonner";
 import {
   AudioLines,
@@ -82,7 +83,8 @@ const SEQUENCE_MEDIA_STORAGE_KEY = "pmam-bugle-sequence-media-v2";
 const SEQUENCE_ITEMS_STORAGE_KEY = "pmam-bugle-sequence-items-v1";
 const USER_SELECTION_STORAGE_PREFIX = "pmam-bugle-user-selection-v1";
 const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
-type SequenceMedia = { key: string; label: string; audioUrl: string; kind: "hino" | "instrumental" | "dobrado" };
+// hymnId is stored so we can resolve fresh audioUrl/youtubeUrl from server data when playing
+type SequenceMedia = { key: string; label: string; audioUrl: string; kind: "hino" | "instrumental" | "dobrado"; hymnId?: number };
 type SequenceItem =
   | { key: string; type: "call"; callId: number }
   | { key: string; type: "voice"; voiceId: number }
@@ -265,6 +267,8 @@ export default function Drill() {
     () => preparedIds.map((id) => calls.find((call) => call.id === id)).filter(Boolean) as BugleCall[],
     [calls, preparedIds],
   );
+  const hymns = (hymnsQuery.data ?? []) as any[];
+
   const preparedWorkItems = useMemo(() => {
     const currentItems = sequenceItems.length
       ? sequenceItems
@@ -299,10 +303,32 @@ export default function Drill() {
             };
           }
         }
+        // Resolve fresh audioUrl for hymns and instrumentals from server data
+        // NOTE: The drill audio panel uses HTML5 <audio> which cannot play YouTube URLs.
+        // We always prefer the file-based audioUrl. If only a YouTube URL exists, we keep
+        // the stored audioUrl so the error message is clear when the user tries to play.
+        if (item.type === "media" && (item.media?.kind === "hino" || item.media?.kind === "instrumental")) {
+          const hymnId = item.media.hymnId
+            ?? Number((item.media.key.replace(/^(?:hymn|instrumental)-/, "")).split("-")[0]);
+          const hymn = hymns.find((h: any) => h.id === hymnId);
+          if (hymn) {
+            const isInstrumental = item.media.kind === "instrumental";
+            const freshAudioUrl = isInstrumental ? hymn.instrumentalAudioUrl : hymn.audioUrl;
+            return {
+              ...item,
+              media: {
+                ...item.media,
+                // Use fresh file URL from server; fall back to stored URL if server has none
+                audioUrl: freshAudioUrl || item.media.audioUrl,
+                hymnId: hymn.id,
+              },
+            };
+          }
+        }
         return item;
       })
       .filter((item) => item.type === "media" || (item.type === "call" ? Boolean(item.call) : Boolean(item.voice)));
-  }, [calls, marches, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
+  }, [calls, hymns, marches, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
 
   useEffect(() => {
     if (voiceProfiles.length && !voiceProfiles.some((profile) => profile.key === selectedVoiceProfileKey)) {
@@ -313,7 +339,7 @@ export default function Drill() {
   const saveSelectionPreference = useCallback(() => {
     const sanitizedMedia = sequenceMedia.map((media) => ({
       ...media,
-      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
+      audioUrl: (media.audioUrl || "").startsWith("data:") ? "" : media.audioUrl,
     }));
     const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
     safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
@@ -352,7 +378,7 @@ export default function Drill() {
   useEffect(() => {
     const sanitizedMedia = sequenceMedia.map((media) => ({
       ...media,
-      audioUrl: media.audioUrl.startsWith("data:") ? "" : media.audioUrl,
+      audioUrl: (media.audioUrl || "").startsWith("data:") ? "" : media.audioUrl,
     }));
     safeSetLocalStorage(SEQUENCE_MEDIA_STORAGE_KEY, JSON.stringify(sanitizedMedia));
   }, [sequenceMedia]);
@@ -491,6 +517,12 @@ export default function Drill() {
   const playAudio = async (key: string, label: string, audioUrl: string | null) => {
     if (!audioUrl) {
       toast.error("Este item ainda não possui áudio. Adicione-o no dashboard.");
+      return false;
+    }
+
+    // HTML5 <audio> cannot play YouTube URLs — show a helpful message
+    if (audioUrl.includes("youtube.com") || audioUrl.includes("youtu.be")) {
+      toast.error(`"${label}" só tem link do YouTube e não pode ser tocado aqui. Envie o arquivo MP3 no dashboard.`, { duration: 5000 });
       return false;
     }
 
@@ -1099,9 +1131,17 @@ export default function Drill() {
         <details className="rounded-2xl border border-[#c4a84b]/40 bg-white/90 p-3 shadow-sm dark:bg-[#202720]/95">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-black"><span className="flex items-center gap-2"><Music2 className="h-5 w-5 text-[#806919]" />Importar hinos do sistema</span><Plus className="h-4 w-4" /></summary>
           <div className="mt-3 space-y-2 border-t pt-3">
-            {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => <div key={hymn.id} className="rounded-lg border bg-background p-2"><p className="mb-2 text-xs font-black">{hymn.title}</p><div className="space-y-1.5">{hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino" })} className="flex w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-xs font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}{hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental" })} className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}</div></div>)}
+            {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => {
+              return (
+                <div key={hymn.id} className="rounded-lg border bg-background p-2"><p className="mb-2 text-xs font-black">{hymn.title}</p><div className="space-y-1.5">
+                  {hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-xs font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}
+                  {hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}
+                </div></div>
+              );
+            })}
             {hymnsQuery.isLoading && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Carregando hinos...</p>}
-            {!hymnsQuery.isLoading && !(hymnsQuery.data ?? []).some((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl) && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Nenhum hino com áudio no sistema.</p>}
+            {!hymnsQuery.isLoading && !(hymnsQuery.data ?? []).some((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl) && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Nenhum hino com arquivo de áudio no sistema. Envie os arquivos no dashboard.</p>}
+
           </div>
         </details>
 
