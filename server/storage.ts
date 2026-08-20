@@ -1,9 +1,9 @@
 // Preconfigured storage helpers
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+// When Forge API is not configured, falls back to data: URIs (base64 inline)
+// which are compatible with Cloudflare Workers (no Node.js fs available).
 
 import { ENV } from './_core/env';
-import fs from 'node:fs';
-import path from 'node:path';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
@@ -76,15 +76,12 @@ export async function storagePut(
   const key = normalizeKey(relKey);
 
   if (config.isLocalFallback) {
+    // No Forge API configured. Store as a data: URI (base64-encoded inline).
+    // This works in both Cloudflare Workers and Node.js without needing fs.
     const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
-    const uploadsDir = path.resolve(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    const safeFileName = key.replace(/[^a-zA-Z0-9_.-]/g, "_");
-    const filePath = path.join(uploadsDir, safeFileName);
-    fs.writeFileSync(filePath, buffer);
-    const url = `/uploads/${safeFileName}`;
+    const base64 = buffer.toString("base64");
+    const mimeType = contentType || "application/octet-stream";
+    const url = `data:${mimeType};base64,${base64}`;
     return { key, url };
   }
 
