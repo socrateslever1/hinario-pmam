@@ -10,12 +10,29 @@ export async function ensureBugleSchema() {
   await schemaPromise;
 }
 
+/**
+ * Resolve the audio URL for a bugle call or march row.
+ * - HTTP/HTTPS and data: URIs that are already accessible externally are returned as-is.
+ * - data: URIs stored inline and /uploads/ local paths are redirected to the
+ *   /api/bugle-audio proxy endpoint, which reads the raw bytes from the DB and
+ *   serves them correctly in both Node.js and Cloudflare Workers.
+ */
+function resolveAudioUrl(audioUrl: string | null | undefined, kind: "call" | "march", id: number): string | null {
+  if (!audioUrl) return null;
+  // data: URI or local file path — serve via the proxy endpoint that reads from DB
+  if (audioUrl.startsWith("data:") || audioUrl.startsWith("/uploads/")) {
+    return `/api/bugle-audio/${kind}/${id}`;
+  }
+  return audioUrl;
+}
+
 function mapBugleCall(row: any) {
   if (!row) return row;
+  const id = Number(row.id);
   return {
-    id: row.id,
+    id,
     name: row.name,
-    audioUrl: row.audio_url,
+    audioUrl: resolveAudioUrl(row.audio_url, "call", id),
     iconKey: row.icon_key || "music",
     troopState: row.troop_state,
     category: row.category || "geral",
@@ -29,11 +46,12 @@ function mapBugleCall(row: any) {
 
 function mapMarch(row: any) {
   if (!row) return row;
+  const id = Number(row.id);
   return {
-    id: row.id,
+    id,
     title: row.title,
     composer: row.composer,
-    audioUrl: row.audio_url,
+    audioUrl: resolveAudioUrl(row.audio_url, "march", id),
     sourceUrl: row.source_url,
     sortOrder: Number(row.sort_order || 0),
     isActive: row.is_active === 1 || row.is_active === true,
