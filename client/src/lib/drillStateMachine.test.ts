@@ -50,6 +50,14 @@ describe("drill state machine", () => {
     expect(isDrillCommandAllowed("Descansar", "marcha")).toBe(false);
   });
 
+  it("handles compound command names like Ordinário marche com dobrado, Ordinário marche B and Alto", () => {
+    expect(applyDrillCommand("Ordinário marche com dobrado", "sentido")).toBe("marcha");
+    expect(applyDrillCommand("Ordinário marche B", "sentido")).toBe("marcha");
+    expect(isDrillCommandAllowed("Alto", "marcha")).toBe(true);
+    expect(getRequiredCommandSequence("Alto", "marcha")).toEqual([]);
+    expect(applyDrillCommand("Alto", "marcha")).toBe("sentido");
+  });
+
   it("normalizes accents and punctuation", () => {
     expect(normalizeDrillCommand("  ORDINÁRIO, MARCHE! ")).toBe("ordinario marche");
   });

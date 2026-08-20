@@ -600,32 +600,8 @@ export default function Drill() {
     }
 
     if (!isDrillCommandAllowed(call.name, drillState)) {
-      const reqSequence = getRequiredCommandSequence(call.name, drillState);
-      const firstReq = reqSequence[0];
-      const transVoice = voiceCommands.find(
-        (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq)
-      ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq));
-      const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(firstReq));
-      const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
-
-      if (transUrl && call.audioUrl) {
-        stopAudio();
-        const transState = applyDrillCommand(firstReq, drillState);
-        const finalState = applyDrillCommand(call.name, transState);
-        audioQueueRef.current = [{
-          key,
-          label: call.name,
-          audioUrl: call.audioUrl,
-          nextState: finalState,
-        }];
-        const started = await playAudio(`call-preparatory-${firstReq}`, `${commandLabel(firstReq)}`, transUrl);
-        if (started) {
-          setDrillState(transState);
-        } else {
-          audioQueueRef.current = [];
-        }
-        return;
-      }
+      showDrillAlert(`Comando bloqueado. A tropa está na posição "${DRILL_STATE_LABELS[drillState] || drillState}".`);
+      return;
     }
 
     if (await playAudio(key, call.name, call.audioUrl)) {
@@ -666,32 +642,8 @@ export default function Drill() {
     }
 
     if (!isDrillCommandAllowed(voice.itemTitle, drillState)) {
-      const reqSequence = getRequiredCommandSequence(voice.itemTitle, drillState);
-      const firstReq = reqSequence[0];
-      const transVoice = voiceCommands.find(
-        (v) => (v.voiceProfileKey || "default") === selectedVoiceProfile?.key && normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq)
-      ) || voiceCommands.find((v) => normalizeDrillCommand(v.itemTitle) === normalizeDrillCommand(firstReq));
-      const transCall = calls.find((c) => normalizeDrillCommand(c.name) === normalizeDrillCommand(firstReq));
-      const transUrl = transVoice?.audioUrl || transCall?.audioUrl;
-
-      if (transUrl && voice.audioUrl) {
-        stopAudio();
-        const transState = applyDrillCommand(firstReq, drillState);
-        const finalState = applyDrillCommand(voice.itemTitle, transState);
-        audioQueueRef.current = [{
-          key,
-          label: voice.itemTitle,
-          audioUrl: voice.audioUrl,
-          nextState: finalState,
-        }];
-        const started = await playAudio(`voice-preparatory-${firstReq}`, `${commandLabel(firstReq)}`, transUrl);
-        if (started) {
-          setDrillState(transState);
-        } else {
-          audioQueueRef.current = [];
-        }
-        return;
-      }
+      showDrillAlert(`Comando bloqueado. A tropa está na posição "${DRILL_STATE_LABELS[drillState] || drillState}".`);
+      return;
     }
 
     if (await playAudio(key, voice.itemTitle, voice.audioUrl)) {

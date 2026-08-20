@@ -74,7 +74,81 @@ const RULE_BY_COMMAND = new Map(RULES.map((rule) => [rule.command, rule]));
 
 export function getDrillCommandRule(commandName: string): CommandRule {
   const normalized = normalizeDrillCommand(commandName);
-  return RULE_BY_COMMAND.get(normalized) || {
+  const exact = RULE_BY_COMMAND.get(normalized);
+  if (exact) return exact;
+
+  // Intelligent pattern matching for command variations (e.g. "Ordinário marche com dobrado", "Ordinário marche B", "Alto à tropa", etc.)
+  if (normalized.includes("ordinario march") || normalized.includes("marcha ordinaria")) {
+    return RULE_BY_COMMAND.get("ordinario marche")!;
+  }
+  if (normalized.includes("marcha batida")) {
+    return RULE_BY_COMMAND.get("marcha batida")!;
+  }
+  if (normalized.includes("marcar passo")) {
+    return RULE_BY_COMMAND.get("marcar passo")!;
+  }
+  if (normalized.includes("acelerado")) {
+    return RULE_BY_COMMAND.get("acelerado")!;
+  }
+  if (normalized.startsWith("alto") || normalized.includes(" alto") || normalized.endsWith("alto")) {
+    return RULE_BY_COMMAND.get("alto")!;
+  }
+  if (normalized.includes("cessar") && normalized.includes("vontade")) {
+    return RULE_BY_COMMAND.get("cessar o a vontade")!;
+  }
+  if (normalized.includes("vontade")) {
+    return RULE_BY_COMMAND.get("a vontade")!;
+  }
+  if (normalized.includes("descansar arma")) {
+    return RULE_BY_COMMAND.get("descansar arma")!;
+  }
+  if (normalized.includes("descansar")) {
+    return RULE_BY_COMMAND.get("descansar")!;
+  }
+  if (normalized.includes("sentido")) {
+    return RULE_BY_COMMAND.get("sentido")!;
+  }
+  if (normalized.includes("ombro arma")) {
+    return RULE_BY_COMMAND.get("ombro arma")!;
+  }
+  if (normalized.includes("apresentar arma")) {
+    return RULE_BY_COMMAND.get("apresentar arma")!;
+  }
+  if (normalized.includes("cruzar arma")) {
+    return RULE_BY_COMMAND.get("cruzar arma")!;
+  }
+  if (normalized.includes("cobrir")) {
+    return RULE_BY_COMMAND.get("cobrir")!;
+  }
+  if (normalized.includes("firme")) {
+    return RULE_BY_COMMAND.get("firme")!;
+  }
+  if (normalized.includes("olhar") && normalized.includes("direita")) {
+    return RULE_BY_COMMAND.get("olhar a direita")!;
+  }
+  if (normalized.includes("olhar") && normalized.includes("esquerda")) {
+    return RULE_BY_COMMAND.get("olhar a esquerda")!;
+  }
+  if (normalized.includes("olhar") && normalized.includes("frente")) {
+    return RULE_BY_COMMAND.get("olhar em frente")!;
+  }
+  if (normalized.includes("direita") && normalized.includes("volver")) {
+    return RULE_BY_COMMAND.get("direita volver")!;
+  }
+  if (normalized.includes("esquerda") && normalized.includes("volver")) {
+    return RULE_BY_COMMAND.get("esquerda volver")!;
+  }
+  if (normalized.includes("meia volta")) {
+    return RULE_BY_COMMAND.get("meia volta volver")!;
+  }
+  if (normalized.includes("direcao") && normalized.includes("direita")) {
+    return RULE_BY_COMMAND.get("em direcao a direita")!;
+  }
+  if (normalized.includes("direcao") && normalized.includes("esquerda")) {
+    return RULE_BY_COMMAND.get("em direcao a esquerda")!;
+  }
+
+  return {
     command: normalized,
     allowedFrom: ["sentido"],
     nextState: "sentido",
