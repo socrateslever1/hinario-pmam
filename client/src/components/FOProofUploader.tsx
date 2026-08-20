@@ -23,14 +23,14 @@ interface FOProofUploaderProps {
 }
 
 const ACCEPTED_TYPES = {
-  foto: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  foto: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"],
   video: ["video/mp4", "video/webm", "video/quicktime"],
   audio: ["audio/mpeg", "audio/wav", "audio/ogg", "audio/webm"],
   documento: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
 };
 
 const ACCEPTED_EXTENSIONS = {
-  foto: [".jpg", ".jpeg", ".png", ".webp", ".gif"],
+  foto: [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif"],
   video: [".mp4", ".webm", ".mov"],
   audio: [".mp3", ".wav", ".ogg"],
   documento: [".pdf", ".doc", ".docx"],
@@ -53,7 +53,7 @@ export function FOProofUploader({
   }, [isOpen]);
 
   const getProofType = (file: File): "foto" | "video" | "audio" | "documento" | null => {
-    const mimeType = file.type;
+    const mimeType = file.type.toLowerCase();
     const extension = "." + file.name.split(".").pop()?.toLowerCase();
 
     if (ACCEPTED_TYPES.foto.includes(mimeType) || ACCEPTED_EXTENSIONS.foto.includes(extension)) {

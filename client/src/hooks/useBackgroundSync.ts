@@ -2,16 +2,17 @@ import { useEffect } from "react";
 import { studyModules } from "@/content/studyModules";
 import { usePWA } from "./usePWA";
 
-const CACHE_NAME = "hinario-pmam-cache-v3";
+const CACHE_NAME = "hinario-pmam-cache-v6";
 const CRITICAL_URLS = [
   "/api/trpc/hymns.list?batch=1",
   "/api/trpc/drill.list?batch=1",
+  "/api/trpc/buglePanel.list?batch=1",
   "/api/trpc/blog.list?batch=1",
   ...studyModules.map((module) => module.textPath),
 ];
 
 export function useBackgroundSync() {
-  const { isOnline, swReady } = usePWA();
+  const { swReady } = usePWA();
 
   useEffect(() => {
     if (!swReady) return;
@@ -54,13 +55,9 @@ export function useBackgroundSync() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    if (isOnline) {
-      handleOnline();
-    }
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [isOnline, swReady]);
+  }, [swReady]);
 }

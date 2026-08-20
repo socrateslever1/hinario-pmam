@@ -1653,14 +1653,24 @@ export async function listReviewedStudentObservations(scope?: { companhia?: numb
     params.push(scope.peloton);
   }
   return query(
-    `SELECT o.*, s.numerica, s.nome_guerra, u.name AS created_by_name, vu.name AS validated_by_name
+    `SELECT o.*, s.numerica, s.nome_guerra, u.name AS created_by_name, vu.name AS validated_by_name,
+       lc.id AS lc_case_id, lc.status AS lc_status, lc.source AS lc_source
      FROM pmam_student_observations o
      INNER JOIN pmam_students s ON s.id = o.student_id
      LEFT JOIN pmam_users u ON u.id = o.created_by
      LEFT JOIN pmam_users vu ON vu.id = o.validated_by
+     LEFT JOIN pmam_lc_cases lc ON o.validation_status = 'approved' AND lc.id = (
+       SELECT lc2.id
+       FROM pmam_lc_cases lc2
+       WHERE lc2.student_id = o.student_id
+         AND lc2.fo_code = o.fo_code
+         AND lc2.source = 'fo_reincidence'
+       ORDER BY lc2.created_at DESC, lc2.id DESC
+       LIMIT 1
+     )
      WHERE ${where.join(" AND ")}
      ORDER BY COALESCE(o.validated_at, o.created_at) DESC
-     LIMIT 50`,
+     LIMIT 300`,
     params
   );
 }

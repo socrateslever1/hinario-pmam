@@ -80,6 +80,7 @@ export default function BottomNavigation() {
         { icon: Home, label: "Início", path: "/" },
         { icon: LayoutGrid, label: "Sala", path: "/sala-de-aula" },
         { icon: Music, label: "Hinos", path: "/hinos" },
+        { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: FileText, label: "Notas", path: isStudent ? "/notas-do-curso" : "/entrar" },
         { icon: MoreHorizontal, label: "Mais", path: "__more" },
       ];

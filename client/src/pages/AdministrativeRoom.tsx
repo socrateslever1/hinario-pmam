@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { AlertTriangle, ArrowLeft, BadgeCheck, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BadgeCheck, CalendarDays, ClipboardList, FileText, History, Inbox, Loader2, Shield, Upload, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { trpc } from "@/lib/trpc";
+import { buildAdministrativeFoSummary, getLcHistoryLabel } from "@/lib/foAdministrativeHistory";
 import { filterEffectiveStudents } from "@/lib/administrativeEffective";
+import { buildStudentObservationRequest } from "@/lib/studentObservation";
+import { getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +78,25 @@ export default function AdministrativeRoom() {
   const [aditamentoTitle, setAditamentoTitle] = useState("");
   const [aditamentoContent, setAditamentoContent] = useState("");
   const [efetivoSearch, setEfetivoSearch] = useState("");
+  const [observationStudentId, setObservationStudentId] = useState("");
+  const [observationType, setObservationType] = useState<"positive" | "negative">("positive");
+  const [observationCode, setObservationCode] = useState("");
+  const [observationNote, setObservationNote] = useState("");
+  const [dailyHistoryDate, setDailyHistoryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dailyCompanhia, setDailyCompanhia] = useState("1");
+  const [dailyPeloton, setDailyPeloton] = useState("1");
+  const [dailyLocation, setDailyLocation] = useState("sala");
+  const [dailyFormation, setDailyFormation] = useState("nao_informado");
+  const [dailyLunch, setDailyLunch] = useState("nao_informado");
+  const [dailySnack, setDailySnack] = useState("nao_informado");
+  const [dailyRanch, setDailyRanch] = useState(false);
+  const [dailyPunishment, setDailyPunishment] = useState("");
+  const [dailyFacts, setDailyFacts] = useState("");
+  const [dailyPending, setDailyPending] = useState("");
+  const [dailyPendingResolved, setDailyPendingResolved] = useState(false);
+  const [ranchWeekdays, setRanchWeekdays] = useState<number[]>([]);
+  const [lunchWeekdays, setLunchWeekdays] = useState<number[]>([]);
+  const [snackWeekdays, setSnackWeekdays] = useState<number[]>([]);
 
   const role = String(access?.role || "");
   const canHomologateFoLc = Boolean((access as any)?.canHomologateFoLc);
@@ -110,6 +132,11 @@ export default function AdministrativeRoom() {
     { studentId: Number(contestStudentId || 0) },
     { enabled: Boolean(canViewAdministrativeRoom && contestStudentId) }
   );
+  const selectedObservationStudentId = Number(observationStudentId || 0);
+  const selectedStudentObservationsQuery = trpc.serviceScale.studentObservations.useQuery(
+    { studentId: selectedObservationStudentId },
+    { enabled: Boolean(canViewAdministrativeRoom && selectedObservationStudentId) }
+  );
   const partesQuery = trpc.documentosParte.listarPartesPendentes.useQuery(undefined, {
     enabled: Boolean(canApproveStudentDocuments),
   });
@@ -117,6 +144,16 @@ export default function AdministrativeRoom() {
     { status: "active" },
     { enabled: Boolean(canViewAdministrativeRoom) }
   );
+  const lcHistoryQuery = trpc.serviceScale.lcCases.useQuery({ status: "all" }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const dailyRecordsQuery = trpc.administrativeDaily.list.useQuery({ date: dailyHistoryDate }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const dailyPeculioQuery = trpc.administrativeDaily.peculioSummary.useQuery({ date: dailyHistoryDate }, { enabled: Boolean(canViewAdministrativeRoom) });
+  const weeklyConfigQuery = trpc.administrativeDaily.weeklyConfig.useQuery(undefined, { enabled: Boolean(canViewAdministrativeRoom) });
+  const openDailyPendingsQuery = trpc.administrativeDaily.openPendings.useQuery(undefined, { enabled: Boolean(canViewAdministrativeRoom) });
+  const saveDailyRecord = trpc.administrativeDaily.save.useMutation({
+    onSuccess: async () => { toast.success("Rotina diária salva."); await Promise.all([dailyRecordsQuery.refetch(), openDailyPendingsQuery.refetch()]); },
+    onError: (error) => toast.error(error.message),
+  });
+  const saveWeeklyConfig = trpc.administrativeDaily.saveWeeklyConfig.useMutation({ onSuccess: async () => { toast.success("Rotina semanal salva."); await weeklyConfigQuery.refetch(); }, onError: (error) => toast.error(error.message) });
 
   const validateFo = trpc.serviceScale.validateStudentObservation.useMutation({
     onSuccess: async () => {
@@ -192,6 +229,19 @@ export default function AdministrativeRoom() {
     onSuccess: () => toast.success("Aditamento gerado e publicado."),
     onError: (error) => toast.error(error.message),
   });
+  const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation({
+    onSuccess: async () => {
+      toast.success("Anotação FO registrada.");
+      setObservationCode("");
+      setObservationNote("");
+      await Promise.all([
+        selectedStudentObservationsQuery.refetch(),
+        pendingFoQuery.refetch(),
+        reviewedFoQuery.refetch(),
+      ]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const students = studentsQuery.data ?? [];
   const filteredStudents = useMemo(() => filterEffectiveStudents(students, efetivoSearch), [students, efetivoSearch]);
@@ -202,6 +252,38 @@ export default function AdministrativeRoom() {
   const partesItems = partesQuery.data ?? [];
   const scopedPartesItems = partesItems;
   const internalReportItems = internalReportsQuery.data ?? [];
+  const isOnDailyDate = (item: any, ...keys: string[]) => keys.some((key) => {
+    const value = item?.[key];
+    return value && String(value).slice(0, 10) === dailyHistoryDate;
+  });
+  const allFoHistoryItems = [...pendingFoItems, ...(reviewedFoQuery.data ?? [])].filter((item: any, index, values) => values.findIndex((other: any) => other.id === item.id) === index);
+  const dailyFoItems = allFoHistoryItems.filter((item: any) => isOnDailyDate(item, "created_at", "createdAt", "updated_at", "updatedAt", "validated_at"));
+  const dailyLcItems = (lcHistoryQuery.data ?? []).filter((item: any) => isOnDailyDate(item, "createdAt", "updatedAt", "created_at", "updated_at", "recolhimentoDate"));
+  const dailyParteItems = scopedPartesItems.filter((item: any) => isOnDailyDate(item, "createdAt", "created_at", "updatedAt", "updated_at"));
+  const dailyBaixadoItems = baixadoItems.filter((item: any) => isOnDailyDate(item, "latestDocumentAt", "createdAt", "created_at"));
+  const dailyInternalItems = internalReportItems.filter((item: any) => isOnDailyDate(item, "createdAt", "created_at", "updatedAt", "updated_at"));
+  const dailyRecords = dailyRecordsQuery.data ?? [];
+  const openDailyPendings = openDailyPendingsQuery.data ?? [];
+  const dailyPeculios = dailyPeculioQuery.data ?? [];
+
+  useEffect(() => {
+    const assignment = (access as any)?.assignment;
+    if (assignment?.companhia) setDailyCompanhia(String(assignment.companhia));
+    if (assignment?.peloton) setDailyPeloton(String(assignment.peloton));
+  }, [access]);
+
+  useEffect(() => {
+    const record: any = dailyRecords.find((item: any) => item.companhia === Number(dailyCompanhia) && item.peloton === Number(dailyPeloton));
+    setDailyLocation(record?.locationStatus || "sala"); setDailyFormation(record?.formationStatus || "nao_informado");
+    setDailyLunch(record?.lunchStatus || "nao_informado"); setDailySnack(record?.snackStatus || "nao_informado"); setDailyRanch(Boolean(record?.ranchAdvance));
+    setDailyPunishment(record?.punishmentSummary || ""); setDailyFacts(record?.factsSummary || ""); setDailyPending(record?.pendingSummary || ""); setDailyPendingResolved(Boolean(record?.pendingResolvedAt));
+  }, [dailyCompanhia, dailyPeloton, dailyHistoryDate, dailyRecordsQuery.data]);
+  useEffect(() => {
+    const config: any = (weeklyConfigQuery.data ?? []).find((item: any) => item.companhia === Number(dailyCompanhia) && item.peloton === Number(dailyPeloton));
+    setRanchWeekdays(config?.ranchWeekdays ?? []); setLunchWeekdays(config?.lunchWeekdays ?? []); setSnackWeekdays(config?.snackWeekdays ?? []);
+  }, [dailyCompanhia, dailyPeloton, weeklyConfigQuery.data]);
+  const selectedObservationStudent = students.find((student: any) => Number(student.id) === selectedObservationStudentId) ?? null;
+  const selectedStudentObservationItems = selectedStudentObservationsQuery.data ?? [];
   const contestableObservations = (contestStudentObservationsQuery.data ?? []).filter((item: any) =>
     (item.type === "positive" || item.type === "negative") &&
     item.validation_status === "approved" &&
@@ -216,6 +298,19 @@ export default function AdministrativeRoom() {
       durationHours: item.durationHours ? String(item.durationHours) : "12",
       procedures: item.procedures || (item.source === "direct" ? "LC direta por transgressão gravosa." : `Aluno cientificado da LC por reincidencia do codigo ${item.foCode || 'N/A'}.`),
     };
+  };
+
+  const registerStudentObservation = () => {
+    try {
+      addStudentObservation.mutate(buildStudentObservationRequest({
+        studentId: selectedObservationStudentId,
+        type: observationType,
+        foCode: observationCode,
+        details: observationNote,
+      }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível preparar a anotação.");
+    }
   };
 
   const updateLcField = (id: number, field: "recolhimentoDate" | "recolhimentoTime" | "durationHours" | "procedures", value: string, item: any) => {
@@ -456,6 +551,52 @@ export default function AdministrativeRoom() {
           </div>
         </div>
 
+        <Card className="mb-5 border-[#1a3a2a]/15 bg-white shadow-sm dark:bg-zinc-900">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-[#1a3a2a] dark:text-[#c4a84b]"><History className="h-5 w-5" /> Histórico diário administrativo</CardTitle>
+            <CardDescription>Extrato dos fatos registrados para a data selecionada. Pendências continuam visíveis até serem solucionadas.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-0">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="max-w-xs flex-1"><Label htmlFor="daily-history-date">Dia trabalhado</Label><div className="relative mt-1"><CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input id="daily-history-date" type="date" value={dailyHistoryDate} onChange={(event) => setDailyHistoryDate(event.target.value)} className="pl-9" /></div></div>
+              <Button type="button" variant="outline" onClick={() => setDailyHistoryDate(new Date().toISOString().slice(0, 10))}>Hoje</Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <div className="rounded-lg border bg-amber-500/10 p-3"><p className="text-xl font-black">{dailyFoItems.length}</p><p className="text-xs text-muted-foreground">FO/punições</p></div>
+              <div className="rounded-lg border bg-red-500/10 p-3"><p className="text-xl font-black">{dailyLcItems.length}</p><p className="text-xs text-muted-foreground">LC</p></div>
+              <div className="rounded-lg border bg-blue-500/10 p-3"><p className="text-xl font-black">{dailyParteItems.length}</p><p className="text-xs text-muted-foreground">Partes/documentos</p></div>
+              <div className="rounded-lg border bg-violet-500/10 p-3"><p className="text-xl font-black">{dailyBaixadoItems.length}</p><p className="text-xs text-muted-foreground">Baixados</p></div>
+              <div className="rounded-lg border bg-emerald-500/10 p-3"><p className="text-xl font-black">{dailyInternalItems.length}</p><p className="text-xs text-muted-foreground">Informes internos</p></div>
+            </div>
+            <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+              <span className="font-bold text-foreground">Resumo do dia:</span> {dailyFoItems.length + dailyLcItems.length + dailyParteItems.length + dailyBaixadoItems.length + dailyInternalItems.length} ocorrência(s), {dailyRecords.length} rotina(s) e {dailyPeculios.filter((item: any) => item.hasReport).length} Pecúlio(s) registrados.
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {dailyPeculios.filter((item: any) => item.hasReport).map((item: any) => <div key={`${item.companhia}-${item.peloton}`} className="rounded-lg border bg-muted/20 p-3 text-xs"><p className="font-black">{item.companhia}ª Companhia / {item.peloton}º Pelotão</p><p className="mt-1 text-muted-foreground">Pecúlio: {item.closedAt ? "fechado" : "aberto"} · {item.totalAbsences} falta(s) · {item.totalLate} atraso(s) · {item.totalChanges} alteração(ões)</p></div>)}
+            </div>
+            <div className="grid gap-3 rounded-xl border p-3 md:grid-cols-2 lg:grid-cols-4">
+              <label className="text-xs font-bold">Companhia<select value={dailyCompanhia} onChange={(e) => setDailyCompanhia(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2">{[1,2,3,4,5].map(n => <option key={n} value={n}>{n}ª Companhia</option>)}</select></label>
+              <label className="text-xs font-bold">Pelotão<select value={dailyPeloton} onChange={(e) => setDailyPeloton(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2">{[1,2].map(n => <option key={n} value={n}>{n}º Pelotão</option>)}</select></label>
+              <label className="text-xs font-bold">Situação<select value={dailyLocation} onChange={(e) => setDailyLocation(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="sala">Em sala</option><option value="fora_sala">Fora de sala</option><option value="formatura">Em formatura</option><option value="rancho">No rancho</option><option value="dispensado">Dispensado</option></select></label>
+              <label className="text-xs font-bold">Formatura<select value={dailyFormation} onChange={(e) => setDailyFormation(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="nao_houve">Não houve</option><option value="prevista">Prevista</option><option value="realizada">Realizada</option></select></label>
+              <label className="text-xs font-bold">Almoço<select value={dailyLunch} onChange={(e) => setDailyLunch(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="aguardando">Aguardando</option><option value="avancou">Avançou</option><option value="concluido">Concluído</option></select></label>
+              <label className="text-xs font-bold">Merenda<select value={dailySnack} onChange={(e) => setDailySnack(e.target.value)} className="mt-1 h-10 w-full rounded-md border bg-background px-2"><option value="nao_informado">Não informado</option><option value="aguardando">Aguardando</option><option value="concluido">Concluída</option></select></label>
+              <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-bold"><input type="checkbox" checked={dailyRanch} onChange={(e) => setDailyRanch(e.target.checked)} /> Avança para o rancho neste dia</label>
+              <label className="flex items-center gap-2 rounded-md border px-3 text-xs font-bold"><input type="checkbox" checked={dailyPendingResolved} onChange={(e) => setDailyPendingResolved(e.target.checked)} /> Pendência sanada</label>
+              <textarea value={dailyPunishment} onChange={(e) => setDailyPunishment(e.target.value)} placeholder="Punições do pelotão" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2" />
+              <textarea value={dailyFacts} onChange={(e) => setDailyFacts(e.target.value)} placeholder="Fatos e resumo do dia" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2" />
+              <textarea value={dailyPending} onChange={(e) => setDailyPending(e.target.value)} placeholder="Pendências — permanecem abertas até serem sanadas" className="min-h-20 rounded-md border bg-background p-2 text-sm md:col-span-2 lg:col-span-3" />
+              <Button className="self-end bg-[#1a3a2a] text-white" disabled={saveDailyRecord.isPending} onClick={() => saveDailyRecord.mutate({ date: dailyHistoryDate, companhia: Number(dailyCompanhia), peloton: Number(dailyPeloton), locationStatus: dailyLocation as any, formationStatus: dailyFormation as any, lunchStatus: dailyLunch as any, snackStatus: dailySnack as any, ranchAdvance: dailyRanch, punishmentSummary: dailyPunishment || null, factsSummary: dailyFacts || null, pendingSummary: dailyPending || null, pendingResolved: dailyPendingResolved })}>Salvar rotina do dia</Button>
+            </div>
+            <div className="rounded-xl border p-3">
+              <p className="mb-2 text-xs font-black uppercase">Configuração semanal do pelotão</p>
+              {[{ label: "Avança ao rancho", values: ranchWeekdays, set: setRanchWeekdays }, { label: "Almoço", values: lunchWeekdays, set: setLunchWeekdays }, { label: "Merenda", values: snackWeekdays, set: setSnackWeekdays }].map((group) => <div key={group.label} className="mb-2 flex flex-wrap items-center gap-1"><span className="w-32 text-xs font-bold">{group.label}</span>{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day, index) => <button key={day} type="button" onClick={() => group.set(group.values.includes(index) ? group.values.filter((value) => value !== index) : [...group.values, index])} className={`rounded-md border px-2 py-1 text-xs ${group.values.includes(index) ? "bg-[#1a3a2a] text-white" : "bg-background"}`}>{day}</button>)}</div>)}
+              <Button size="sm" variant="outline" disabled={saveWeeklyConfig.isPending} onClick={() => saveWeeklyConfig.mutate({ companhia: Number(dailyCompanhia), peloton: Number(dailyPeloton), ranchWeekdays, lunchWeekdays, snackWeekdays })}>Salvar configuração semanal</Button>
+            </div>
+            {openDailyPendings.length > 0 && <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3"><p className="mb-2 text-xs font-black uppercase text-red-700">Pendências ainda abertas</p>{openDailyPendings.map((item: any) => <button key={item.id} className="mb-1 block w-full rounded-md border bg-background p-2 text-left text-xs" onClick={() => { setDailyHistoryDate(item.date); setDailyCompanhia(String(item.companhia)); setDailyPeloton(String(item.peloton)); }}><b>{item.date} · {item.companhia}ª Cia/{item.peloton}º Pel:</b> {item.pendingSummary}</button>)}</div>}
+          </CardContent>
+        </Card>
+
         <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
           <div className="flex min-h-16 items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-2.5 shadow-sm">
             <span className="h-8 w-1 shrink-0 rounded-full bg-amber-500" />
@@ -530,24 +671,28 @@ export default function AdministrativeRoom() {
               <CardHeader className="border-b border-emerald-500/15 pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-black text-emerald-900 dark:text-emerald-200">
                   <History className="h-4 w-4" />
-                  Histórico de FO homologados
+                  Histórico permanente de FO
                 </CardTitle>
-                <CardDescription>Últimos registros aprovados ou rejeitados no escopo do seu comando.</CardDescription>
+                <CardDescription>O FO permanece registrado mesmo quando origina uma LC homologada ou já arquivada.</CardDescription>
               </CardHeader>
               <CardContent className="max-h-80 space-y-2 overflow-y-auto p-3">
                 {reviewedFoQuery.isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                {reviewedFoQuery.data?.map((item: any) => (
-                  <div key={item.id} className="rounded-lg border border-emerald-500/15 bg-background/80 p-2.5 text-xs">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"}</Badge>
-                      <Badge variant="outline" className={item.validation_status === "approved" ? "border-emerald-500/40 text-emerald-800 dark:text-emerald-200" : "border-red-500/40 text-red-800 dark:text-red-200"}>{item.validation_status === "approved" ? "Homologado" : "Rejeitado"}</Badge>
-                      <span className="font-black">{item.numerica} {item.nome_guerra}</span>
-                      <span className="text-[10px] text-muted-foreground">{item.companhia}ª Cia / {item.peloton}º Pel</span>
+                {reviewedFoQuery.data?.map((item: any) => {
+                  const lcLabel = getLcHistoryLabel(item.lc_status);
+                  return (
+                    <div key={item.id} className="rounded-lg border border-emerald-500/15 bg-background/80 p-2.5 text-xs">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"} {item.fo_code || ""}</Badge>
+                        <Badge variant="outline" className={item.validation_status === "approved" ? "border-emerald-500/40 text-emerald-800 dark:text-emerald-200" : "border-red-500/40 text-red-800 dark:text-red-200"}>{item.validation_status === "approved" ? "Homologado" : "Rejeitado"}</Badge>
+                        {lcLabel && <Badge className="bg-red-700 text-white">{lcLabel}</Badge>}
+                        <span className="text-[10px] text-muted-foreground">{item.companhia}ª Cia / {item.peloton}º Pel</span>
+                      </div>
+                      <p className="mt-1.5 font-black">{buildAdministrativeFoSummary({ type: item.type, foCode: item.fo_code, numerica: item.numerica, nomeGuerra: item.nome_guerra, validationStatus: item.validation_status })}</p>
+                      <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">Decidido em {new Date(item.validated_at || item.created_at).toLocaleString("pt-BR")}{item.validated_by_name ? ` · Por ${item.validated_by_name}` : ""}</p>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{item.note}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">Decidido em {new Date(item.validated_at || item.created_at).toLocaleString("pt-BR")}{item.validated_by_name ? ` · Por ${item.validated_by_name}` : ""}</p>
-                  </div>
-                ))}
+                  );
+                })}
                 {!reviewedFoQuery.isLoading && !reviewedFoQuery.data?.length && (
                   <p className="rounded-md border bg-background/70 p-4 text-center text-sm text-muted-foreground">Ainda não há FOs homologados ou rejeitados neste escopo.</p>
                 )}
@@ -750,6 +895,128 @@ export default function AdministrativeRoom() {
               <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div><p className="text-sm font-black">Localizar aluno</p><p className="text-xs text-muted-foreground">Filtre por numérica, nome de guerra ou nome completo antes de iniciar um procedimento.</p></div>
                 <div className="w-full sm:max-w-sm"><Input value={efetivoSearch} onChange={(event) => setEfetivoSearch(event.target.value)} placeholder="Ex.: 4122 ou nome de guerra" /></div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-[#1a3a2a]/20 bg-white dark:bg-zinc-900">
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-black">
+                  <ClipboardList className="h-4 w-4 text-[#c4a84b]" />
+                  Anotações FO+ / FO-
+                </CardTitle>
+                <CardDescription>Registre e consulte os fatos observados positivos ou negativos do aluno dentro do seu escopo de comando.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="student-observation-student">Aluno</Label>
+                    <select
+                      id="student-observation-student"
+                      value={observationStudentId}
+                      onChange={(event) => {
+                        setObservationStudentId(event.target.value);
+                        setObservationCode("");
+                        setObservationNote("");
+                      }}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o aluno...</option>
+                      {filteredStudents.map((student: any) => (
+                        <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
+                      ))}
+                    </select>
+                    {selectedObservationStudent ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">{selectedObservationStudent.companhia}ª Cia / {selectedObservationStudent.peloton}º Pel</p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <Label>Tipo</Label>
+                    <div className="mt-1.5 grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={observationType === "positive" ? "default" : "outline"}
+                        className={observationType === "positive" ? "bg-green-700 text-white hover:bg-green-800" : ""}
+                        onClick={() => { setObservationType("positive"); setObservationCode(""); }}
+                      >
+                        FO+ (Elogio)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={observationType === "negative" ? "default" : "outline"}
+                        className={observationType === "negative" ? "bg-red-700 text-white hover:bg-red-800" : ""}
+                        onClick={() => { setObservationType("negative"); setObservationCode(""); }}
+                      >
+                        FO- (Transgressão)
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-code">Código oficial do Manual</Label>
+                    <select
+                      id="student-observation-code"
+                      value={observationCode}
+                      onChange={(event) => setObservationCode(event.target.value)}
+                      className="mt-1.5 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    >
+                      <option value="">Selecione o código...</option>
+                      {getFoCodesByType(observationType).map((item) => (
+                        <option key={`${item.type}-${item.code}`} value={item.code}>{item.code} - {item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="student-observation-note">Relato do fato observado</Label>
+                    <textarea
+                      id="student-observation-note"
+                      value={observationNote}
+                      onChange={(event) => setObservationNote(event.target.value)}
+                      className="mt-1.5 min-h-[96px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      placeholder="Registre data, hora, local e circunstâncias do fato..."
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="w-full bg-[#1a3a2a] text-white hover:bg-[#12281d]"
+                    disabled={!selectedObservationStudentId || addStudentObservation.isPending}
+                    onClick={registerStudentObservation}
+                  >
+                    {addStudentObservation.isPending ? "Registrando..." : "Registrar anotação"}
+                  </Button>
+                  <p className="text-[10px] leading-relaxed text-muted-foreground">Para anexar foto, vídeo ou documento como prova, utilize o botão flutuante FO.</p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/10 p-3">
+                  <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">Histórico do aluno</p>
+                  {!selectedObservationStudentId ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Selecione um aluno para consultar suas anotações.</p>
+                  ) : selectedStudentObservationsQuery.isLoading ? (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...</div>
+                  ) : selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">Nenhum FO+ ou FO- registrado para este aluno.</p>
+                  ) : (
+                    <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+                      {selectedStudentObservationItems.filter((item: any) => item.type === "positive" || item.type === "negative").map((item: any) => {
+                        const approved = item.validation_status === "approved";
+                        const rejected = item.validation_status === "rejected";
+                        const createdAt = item.created_at ? new Date(item.created_at) : null;
+                        return (
+                          <div key={item.id} className="rounded-md border bg-background p-2.5 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Badge className={item.type === "positive" ? "bg-green-700 text-white" : "bg-red-700 text-white"}>{item.type === "positive" ? "FO+" : "FO-"} {item.fo_code || ""}</Badge>
+                              <Badge variant="secondary" className={approved ? "bg-green-100 text-green-800" : rejected ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}>{approved ? "Homologado" : rejected ? "Não homologado" : "Pendente"}</Badge>
+                            </div>
+                            <p className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.note}</p>
+                            <p className="mt-2 text-[10px] text-muted-foreground">{createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString("pt-BR") : "Data não informada"}{item.created_by_name ? ` · ${item.created_by_name}` : ""}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

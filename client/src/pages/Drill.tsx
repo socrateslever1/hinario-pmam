@@ -1,287 +1,1186 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { usePWA } from "@/hooks/usePWA";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CommandSoundButton } from "@/components/CommandSoundButton";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useBugleAudioCache } from "@/hooks/useBugleAudioCache";
+import { HIGH_FIDELITY_BUMBO_DATA_URI } from "@/lib/bumboSound";
+import { resolvePlayableMediaUrl } from "@/lib/media";
+import { toast } from "sonner";
 import {
-  createDefaultSessionConfig,
-  DOBRADOS,
-  getConfiguredItems,
-  getConfiguredSessionItems,
-  OrdemUnidaItemType,
-  OrdemUnidaPanelItem,
-  OrdemUnidaSessionConfig,
-  sanitizeSessionConfig,
-  TOQUES_DE_CORNETA,
-  VOZES_DE_COMANDO,
-} from "@/lib/ordemUnidaPanel";
-import {
-  CheckCircle2,
-  CircleStop,
-  ClipboardPenLine,
-  Download,
-  ListMusic,
+  AudioLines,
+  ArrowLeft,
+  ArrowRight,
+  AlertTriangle,
+  Footprints,
+  Link2,
+  Minus,
   Music2,
-  Pencil,
-  Pin,
-  PinOff,
+  Pause,
   Plus,
-  Radio,
+  RotateCcw,
   Save,
-  Star,
   Trash2,
-  Volume2,
   X,
 } from "lucide-react";
+import {
+  applyDrillCommand,
+  DRILL_STATE_LABELS,
+  getPositionCommandsAllowedFrom,
+  getRequiredCommandSequence,
+  isDrillCommandAllowed,
+  MARCH_STATES,
+  normalizeDrillCommand,
+  type DrillState,
+} from "@/lib/drillStateMachine";
+import {
+  buildMarchCombinationPlan,
+  buildPreparedSequencePlan,
+  sanitizeMarchCombinations,
+  sanitizeSequenceDelay,
+  type MarchCombination,
+  type PreparedSequenceStep,
+} from "@/lib/drillPanelPreferences";
 
-const SESSION_STORAGE_KEY = "pmam-ordem-unida-sessao-atual";
+type BugleCall = {
+  id: number;
+  name: string;
+  audioUrl: string | null;
+  iconKey: string;
+  troopState: string | null;
+  category: string;
+};
 
-function getInitialSessionConfig() {
-  if (typeof window === "undefined") return createDefaultSessionConfig();
+type March = {
+  id: number;
+  title: string;
+  composer: string | null;
+  audioUrl: string | null;
+};
 
+type VoiceCommand = {
+  id: number;
+  itemId: string;
+  itemTitle: string;
+  audioUrl: string;
+  fileName: string;
+  itemType: "corneta" | "dobrado" | "voz";
+  voiceProfileKey: string;
+  voiceAuthorName: string | null;
+  voiceAuthorPhotoUrl: string | null;
+};
+
+const PREPARED_STORAGE_KEY = "pmam-bugle-prepared-v2";
+const TROOP_STATE_STORAGE_KEY = "pmam-bugle-troop-state-v2";
+const MARCH_COMBINATIONS_STORAGE_KEY = "pmam-bugle-march-combinations-v1";
+const SEQUENCE_DELAY_STORAGE_KEY = "pmam-bugle-sequence-delay-v1";
+const SEQUENCE_MEDIA_STORAGE_KEY = "pmam-bugle-sequence-media-v2";
+const SEQUENCE_ITEMS_STORAGE_KEY = "pmam-bugle-sequence-items-v1";
+const USER_SELECTION_STORAGE_PREFIX = "pmam-bugle-user-selection-v1";
+const VALID_DRILL_STATES = new Set<DrillState>(Object.keys(DRILL_STATE_LABELS) as DrillState[]);
+// hymnId is stored so we can resolve fresh audioUrl/youtubeUrl from server data when playing
+type SequenceMedia = { key: string; label: string; audioUrl: string; kind: "hino" | "instrumental" | "dobrado"; hymnId?: number };
+type SequenceItem =
+  | { key: string; type: "call"; callId: number }
+  | { key: string; type: "voice"; voiceId: number }
+  | { key: string; type: "media"; media: SequenceMedia };
+type SavedDrillSelection = {
+  preparedIds: number[];
+  sequenceMedia: SequenceMedia[];
+  sequenceItems?: SequenceItem[];
+  selectedPreparedMarchId: string;
+  sequenceDelaySeconds: number;
+};
+
+function userSelectionKey(userId?: number | null) {
+  return userId ? `${USER_SELECTION_STORAGE_PREFIX}:${userId}` : `${USER_SELECTION_STORAGE_PREFIX}:visitante`;
+}
+
+function readStoredSequenceMedia(): SequenceMedia[] {
   try {
-    return sanitizeSessionConfig(JSON.parse(window.localStorage.getItem(SESSION_STORAGE_KEY) ?? "{}"));
+    const value = JSON.parse(localStorage.getItem(SEQUENCE_MEDIA_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && typeof item.label === "string" && typeof item.audioUrl === "string") : [];
+  } catch { return []; }
+}
+
+function readStoredSequenceItems(): SequenceItem[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(SEQUENCE_ITEMS_STORAGE_KEY) || "[]");
+    const stored = Array.isArray(value) ? value.filter((item) => item && typeof item.key === "string" && (item.type === "call" || item.type === "voice" || item.type === "media")) : [];
+    if (stored.length) return stored;
+
+    const legacyIds = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
+    const legacyMedia = readStoredSequenceMedia();
+    return [
+      ...(Array.isArray(legacyIds) ? legacyIds.filter(Number.isInteger).map((callId, index) => ({ key: `legacy-call-${callId}-${index}`, type: "call" as const, callId })) : []),
+      ...legacyMedia.map((media, index) => ({ key: `legacy-media-${media.key}-${index}`, type: "media" as const, media })),
+    ];
+  } catch { return []; }
+}
+
+function readStoredDrillState(): DrillState {
+  try {
+    const stored = localStorage.getItem(TROOP_STATE_STORAGE_KEY) as DrillState | null;
+    return stored && VALID_DRILL_STATES.has(stored) ? stored : "descansar";
   } catch {
-    return createDefaultSessionConfig();
+    return "descansar";
   }
 }
 
-function PanelItemButton({
-  item,
-  isInSession,
-  isExecuting,
-  onExecute,
-  onToggleSession,
-}: {
-  item: OrdemUnidaPanelItem;
-  isInSession: boolean;
-  isExecuting: boolean;
-  onExecute: (item: OrdemUnidaPanelItem) => void;
-  onToggleSession: (item: OrdemUnidaPanelItem) => void;
-}) {
-  const typeStyle = {
-    corneta: "border-sky-200 bg-sky-50/70 hover:border-sky-400 hover:bg-sky-100/70 dark:border-sky-900/50 dark:bg-sky-950/20 dark:hover:bg-sky-950/40",
-    dobrado: "border-amber-200 bg-amber-50/70 hover:border-amber-400 hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40",
-    voz: "border-emerald-200 bg-emerald-50/70 hover:border-emerald-400 hover:bg-emerald-100/70 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40",
-  }[item.type];
-  const ItemIcon = item.type === "corneta" ? Radio : item.type === "dobrado" ? Music2 : Volume2;
+const COMMAND_LABELS: Record<string, string> = {
+  "a vontade": "À vontade",
+  "cessar o a vontade": "Cessar o À Vontade",
+  "cessar a vontade": "Cessar o À Vontade",
+  "descansar": "Descansar",
+  "sentido": "Sentido",
+  "ombro arma": "Ombro arma",
+  "apresentar arma": "Apresentar arma",
+  "cruzar arma": "Cruzar arma",
+  "descansar arma": "Descansar arma",
+  "cobrir": "Cobrir",
+  "firme": "Firme",
+  "olhar a direita": "Olhar à direita",
+  "olhar a esquerda": "Olhar à esquerda",
+  "olhar em frente": "Olhar em frente",
+  "ordinario marche": "Ordinário marche",
+  "marcha batida": "Marcha batida",
+  "marcar passo": "Marcar passo",
+  "acelerado": "Acelerado",
+  "alto": "Alto",
+};
 
-  return (
-    <div className={`group relative flex min-h-20 items-stretch overflow-hidden rounded-2xl border text-left shadow-sm transition-all duration-150 active:scale-[0.985] ${typeStyle} ${isExecuting ? "ring-2 ring-[#c4a84b] ring-offset-2 ring-offset-background" : ""}`}>
-      <button
-        type="button"
-        className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-inset"
-        onClick={() => onExecute(item)}
-        aria-pressed={isExecuting}
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 text-[#1a3a2a] shadow-sm dark:bg-black/20 dark:text-[#d8bf6e]"><ItemIcon className="h-5 w-5" /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-black uppercase tracking-[0.035em] text-foreground sm:text-sm">{item.title}</span>
-          {item.subtitle && <span className="mt-0.5 block text-[11px] font-medium text-muted-foreground">{item.subtitle}</span>}
-        </span>
-        {isExecuting && <CheckCircle2 className="h-5 w-5 shrink-0 text-[#1a3a2a]" aria-label="Em execução" />}
-      </button>
-      <button
-        type="button"
-        className="flex w-12 shrink-0 items-center justify-center border-l border-black/5 text-[#1a3a2a] transition-colors hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-inset dark:border-white/10 dark:hover:bg-white/10"
-        onClick={() => onToggleSession(item)}
-        aria-label={isInSession ? `Remover ${item.title} da sessão pessoal` : `Adicionar ${item.title} à sessão pessoal`}
-        title={isInSession ? "Remover da sessão" : "Adicionar à sessão"}
-      >
-        {isInSession ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-      </button>
-    </div>
-  );
+function commandLabel(command: string) {
+  return COMMAND_LABELS[command] || (command.charAt(0).toLocaleUpperCase("pt-BR") + command.slice(1));
+}
+
+function favoriteLabel(label: string) {
+  return label
+    .replace(/^Ajudante-geral$/i, "Aj.-geral")
+    .replace(/^Comandante de batalhão$/i, "Cmt. Batalhão")
+    .replace(/^Comandante de companhia$/i, "Cmt. Companhia")
+    .replace(/^Comandante-geral$/i, "Cmt.-geral")
+    .replace(/^Chefe do Estado-Maior$/i, "Ch. Estado-Maior");
+}
+
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err) {
+    console.warn(`[localStorage] Impossível salvar '${key}' (cota excedida):`, err);
+  }
+}
+
+function readStoredIds() {
+  try {
+    const value = JSON.parse(localStorage.getItem(PREPARED_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter(Number.isInteger) : [];
+  } catch {
+    return [];
+  }
+}
+
+function readStoredMarchCombinations() {
+  try {
+    return sanitizeMarchCombinations(JSON.parse(localStorage.getItem(MARCH_COMBINATIONS_STORAGE_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+}
+
+function readStoredSequenceDelay() {
+  try {
+    return sanitizeSequenceDelay(localStorage.getItem(SEQUENCE_DELAY_STORAGE_KEY));
+  } catch {
+    return 2;
+  }
 }
 
 export default function Drill() {
-  const [sessionConfig, setSessionConfig] = useState<OrdemUnidaSessionConfig>(getInitialSessionConfig);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftSubtitle, setDraftSubtitle] = useState("");
-  const [customTitle, setCustomTitle] = useState("");
-  const [customType, setCustomType] = useState<OrdemUnidaItemType>("corneta");
-  const [isCachingAudios, setIsCachingAudios] = useState(false);
-  const [audiosCached, setAudiosCached] = useState(false);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const audioCatalogQuery = trpc.ordemUnidaAudio.list.useQuery();
-  const { cacheUrls, isOnline } = usePWA();
+  useBugleAudioCache();
+  const { user } = useAuth();
+  const { data, isLoading, isError } = trpc.buglePanel.list.useQuery();
+  const voiceAudioQuery = trpc.ordemUnidaAudio.list.useQuery();
+  const voiceProfilesQuery = trpc.ordemUnidaAudio.listVoiceProfiles.useQuery(undefined, { staleTime: 5 * 60_000 });
+  const hymnsQuery = trpc.hymns.list.useQuery(undefined, { staleTime: 60_000 });
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const sfxAudioRef = useRef<HTMLAudioElement>(null);
+  const audioQueueRef = useRef<PreparedSequenceStep[]>([]);
+  const sequenceDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drillAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [preparedIds, setPreparedIds] = useState<number[]>(readStoredIds);
+  const [marchCombinations, setMarchCombinations] = useState<MarchCombination[]>(readStoredMarchCombinations);
+  const [selectedMarchCallId, setSelectedMarchCallId] = useState("");
+  const [selectedMarchId, setSelectedMarchId] = useState("");
+  const [selectedPreparedMarchId, setSelectedPreparedMarchId] = useState("");
+  const [sequenceMedia, setSequenceMedia] = useState<SequenceMedia[]>(readStoredSequenceMedia);
+  const [sequenceItems, setSequenceItems] = useState<SequenceItem[]>(readStoredSequenceItems);
+  const [sequenceDelaySeconds, setSequenceDelaySeconds] = useState(readStoredSequenceDelay);
+  const [drillState, setDrillState] = useState<DrillState>(readStoredDrillState);
+  const [callUsage, setCallUsage] = useState<Record<number, number>>(() => {
+    try { return JSON.parse(localStorage.getItem("pmam-bugle-usage") || "{}"); } catch { return {}; }
+  });
+  const [bumboOverlap, setBumboOverlap] = useState<number>(() => {
+    try { return JSON.parse(localStorage.getItem("pmam-bumbo-overlap") || "1.5"); } catch { return 1.5; }
+  });
+  const [isDeletingFavorites, setIsDeletingFavorites] = useState(false);
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+  const [playingLabel, setPlayingLabel] = useState<string | null>(null);
+  const [drillAlert, setDrillAlert] = useState<string | null>(null);
+  const [callSearch, setCallSearch] = useState("");
+  const [selectionLoadedFor, setSelectionLoadedFor] = useState<string | null>(null);
+  const [selectedVoiceProfileKey, setSelectedVoiceProfileKey] = useState("");
 
-  const allConfiguredItems = useMemo(() => getConfiguredItems(sessionConfig), [sessionConfig]);
-  const sessionItems = useMemo(() => getConfiguredSessionItems(sessionConfig), [sessionConfig]);
-  const currentItem = useMemo(() => allConfiguredItems.find((item) => item.id === sessionConfig.currentItemId), [allConfiguredItems, sessionConfig.currentItemId]);
-  const cornetas = useMemo(() => allConfiguredItems.filter((item) => TOQUES_DE_CORNETA.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
-  const dobrados = useMemo(() => allConfiguredItems.filter((item) => DOBRADOS.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
-  const vozes = useMemo(() => allConfiguredItems.filter((item) => VOZES_DE_COMANDO.some((baseItem) => baseItem.id === item.id)), [allConfiguredItems]);
-  const audioByItemId = useMemo(
-    () => new Map((audioCatalogQuery.data ?? []).map((audio) => [audio.itemId, audio])),
-    [audioCatalogQuery.data],
+  const calls = (data?.calls || []) as BugleCall[];
+  const marches = (data?.marches || []) as March[];
+  const voiceCommands = ((voiceAudioQuery.data || []) as VoiceCommand[]).filter((audio) => audio.itemType === "voz");
+  const voiceProfiles = (voiceProfilesQuery.data ?? []).map((profile) => ({
+    key: profile.profileKey,
+    name: profile.name,
+    photoUrl: profile.photoUrl,
+  }));
+  const selectedVoiceProfile = voiceProfiles.find((profile) => profile.key === selectedVoiceProfileKey) || voiceProfiles[0];
+  const selectedVoiceCommands = selectedVoiceProfile
+    ? voiceCommands.filter((voice) => (voice.voiceProfileKey || "default") === selectedVoiceProfile.key)
+    : [];
+  const marchCalls = calls.filter((call) => /^(ordinario marche|marcha batida|acelerado)$/.test(normalizeDrillCommand(call.name)));
+  const filteredCalls = calls
+    .filter((call) => normalizeDrillCommand(call.name).includes(normalizeDrillCommand(callSearch)))
+    .sort((a, b) => {
+      const usageA = callUsage[a.id] || 0;
+      const usageB = callUsage[b.id] || 0;
+      if (usageA !== usageB) return usageB - usageA;
+      return a.name.localeCompare(b.name);
+    });
+  const resolvedMarchCombinations = marchCombinations
+    .map((combination) => ({
+      ...combination,
+      call: calls.find((call) => call.id === combination.callId),
+      march: marches.find((march) => march.id === combination.marchId),
+    }))
+    .filter((combination): combination is MarchCombination & { call: BugleCall; march: March } => Boolean(combination.call && combination.march));
+  const prepared = useMemo(
+    () => preparedIds.map((id) => calls.find((call) => call.id === id)).filter(Boolean) as BugleCall[],
+    [calls, preparedIds],
   );
-  const audioUrls = useMemo(
-    () => Array.from(new Set((audioCatalogQuery.data ?? []).map((audio) => audio.audioUrl).filter(Boolean))),
-    [audioCatalogQuery.data],
-  );
-  const currentAudio = currentItem ? audioByItemId.get(currentItem.id) : undefined;
+  const hymns = (hymnsQuery.data ?? []) as any[];
+
+  const preparedWorkItems = useMemo(() => {
+    const currentItems = sequenceItems.length
+      ? sequenceItems
+      : [
+        ...preparedIds.map((id) => ({ key: `legacy-call-${id}`, type: "call" as const, callId: id })),
+        ...sequenceMedia.map((media) => ({ key: `legacy-media-${media.key}`, type: "media" as const, media })),
+      ];
+    return currentItems
+      .map((item) => {
+        if (item.type === "call") {
+          const foundCall = calls.find((call) => call.id === item.callId);
+          if (foundCall && foundCall.name.toLowerCase().includes("bumbo")) {
+            return {
+              ...item,
+              call: { ...foundCall, audioUrl: HIGH_FIDELITY_BUMBO_DATA_URI },
+            };
+          }
+          return { ...item, call: foundCall };
+        }
+        if (item.type === "voice") return { ...item, voice: voiceCommands.find((voice) => voice.id === item.voiceId) };
+        if (item.type === "media" && item.media?.kind === "dobrado") {
+          const marchIdStr = item.media.key.replace(/^march-/, "").split("-")[0];
+          const march = marches.find((m) => String(m.id) === marchIdStr);
+          if (march) {
+            return {
+              ...item,
+              media: {
+                ...item.media,
+                label: `Dobrado: ${march.title}`,
+                audioUrl: march.audioUrl || item.media.audioUrl,
+              },
+            };
+          }
+        }
+        // Resolve fresh audioUrl for hymns and instrumentals from server data
+        // NOTE: The drill audio panel uses HTML5 <audio> which cannot play YouTube URLs.
+        // We always prefer the file-based audioUrl. If only a YouTube URL exists, we keep
+        // the stored audioUrl so the error message is clear when the user tries to play.
+        if (item.type === "media" && (item.media?.kind === "hino" || item.media?.kind === "instrumental")) {
+          const hymnId = item.media.hymnId
+            ?? Number((item.media.key.replace(/^(?:hymn|instrumental)-/, "")).split("-")[0]);
+          const hymn = hymns.find((h: any) => h.id === hymnId);
+          if (hymn) {
+            const isInstrumental = item.media.kind === "instrumental";
+            const freshAudioUrl = isInstrumental ? hymn.instrumentalAudioUrl : hymn.audioUrl;
+            return {
+              ...item,
+              media: {
+                ...item.media,
+                // Use fresh file URL from server; fall back to stored URL if server has none
+                audioUrl: freshAudioUrl || item.media.audioUrl,
+                hymnId: hymn.id,
+              },
+            };
+          }
+        }
+        return item;
+      })
+      .filter((item) => item.type === "media" || (item.type === "call" ? Boolean(item.call) : Boolean(item.voice)));
+  }, [calls, hymns, marches, preparedIds, sequenceItems, sequenceMedia, voiceCommands]);
 
   useEffect(() => {
-    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionConfig));
-  }, [sessionConfig]);
+    if (voiceProfiles.length && !voiceProfiles.some((profile) => profile.key === selectedVoiceProfileKey)) {
+      setSelectedVoiceProfileKey(voiceProfiles[0].key);
+    }
+  }, [selectedVoiceProfileKey, voiceProfiles]);
+
+  const saveSelectionPreference = useCallback(() => {
+    const sanitizedMedia = sequenceMedia.map((media) => ({
+      ...media,
+      audioUrl: (media.audioUrl || "").startsWith("data:") ? "" : media.audioUrl,
+    }));
+    const payload: SavedDrillSelection = { preparedIds, sequenceMedia: sanitizedMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds };
+    safeSetLocalStorage(userSelectionKey(user?.id), JSON.stringify(payload));
+  }, [preparedIds, sequenceMedia, sequenceItems, selectedPreparedMarchId, sequenceDelaySeconds, user?.id]);
+
+  useEffect(() => {
+    safeSetLocalStorage("pmam-bumbo-overlap", JSON.stringify(bumboOverlap));
+  }, [bumboOverlap]);
+
+  useEffect(() => {
+    safeSetLocalStorage(PREPARED_STORAGE_KEY, JSON.stringify(preparedIds));
+  }, [preparedIds]);
+  useEffect(() => {
+    if (preparedWorkItems.length === 0) setIsDeletingFavorites(false);
+  }, [preparedWorkItems.length]);
+  useEffect(() => {
+    safeSetLocalStorage(SEQUENCE_ITEMS_STORAGE_KEY, JSON.stringify(sequenceItems));
+    // Auto-save user preference on changes
+    if (selectionLoadedFor === userSelectionKey(user?.id)) {
+      saveSelectionPreference();
+    }
+  }, [sequenceItems, saveSelectionPreference, selectionLoadedFor, user?.id]);
+
+  useEffect(() => {
+    safeSetLocalStorage(TROOP_STATE_STORAGE_KEY, drillState);
+  }, [drillState]);
+
+  useEffect(() => {
+    safeSetLocalStorage(MARCH_COMBINATIONS_STORAGE_KEY, JSON.stringify(marchCombinations));
+  }, [marchCombinations]);
+
+  useEffect(() => {
+    safeSetLocalStorage(SEQUENCE_DELAY_STORAGE_KEY, String(sequenceDelaySeconds));
+  }, [sequenceDelaySeconds]);
+
+  useEffect(() => {
+    const sanitizedMedia = sequenceMedia.map((media) => ({
+      ...media,
+      audioUrl: (media.audioUrl || "").startsWith("data:") ? "" : media.audioUrl,
+    }));
+    safeSetLocalStorage(SEQUENCE_MEDIA_STORAGE_KEY, JSON.stringify(sanitizedMedia));
+  }, [sequenceMedia]);
+
+  useEffect(() => {
+    const key = userSelectionKey(user?.id);
+    if (selectionLoadedFor === key) return;
+    setSelectionLoadedFor(key);
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || "null") as SavedDrillSelection | null;
+      if (!saved) return;
+      if (Array.isArray(saved.preparedIds)) setPreparedIds(saved.preparedIds.filter(Number.isInteger));
+      if (Array.isArray(saved.sequenceMedia)) setSequenceMedia(saved.sequenceMedia);
+      if (Array.isArray(saved.sequenceItems)) setSequenceItems(saved.sequenceItems);
+      if (typeof saved.selectedPreparedMarchId === "string") setSelectedPreparedMarchId(saved.selectedPreparedMarchId);
+      setSequenceDelaySeconds(sanitizeSequenceDelay(String(saved.sequenceDelaySeconds || sequenceDelaySeconds)));
+    } catch {
+      // Preferencia local invalida nao deve travar a pagina operacional.
+    }
+  }, [selectionLoadedFor, sequenceDelaySeconds, user?.id]);
 
   useEffect(() => () => {
-    audioPlayerRef.current?.pause();
-    audioPlayerRef.current = null;
+    if (sequenceDelayTimerRef.current) clearTimeout(sequenceDelayTimerRef.current);
+    if (drillAlertTimerRef.current) clearTimeout(drillAlertTimerRef.current);
   }, []);
 
-  const isInSession = (item: OrdemUnidaPanelItem) => sessionConfig.itemIds.includes(item.id);
-
-  const toggleSessionItem = (item: OrdemUnidaPanelItem) => {
-    setSessionConfig((current) => ({
-      ...current,
-      itemIds: current.itemIds.includes(item.id) ? current.itemIds.filter((id) => id !== item.id) : [...current.itemIds, item.id],
-    }));
+  const showDrillAlert = (message: string) => {
+    if (drillAlertTimerRef.current) clearTimeout(drillAlertTimerRef.current);
+    setDrillAlert(message);
+    drillAlertTimerRef.current = setTimeout(() => {
+      setDrillAlert(null);
+      drillAlertTimerRef.current = null;
+    }, 2800);
   };
 
-  const stopPlayback = () => {
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current.currentTime = 0;
-      audioPlayerRef.current = null;
+  const stopAudio = () => {
+    audioQueueRef.current = [];
+    if (sequenceDelayTimerRef.current) {
+      clearTimeout(sequenceDelayTimerRef.current);
+      sequenceDelayTimerRef.current = null;
     }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.removeAttribute("src");
     }
-  };
-
-  const stopExecution = () => {
-    stopPlayback();
-    setSessionConfig((current) => ({ ...current, currentItemId: null }));
-  };
-
-  const executeItem = (item: OrdemUnidaPanelItem) => {
-    stopPlayback();
-    setSessionConfig((current) => ({ ...current, currentItemId: item.id }));
-    const audio = audioByItemId.get(item.id);
-    if (audio?.audioUrl && typeof window !== "undefined") {
-      const player = new Audio(audio.audioUrl);
-      audioPlayerRef.current = player;
-      void player.play().catch(() => undefined);
-    } else if (item.type === "voz" && typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(item.title);
-      utterance.lang = "pt-BR";
-      utterance.rate = 0.92;
-      window.speechSynthesis.speak(utterance);
+    const sfx = sfxAudioRef.current;
+    if (sfx) {
+      sfx.pause();
+      sfx.currentTime = 0;
+      sfx.removeAttribute("src");
     }
+    setPlayingKey(null);
+    setPlayingLabel(null);
   };
 
-  const cacheRegisteredAudios = async () => {
-    if (!audioUrls.length || !isOnline) return;
-    setIsCachingAudios(true);
+  const startQueuedAudio = async (queued: PreparedSequenceStep, useSfx = false) => {
+    sequenceDelayTimerRef.current = null;
+    const audio = useSfx ? sfxAudioRef.current : audioRef.current;
+    if (!audio) return;
+    audio.loop = false;
+    audio.src = queued.audioUrl;
+    audio.load();
     try {
-      await cacheUrls(audioUrls);
-      setAudiosCached(true);
-    } finally {
-      setIsCachingAudios(false);
+      await audio.play();
+      setPlayingKey(queued.key);
+      setPlayingLabel(queued.label);
+      if (queued.nextState) setDrillState(queued.nextState);
+    } catch {
+      audioQueueRef.current = [];
+      setPlayingKey(null);
+      setPlayingLabel(null);
+      toast.error("O toque terminou, mas não foi possível iniciar o próximo áudio da sequência.");
     }
   };
 
-  const startEditing = (item: OrdemUnidaPanelItem) => {
-    setEditingItemId(item.id);
-    setDraftTitle(item.title);
-    setDraftSubtitle(item.subtitle ?? "");
+  const handleAudioEnded = (isSfx = false) => {
+    const otherAudio = isSfx ? audioRef.current : sfxAudioRef.current;
+    if (otherAudio && !otherAudio.paused && otherAudio.currentTime > 0) {
+      return; // A transição em crossfade ocorreu, o outro canal assumiu.
+    }
+
+    const [queued, ...remaining] = audioQueueRef.current;
+    audioQueueRef.current = remaining;
+    if (!queued) {
+      setPlayingKey(null);
+      setPlayingLabel(null);
+      return;
+    }
+
+    const wasMarche = playingLabel && /ordin(a|á)rio marche|marcha batida|acelerado/.test(playingLabel.toLowerCase());
+    const isNextDobrado = queued.label.toLowerCase().includes("dobrado");
+    const delayMs = (wasMarche && isNextDobrado) ? 0 : sequenceDelaySeconds * 1000;
+
+    setPlayingKey(`wait-${queued.key}`);
+    setPlayingLabel(delayMs > 0 ? `Próximo em ${sequenceDelaySeconds}s: ${queued.label}` : `Iniciando: ${queued.label}`);
+    sequenceDelayTimerRef.current = setTimeout(() => {
+      void startQueuedAudio(queued, isSfx);
+    }, delayMs);
   };
 
-  const saveItemEdition = () => {
-    if (!editingItemId || !draftTitle.trim()) return;
-    setSessionConfig((current) => ({
-      ...current,
-      overrides: {
-        ...current.overrides,
-        [editingItemId]: { title: draftTitle.trim(), ...(draftSubtitle.trim() ? { subtitle: draftSubtitle.trim() } : {}) },
-      },
-    }));
-    setEditingItemId(null);
+  const handleTimeUpdate = (isSfx = false) => {
+    const audio = isSfx ? sfxAudioRef.current : audioRef.current;
+    if (!audio) return;
+    
+    let nextQueued = audioQueueRef.current[0];
+    if (!nextQueued) return;
+
+    // Dispara "Bumbos" como efeitos sonoros isolados, sem travar a fila
+    while (nextQueued && nextQueued.label.toLowerCase().includes("bumbo")) {
+      if (audio.duration && (audio.duration - audio.currentTime) <= bumboOverlap) {
+        audioQueueRef.current.shift();
+        const bumboAudio = new Audio(HIGH_FIDELITY_BUMBO_DATA_URI);
+        bumboAudio.play().catch(() => {});
+        nextQueued = audioQueueRef.current[0]; // Verifica se o próximo também é algo a processar
+      } else {
+        break; // Ainda não está na hora de tocar o bumbo
+      }
+    }
+
+    if (!nextQueued) return;
+
+    const currentLabel = playingLabel || "";
+    const isMarcheAndDobrado = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase()) && nextQueued.label.toLowerCase().includes("dobrado");
+    
+    // Crossfade de 1.5s entre marcha e dobrado
+    const overlapTime = isMarcheAndDobrado ? bumboOverlap : 0;
+    
+    if (overlapTime > 0 && audio.duration && (audio.duration - audio.currentTime) <= overlapTime) {
+      audioQueueRef.current.shift();
+      void startQueuedAudio(nextQueued, !isSfx);
+    }
   };
 
-  const addPersonalItem = () => {
-    const title = customTitle.trim();
-    if (!title) return;
-    const item: OrdemUnidaPanelItem = {
-      id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-      title,
-      type: customType,
-      subtitle: "Item pessoal",
-    };
-    setSessionConfig((current) => ({ ...current, customItems: [...current.customItems, item], itemIds: [...current.itemIds, item.id] }));
-    setCustomTitle("");
+  const playAudio = async (key: string, label: string, audioUrl: string | null) => {
+    if (!audioUrl) {
+      toast.error("Este item ainda não possui áudio. Adicione-o no dashboard.");
+      return false;
+    }
+
+    // HTML5 <audio> cannot play YouTube URLs — show a helpful message
+    if (audioUrl.includes("youtube.com") || audioUrl.includes("youtu.be")) {
+      toast.error(`"${label}" só tem link do YouTube e não pode ser tocado aqui. Envie o arquivo MP3 no dashboard.`, { duration: 5000 });
+      return false;
+    }
+
+    if (playingKey === key) {
+      stopAudio();
+      return false;
+    }
+
+    const audio = audioRef.current;
+    const sfx = sfxAudioRef.current;
+    if (audio) { audio.pause(); audio.loop = false; }
+    if (sfx) { sfx.pause(); sfx.loop = false; }
+    if (!audio) return false;
+
+    const primaryUrl = audioUrl;
+    const fallbackUrl = audioUrl.endsWith(".wav")
+      ? audioUrl.replace(/\.wav$/, ".mp3")
+      : audioUrl.endsWith(".mp3")
+      ? audioUrl.replace(/\.mp3$/, ".wav")
+      : null;
+
+    audio.src = primaryUrl;
+    audio.load();
+    try {
+      await audio.play();
+      setPlayingKey(key);
+      setPlayingLabel(label);
+      return true;
+    } catch (primaryErr) {
+      if (fallbackUrl) {
+        try {
+          audio.src = fallbackUrl;
+          audio.load();
+          await audio.play();
+          setPlayingKey(key);
+          setPlayingLabel(label);
+          return true;
+        } catch {
+          // ignore fallback failure and report primary error
+        }
+      }
+      console.warn("[Drill Audio] Falha ao reproduzir áudio:", primaryUrl, primaryErr);
+      setPlayingKey(null);
+      setPlayingLabel(null);
+      toast.error(`Não foi possível reproduzir "${label}". Verifique a conexão ou envie o arquivo no painel.`);
+      return false;
+    }
   };
 
-  const removeFromSession = (item: OrdemUnidaPanelItem) => {
-    setSessionConfig((current) => ({
-      ...current,
-      itemIds: current.itemIds.filter((id) => id !== item.id),
-      customItems: current.customItems.filter((customItem) => customItem.id !== item.id),
-      currentItemId: current.currentItemId === item.id ? null : current.currentItemId,
-    }));
+  const incrementCallUsage = (id: number) => {
+    setCallUsage((curr) => {
+      const next = { ...curr, [id]: (curr[id] || 0) + 1 };
+      safeSetLocalStorage("pmam-bugle-usage", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const triggerManualBumbo = () => {
+    const audio = new Audio(HIGH_FIDELITY_BUMBO_DATA_URI);
+    audio.play().catch(() => {});
+    toast.success("Bumbo disparado!");
+  };
+
+  const playCall = async (call: BugleCall) => {
+    incrementCallUsage(call.id);
+    const key = `call-${call.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+
+    if (call.name.toLowerCase().includes("bumbo")) {
+      triggerManualBumbo();
+      return;
+    }
+
+    if (!isDrillCommandAllowed(call.name, drillState)) {
+      showDrillAlert(`Comando bloqueado. A tropa está na posição "${DRILL_STATE_LABELS[drillState] || drillState}".`);
+      return;
+    }
+
+    if (await playAudio(key, call.name, call.audioUrl)) {
+      setDrillState((current) => applyDrillCommand(call.name, current));
+    }
+  };
+
+  const playMarch = async (march: March) => {
+    const key = `march-${march.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+    
+    const currentLabel = playingLabel || "";
+    const isMarchePlaying = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase());
+    
+    if (isMarchePlaying && march.audioUrl) {
+      const sfx = sfxAudioRef.current;
+      if (sfx) {
+        sfx.src = march.audioUrl;
+        sfx.load();
+        sfx.play().catch(()=>{});
+        setPlayingKey(key);
+        setPlayingLabel(`Dobrado: ${march.title}`);
+      }
+      return;
+    }
+
+    await playAudio(key, march.title, march.audioUrl);
+  };
+
+  const playVoiceCommand = async (voice: VoiceCommand) => {
+    const key = `voice-${voice.id}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+
+    if (!isDrillCommandAllowed(voice.itemTitle, drillState)) {
+      showDrillAlert(`Comando bloqueado. A tropa está na posição "${DRILL_STATE_LABELS[drillState] || drillState}".`);
+      return;
+    }
+
+    if (await playAudio(key, voice.itemTitle, voice.audioUrl)) {
+      setDrillState((current) => applyDrillCommand(voice.itemTitle, current));
+    }
+  };
+
+  const addMarchCombination = () => {
+    const callId = Number(selectedMarchCallId);
+    const marchId = Number(selectedMarchId);
+    if (!callId || !marchId) {
+      toast.error("Escolha o toque de marcha e o dobrado.");
+      return;
+    }
+    if (marchCombinations.some((combination) => combination.callId === callId && combination.marchId === marchId)) {
+      toast.error("Esta combinação já foi adicionada.");
+      return;
+    }
+    setMarchCombinations((current) => [...current, { id: `${callId}-${marchId}-${Date.now()}`, callId, marchId }]);
+    toast.success("Combinação adicionada.");
+  };
+
+  const playMarchCombination = async (combination: MarchCombination & { call: BugleCall; march: March }) => {
+    stopAudio();
+
+    const plan = buildMarchCombinationPlan(combination.call, combination.march, drillState);
+    if (!plan.ok) {
+      if (plan.requiredCommands?.length) {
+        showDrillAlert(`Comando bloqueado. Execute antes: ${plan.requiredCommands.map(commandLabel).join(" → ")}.`);
+      } else {
+        showDrillAlert(plan.reason);
+      }
+      return;
+    }
+
+    audioQueueRef.current = [{
+      key: `combination-${combination.id}-march`,
+      label: `Dobrado: ${plan.second.label}`,
+      audioUrl: plan.second.audioUrl,
+    }];
+    const started = await playAudio(`combination-${combination.id}-call`, `${plan.first.label} → ${plan.second.label}`, plan.first.audioUrl);
+    if (!started) {
+      audioQueueRef.current = [];
+      return;
+    }
+    setDrillState(plan.nextState);
+  };
+
+  const playPreparedSequence = async () => {
+    stopAudio();
+
+    const preparedQueue: PreparedSequenceStep[] = [];
+    let currentState = drillState;
+    for (const item of preparedWorkItems) {
+      if (item.type === "media") {
+        preparedQueue.push({ key: `sequence-${item.media.key}`, label: item.media.label, audioUrl: item.media.audioUrl });
+        continue;
+      }
+      const commandItem = item.type === "call"
+        ? (() => { const call = item.call as BugleCall; return { id: call.id, name: call.name, audioUrl: call.audioUrl, kind: "call" as const }; })()
+        : (() => { const voice = item.voice as VoiceCommand; return { id: voice.id, name: voice.itemTitle, audioUrl: voice.audioUrl, kind: "voice" as const }; })();
+
+      if (!commandItem.audioUrl) {
+        continue;
+      }
+
+      if (!isDrillCommandAllowed(commandItem.name, currentState)) {
+        const reqSequence = getRequiredCommandSequence(commandItem.name, currentState);
+        // Atualiza a máquina de estado silenciosamente para seguir a sequência de movimentos
+        for (const reqCmd of reqSequence) {
+          currentState = applyDrillCommand(reqCmd, currentState);
+        }
+      } else {
+        // Se já era permitido, só aplica o estado do comando
+        currentState = applyDrillCommand(commandItem.name, currentState);
+      }
+
+      // Adiciona na fila apenas o áudio que o usuário realmente adicionou aos favoritos
+      preparedQueue.push({
+        key: `sequence-${commandItem.kind}-${commandItem.id}-${preparedQueue.length}`,
+        label: commandItem.name,
+        audioUrl: commandItem.audioUrl,
+        nextState: currentState,
+      });
+    }
+
+    if (preparedQueue.length === 0) {
+      toast.error("Adicione toques ou comandos de voz à sequência personalizada antes de executar.");
+      return;
+    }
+
+    const [first, ...remaining] = preparedQueue;
+    audioQueueRef.current = remaining;
+    const started = await playAudio(first.key, first.label, first.audioUrl);
+    if (!started) {
+      audioQueueRef.current = [];
+      return;
+    }
+    if (first.nextState) setDrillState(first.nextState);
+  };
+
+  const resetOperation = () => {
+    if (!confirm("Iniciar uma nova execução na posição Descansar?")) return;
+    stopAudio();
+    setDrillState("descansar");
+  };
+
+  const nextPositionCommands = getPositionCommandsAllowedFrom(drillState).map(commandLabel);
+
+  const addPrepared = (id: number) => {
+    incrementCallUsage(id);
+    setPreparedIds((current) => (current.includes(id) ? current : [...current, id]));
+    setSequenceItems((current) => [...current, { key: `call-${id}-${Date.now()}-${current.length}`, type: "call", callId: id }]);
+  };
+
+  const addSequenceMedia = (item: SequenceMedia) => {
+    const media = { ...item, key: `${item.key}-${Date.now()}-${sequenceMedia.length}` };
+    setSequenceMedia((current) => [...current, media]);
+    setSequenceItems((current) => [...current, { key: `media-${media.key}`, type: "media", media }]);
+    toast.success(`${item.label} adicionado aos favoritos.`);
+  };
+  const moveSequenceItem = (key: string, direction: -1 | 1) => setSequenceItems((current) => {
+    const index = current.findIndex((item) => item.key === key);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= current.length) return current;
+    const copy = [...current];
+    [copy[index], copy[next]] = [copy[next], copy[index]];
+    return copy;
+  });
+  const removeSequenceItem = (item: SequenceItem) => {
+    setSequenceItems((current) => {
+      const remaining = current.filter((entry) => entry.key !== item.key);
+      if (item.type === "call" && !remaining.some((entry) => entry.type === "call" && entry.callId === item.callId)) {
+        setPreparedIds((ids) => ids.filter((id) => id !== item.callId));
+      }
+      return remaining;
+    });
+    if (item.type === "media") setSequenceMedia((current) => current.filter((entry) => entry.key !== item.media.key));
+  };
+
+  const clearFavorites = () => {
+    if (!confirm("Excluir todos os toques favoritos?")) return;
+    setPreparedIds([]);
+    setSequenceMedia([]);
+    setSequenceItems([]);
+    setIsDeletingFavorites(false);
+  };
+
+  const addVoiceToFavorites = (voice: VoiceCommand) => {
+    setSequenceItems((current) => [...current, { key: `voice-${voice.id}-${Date.now()}-${current.length}`, type: "voice", voiceId: voice.id }]);
+    toast.success(`${voice.itemTitle} (${voice.voiceAuthorName || "voz padrão"}) adicionado aos favoritos.`);
+  };
+
+  const playSequenceMedia = async (item: SequenceMedia) => {
+    const key = `sequence-${item.key}`;
+    if (playingKey === key) {
+      stopAudio();
+      return;
+    }
+    
+    const currentLabel = playingLabel || "";
+    const isMarchePlaying = /ordin(a|á)rio marche|marcha batida|acelerado/.test(currentLabel.toLowerCase());
+    
+    if (isMarchePlaying && item.kind === "dobrado" && item.audioUrl) {
+      const sfx = sfxAudioRef.current;
+      if (sfx) {
+        sfx.src = item.audioUrl;
+        sfx.load();
+        sfx.play().catch(()=>{});
+        setPlayingKey(key);
+        setPlayingLabel(item.label);
+      }
+      return;
+    }
+
+    if (playingKey) {
+      showDrillAlert("Desfaça ou pare o áudio anterior antes de executar outro.");
+      return;
+    }
+    await playAudio(key, item.label, item.audioUrl);
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-background">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f2efe4] text-[#15251d] dark:bg-[#141a16] dark:text-[#f4f0df]">
       <Navbar />
-      <main className="px-3 py-4 sm:px-5 sm:py-6 md:px-0 md:py-9">
-        <div className="container max-w-6xl space-y-5 sm:space-y-7">
-          <section className="overflow-hidden rounded-[1.8rem] border border-[#1a3a2a]/20 bg-[#1a3a2a] text-white shadow-lg">
-            <div className="relative px-5 py-7 sm:px-8 sm:py-9">
-              <div className="absolute -right-10 -top-12 h-44 w-44 rounded-full border-[28px] border-[#c4a84b]/15" />
-              <div className="relative max-w-3xl">
-                <div className="mb-3 flex items-center gap-2 text-[#e4cf87]"><ListMusic className="h-5 w-5" /><span className="text-[11px] font-black uppercase tracking-[0.18em]">Painel operacional</span></div>
-                <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>Ordem Unida</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/75 sm:text-base">Execute toques e comandos diretamente pelos botões. O estado atual permanece visível para orientar a instrução e a sessão pessoal fica guardada neste aparelho.</p>
+      <audio ref={audioRef} preload="none" loop={false} onEnded={() => handleAudioEnded(false)} onTimeUpdate={() => handleTimeUpdate(false)} />
+      <audio ref={sfxAudioRef} preload="none" loop={false} onEnded={() => handleAudioEnded(true)} onTimeUpdate={() => handleTimeUpdate(true)} />
+
+      <main className="container space-y-4 px-3 py-3 sm:px-4 md:space-y-6 md:py-7">
+        <section className="sticky top-2 z-30 overflow-hidden rounded-2xl bg-[#10281d] text-white shadow-xl md:top-4 md:rounded-3xl">
+          <div className="p-3 md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d8c46a] md:text-xs">
+                <AudioLines className="h-4 w-4" /> Painel de corneta
+              </div>
+              <p className="text-xs text-white/65 md:text-sm">Situação atual da tropa</p>
+              <h1 className="mt-0.5 text-2xl font-black leading-tight sm:text-3xl md:text-[2.15rem]" aria-live="polite">
+                Está: <span className="!text-[#ead46e]">{DRILL_STATE_LABELS[drillState]}</span>
+              </h1>
+              <p className="mt-1 min-h-5 text-xs text-white/75 md:text-sm" aria-live="polite">
+                {playingLabel ? `Executando agora: ${playingLabel}` : "Nenhum toque em execução"}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:w-[26rem]">
+              <Button
+                type="button"
+                onClick={triggerManualBumbo}
+                className="h-9 border border-[#ead46e]/40 bg-[#ead46e]/20 px-2 text-xs font-black text-[#ead46e] hover:bg-[#ead46e]/30 active:scale-95 transition-transform md:h-10 md:text-sm shadow-sm"
+                title="Disparar bumbo manual (coringa) sobreposto ao áudio atual"
+              >
+                🥁 Bumbo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={stopAudio}
+                disabled={!playingKey}
+                className="h-9 border-white/30 bg-white/10 px-2 text-xs text-white hover:bg-white/20 hover:text-white md:h-10 md:text-sm"
+              >
+                <Pause className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> Parar
+              </Button>
+              <Button type="button" variant="ghost" onClick={resetOperation} className="h-9 px-2 text-xs text-white/75 hover:bg-white/10 hover:text-white md:h-10 md:text-sm">
+                <RotateCcw className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" /> Reset
+              </Button>
+            </div>
+            </div>
+          </div>
+          <div className="max-h-12 overflow-y-auto border-t border-white/10 px-3 py-2 text-xs leading-relaxed text-white/70 md:max-h-none md:px-5">
+            <strong className="text-white">Próximos comandos de posição:</strong> {nextPositionCommands.join(" • ") || "nenhum"}
+          </div>
+        </section>
+
+        {drillAlert && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="fixed left-1/2 top-1/2 z-50 w-[min(88vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#d8c46a]/70 bg-[#10281d] px-4 py-3 text-sm font-bold text-white shadow-2xl md:sticky md:left-auto md:top-24 md:w-full md:translate-x-0 md:translate-y-0"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-[#ead46e]" />
+              <span>{drillAlert}</span>
+            </div>
+          </div>
+        )}
+
+        <Card className="border-[#c4a84b]/40 bg-white/90 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95">
+          <CardContent className="p-3 md:p-5">
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
+                <div className="flex items-center gap-1.5 rounded-md border border-[#c4a84b]/40 bg-white/50 px-2 py-1 dark:border-white/10 dark:bg-black/20">
+                  <label htmlFor="bumbo-overlap" className="text-[10px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#d8c46a] md:text-xs">
+                    Avanço (Bumbo/Dobrado):
+                  </label>
+                  <input
+                    id="bumbo-overlap"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="30"
+                    value={bumboOverlap}
+                    onChange={(e) => setBumboOverlap(Number(e.target.value))}
+                    className="w-12 bg-transparent text-center text-xs font-bold focus:outline-none dark:text-white"
+                  />
+                  <span className="text-[10px] text-muted-foreground">s</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-1 sm:gap-2">
+                {preparedWorkItems.length > 0 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDeletingFavorites((current) => !current)}
+                      aria-pressed={isDeletingFavorites}
+                      className={`h-8 px-2 text-xs ${isDeletingFavorites ? "border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white" : ""}`}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {isDeletingFavorites ? "Concluir" : "Excluir"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearFavorites} className="h-8 px-2 text-xs">Limpar</Button>
+                  </>
+                )}
               </div>
             </div>
-          </section>
-
-          <section className="overflow-hidden rounded-[1.6rem] border border-[#1a3a2a]/30 bg-card shadow-sm" aria-labelledby="execucao-atual-title" aria-live="polite">
-            <div className="bg-[#1a3a2a] px-4 py-3 text-white sm:px-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#e4cf87]">Estado da execução</p>
-              <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${currentItem ? "bg-[#c4a84b] text-[#1a3a2a]" : "bg-white/10 text-white/70"}`}><Radio className="h-5 w-5" /></span>
-                  <div className="min-w-0"><h2 id="execucao-atual-title" className="truncate text-xl font-black">{currentItem ? `Está em ${currentItem.title}` : "Aguardando comando"}</h2><p className="mt-0.5 text-xs text-white/70">{currentItem ? currentAudio ? "Reprodução vinculada em andamento; o botão ativo está destacado." : "O botão ativo está destacado. O áudio será executado assim que estiver vinculado." : "Pressione um toque, dobrado ou voz de comando para iniciar a execução."}</p></div>
+            {isDeletingFavorites && preparedWorkItems.length > 0 && (
+              <p className="mb-2 text-xs font-semibold text-red-700 dark:text-red-300">Toque no sinal − apenas nos favoritos que deseja excluir.</p>
+            )}
+            {preparedWorkItems.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-[#1a3a2a]/20 px-3 py-3 text-center text-xs text-muted-foreground md:text-sm">
+                Nenhum item adicionado. Use <Plus className="mx-1 inline h-4 w-4" /> para incluir um toque, hino ou dobrado.
+              </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 pb-2 pt-1 sm:gap-x-3 md:grid-cols-6 lg:grid-cols-8">
+                  {preparedWorkItems.map((item, index) => {
+                    const isCall = item.type === "call";
+                    const isVoice = item.type === "voice";
+                    const call = isCall ? (item.call as BugleCall) : null;
+                    const voice = isVoice ? (item.voice as VoiceCommand) : null;
+                    const media = item.type === "media" ? item.media : null;
+                    const itemLabel = isCall ? call?.name || "Toque" : isVoice ? voice?.itemTitle || "Voz" : media?.label || "Áudio";
+                    return (
+                      <div key={item.key} className="relative min-w-0">
+                        <div className={isDeletingFavorites ? "favorite-delete-wiggle" : ""}>
+                          <CommandSoundButton
+                            compact
+                            title={favoriteLabel(itemLabel)}
+                            iconKey={isCall ? call?.iconKey : isVoice ? "volume" : "music"}
+                            isPlaying={isCall ? playingKey === `call-${call?.id}` || playingKey === `sequence-call-${call?.id}` : isVoice ? playingKey === `voice-${voice?.id}` || playingKey === `sequence-voice-${voice?.id}` : playingKey === `sequence-${media?.key}`}
+                            isAllowed={isCall ? isDrillCommandAllowed(call?.name || "", drillState) : isVoice ? isDrillCommandAllowed(voice?.itemTitle || "", drillState) : true}
+                            onClick={() => isCall && call ? playCall(call) : isVoice && voice ? playVoiceCommand(voice) : media ? playSequenceMedia(media) : undefined}
+                            action={isDeletingFavorites ? (
+                              <button
+                                type="button"
+                                onClick={() => removeSequenceItem(item as SequenceItem)}
+                                aria-label={`Remover ${itemLabel} dos favoritos`}
+                                className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
+                              >
+                                <Minus className="h-3 w-3" strokeWidth={3} />
+                              </button>
+                            ) : undefined}
+                          />
+                        </div>
+                        <div className="mx-auto mt-1 flex w-full max-w-[4.25rem] justify-between gap-1">
+                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
+                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a direita" title="Mover para a direita"><ArrowRight className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {audioUrls.length > 0 && <Button type="button" variant="outline" size="sm" onClick={() => void cacheRegisteredAudios()} disabled={!isOnline || isCachingAudios} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white disabled:opacity-50"><Download className="mr-1.5 h-4 w-4" />{isCachingAudios ? "Preparando…" : audiosCached ? "Áudios prontos" : "Baixar áudios"}</Button>}
-                  {currentItem && <Button type="button" variant="outline" size="sm" onClick={stopExecution} className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"><CircleStop className="mr-1.5 h-4 w-4" /> Encerrar</Button>}
+                <div className="mt-3 flex flex-col gap-2 border-t border-[#1a3a2a]/15 pt-3 dark:border-white/15">
+                  <Select value={String(sequenceDelaySeconds)} onValueChange={(value) => setSequenceDelaySeconds(sanitizeSequenceDelay(value))}>
+                    <SelectTrigger className="w-full" aria-label="Intervalo entre os áudios"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 5].map((seconds) => <SelectItem key={seconds} value={String(seconds)}>{seconds} {seconds === 1 ? "segundo" : "segundos"}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" onClick={playPreparedSequence} disabled={preparedWorkItems.length === 0 || Boolean(playingKey)} className="bg-[#1a3a2a] font-bold text-white hover:bg-[#24513b] dark:bg-[#c4a84b] dark:text-[#15251d] dark:hover:bg-[#d7bc56]">
+                    <AudioLines className="mr-1.5 h-4 w-4" /> Executar sequência completa
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Sequência: {preparedWorkItems.map((item) => item.type === "call" ? (item.call as BugleCall).name : item.type === "voice" ? (item.voice as VoiceCommand).itemTitle : item.media.label).join(" → ")}. Pausa de {sequenceDelaySeconds}s entre cada áudio.
+                  </p>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <section aria-labelledby="bugle-calls-title">
+          <div className="mb-4">
+            <h2 id="bugle-calls-title" className="text-2xl font-black">Toques de corneta</h2>
+            <p className="text-sm text-muted-foreground">Toque em um botão para executar. Toque no <Plus className="inline h-4 w-4" /> para prepará-lo.</p>
+            <p className="mt-1 text-xs font-semibold text-[#6f5914] dark:!text-[#d8c46a]">Envio de áudio: Dashboard → Ordem Unida → Toques.</p>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="bugle-call-search" className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted-foreground">Buscar toque pelo nome</label>
+            <input id="bugle-call-search" type="search" value={callSearch} onChange={(event) => setCallSearch(event.target.value)} placeholder="Ex.: Sentido, Alvorada, Ordinário marche..." className="h-11 w-full rounded-xl border border-[#1a3a2a]/20 bg-white px-4 text-sm outline-none transition focus:border-[#c4a84b] focus:ring-2 focus:ring-[#c4a84b]/25 dark:bg-[#202720]" />
+          </div>
+
+          {isLoading ? (
+            <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">Carregando painel...</div>
+          ) : isError ? (
+            <div className="rounded-2xl border border-red-300 bg-red-50 p-6 text-center text-red-800">Não foi possível carregar os toques.</div>
+          ) : filteredCalls.length === 0 ? (
+            <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">{calls.length === 0 ? "Nenhum toque ativo cadastrado." : "Nenhum toque encontrado para esta busca."}</div>
+          ) : (
+            <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
+              {filteredCalls.map((call) => {
+                const isPlaying = playingKey === `call-${call.id}`;
+                const isAllowed = isDrillCommandAllowed(call.name, drillState);
+                return (
+                  <CommandSoundButton
+                    key={call.id}
+                    title={call.name}
+                    iconKey={call.iconKey}
+                    isPlaying={isPlaying}
+                    isAllowed={isAllowed}
+                    onClick={() => playCall(call)}
+                    action={<button type="button" onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} ao final dos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
+                  />
+                );
+              })}
             </div>
-          </section>
+          )}
+        </section>
 
-          <section className="rounded-[1.6rem] border border-[#c4a84b]/45 bg-[#fffdf7] p-4 shadow-sm dark:bg-card sm:p-5" aria-labelledby="sessao-atual-title">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c4a84b] text-[#1a3a2a] shadow-sm"><Star className="h-5 w-5" /></span><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#806919]">Acesso rápido</p><h2 id="sessao-atual-title" className="text-lg font-black text-[#1a3a2a] dark:text-[#e5ce7c]">{sessionConfig.name || "Sessão atual"}</h2><p className="mt-0.5 text-xs text-muted-foreground">Os itens pessoais ficam salvos neste aparelho para a próxima instrução.</p></div></div>
-              <div className="flex gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setEditorOpen((current) => !current)} className="h-9 text-xs font-bold"><ClipboardPenLine className="mr-1.5 h-4 w-4" />{editorOpen ? "Fechar editor" : "Editor pessoal"}</Button>{sessionItems.length > 0 && <Button type="button" variant="ghost" size="sm" onClick={() => setSessionConfig((current) => ({ ...current, itemIds: [], currentItemId: null }))} className="h-9 text-xs font-bold text-muted-foreground hover:text-destructive"><X className="mr-1.5 h-4 w-4" />Limpar</Button>}</div>
+        <section aria-labelledby="voice-commands-title" className="rounded-3xl border border-[#c4a84b]/35 bg-white/90 p-4 shadow-sm dark:border-[#c4a84b]/30 dark:bg-[#202720]/95 md:p-7">
+          <div className="mb-5">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8b6d12] dark:!text-[#d8c46a]">Gravações do comando</p>
+            <h2 id="voice-commands-title" className="text-2xl font-black">Comandos de voz</h2>
+            <p className="text-sm text-muted-foreground">As gravações enviadas pelo dashboard aparecem aqui e obedecem às mesmas travas operacionais.</p>
+            <p className="mt-1 text-xs font-semibold text-[#6f5914] dark:!text-[#d8c46a]">Envio: Dashboard → Comandos de voz → escolha Firme, Sentido ou outro comando.</p>
+          </div>
+          {voiceAudioQuery.isLoading ? (
+            <div className="rounded-2xl border border-dashed p-7 text-center text-sm text-muted-foreground">Carregando comandos de voz...</div>
+          ) : voiceCommands.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-[#1a3a2a]/20 px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma voz enviada. No dashboard, abra “Comandos de voz” e envie a gravação de Firme ou de outro comando.</div>
+          ) : (
+            <div>
+              <div className="mb-5 grid gap-3 rounded-2xl border border-[#1a3a2a]/15 bg-[#1a3a2a]/5 p-3 sm:grid-cols-[auto_1fr] sm:items-center">
+                <Avatar className="h-16 w-16 border-2 border-[#c4a84b]">
+                  <AvatarImage src={selectedVoiceProfile?.photoUrl || undefined} alt={selectedVoiceProfile?.name || "Militar"} className="object-cover" />
+                  <AvatarFallback className="bg-[#1a3a2a] font-black text-white">{selectedVoiceProfile?.name?.slice(0, 2).toUpperCase() || "VZ"}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <label htmlFor="voice-profile" className="mb-1 block text-xs font-black uppercase tracking-wide text-muted-foreground">Voz do militar</label>
+                  <Select value={selectedVoiceProfile?.key || ""} onValueChange={setSelectedVoiceProfileKey}>
+                    <SelectTrigger id="voice-profile" className="w-full"><SelectValue placeholder="Escolha o militar" /></SelectTrigger>
+                    <SelectContent>{voiceProfiles.map((profile) => <SelectItem key={profile.key} value={profile.key}>{profile.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{selectedVoiceProfile?.name || "Voz padrão"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                {selectedVoiceCommands.map((voice) => (
+                  <CommandSoundButton
+                    key={voice.id}
+                    title={voice.itemTitle}
+                    subtitle={voice.voiceAuthorName || voice.fileName}
+                    iconKey="volume"
+                    isPlaying={playingKey === `voice-${voice.id}`}
+                    isAllowed={isDrillCommandAllowed(voice.itemTitle, drillState)}
+                    onClick={() => playVoiceCommand(voice)}
+                    action={<button type="button" onClick={() => addVoiceToFavorites(voice)} aria-label={`Adicionar ${voice.itemTitle} na voz de ${voice.voiceAuthorName || "militar"} aos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
+                  />
+                ))}
+              </div>
             </div>
-            {sessionItems.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-[#c4a84b]/60 bg-[#c4a84b]/5 px-4 py-5 text-center"><Pin className="mx-auto h-5 w-5 text-[#a88d34]" /><p className="mt-2 text-sm font-bold text-foreground">Ainda não há itens nesta sessão.</p><p className="mt-1 text-xs text-muted-foreground">Use o editor pessoal ou o ícone de fixar nos painéis abaixo.</p></div> : <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{sessionItems.map((item) => <PanelItemButton key={item.id} item={item} isInSession isExecuting={sessionConfig.currentItemId === item.id} onExecute={executeItem} onToggleSession={toggleSessionItem} />)}</div>}
-          </section>
+          )}
+        </section>
 
-          {editorOpen && <section className="rounded-[1.6rem] border border-[#1a3a2a]/20 bg-card p-4 shadow-sm sm:p-5" aria-labelledby="editor-pessoal-title">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#806919]">Configuração local</p><h2 id="editor-pessoal-title" className="text-lg font-black text-[#1a3a2a] dark:text-[#e5ce7c]">Editor pessoal da sessão</h2><p className="mt-0.5 text-xs text-muted-foreground">Monte a lista, altere os nomes exibidos e adicione itens sem mudar o acervo geral.</p></div><span className="rounded-full bg-[#c4a84b]/15 px-2.5 py-1 text-[11px] font-black text-[#806919]">{sessionItems.length} itens</span></div>
-            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/20 p-3"><label className="block text-xs font-black uppercase tracking-[0.1em] text-muted-foreground">Nome da sessão</label><Input value={sessionConfig.name} onChange={(event) => setSessionConfig((current) => ({ ...current, name: event.target.value.slice(0, 60) }))} placeholder="Ex.: Instrução 1º Pelotão" /><div className="border-t border-border/60 pt-3"><p className="text-xs font-black uppercase tracking-[0.1em] text-muted-foreground">Adicionar item pessoal</p><div className="mt-2 flex flex-col gap-2 sm:flex-row"><Input value={customTitle} onChange={(event) => setCustomTitle(event.target.value)} placeholder="Nome do toque ou comando" /><select value={customType} onChange={(event) => setCustomType(event.target.value as OrdemUnidaItemType)} className="h-10 rounded-md border border-input bg-background px-3 text-sm font-medium"><option value="corneta">Corneta</option><option value="dobrado">Dobrado</option><option value="voz">Voz</option></select></div><Button type="button" size="sm" onClick={addPersonalItem} disabled={!customTitle.trim()} className="mt-2 w-full bg-[#1a3a2a] text-white hover:bg-[#12281d]"><Plus className="mr-1.5 h-4 w-4" />Adicionar à sessão</Button></div><details className="rounded-xl border border-dashed border-border/80 p-3"><summary className="cursor-pointer text-sm font-bold text-[#1a3a2a] dark:text-[#e5ce7c]">Adicionar do acervo existente</summary><div className="mt-3 grid max-h-60 gap-1 overflow-y-auto pr-1">{allConfiguredItems.filter((item) => !isInSession(item)).map((item) => <button key={item.id} type="button" onClick={() => toggleSessionItem(item)} className="flex min-w-0 items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs font-semibold hover:bg-muted"><span className="truncate">{item.title}</span><Plus className="h-4 w-4 shrink-0 text-[#806919]" /></button>)}</div></details></div>
-              <div className="space-y-2"><p className="text-xs font-black uppercase tracking-[0.1em] text-muted-foreground">Itens da sessão</p>{sessionItems.length === 0 ? <p className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">Adicione itens do acervo ou crie um item pessoal.</p> : sessionItems.map((item) => editingItemId === item.id ? <div key={item.id} className="rounded-xl border border-[#c4a84b]/50 bg-[#c4a84b]/5 p-3"><div className="grid gap-2 sm:grid-cols-2"><Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Nome do item" /><Input value={draftSubtitle} onChange={(event) => setDraftSubtitle(event.target.value)} placeholder="Descrição opcional" aria-label="Descrição do item" /></div><div className="mt-2 flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" onClick={() => setEditingItemId(null)}>Cancelar</Button><Button type="button" size="sm" onClick={saveItemEdition} disabled={!draftTitle.trim()} className="bg-[#1a3a2a] text-white"><Save className="mr-1.5 h-4 w-4" />Salvar</Button></div></div> : <div key={item.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-border/60 bg-background p-2.5"><button type="button" onClick={() => executeItem(item)} className="min-w-0 flex-1 text-left"><p className="truncate text-sm font-black">{item.title}</p><p className="truncate text-xs text-muted-foreground">{item.subtitle || "Item da sessão"}</p></button><Button type="button" variant="ghost" size="icon" onClick={() => startEditing(item)} aria-label={`Editar ${item.title}`}><Pencil className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" onClick={() => removeFromSession(item)} aria-label={`Remover ${item.title}`} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></div>)}</div>
+        <details className="rounded-2xl border border-[#c4a84b]/40 bg-white/90 p-3 shadow-sm dark:bg-[#202720]/95">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-black"><span className="flex items-center gap-2"><Music2 className="h-5 w-5 text-[#806919]" />Importar hinos do sistema</span><Plus className="h-4 w-4" /></summary>
+          <div className="mt-3 space-y-2 border-t pt-3">
+            {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => {
+              return (
+                <div key={hymn.id} className="rounded-lg border bg-background p-2"><p className="mb-2 text-xs font-black">{hymn.title}</p><div className="space-y-1.5">
+                  {hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-xs font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}
+                  {hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}
+                </div></div>
+              );
+            })}
+            {hymnsQuery.isLoading && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Carregando hinos...</p>}
+            {!hymnsQuery.isLoading && !(hymnsQuery.data ?? []).some((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl) && <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Nenhum hino com arquivo de áudio no sistema. Envie os arquivos no dashboard.</p>}
+
+          </div>
+        </details>
+
+        <section aria-labelledby="marches-title" className="rounded-3xl bg-[#1a3a2a] p-4 text-white md:p-7">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#c4a84b] text-[#15251d]"><Footprints className="h-7 w-7" /></span>
+            <div>
+              <h2 id="marches-title" className="text-2xl font-black">Dobrados</h2>
+              <p className="text-sm text-white/65">Músicas para marcha e deslocamento da tropa.</p>
+              <p className="mt-1 text-xs font-semibold text-[#e4cf87]">Envio: Dashboard → Ordem Unida → Dobrados.</p>
             </div>
-          </section>}
-
-          <section className="space-y-3" aria-labelledby="dobrados-title"><div className="flex items-end justify-between gap-3 px-1"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#9a7e23]">Cadência de marcha</p><h2 id="dobrados-title" className="text-xl font-black text-[#1a3a2a] dark:text-[#e5ce7c]">Dobrados e toques de marcha</h2></div><span className="rounded-full bg-[#c4a84b]/15 px-2.5 py-1 text-[11px] font-black text-[#806919]">{dobrados.length} itens</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{dobrados.map((item) => <PanelItemButton key={item.id} item={item} isInSession={isInSession(item)} isExecuting={sessionConfig.currentItemId === item.id} onExecute={executeItem} onToggleSession={toggleSessionItem} />)}</div></section>
-
-          <section className="space-y-3" aria-labelledby="vozes-title"><div className="flex items-end justify-between gap-3 px-1"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">Comandos verbais</p><h2 id="vozes-title" className="text-xl font-black text-[#1a3a2a] dark:text-[#e5ce7c]">Vozes de comando</h2></div><span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">{vozes.length} itens</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{vozes.map((item) => <PanelItemButton key={item.id} item={item} isInSession={isInSession(item)} isExecuting={sessionConfig.currentItemId === item.id} onExecute={executeItem} onToggleSession={toggleSessionItem} />)}</div></section>
-
-          <section className="space-y-3" aria-labelledby="cornetas-title"><div className="flex flex-wrap items-end justify-between gap-3 px-1"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">Acervo completo da referência</p><h2 id="cornetas-title" className="text-xl font-black text-[#1a3a2a] dark:text-[#e5ce7c]">Toques de corneta</h2></div><span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-[11px] font-black text-sky-700 dark:text-sky-300">{cornetas.length} itens</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{cornetas.map((item) => <PanelItemButton key={item.id} item={item} isInSession={isInSession(item)} isExecuting={sessionConfig.currentItemId === item.id} onExecute={executeItem} onToggleSession={toggleSessionItem} />)}</div></section>
-        </div>
+          </div>
+          <div className="hidden">
+            <div className="mb-3 flex items-start gap-2">
+              <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-[#e4cf87]" />
+              <div>
+                <h3 className="font-black">Combinar toque de marcha + dobrado</h3>
+                <p className="text-xs text-white/65">Ao tocar a combinação, o toque de marcha é executado primeiro e o dobrado começa automaticamente quando ele terminar.</p>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <Select value={selectedMarchCallId} onValueChange={setSelectedMarchCallId}>
+                <SelectTrigger className="border-white/20 bg-white text-[#15251d] dark:bg-[#15251d] dark:text-[#f4f0df]"><SelectValue placeholder="Toque de marcha" /></SelectTrigger>
+                <SelectContent>{marchCalls.map((call) => <SelectItem key={call.id} value={String(call.id)}>{call.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={selectedMarchId} onValueChange={setSelectedMarchId}>
+                <SelectTrigger className="border-white/20 bg-white text-[#15251d] dark:bg-[#15251d] dark:text-[#f4f0df]"><SelectValue placeholder="Dobrado" /></SelectTrigger>
+                <SelectContent>{marches.map((march) => <SelectItem key={march.id} value={String(march.id)}>{march.title}</SelectItem>)}</SelectContent>
+              </Select>
+              <Button type="button" onClick={addMarchCombination} disabled={marchCalls.length === 0 || marches.length === 0} className="bg-[#c4a84b] font-bold text-[#15251d] hover:bg-[#d7bc56]"><Plus className="mr-1.5 h-4 w-4" /> Combinar</Button>
+            </div>
+            {resolvedMarchCombinations.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {resolvedMarchCombinations.map((combination) => (
+                  <div key={combination.id} className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/15 p-2">
+                    <button type="button" onClick={() => playMarchCombination(combination)} className="min-w-0 flex-1 text-left text-sm font-bold text-white hover:text-[#ead46e]">
+                      {combination.call.name} <span className="text-[#e4cf87]">→</span> {combination.march.title}
+                    </button>
+                    <button type="button" onClick={() => setMarchCombinations((current) => current.filter((item) => item.id !== combination.id))} aria-label={`Remover combinação ${combination.call.name} com ${combination.march.title}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {marches.length === 0 ? (
+            <div className="rounded-2xl border border-white/20 bg-white/5 px-5 py-8 text-center text-sm text-white/65">
+              Espaço pronto. Cadastre os dobrados no dashboard para exibi-los aqui.
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+              {marches.map((march) => {
+                const isPlaying = playingKey === `march-${march.id}`;
+                return (
+                  <CommandSoundButton
+                    key={march.id}
+                    title={march.title}
+                    subtitle={march.composer}
+                    iconKey="music"
+                    darkSurface
+                    onClick={() => playMarch(march)}
+                    isPlaying={isPlaying}
+                    isAllowed
+                    action={
+                      <button
+                        type="button"
+                        disabled={!march.audioUrl}
+                        onClick={() =>
+                          march.audioUrl &&
+                          addSequenceMedia({
+                            key: `march-${march.id}`,
+                            label: `Dobrado: ${march.title}`,
+                            audioUrl: march.audioUrl,
+                            kind: "dobrado",
+                          })
+                        }
+                        aria-label={`Adicionar ${march.title} aos favoritos`}
+                        className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md disabled:opacity-30"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
       </main>
       <Footer />
     </div>

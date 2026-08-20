@@ -3,11 +3,13 @@ import {
   date,
   datetime,
   decimal,
+  index,
   int,
   json,
   longtext,
   mysqlEnum,
   mysqlTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -51,8 +53,8 @@ export const pmamHymns = mysqlTable("pmam_hymns", {
   description: text("description"),
   youtubeUrl: varchar("youtube_url", { length: 255 }),
   instrumentalYoutubeUrl: varchar("instrumental_youtube_url", { length: 512 }),
-  audioUrl: text("audio_url"), // Suporta URLs de qualquer tamanho (MP3, WAV, OGG, M4A, etc.)
-  instrumentalAudioUrl: text("instrumental_audio_url"),
+  audioUrl: longtext("audio_url"), // Suporta URLs de qualquer tamanho (MP3, WAV, OGG, M4A, Base64 Data URL, etc.)
+  instrumentalAudioUrl: longtext("instrumental_audio_url"),
   lyricsSync: json("lyrics_sync"),
   isActive: boolean("is_active").default(true),
   likesCount: int("likes_count").default(0),
@@ -76,10 +78,10 @@ export const pmamCfapMissions = mysqlTable("pmam_cfap_missions", {
   authorId: int("author_id"),
   likesCount: int("likes_count").default(0),
   viewsCount: int("views_count").default(0),
-  imageUrl: varchar("image_url", { length: 512 }),
-  videoUrl: varchar("video_url", { length: 512 }),
-  audioUrl: varchar("audio_url", { length: 512 }),
-  pdfUrl: varchar("pdf_url", { length: 512 }),
+  imageUrl: longtext("image_url"),
+  videoUrl: longtext("video_url"),
+  audioUrl: longtext("audio_url"),
+  pdfUrl: longtext("pdf_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
@@ -95,11 +97,11 @@ export const pmamDrill = mysqlTable("pmam_drill", {
   category: varchar("category", { length: 100 }),
   difficulty: varchar("difficulty", { length: 50 }).default("intermediario"),
   duration: int("duration"),
-  videoUrl: varchar("video_url", { length: 255 }),
-  pdfUrl: varchar("pdf_url", { length: 255 }),
-  imageUrl: varchar("image_url", { length: 255 }),
+  videoUrl: longtext("video_url"),
+  pdfUrl: longtext("pdf_url"),
+  imageUrl: longtext("image_url"),
   youtubeUrl: varchar("youtube_url", { length: 255 }),
-  cornettaAudioUrl: varchar("cornetta_audio_url", { length: 255 }),
+  cornettaAudioUrl: longtext("cornetta_audio_url"),
   content: longtext("content"),
   instructor: varchar("instructor", { length: 255 }),
   prerequisites: text("prerequisites"),
@@ -115,6 +117,52 @@ export const pmamDrill = mysqlTable("pmam_drill", {
 
 export type PmamDrill = typeof pmamDrill.$inferSelect;
 export type InsertPmamDrill = typeof pmamDrill.$inferInsert;
+
+export const pmamBugleCalls = mysqlTable("pmam_bugle_calls", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  audioUrl: longtext("audio_url"),
+  iconKey: varchar("icon_key", { length: 64 }).default("music"),
+  troopState: varchar("troop_state", { length: 120 }),
+  category: varchar("category", { length: 100 }).default("geral"),
+  sourceUrl: longtext("source_url"),
+  sortOrder: int("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamBugleCall = typeof pmamBugleCalls.$inferSelect;
+export type InsertPmamBugleCall = typeof pmamBugleCalls.$inferInsert;
+
+export const pmamMarches = mysqlTable("pmam_marches", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  composer: varchar("composer", { length: 255 }),
+  audioUrl: longtext("audio_url"),
+  sourceUrl: longtext("source_url"),
+  sortOrder: int("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+export type PmamMarch = typeof pmamMarches.$inferSelect;
+export type InsertPmamMarch = typeof pmamMarches.$inferInsert;
+
+export const pmamVoiceProfiles = mysqlTable("pmam_voice_profiles", {
+  profileKey: varchar("profile_key", { length: 128 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  photoUrl: longtext("photo_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  activeIdx: index("idx_pmam_voice_profiles_active").on(table.isActive),
+}));
+
+export type PmamVoiceProfile = typeof pmamVoiceProfiles.$inferSelect;
+export type InsertPmamVoiceProfile = typeof pmamVoiceProfiles.$inferInsert;
 
 export const pmamComments = mysqlTable("pmam_comments", {
   id: int("id").autoincrement().primaryKey(),
@@ -356,7 +404,7 @@ export type InsertPmamFatoObservadoProva = typeof pmamFatoObservadoProvas.$infer
 
 export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
   id: int("id").autoincrement().primaryKey(),
-  itemId: varchar("item_id", { length: 128 }).notNull().unique(),
+  itemId: varchar("item_id", { length: 128 }).notNull(),
   itemTitle: varchar("item_title", { length: 255 }).notNull(),
   itemType: mysqlEnum("item_type", ["corneta", "dobrado", "voz"]).notNull(),
   audioUrl: longtext("audio_url").notNull(),
@@ -365,20 +413,75 @@ export const pmamOrdemUnidaAudios = mysqlTable("pmam_ordem_unida_audios", {
   fileSize: int("file_size"),
   mimeType: varchar("mime_type", { length: 100 }),
   duration: int("duration"),
+  voiceProfileKey: varchar("voice_profile_key", { length: 128 }).notNull().default("default"),
+  voiceAuthorName: varchar("voice_author_name", { length: 255 }),
+  voiceAuthorPhotoUrl: longtext("voice_author_photo_url"),
   isActive: boolean("is_active").default(true),
   uploadedBy: int("uploaded_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  itemVoiceProfileUnique: uniqueIndex("uq_pmam_ordem_unida_audios_item_voice").on(table.itemId, table.voiceProfileKey),
+}));
 
 export type PmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferSelect;
 export type InsertPmamOrdemUnidaAudio = typeof pmamOrdemUnidaAudios.$inferInsert;
+
+export const pmamAdministrativeDaily = mysqlTable(
+  "pmam_administrative_daily",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    date: date("date").notNull(),
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    locationStatus: varchar("location_status", { length: 32 }).notNull().default("sala"),
+    formationStatus: varchar("formation_status", { length: 32 }).notNull().default("nao_informado"),
+    lunchStatus: varchar("lunch_status", { length: 32 }).notNull().default("nao_informado"),
+    snackStatus: varchar("snack_status", { length: 32 }).notNull().default("nao_informado"),
+    ranchAdvance: boolean("ranch_advance").notNull().default(false),
+    punishmentSummary: text("punishment_summary"),
+    factsSummary: text("facts_summary"),
+    pendingSummary: text("pending_summary"),
+    pendingResolvedAt: timestamp("pending_resolved_at"),
+    updatedBy: int("updated_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_pmam_administrative_daily_scope").on(t.date, t.companhia, t.peloton),
+    index("idx_pmam_administrative_daily_pending").on(t.pendingResolvedAt, t.date),
+  ]
+);
+
+export type PmamAdministrativeDaily = typeof pmamAdministrativeDaily.$inferSelect;
+export type InsertPmamAdministrativeDaily = typeof pmamAdministrativeDaily.$inferInsert;
+
+export const pmamAdministrativeWeeklyConfig = mysqlTable(
+  "pmam_administrative_weekly_config",
+  {
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    ranchWeekdays: varchar("ranch_weekdays", { length: 32 }).notNull().default(""),
+    lunchWeekdays: varchar("lunch_weekdays", { length: 32 }).notNull().default(""),
+    snackWeekdays: varchar("snack_weekdays", { length: 32 }).notNull().default(""),
+    updatedBy: int("updated_by"),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companhia, t.peloton] }),
+  ]
+);
+
+export type PmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferSelect;
+export type InsertPmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferInsert;
 
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
   pmamCfapMissions,
   pmamDrill,
+  pmamBugleCalls,
+  pmamMarches,
   pmamComments,
   pmamLikes,
   pmamSiteSettings,
@@ -395,5 +498,8 @@ export const runtimeTables = {
   pmamFatoObservado,
   pmamFatoObservadoProvas,
   pmamOrdemUnidaAudios,
+  pmamAdministrativeDaily,
+  pmamAdministrativeWeeklyConfig,
 };
+
 

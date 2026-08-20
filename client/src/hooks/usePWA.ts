@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
-const CACHE_NAME = "hinario-pmam-cache-v4";
+const CACHE_NAME = "hinario-pmam-cache-v6";
 let registrationStarted = false;
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 let updateIntervalId: number | null = null;
+
+export interface CachedUrlsResult {
+  cachedUrls: string[];
+  failedUrls: string[];
+}
 
 interface PWAState {
   isOnline: boolean;
@@ -13,19 +18,47 @@ interface PWAState {
   updateAvailable: boolean;
 }
 
-async function cacheEach(urls: string[]) {
-  if (!("caches" in window)) return;
+function uniqueUrls(urls: string[]) {
+  return Array.from(new Set(urls.map((url) => url.trim()).filter(Boolean)));
+}
+
+export async function cacheUrlsForOffline(urls: string[]): Promise<CachedUrlsResult> {
+  const unique = uniqueUrls(urls);
+  if (typeof caches === "undefined") {
+    return { cachedUrls: [], failedUrls: unique };
+  }
 
   const cache = await caches.open(CACHE_NAME);
-  await Promise.allSettled(
-    urls.map(async (url) => {
+  const results = await Promise.all(unique.map(async (url) => {
+    try {
       const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) {
+      if (!response.ok && response.type !== "opaque") {
         throw new Error(`Falha ao cachear ${url}: ${response.status}`);
       }
+      const contentType = response.headers.get("content-type") || "";
+      if (/\.(?:m?js|css)(?:$|\?)/i.test(url) && /text\/html/i.test(contentType)) {
+        throw new Error(`Resposta invÃ¡lida ao cachear asset ${url}`);
+      }
       await cache.put(url, response.clone());
-    }),
-  );
+      return { url, cached: true };
+    } catch {
+      return { url, cached: false };
+    }
+  }));
+
+  return {
+    cachedUrls: results.filter((result) => result.cached).map((result) => result.url),
+    failedUrls: results.filter((result) => !result.cached).map((result) => result.url),
+  };
+}
+
+export async function getOfflineCachedUrls(urls: string[]): Promise<string[]> {
+  const unique = uniqueUrls(urls);
+  if (typeof caches === "undefined") return [];
+
+  const cache = await caches.open(CACHE_NAME);
+  const results = await Promise.all(unique.map(async (url) => ({ url, response: await cache.match(url) })));
+  return results.filter((result) => Boolean(result.response)).map((result) => result.url);
 }
 
 export function usePWA() {
@@ -122,13 +155,15 @@ export function usePWA() {
   }, []);
 
   const cacheUrls = useCallback(async (urls: string[]) => {
-    await cacheEach(urls);
-    console.log("[PWA] URLs cached:", urls);
+    const result = await cacheUrlsForOffline(urls);
+    console.log("[PWA] URLs cached:", result.cachedUrls);
+    return result;
   }, []);
 
   const precacheAssets = useCallback(async (assets: string[]) => {
-    await cacheEach(assets);
-    console.log("[PWA] Assets precached:", assets);
+    const result = await cacheUrlsForOffline(assets);
+    console.log("[PWA] Assets precached:", result.cachedUrls);
+    return result;
   }, []);
 
   return {

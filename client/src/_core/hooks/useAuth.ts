@@ -3,9 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 import type { User } from "@shared/types";
-
-import { clearStudentSession } from "@/lib/studentSession";
-import { clearEmailSession } from "@/lib/emailSession";
+import { executeClientLogout } from "@/lib/logout";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -42,31 +40,19 @@ export function useAuth(options?: UseAuthOptions) {
   });
 
   const logout = useCallback(async () => {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
-      }
-      throw error;
-    } finally {
-      // Clear all tRPC cache to ensure no stale data is used
-      utils.auth.me.setData(undefined, null);
-      await utils.invalidate();
-      // Clear localStorage cache as well
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("auth-user-info");
-        clearStudentSession();
-        clearEmailSession();
-      }
-    }
+    await executeClientLogout({
+      cancelAuthQuery: () => utils.auth.me.cancel(),
+      setAuthUser: (user) => utils.auth.me.setData(undefined, user),
+      requestServerLogout: () => logoutMutation.mutateAsync(),
+      onRemoteError: (error) => {
+        if (error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED") return;
+        console.warn("[Logout] Não foi possível confirmar o encerramento no servidor.", error);
+      },
+    });
   }, [logoutMutation, utils]);
 
   const cachedUser = useMemo(() => readCachedUser(), [meQuery.data]);
-  const resolvedUser = meQuery.isSuccess ? meQuery.data : cachedUser;
+  const resolvedUser = meQuery.data ?? cachedUser;
 
   const state = useMemo(() => {
     return {
@@ -88,7 +74,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
 
     try {
-      localStorage.setItem("auth-user-info", JSON.stringify(resolvedUser ?? null));
+      if (resolvedUser) localStorage.setItem("auth-user-info", JSON.stringify(resolvedUser));
     } catch {
       // Ignore storage failures so auth state never crashes the UI.
     }

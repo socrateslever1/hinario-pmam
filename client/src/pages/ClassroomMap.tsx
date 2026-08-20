@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getStudentSession } from "@/lib/studentSession";
-import { classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
+import { FO_LC_THRESHOLD, classifyFoText, getFoCodeDefinition, getFoCodesByType } from "@shared/foCatalog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,22 @@ interface ProofFile {
   file: File;
   preview?: string;
   type: "foto" | "video" | "audio" | "documento";
+}
+
+function getUploadMimeType(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  return file.type || (
+    extension === "jpg" || extension === "jpeg" ? "image/jpeg" :
+    extension === "png" ? "image/png" :
+    extension === "webp" ? "image/webp" :
+    extension === "gif" ? "image/gif" :
+    extension === "heic" ? "image/heic" :
+    extension === "heif" ? "image/heif" :
+    extension === "mov" ? "video/quicktime" :
+    extension === "mp4" ? "video/mp4" :
+    extension === "pdf" ? "application/pdf" :
+    "application/octet-stream"
+  );
 }
 
 const GENERAL_COMMAND_ROLES = new Set([
@@ -1052,6 +1068,35 @@ export default function ClassroomMap() {
     const finalNote = `[${selectedCode}] ${selectedReason} - Relato: ${cleanFoText}`;
 
     try {
+      if (foType === "negative") {
+        const duplicateWarnings = await Promise.all(
+          idsToSend.map(async (studentId) => {
+            const balance = await utils.serviceScale.foCodeBalance.fetch({ studentId, foCode: selectedCode });
+            if (balance.negativeCount <= 0) return null;
+            const student = students.find((item: any) => item.id === studentId);
+            return {
+              student,
+              balance,
+              canCauseLc: balance.netCount + 1 >= FO_LC_THRESHOLD,
+            };
+          })
+        );
+        const warnings = duplicateWarnings.filter(Boolean) as Array<{ student: any; balance: any; canCauseLc: boolean }>;
+        if (warnings.length > 0) {
+          const preview = warnings
+            .slice(0, 5)
+            .map((item) => `${item.student?.numerica || ""} ${item.student?.nomeGuerra || "Aluno"}: ${item.balance.negativeCount} FO- aprovado(s)`)
+            .join("\n");
+          const hasLcRisk = warnings.some((item) => item.canCauseLc);
+          const confirmed = window.confirm(
+            `Já existe FO- aprovado do código ${selectedCode} para ${warnings.length} aluno(s):\n\n${preview}` +
+            `${warnings.length > 5 ? `\n... e mais ${warnings.length - 5}` : ""}` +
+            `\n\nDeseja lançar o mesmo FO novamente?${hasLcRisk ? "\n\nAtenção: este lançamento pode gerar LC por reincidência." : ""}`
+          );
+          if (!confirmed) return;
+        }
+      }
+
       toast.loading("Registrando Fato Observado...", { id: "fo-launch" });
 
       // Envia as mutações em lote usando Promise.all
@@ -1102,7 +1147,7 @@ export default function ClassroomMap() {
                 studentObservationId,
                 fileName: file.name,
                 fileSize: file.size,
-                mimeType: file.type,
+                mimeType: getUploadMimeType(file),
                 fileData,
               });
               onProgress(95, Math.round(file.size * 0.95));

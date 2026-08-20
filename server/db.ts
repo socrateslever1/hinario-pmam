@@ -129,6 +129,8 @@ function mapDrill(d: any) {
     videoUrl: d.video_url,
     pdfUrl: d.pdf_url,
     imageUrl: d.image_url,
+    youtubeUrl: d.youtube_url,
+    cornettaAudioUrl: d.cornetta_audio_url,
     content: d.content,
     instructor: d.instructor,
     prerequisites: d.prerequisites,
@@ -320,28 +322,8 @@ export async function getUserByOpenId(openId: string) {
 let hymnSchemaPromise: Promise<void> | null = null;
 
 async function ensureHymnSchema() {
-  if (!hymnSchemaPromise) {
-    hymnSchemaPromise = (async () => {
-      const instrumentalAudioRows = await query<{ Field: string }>(
-        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
-        ["instrumental_audio_url"]
-      );
-      if (instrumentalAudioRows.length === 0) {
-        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_audio_url LONGTEXT NULL AFTER audio_url`);
-      }
-      const instrumentalYoutubeRows = await query<{ Field: string }>(
-        `SHOW COLUMNS FROM pmam_hymns LIKE ?`,
-        ["instrumental_youtube_url"]
-      );
-      if (instrumentalYoutubeRows.length === 0) {
-        await query(`ALTER TABLE pmam_hymns ADD COLUMN instrumental_youtube_url VARCHAR(512) NULL AFTER youtube_url`);
-      }
-    })().catch((error) => {
-      hymnSchemaPromise = null;
-      throw error;
-    });
-  }
-
+  // O esquema já é versionado; SHOW/ALTER em cold start atrasava todas as listas.
+  hymnSchemaPromise ??= Promise.resolve();
   await hymnSchemaPromise;
 }
 
@@ -1042,8 +1024,8 @@ export async function createDrill(drill: any) {
   const attachmentsJson = drill.attachmentsJson ? JSON.stringify(drill.attachmentsJson) : null;
   const sql = `
     INSERT INTO pmam_drill 
-    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (title, subtitle, description, category, difficulty, duration, video_url, pdf_url, image_url, youtube_url, cornetta_audio_url, content, instructor, prerequisites, learning_outcomes, attachments_json, is_active, author_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   const result = await query(sql, [
@@ -1056,6 +1038,8 @@ export async function createDrill(drill: any) {
     drill.videoUrl || null,
     drill.pdfUrl || null,
     drill.imageUrl || null,
+    drill.youtubeUrl || null,
+    drill.cornettaAudioUrl || null,
     drill.content || null,
     drill.instructor || null,
     drill.prerequisites || null,
@@ -1082,6 +1066,8 @@ export async function updateDrill(id: number, drill: any) {
     videoUrl: 'video_url',
     pdfUrl: 'pdf_url',
     imageUrl: 'image_url',
+    youtubeUrl: 'youtube_url',
+    cornettaAudioUrl: 'cornetta_audio_url',
     content: 'content',
     instructor: 'instructor',
     prerequisites: 'prerequisites',

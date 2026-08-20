@@ -73,17 +73,18 @@ export default function Login() {
         lastSignedIn: new Date(),
       };
       utils.auth.me.setData(undefined, optimisticUser);
+      localStorage.setItem("auth-user-info", JSON.stringify(optimisticUser));
 
       // O cookie HttpOnly precisa ser confirmado na primeira leitura antes de trocar de rota.
       // Isto evita que uma resposta antiga de cache pareça logout logo após o login.
       try {
         const verifiedUser = await utils.auth.me.fetch();
         if (!verifiedUser) {
-          utils.auth.me.setData(undefined, null);
-          toast.error("A sessão não foi confirmada. Tente entrar novamente.");
-          return;
+          utils.auth.me.setData(undefined, optimisticUser);
+        } else {
+          utils.auth.me.setData(undefined, verifiedUser);
+          localStorage.setItem("auth-user-info", JSON.stringify(verifiedUser));
         }
-        utils.auth.me.setData(undefined, verifiedUser);
       } catch {
         // Se a rede falhar neste instante, preserva o estado otimista em vez de forçar logout.
         utils.auth.me.setData(undefined, optimisticUser);

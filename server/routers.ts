@@ -17,10 +17,12 @@ import * as gradeDb from "./gradeDb";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
+import * as administrativeDailyDb from "./administrativeDailyDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
 import * as foDb from "./foDb";
+import * as bugleDb from "./bugleDb";
 import * as ordemUnidaAudioDb from "./ordemUnidaAudioDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 import { studentRouter } from "./studentRouter";
@@ -34,6 +36,35 @@ const lcTimeSchema = z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, {
 const studyStudentNumberSchema = z.string().trim().refine(isValidStudyStudentNumber, {
   message: INVALID_STUDY_STUDENT_NUMBER_MESSAGE,
 });
+
+const optionalContentUrl = z
+  .string()
+  .trim()
+  .max(15 * 1024 * 1024)
+  .refine(
+    (val) => !val || val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/") || val.startsWith("data:"),
+    { message: "Informe uma URL válida ou áudio." },
+  )
+  .nullable()
+  .optional();
+const bugleCallFields = {
+  name: z.string().trim().min(1).max(255),
+  audioUrl: optionalContentUrl,
+  iconKey: z.string().trim().min(1).max(64).default("music"),
+  troopState: z.string().trim().max(120).nullable().optional(),
+  category: z.string().trim().min(1).max(100).default("geral"),
+  sourceUrl: optionalContentUrl,
+  sortOrder: z.number().int().min(0).max(10000).default(0),
+  isActive: z.boolean().default(true),
+};
+const marchFields = {
+  title: z.string().trim().min(1).max(255),
+  composer: z.string().trim().max(255).nullable().optional(),
+  audioUrl: optionalContentUrl,
+  sourceUrl: optionalContentUrl,
+  sortOrder: z.number().int().min(0).max(10000).default(0),
+  isActive: z.boolean().default(true),
+};
 
 const cfapPersonnelInputSchema = z.object({
   category: z.enum(["comando", "administracao", "corpo_alunos", "apoio"]),
@@ -57,10 +88,23 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
+const MAX_VOICE_AUTHOR_PHOTO_SIZE = 8 * 1024 * 1024;
 const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
-  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm",
-  "audio/mp4", "audio/x-m4a", "audio/aac", "audio/flac",
+  "audio/mpeg", "audio/mp3", "audio/x-mp3", "audio/wav", "audio/x-wav", "audio/wave",
+  "audio/ogg", "audio/webm", "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
+  "audio/x-aac", "audio/flac", "application/octet-stream",
 ]);
+const VOICE_AUTHOR_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function voiceProfileKey(authorName: string) {
+  return authorName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100) || "default";
+}
 const BAIXADO_DOCUMENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/png",
@@ -1044,6 +1088,36 @@ export const appRouter = router({
   }),
 
   ordemUnidaAudio: router({
+    listVoiceProfiles: publicProcedure.query(async () => {
+      return ordemUnidaAudioDb.listVoiceProfiles(true);
+    }),
+    saveVoiceProfile: masterProcedure.input(z.object({
+      name: z.string().trim().min(2).max(255),
+      photoFileName: z.string().trim().max(255).nullable().optional(),
+      photoMimeType: z.string().trim().max(100).nullable().optional(),
+      photoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
+      photoFileData: z.string().nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      if (!(await isXerifeGeral(ctx.user))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de voz restrito ao comando geral" });
+      }
+      const profileKey = voiceProfileKey(input.name);
+      let photoUrl: string | null = null;
+      if (input.photoFileData) {
+        const mimeType = input.photoMimeType?.toLowerCase() || "";
+        if (!VOICE_AUTHOR_PHOTO_MIME_TYPES.has(mimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A foto deve ser JPG, PNG ou WEBP" });
+        }
+        const photoBuffer = Buffer.from(input.photoFileData, "base64");
+        if (!photoBuffer.length || photoBuffer.length !== input.photoFileSize || photoBuffer.length > MAX_VOICE_AUTHOR_PHOTO_SIZE) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Foto do militar inválida" });
+        }
+        const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+        const photoKey = `ordem-unida/vozes/militares/${profileKey}-${Date.now()}-${nanoid(8)}.${extension}`;
+        photoUrl = (await storagePut(photoKey, photoBuffer, mimeType)).url;
+      }
+      return ordemUnidaAudioDb.upsertVoiceProfile({ profileKey, name: input.name, photoUrl });
+    }),
     list: publicProcedure.query(async () => {
       return ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
     }),
@@ -1062,12 +1136,20 @@ export const appRouter = router({
       mimeType: z.string().trim().min(1).max(100),
       fileData: z.string().min(1),
       duration: z.number().int().nonnegative().max(60 * 60 * 8).nullable().optional(),
+      voiceAuthorName: z.string().trim().max(255).nullable().optional(),
+      voiceAuthorPhotoFileName: z.string().trim().max(255).nullable().optional(),
+      voiceAuthorPhotoMimeType: z.string().trim().max(100).nullable().optional(),
+      voiceAuthorPhotoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
+      voiceAuthorPhotoFileData: z.string().nullable().optional(),
     })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
       }
       if (!ORDEM_UNIDA_AUDIO_MIME_TYPES.has(input.mimeType.toLowerCase())) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de áudio não permitido" });
+      }
+      if (input.itemType === "voz" && !input.voiceAuthorName) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Informe o nome do militar autor da voz" });
       }
 
       const buffer = Buffer.from(input.fileData, "base64");
@@ -1078,6 +1160,20 @@ export const appRouter = router({
       const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "audio";
       const fileKey = `ordem-unida/${input.itemType}/${input.itemId}-${Date.now()}-${nanoid(10)}-${safeFileName}`;
       const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      let voiceAuthorPhotoUrl: string | null = null;
+      if (input.itemType === "voz" && input.voiceAuthorPhotoFileData) {
+        const photoMimeType = input.voiceAuthorPhotoMimeType?.toLowerCase() || "";
+        if (!VOICE_AUTHOR_PHOTO_MIME_TYPES.has(photoMimeType)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A foto deve ser JPG, PNG ou WEBP" });
+        }
+        const photoBuffer = Buffer.from(input.voiceAuthorPhotoFileData, "base64");
+        if (!photoBuffer.length || photoBuffer.length !== input.voiceAuthorPhotoFileSize || photoBuffer.length > MAX_VOICE_AUTHOR_PHOTO_SIZE) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Foto do militar inválida" });
+        }
+        const extension = photoMimeType === "image/png" ? "png" : photoMimeType === "image/webp" ? "webp" : "jpg";
+        const photoKey = `ordem-unida/vozes/militares/${voiceProfileKey(input.voiceAuthorName || "default")}-${Date.now()}-${nanoid(8)}.${extension}`;
+        voiceAuthorPhotoUrl = (await storagePut(photoKey, photoBuffer, photoMimeType)).url;
+      }
       const audio = await ordemUnidaAudioDb.upsertOrdemUnidaAudio({
         itemId: input.itemId,
         itemTitle: input.itemTitle,
@@ -1088,15 +1184,25 @@ export const appRouter = router({
         fileSize: input.fileSize,
         mimeType: input.mimeType,
         duration: input.duration,
+        voiceProfileKey: input.itemType === "voz" ? voiceProfileKey(input.voiceAuthorName || "default") : "default",
+        voiceAuthorName: input.itemType === "voz" ? input.voiceAuthorName : null,
+        voiceAuthorPhotoUrl,
         uploadedBy: ctx.user.id,
       });
+      if (input.itemType === "voz" && input.voiceAuthorName) {
+        await ordemUnidaAudioDb.upsertVoiceProfile({
+          profileKey: voiceProfileKey(input.voiceAuthorName),
+          name: input.voiceAuthorName,
+          photoUrl: voiceAuthorPhotoUrl,
+        });
+      }
       return { success: true, audio };
     }),
-    deactivate: masterProcedure.input(z.object({ itemId: z.string().trim().min(1).max(128) })).mutation(async ({ ctx, input }) => {
+    deactivate: masterProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
       }
-      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.itemId);
+      await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(input.id);
       return { success: true };
     }),
   }),
@@ -1124,6 +1230,8 @@ export const appRouter = router({
       difficulty: z.enum(["basico", "intermediario", "avancado"]).default("intermediario"),
       duration: z.number().optional(),
       videoUrl: z.string().optional(),
+      youtubeUrl: z.string().optional(),
+      cornettaAudioUrl: z.string().optional(),
       pdfUrl: z.string().optional(),
       imageUrl: z.string().optional(),
       content: z.string().optional(),
@@ -1143,6 +1251,8 @@ export const appRouter = router({
       difficulty: z.enum(["basico", "intermediario", "avancado"]).optional(),
       duration: z.number().optional(),
       videoUrl: z.string().nullable().optional(),
+      youtubeUrl: z.string().nullable().optional(),
+      cornettaAudioUrl: z.string().nullable().optional(),
       pdfUrl: z.string().nullable().optional(),
       imageUrl: z.string().nullable().optional(),
       content: z.string().optional(),
@@ -1178,6 +1288,94 @@ export const appRouter = router({
       await db.updateDrill(input.drillId, updateData);
       return { success: true, url };
     }),
+  }),
+
+  buglePanel: router({
+    list: publicProcedure.query(async () => ({
+      calls: await bugleDb.listBugleCalls(true),
+      marches: await bugleDb.listMarches(true),
+    })),
+    listAll: masterProcedure.query(async () => ({
+      calls: await bugleDb.listBugleCalls(false),
+      marches: await bugleDb.listMarches(false),
+    })),
+    createCall: masterProcedure
+      .input(z.object(bugleCallFields))
+      .mutation(async ({ input }) => ({ id: await bugleDb.createBugleCall(input) })),
+    updateCall: masterProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        name: bugleCallFields.name.optional(),
+        audioUrl: optionalContentUrl,
+        iconKey: bugleCallFields.iconKey.optional(),
+        troopState: bugleCallFields.troopState,
+        category: bugleCallFields.category.optional(),
+        sourceUrl: optionalContentUrl,
+        sortOrder: bugleCallFields.sortOrder.optional(),
+        isActive: bugleCallFields.isActive.optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await bugleDb.updateBugleCall(id, data);
+        return { success: true };
+      }),
+    deleteCall: masterProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        await bugleDb.deleteBugleCall(input.id);
+        return { success: true };
+      }),
+    createMarch: masterProcedure
+      .input(z.object(marchFields))
+      .mutation(async ({ input }) => ({ id: await bugleDb.createMarch(input) })),
+    updateMarch: masterProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        title: marchFields.title.optional(),
+        composer: marchFields.composer,
+        audioUrl: optionalContentUrl,
+        sourceUrl: optionalContentUrl,
+        sortOrder: marchFields.sortOrder.optional(),
+        isActive: marchFields.isActive.optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await bugleDb.updateMarch(id, data);
+        return { success: true };
+      }),
+    deleteMarch: masterProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        await bugleDb.deleteMarch(input.id);
+        return { success: true };
+      }),
+    uploadAudio: masterProcedure
+      .input(z.object({
+        kind: z.enum(["call", "march"]),
+        id: z.number().int().positive(),
+        fileData: z.string().min(1).max(80 * 1024 * 1024),
+        fileName: z.string().trim().min(1).max(255),
+      }))
+      .mutation(async ({ input }) => {
+        const validFormats = new Set(["mp3", "wav", "ogg", "m4a", "aac", "webm"]);
+        const ext = input.fileName.split(".").pop()?.toLowerCase() || "";
+        if (!validFormats.has(ext)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Use um áudio MP3, WAV, OGG, M4A, AAC ou WEBM." });
+        }
+        const buffer = Buffer.from(input.fileData, "base64");
+        if (buffer.length === 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo de áudio está vazio ou inválido." });
+        }
+        if (buffer.length > 50 * 1024 * 1024) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "O áudio deve ter no máximo 50 MB." });
+        }
+        const mimeType = `audio/${ext === "mp3" ? "mpeg" : ext}`;
+        const folder = input.kind === "call" ? "calls" : "marches";
+        const { url } = await storagePut(`bugle/${folder}/${input.id}-${nanoid(8)}.${ext}`, buffer, mimeType);
+        if (input.kind === "call") await bugleDb.updateBugleCall(input.id, { audioUrl: url });
+        else await bugleDb.updateMarch(input.id, { audioUrl: url });
+        return { success: true, url };
+      }),
   }),
 
   blog: router({
@@ -2575,6 +2773,18 @@ export const appRouter = router({
       return serviceScaleDb.listStudentLcCases(input.studentId);
     }),
 
+    foCodeBalance: scaleManagerProcedure.input(
+      z.object({
+        studentId: z.number().int(),
+        foCode: z.string().trim().min(1).max(32),
+      })
+    ).query(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
+      return serviceScaleDb.getFoCodeBalance(student.id, input.foCode);
+    }),
+
     pendingStudentObservations: masterProcedure.input(
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
@@ -2895,7 +3105,50 @@ export const appRouter = router({
    * Nao alterar deliberadamente estas rotas sem autorizacao explicita do dono do projeto.
    * Preservar regras de escopo, fechamento, liberacao, chegada tardia, justificativa e revisao pelo Xerife Geral.
    */
+  administrativeDaily: router({
+    list: scaleManagerProcedure.input(z.object({ date: z.string().trim().length(10) })).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      return administrativeDailyDb.listAdministrativeDaily(input.date, scope.unrestricted ? undefined : scope.companhia ?? undefined, scope.unrestricted ? undefined : scope.peloton ?? undefined);
+    }),
+    openPendings: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      return administrativeDailyDb.listOpenAdministrativePendings(scope.unrestricted ? undefined : scope.companhia ?? undefined, scope.unrestricted ? undefined : scope.peloton ?? undefined);
+    }),
+    peculioSummary: scaleManagerProcedure.input(z.object({ date: z.string().trim().length(10) })).query(async ({ ctx, input }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
+      const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const rows = await peculioDb.listPeculioSummaries(input.date);
+      return rows.filter((row) => scope.unrestricted || (row.companhia === scope.companhia && (!scope.peloton || row.peloton === scope.peloton)));
+    }),
+    weeklyConfig: scaleManagerProcedure.query(async ({ ctx }) => {
+      const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id); const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
+      const rows = await administrativeDailyDb.listWeeklyConfig();
+      return rows.filter((row) => scope.unrestricted || (row.companhia === scope.companhia && (!scope.peloton || row.peloton === scope.peloton)));
+    }),
+    saveWeeklyConfig: scaleManagerProcedure.input(z.object({ companhia: z.number().int().min(1).max(5), peloton: z.number().int().min(1).max(2), ranchWeekdays: z.array(z.number().int().min(0).max(6)), lunchWeekdays: z.array(z.number().int().min(0).max(6)), snackWeekdays: z.array(z.number().int().min(0).max(6)) })).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return administrativeDailyDb.saveWeeklyConfig({ ...input, updatedBy: ctx.user.id });
+    }),
+    save: scaleManagerProcedure.input(z.object({
+      date: z.string().trim().length(10), companhia: z.number().int().min(1).max(5), peloton: z.number().int().min(1).max(2),
+      locationStatus: z.enum(["sala", "fora_sala", "formatura", "rancho", "dispensado"]),
+      formationStatus: z.enum(["nao_informado", "nao_houve", "prevista", "realizada"]),
+      lunchStatus: z.enum(["nao_informado", "aguardando", "avancou", "concluido"]),
+      snackStatus: z.enum(["nao_informado", "aguardando", "concluido"]), ranchAdvance: z.boolean(),
+      punishmentSummary: z.string().max(2000).nullable(), factsSummary: z.string().max(4000).nullable(), pendingSummary: z.string().max(2000).nullable(), pendingResolved: z.boolean(),
+    })).mutation(async ({ ctx, input }) => {
+      await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      return administrativeDailyDb.saveAdministrativeDaily({ ...input, updatedBy: ctx.user.id });
+    }),
+  }),
+
   peculio: router({
+    history: masterProcedure.input(
+      z.object({ limit: z.number().int().min(1).max(365).optional() }).optional()
+    ).query(async ({ input }) => peculioDb.listPeculioHistory(input?.limit ?? 90)),
+
     list: masterProcedure.input(
       z.object({
         date: z.string().trim().min(10).max(10),
@@ -3389,7 +3642,7 @@ export const appRouter = router({
         studentObservationId: z.number().int(),
         fileName: z.string().trim().min(1).max(255),
         fileSize: z.number().int().min(1),
-        mimeType: z.string().trim().min(1).max(100),
+        mimeType: z.string().trim().max(100).default(""),
         fileData: z.string(), // Base64 encoded file data
       })
     ).mutation(async ({ ctx, input }) => {
@@ -3402,13 +3655,22 @@ export const appRouter = router({
 
       // Validar tipo de arquivo
       const validTypes = [
-        "image/jpeg", "image/png", "image/webp", "image/gif",
+        "image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif",
         "video/mp4", "video/webm", "video/quicktime",
         "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
         "application/pdf", "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ];
-      if (!validTypes.includes(input.mimeType)) {
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "";
+      const inferredMimeType =
+        input.mimeType ||
+        (extension === "jpg" || extension === "jpeg" ? "image/jpeg" :
+        extension === "png" ? "image/png" :
+        extension === "webp" ? "image/webp" :
+        extension === "gif" ? "image/gif" :
+        extension === "heic" ? "image/heic" :
+        extension === "heif" ? "image/heif" : "");
+      if (!validTypes.includes(inferredMimeType)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não permitido" });
       }
 
@@ -3426,16 +3688,16 @@ export const appRouter = router({
 
       // Determinar tipo de prova
       let proofType: "foto" | "video" | "audio" | "documento" = "documento";
-      if (input.mimeType.startsWith("image/")) proofType = "foto";
-      else if (input.mimeType.startsWith("video/")) proofType = "video";
-      else if (input.mimeType.startsWith("audio/")) proofType = "audio";
+      if (inferredMimeType.startsWith("image/")) proofType = "foto";
+      else if (inferredMimeType.startsWith("video/")) proofType = "video";
+      else if (inferredMimeType.startsWith("audio/")) proofType = "audio";
 
       // Upload para S3
       const safeFileName = input.fileName
         .replace(/[^a-zA-Z0-9._-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "prova";
       const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${safeFileName}`;
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      const { url } = await storagePut(fileKey, buffer, inferredMimeType);
 
       // Salvar no banco de dados
       const provaId = await foDb.createFatoObservadoProva({
@@ -3444,7 +3706,7 @@ export const appRouter = router({
         tipo: proofType,
         nomeArquivo: input.fileName,
         tamanho: input.fileSize,
-        mimeType: input.mimeType,
+        mimeType: inferredMimeType,
         criadoPor: ctx.user.id,
       });
 

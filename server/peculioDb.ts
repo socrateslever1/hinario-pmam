@@ -365,6 +365,31 @@ export async function listPeculioSummaries(date: string) {
   return summaries;
 }
 
+export async function listPeculioHistory(limit = 90) {
+  await ensurePeculioTables();
+  const rows = await query(`
+    SELECT
+      r.date,
+      COUNT(DISTINCT CONCAT(r.companhia, '-', r.peloton)) AS scopes,
+      COUNT(DISTINCT CASE WHEN r.closed_at IS NOT NULL THEN CONCAT(r.companhia, '-', r.peloton) END) AS closed_scopes,
+      COUNT(s.id) AS status_entries,
+      SUM(CASE WHEN s.status IN ('falta', 'atraso') THEN 1 ELSE 0 END) AS pending_entries
+    FROM pmam_peculio_reports r
+    LEFT JOIN pmam_peculio_student_statuses s ON s.report_id = r.id
+    GROUP BY r.date
+    ORDER BY r.date DESC
+    LIMIT ?
+  `, [Math.max(1, Math.min(365, limit))]);
+
+  return rows.map((row: any) => ({
+    date: toDateOnly(row.date),
+    scopes: Number(row.scopes) || 0,
+    closedScopes: Number(row.closed_scopes) || 0,
+    statusEntries: Number(row.status_entries) || 0,
+    pendingEntries: Number(row.pending_entries) || 0,
+  }));
+}
+
 export async function savePeculioReport(input: {
   companhia: number;
   peloton: number;

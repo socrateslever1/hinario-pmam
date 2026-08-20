@@ -22,7 +22,7 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { BlogManagementPanel } from "@/components/BlogManagementPanel";
 
 // Importando os subcomponentes modulares
-import { DrillForm } from "@/components/admin/DrillForm";
+import { BuglePanelAdmin } from "@/components/admin/BuglePanelAdmin";
 import { HymnForm } from "@/components/admin/HymnForm";
 import { MissionForm } from "@/components/admin/MissionForm";
 import { SettingsTab } from "@/components/admin/SettingsTab";
@@ -57,19 +57,19 @@ function CommandDashboardWidget() {
 
       <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Card className="border-amber-500/25 bg-amber-500/10 transition-colors hover:bg-amber-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 md:text-xs">Fatos Observados</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-amber-600" /> : <p className="mt-1 text-2xl font-black text-amber-800 dark:text-amber-100 md:text-3xl">{pendingFoQuery.data?.length ?? 0}</p>}
           </CardContent>
         </Card>
         <Card className="border-red-500/25 bg-red-500/10 transition-colors hover:bg-red-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-red-700 dark:text-red-300 md:text-xs">Licenças Caçadas</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-red-600" /> : <p className="mt-1 text-2xl font-black text-red-800 dark:text-red-100 md:text-3xl">{lcCasesQuery.data?.length ?? 0}</p>}
           </CardContent>
         </Card>
         <Card className="border-blue-500/25 bg-blue-500/10 transition-colors hover:bg-blue-500/20">
-          <CardContent className="p-3 text-center md:p-4">
+          <CardContent className="p-2.5 text-center md:p-3">
             <p className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-300 md:text-xs">Documentos Oficiais</p>
             {loading ? <Loader2 className="mx-auto mt-2 h-6 w-6 animate-spin text-blue-600" /> : <p className="mt-1 text-2xl font-black text-blue-800 dark:text-blue-100 md:text-3xl">{partesQuery.data?.length ?? 0}</p>}
           </CardContent>
@@ -88,10 +88,7 @@ export default function Admin() {
   const [missionDialogOpen, setMissionDialogOpen] = useState(false);
   const [editingHymn, setEditingHymn] = useState<any>(null);
   const [editingMission, setEditingMission] = useState<any>(null);
-  const [editingDrill, setEditingDrill] = useState<any>(null);
-  const [drillDialogOpen, setDrillDialogOpen] = useState(false);
   const [hymnSearchTerm, setHymnSearchTerm] = useState("");
-  const [drillSearchTerm, setDrillSearchTerm] = useState("");
 
   const isAdminOrMaster = isAuthenticated && (user?.role === "admin" || user?.role === "master");
   const { data: scaleAccess, isLoading: scaleAccessLoading } = trpc.serviceScale.myAccess.useQuery(undefined, {
@@ -157,7 +154,6 @@ export default function Admin() {
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
   const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isXerifeGeral === true });
   const { data: missions } = trpc.missions.listAll.useQuery(undefined, { enabled: canManagePlatoonContent === true });
-  const { data: drills } = trpc.drill.listAll.useQuery(undefined, { enabled: canManageGlobalContent === true });
 
   const utils = trpc.useUtils();
   const deleteHymn = trpc.hymns.delete.useMutation({
@@ -186,11 +182,6 @@ export default function Admin() {
     },
   });
   const toggleMission = trpc.missions.update.useMutation({ onSuccess: () => { utils.missions.invalidate(); } });
-  const deleteDrill = trpc.drill.delete.useMutation({
-    onSuccess: () => { toast.success("Ordem Unida removida"); utils.drill.invalidate(); utils.admin.invalidate(); },
-    onError: (e) => toast.error(e.message),
-  });
-  const toggleDrill = trpc.drill.update.useMutation({ onSuccess: () => { utils.drill.invalidate(); } });
 
   const handleLogout = async () => {
     await logout();
@@ -358,7 +349,6 @@ export default function Admin() {
               {(canManageGlobalContent || isComandante) && (
                 <>
                   <TabsTrigger value="drill" className="gap-2"><Target className="h-4 w-4" /> Ordem Unida</TabsTrigger>
-                  {canManageGlobalContent && <TabsTrigger value="ordem_unida_audio" className="gap-2"><Volume2 className="h-4 w-4" /> Áudios O.U.</TabsTrigger>}
                   <TabsTrigger value="grades" className="gap-2"><GraduationCap className="h-4 w-4" /> Notas</TabsTrigger>
                   <TabsTrigger value="documents" className="gap-2"><FileText className="h-4 w-4" /> Documentos</TabsTrigger>
                 </>
@@ -597,74 +587,8 @@ export default function Admin() {
             </TabsContent>
 
             {/* DRILL (ORDEM UNIDA) TAB */}
-            {canManageGlobalContent && <TabsContent value="ordem_unida_audio"><OrdemUnidaAudioManager /></TabsContent>}
-
             <TabsContent value="drill">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-bold text-foreground">Gerenciar Ordem Unida</h2>
-                <Dialog open={drillDialogOpen} onOpenChange={(o) => { setDrillDialogOpen(o); if (!o) setEditingDrill(null); }}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full bg-[#1a3a2a] text-white gap-2 sm:w-auto" onClick={() => setEditingDrill(null)}>
-                      <Plus className="h-4 w-4" /> Novo Movimento
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
-                    <DialogHeader>
-                      <DialogTitle>{editingDrill ? "Editar Ordem Unida" : "Nova Instrução de Ordem Unida"}</DialogTitle>
-                      <DialogDescription>Crie instruções contendo títulos, categorias, instrutores e recursos de mídia.</DialogDescription>
-                    </DialogHeader>
-                    <DrillForm key={editingDrill?.id ?? "new"} drill={editingDrill} onSuccess={() => setDrillDialogOpen(false)} />
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* Search Filter for Admin */}
-              <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-[#1a3a2a]" />
-                <Input
-                  placeholder="Buscar ordem unida por título, categoria ou instrutor..."
-                  className="pl-10 border-border/50 focus-visible:ring-[#1a3a2a] transition-all"
-                  value={drillSearchTerm}
-                  onChange={(e) => setOriginalDrillSearchTerm(e)}
-                />
-              </div>
-
-              {drills && (
-                <div className="space-y-2">
-                  {drills
-                    .filter((drill: any) => {
-                      const term = drillSearchTerm.toLowerCase();
-                      return (
-                        drill.title.toLowerCase().includes(term) ||
-                        drill.category?.toLowerCase().includes(term) ||
-                        drill.instructor?.toLowerCase().includes(term)
-                      );
-                    })
-                    .map((drill: any) => (
-                    <Card key={drill.id} className="border-border/50">
-                      <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm truncate">{drill.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{drill.category} {drill.instructor ? `• ${drill.instructor}` : ""}</p>
-                        </div>
-                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                          {drill.videoUrl && <Youtube className="h-4 w-4 text-red-500" />}
-                          {drill.pdfUrl && <FileText className="h-4 w-4 text-blue-600" />}
-                          {drill.imageUrl && <Music className="h-4 w-4 text-green-600" />}
-                          <Switch checked={drill.isActive} onCheckedChange={(checked) => toggleDrill.mutate({ id: drill.id, isActive: checked })} />
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingDrill(drill); setDrillDialogOpen(true); }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive"
-                            onClick={() => { if (confirm("Remover esta ordem unida?")) deleteDrill.mutate({ id: drill.id }); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              <BuglePanelAdmin />
             </TabsContent>
 
             {/* BLOG/COMUNICADOS TAB */}
@@ -719,8 +643,4 @@ export default function Admin() {
       <Footer />
     </div>
   );
-
-  function setOriginalDrillSearchTerm(e: React.ChangeEvent<HTMLInputElement>) {
-    setDrillSearchTerm(e.target.value);
-  }
 }

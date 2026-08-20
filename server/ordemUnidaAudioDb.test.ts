@@ -26,9 +26,7 @@ describe("ordemUnidaAudioDb", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("lista e converte os áudios ativos para o painel de execução", async () => {
-    (query as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([audioRow]);
+    (query as any).mockResolvedValueOnce([audioRow]);
 
     const audios = await ordemUnidaAudioDb.listActiveOrdemUnidaAudios();
 
@@ -39,6 +37,20 @@ describe("ordemUnidaAudioDb", () => {
       audioUrl: "/manus-storage/ordem-unida/sentido.mp3",
       isActive: true,
     })]);
+  });
+
+  it("salva um perfil de militar separado dos comandos de voz", async () => {
+    (query as any)
+      .mockResolvedValueOnce({ affectedRows: 1 })
+      .mockResolvedValueOnce([{ profile_key: "2-sgt-silva", name: "2º SGT Silva", photo_url: "/silva.webp", is_active: 1 }]);
+
+    const profile = await ordemUnidaAudioDb.upsertVoiceProfile({
+      profileKey: "2-sgt-silva",
+      name: "2º SGT Silva",
+      photoUrl: "/silva.webp",
+    });
+
+    expect(profile).toEqual({ profileKey: "2-sgt-silva", name: "2º SGT Silva", photoUrl: "/silva.webp", isActive: true });
   });
 
   it("vincula um novo arquivo ao item e preserva apenas uma versão ativa por toque", async () => {
@@ -69,11 +81,11 @@ describe("ordemUnidaAudioDb", () => {
   it("desativa o vínculo sem apagar o registro de auditoria", async () => {
     (query as any).mockResolvedValueOnce({ affectedRows: 1 });
 
-    await ordemUnidaAudioDb.deactivateOrdemUnidaAudio("corneta-sentido");
+    await ordemUnidaAudioDb.deactivateOrdemUnidaAudio(7);
 
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining("SET is_active = 0"),
-      ["corneta-sentido"],
+      [7],
     );
   });
 });
