@@ -3,10 +3,6 @@ pages_build_output_dir = "dist/public"
 compatibility_date = "2026-08-20"
 compatibility_flags = ["nodejs_compat"]
 
-[[r2_buckets]]
-binding = "UPLOADS_BUCKET"
-bucket_name = "cfap2026-uploads"
-
 [vars]
 # Configure essas variáveis pelo painel do Cloudflare:
 # Workers & Pages -> cfap2026 -> Settings -> Environment Variables
