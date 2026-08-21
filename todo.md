@@ -308,8 +308,8 @@
 ### Fase 3: Lógica de Restrição
 - [x] Implementar visualização de pelotões baseada em role
 - [x] Implementar restrição de edição baseada em role
-- [ ] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
-- [ ] Implementar anotações (positivas/negativas) para alunos
+- [x] Implementar restrição de hinos (nunca editar/excluir para ninguém exceto admin)
+- [x] Implementar anotações (positivas/negativas) para alunos
 
 ### Fase 4: Obrigatoriedade de Trocar Senha
 - [x] Implementar verificação de `forcePasswordChange` no login
@@ -317,12 +317,12 @@
 - [x] Atualizar `forcePasswordChange` para false após trocar senha
 
 ### Fase 5: Testes
-- [ ] Testar login de Comandante de Pelotão
-- [ ] Testar login de Comandante de Companhia
-- [ ] Testar login de Comandante do Corpo de Alunos
-- [ ] Testar login de Comandante CFAP
+- [x] Testar login de Comandante de Pelotão
+- [x] Testar login de Comandante de Companhia
+- [x] Testar login de Comandante do Corpo de Alunos
+- [x] Testar login de Comandante CFAP
 - [x] Testar restrições de visualização e edição
-- [ ] Testar obrigatoriedade de trocar senha no primeiro login
+- [x] Testar obrigatoriedade de trocar senha no primeiro login
 
 
 ## 📸 UPLOAD DE PROVAS PARA FATO OBSERVADO (FO+/FO-)
@@ -367,16 +367,16 @@
 - [x] Simplificar ou substituir a guia Efetivo da Sala Administrativa
 - [x] Reduzir os cards de indicadores e avisos excessivamente altos na Sala Administrativa
 - [x] Redesenhar Ordem Unida com painel rápido por toque para cornetas, dobrados e atalhos
-- [ ] Permitir baixar e manter em cache os conteúdos da Ordem Unida no celular
+- [x] Permitir baixar e manter em cache os conteúdos da Ordem Unida no celular
 - [x] Aprimorar a movimentação visual das cadeiras no mapa da sala
 - [x] Destacar o botão de Fato Observado com um sinal visual discreto
 - [x] Verificar abertura automática dos serviços e a consulta de Pécúlios anteriores
 - [x] Substituir integralmente a página de Ordem Unida por um painel único de botões touch
 - [x] Criar uma faixa de acesso rápido personalizável para a sessão atual
 - [x] Organizar os 51 toques da referência em botões de corneta, dobrados e vozes de comando
-- [ ] Permitir fixar, remover e reproduzir itens no acesso rápido local
-- [ ] Oferecer download e cache local dos áudios disponíveis para uso offline
-- [ ] Preparar testes para a seleção, favoritos e reprodução do painel
+- [x] Permitir fixar, remover e reproduzir itens no acesso rápido local
+- [x] Oferecer download e cache local dos áudios disponíveis para uso offline
+- [x] Preparar testes para a seleção, favoritos e reprodução do painel
 - [x] Criar testes para o catálogo e os favoritos locais do painel de Ordem Unida
 - [x] Exibir os Fatos Observados já homologados no escopo administrativo, além das pendências
 - [x] Conectar a guia Efetivo à lista real de alunos do escopo de comando
