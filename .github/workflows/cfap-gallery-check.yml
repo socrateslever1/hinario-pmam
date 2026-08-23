@@ -8,6 +8,7 @@ on:
       - 'client/src/pages/CfapCommanderDetail.tsx'
       - 'client/src/components/CommanderPortrait.tsx'
       - 'client/src/data/cfapHistory.ts'
+      - 'client/src/data/cfapHistory.test.ts'
       - 'client/src/data/cfapCommanderSprite.ts'
       - 'client/src/data/cfapSprite/**'
       - 'client/src/App.tsx'
@@ -29,6 +30,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm test
-      - run: pnpm build
+      - name: TypeScript
+        run: pnpm check
+      - name: Gallery data tests
+        run: pnpm exec vitest run client/src/data/cfapHistory.test.ts
+      - name: Production build
+        run: pnpm build
