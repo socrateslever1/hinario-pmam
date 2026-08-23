@@ -1,0 +1,38 @@
+name: Validate CFAP Gallery
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'client/src/pages/CfapHistory.tsx'
+      - 'client/src/pages/CfapCommanderDetail.tsx'
+      - 'client/src/components/CommanderPortrait.tsx'
+      - 'client/src/data/cfapHistory.ts'
+      - 'client/src/data/cfapHistory.test.ts'
+      - 'client/src/data/cfapCommanderSprite.ts'
+      - 'client/src/data/cfapSprite/**'
+      - 'client/src/App.tsx'
+      - 'client/src/components/BottomNavigation.tsx'
+      - 'client/src/components/Footer.tsx'
+      - '.github/workflows/cfap-gallery-check.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm check
+      - name: Gallery data tests
+        run: pnpm exec vitest run client/src/data/cfapHistory.test.ts
+      - name: Production build
+        run: pnpm build
