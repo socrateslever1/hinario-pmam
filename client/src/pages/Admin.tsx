@@ -15,7 +15,7 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2, Volume2
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2, Volume2, History
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -35,6 +35,7 @@ import { AccessManagement } from "./AccessManagement";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { UserProfileTab } from "@/components/admin/UserProfileTab";
 import { OrdemUnidaAudioManager } from "@/components/admin/OrdemUnidaAudioManager";
+import { CfapHistoryTab } from "@/components/admin/CfapHistoryTab";
 
 function CommandDashboardWidget() {
   const pendingFoQuery = trpc.serviceScale.pendingStudentObservations.useQuery({});
@@ -373,6 +374,7 @@ export default function Admin() {
               
               {canManageGlobalContent && (
                 <>
+                  <TabsTrigger value="cfap_history" className="gap-2"><History className="h-4 w-4" /> Memória Histórica</TabsTrigger>
                   <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
                   <TabsTrigger value="access" className="gap-2"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>
                 </>
@@ -605,6 +607,12 @@ export default function Admin() {
             {(canManageGlobalContent || isComandante) && (
               <TabsContent value="cfap_personnel">
                 <CfapPersonnelTab />
+              </TabsContent>
+            )}
+
+            {canManageGlobalContent && (
+              <TabsContent value="cfap_history">
+                <CfapHistoryTab />
               </TabsContent>
             )}
 

@@ -1,16 +1,38 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Shield, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Film, Shield, UserRound } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CommanderPortrait } from "@/components/CommanderPortrait";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CFAP_COMMANDERS, CFAP_HISTORY_SOURCE, getCfapCommander } from "@/data/cfapHistory";
+import { CFAP_HISTORY_SOURCE, getCfapCommander, mergeCfapCommanders } from "@/data/cfapHistory";
+import { trpc } from "@/lib/trpc";
+import { useMemo } from "react";
+
+function getVideoEmbedUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.hostname === "youtu.be") return `https://www.youtube-nocookie.com/embed/${url.pathname.slice(1)}`;
+    if (url.hostname.endsWith("youtube.com")) {
+      const id = url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).at(-1);
+      return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+    }
+    if (url.hostname.endsWith("vimeo.com")) {
+      const id = url.pathname.split("/").filter(Boolean).at(-1);
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 export default function CfapCommanderDetail() {
   const params = useParams<{ slug: string }>();
-  const commander = getCfapCommander(params.slug);
+  const historyQuery = trpc.cfapHistory.list.useQuery(undefined, { retry: false });
+  const commanders = useMemo(() => mergeCfapCommanders(historyQuery.data ?? []), [historyQuery.data]);
+  const commander = getCfapCommander(params.slug, commanders);
 
   if (!commander) {
     return (
@@ -31,9 +53,9 @@ export default function CfapCommanderDetail() {
     );
   }
 
-  const index = CFAP_COMMANDERS.findIndex((item) => item.slug === commander.slug);
-  const previous = index > 0 ? CFAP_COMMANDERS[index - 1] : undefined;
-  const next = index >= 0 && index < CFAP_COMMANDERS.length - 1 ? CFAP_COMMANDERS[index + 1] : undefined;
+  const index = commanders.findIndex((item) => item.slug === commander.slug);
+  const previous = index > 0 ? commanders[index - 1] : undefined;
+  const next = index >= 0 && index < commanders.length - 1 ? commanders[index + 1] : undefined;
   const hasSpecificHistory = Boolean(commander.highlights?.length);
 
   return (
@@ -53,7 +75,7 @@ export default function CfapCommanderDetail() {
           <div className="container mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
             <div>
               <div className="overflow-hidden rounded-3xl border border-[#c4a84b]/25 bg-white shadow-2xl shadow-black/25">
-                <CommanderPortrait portraitIndex={commander.portraitIndex} name={commander.name} />
+                <CommanderPortrait portraitIndex={commander.portraitIndex} portraitUrl={commander.portraitUrl} name={commander.name} />
               </div>
               {commander.portraitIndex === undefined && (
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-white/42">
@@ -108,8 +130,36 @@ export default function CfapCommanderDetail() {
                       A relação histórica publicada registra {commander.rank} {commander.name} no período acima. O artigo-base não individualiza outros atos administrativos ou feitos específicos desta gestão; por isso, a Galeria Digital não acrescenta biografia ou realizações sem respaldo documental.
                     </div>
                   )}
+                  {commander.biography && (
+                    <p className="mt-5 border-t border-white/10 pt-5 text-sm leading-7 text-white/70">
+                      {commander.biography}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
+
+              {Boolean(commander.videos?.length) && (
+                <Card className="mt-4 border-white/10 bg-[#081722] text-white">
+                  <CardContent className="p-5 md:p-6">
+                    <div className="mb-4 flex items-center gap-2 text-[#d6bd66]"><Film className="h-5 w-5" /><h2 className="font-black">Acervo audiovisual</h2></div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {commander.videos?.map((video) => {
+                        const embedUrl = getVideoEmbedUrl(video.url);
+                        return embedUrl ? (
+                          <div key={`${video.title}-${video.url}`} className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                            <iframe src={embedUrl} title={video.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="aspect-video w-full border-0" />
+                            <p className="px-3 py-2 text-xs font-bold text-white/75">{video.title}</p>
+                          </div>
+                        ) : (
+                          <a key={`${video.title}-${video.url}`} href={video.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white no-underline hover:border-[#c4a84b]/45">
+                            <span>{video.title}</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="mt-4 border-[#c4a84b]/20 bg-[#0a281c] text-white">
                 <CardContent className="p-5 md:p-6">
@@ -120,6 +170,15 @@ export default function CfapCommanderDetail() {
                       <p className="mt-2 text-xs leading-relaxed text-white/55">
                         {CFAP_HISTORY_SOURCE.title}. {CFAP_HISTORY_SOURCE.publication}. A ficha conserva as datas documentadas na relação de comandantes e os registros individualizados expressamente descritos no artigo.
                       </p>
+                      {Boolean(commander.sources?.length) && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {commander.sources?.map((source) => (
+                            <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-[#c4a84b]/25 px-3 py-1.5 text-[11px] font-bold text-[#e5c65d] no-underline">
+                              {source.title}<ExternalLink className="h-3 w-3" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>

@@ -19,6 +19,7 @@ import * as serviceScaleDb from "./serviceScaleDb";
 import * as peculioDb from "./peculioDb";
 import * as administrativeDailyDb from "./administrativeDailyDb";
 import * as cfapPersonnelDb from "./cfapPersonnelDb";
+import * as cfapHistoryDb from "./cfapHistoryDb";
 import * as officialDocumentsDb from "./officialDocumentsDb";
 import * as documentosParteDb from "./documentosParteDb";
 import * as foDb from "./foDb";
@@ -79,6 +80,28 @@ const cfapPersonnelInputSchema = z.object({
   sourceDocument: z.string().trim().max(255).nullable().optional(),
   sourceDate: z.string().trim().max(10).nullable().optional(),
   notes: z.string().trim().max(4000).nullable().optional(),
+});
+
+const cfapHistoryLinkSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  url: z.string().trim().url().max(2000),
+});
+const cfapHistoryInputSchema = z.object({
+  slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(160),
+  rank: z.string().trim().min(2).max(80),
+  name: z.string().trim().min(3).max(255),
+  periods: z.array(z.string().trim().min(3).max(120)).min(1).max(8),
+  portraitUrl: z.string().trim().max(15 * 1024 * 1024).refine(
+    (value) => !value || value.startsWith("/") || value.startsWith("https://") || value.startsWith("data:image/"),
+    { message: "Informe uma imagem local, HTTPS ou data URL válida." },
+  ).nullable(),
+  biography: z.string().trim().max(30000).nullable(),
+  highlights: z.array(z.string().trim().min(3).max(2000)).max(30),
+  videos: z.array(cfapHistoryLinkSchema).max(20),
+  sources: z.array(cfapHistoryLinkSchema).max(30),
+  inMemoriam: z.boolean(),
+  isVisible: z.boolean(),
+  sortOrder: z.number().int().min(0).max(1000),
 });
 
 const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
@@ -1940,6 +1963,19 @@ export const appRouter = router({
 
     seedInitial: masterProcedure.mutation(async ({ ctx }) => {
       return cfapPersonnelDb.seedInitialCfapPersonnel(ctx.user.id);
+    }),
+  }),
+
+  cfapHistory: router({
+    list: publicProcedure.query(async () => {
+      return cfapHistoryDb.listCfapHistoryRecords();
+    }),
+    listAdmin: masterProcedure.query(async () => {
+      return cfapHistoryDb.listCfapHistoryRecords({ includeHidden: true });
+    }),
+    upsert: masterProcedure.input(cfapHistoryInputSchema).mutation(async ({ ctx, input }) => {
+      await cfapHistoryDb.upsertCfapHistoryRecord(input, ctx.user.id);
+      return { success: true };
     }),
   }),
 

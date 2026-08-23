@@ -1,4 +1,4 @@
-const CACHE_NAME = "hinario-pmam-cache-v8";
+const CACHE_NAME = "hinario-pmam-cache-v9";
 const AUDIO_CACHE_NAME = "hinario-pmam-audio-v2";
 const AUDIO_DOWNLOAD_CONCURRENCY = 3;
 let audioSyncQueue = Promise.resolve();
@@ -47,6 +47,7 @@ const STATIC_CACHE_PATHS = [
   "/logo/",
   "/documents/",
   "/study/",
+  "/history/",
   "/uploads/",
   "/audio/",
 ];

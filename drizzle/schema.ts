@@ -198,6 +198,29 @@ export const pmamSiteSettings = mysqlTable("pmam_site_settings", {
 export type PmamSiteSetting = typeof pmamSiteSettings.$inferSelect;
 export type InsertPmamSiteSetting = typeof pmamSiteSettings.$inferInsert;
 
+export const pmamCfapHistory = mysqlTable("pmam_cfap_history", {
+  slug: varchar("slug", { length: 160 }).primaryKey(),
+  rank: varchar("rank_name", { length: 80 }).notNull(),
+  name: varchar("full_name", { length: 255 }).notNull(),
+  periodsJson: longtext("periods_json").notNull(),
+  portraitUrl: longtext("portrait_url"),
+  biography: longtext("biography"),
+  highlightsJson: longtext("highlights_json").notNull(),
+  videosJson: longtext("videos_json").notNull(),
+  sourcesJson: longtext("sources_json").notNull(),
+  inMemoriam: boolean("in_memoriam").notNull().default(false),
+  isVisible: boolean("is_visible").notNull().default(true),
+  sortOrder: int("sort_order").notNull().default(0),
+  updatedBy: int("updated_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  visibleOrderIdx: index("idx_pmam_cfap_history_visible_order").on(table.isVisible, table.sortOrder),
+}));
+
+export type PmamCfapHistory = typeof pmamCfapHistory.$inferSelect;
+export type InsertPmamCfapHistory = typeof pmamCfapHistory.$inferInsert;
+
 export const pmamStudyStudents = mysqlTable("pmam_study_students", {
   id: int("id").autoincrement().primaryKey(),
   studentNumber: varchar("student_number", { length: 64 }).notNull().unique(),

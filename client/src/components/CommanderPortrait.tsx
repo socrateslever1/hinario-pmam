@@ -1,19 +1,22 @@
 import { Shield } from "lucide-react";
-import { CFAP_COMMANDER_SPRITE } from "@/data/cfapCommanderSprite";
-
-const COLUMNS = 5;
-const ROWS = 8;
+import { useEffect, useState } from "react";
 
 export function CommanderPortrait({
   portraitIndex,
+  portraitUrl,
   name,
   className = "",
 }: {
   portraitIndex?: number;
+  portraitUrl?: string | null;
   name: string;
   className?: string;
 }) {
-  if (portraitIndex === undefined) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [portraitUrl]);
+
+  if (!portraitUrl || failed) {
     return (
       <div
         className={`relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-br from-[#10281d] via-[#1a3a2a] to-[#061019] ${className}`}
@@ -31,21 +34,14 @@ export function CommanderPortrait({
     );
   }
 
-  const column = portraitIndex % COLUMNS;
-  const row = Math.floor(portraitIndex / COLUMNS);
-  const x = (column / (COLUMNS - 1)) * 100;
-  const y = (row / (ROWS - 1)) * 100;
-
   return (
-    <div
-      className={`aspect-square bg-white bg-no-repeat ${className}`}
-      role="img"
-      aria-label={`Retrato de ${name}`}
-      style={{
-        backgroundImage: `url(${CFAP_COMMANDER_SPRITE})`,
-        backgroundSize: `${COLUMNS * 100}% ${ROWS * 100}%`,
-        backgroundPosition: `${x}% ${y}%`,
-      }}
+    <img
+      src={portraitUrl || ""}
+      alt={`Retrato de ${name}`}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+      className={`aspect-square w-full bg-white object-cover object-top ${className}`}
     />
   );
 }

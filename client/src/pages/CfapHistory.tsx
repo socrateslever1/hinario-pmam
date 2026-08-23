@@ -7,22 +7,26 @@ import { CommanderPortrait } from "@/components/CommanderPortrait";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CFAP_COMMANDERS, CFAP_HISTORY_SOURCE, CFAP_TIMELINE } from "@/data/cfapHistory";
+import { CFAP_HISTORY_SOURCE, CFAP_TIMELINE } from "@/data/cfapHistory";
+import { mergeCfapCommanders } from "@/data/cfapHistory";
+import { trpc } from "@/lib/trpc";
 
 export default function CfapHistory() {
   const [query, setQuery] = useState("");
+  const historyQuery = trpc.cfapHistory.list.useQuery(undefined, { retry: false });
+  const commanders = useMemo(() => mergeCfapCommanders(historyQuery.data ?? []), [historyQuery.data]);
 
   const filteredCommanders = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
-    if (!normalized) return CFAP_COMMANDERS;
+    if (!normalized) return commanders;
 
-    return CFAP_COMMANDERS.filter((commander) =>
+    return commanders.filter((commander) =>
       [commander.name, commander.rank, ...commander.periods]
         .join(" ")
         .toLocaleLowerCase("pt-BR")
         .includes(normalized),
     );
-  }, [query]);
+  }, [commanders, query]);
 
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#061019] text-white">
@@ -55,7 +59,7 @@ export default function CfapHistory() {
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
                 <Users className="h-5 w-5 text-[#d6bd66]" />
-                <p className="mt-3 text-2xl font-black">{CFAP_COMMANDERS.length}</p>
+                <p className="mt-3 text-2xl font-black">{commanders.length}</p>
                 <p className="text-xs text-white/55">comandantes únicos catalogados</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
@@ -125,6 +129,7 @@ export default function CfapHistory() {
                   <div className="relative overflow-hidden bg-white">
                     <CommanderPortrait
                       portraitIndex={commander.portraitIndex}
+                      portraitUrl={commander.portraitUrl}
                       name={commander.name}
                       className="transition-transform duration-500 group-hover:scale-[1.035]"
                     />

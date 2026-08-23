@@ -8,13 +8,19 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import { authenticatedFetchOptions } from "./lib/authFetchOptions";
 import { getEmailSessionToken } from "./lib/emailSession";
+import {
+  hasAttemptedDeploymentRecovery,
+  recoverFromStaleDeployment,
+} from "./lib/deploymentRecovery";
 import "./index.css";
 
 // Global listener for Vite dynamic chunk loading failures (caused by new deployments)
 if (typeof window !== "undefined") {
   window.addEventListener("vite:preloadError", (event) => {
+    if (hasAttemptedDeploymentRecovery()) return;
+    event.preventDefault();
     console.warn("[Vite] Chunk preload failed (likely new deployment). Reloading page...", event);
-    window.location.reload();
+    void recoverFromStaleDeployment();
   });
 }
 

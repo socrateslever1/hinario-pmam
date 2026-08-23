@@ -6,6 +6,12 @@ export type CfapCommander = {
   portraitIndex?: number;
   inMemoriam?: boolean;
   highlights?: string[];
+  portraitUrl?: string | null;
+  biography?: string | null;
+  videos?: { title: string; url: string }[];
+  sources?: { title: string; url: string }[];
+  isVisible?: boolean;
+  sortOrder?: number;
 };
 
 export type CfapTimelineItem = {
@@ -108,6 +114,10 @@ export const CFAP_COMMANDERS: CfapCommander[] = [
       "Conduziu a implantação das primeiras sedes e permaneceu à frente da unidade por pouco mais de três anos.",
       "Compôs a Canção do CFAP, homologada em 1983. O Campus de Ensino III posteriormente recebeu seu nome.",
     ],
+    sources: [{
+      title: "PMAM - homenagem pelos 188 anos da Corporação",
+      url: "https://pm.am.gov.br/portal/noticia/em_sessao_solene_na_aleam-18932",
+    }],
   },
   {
     slug: "raimundo-carlos-daniel-mar",
@@ -193,6 +203,10 @@ export const CFAP_COMMANDERS: CfapCommander[] = [
       "Durante sua gestão, o CFAP realizou em setembro de 2024 o retorno ao marco histórico no bairro Petrópolis, no contexto do Complexo de Ensino.",
       "A galeria fotográfica fornecida não contém retrato identificado deste registro; por isso, a página utiliza marcador institucional até que uma foto oficial seja adicionada.",
     ],
+    sources: [{
+      title: "PMAM - instrução de atualização técnico-profissional no CFAP",
+      url: "https://pm.am.gov.br/portal/noticia/policia_militar_do_amazon-18430",
+    }],
   },
 ];
 
@@ -209,6 +223,41 @@ export const CFAP_HISTORY_SOURCE = {
   ],
 };
 
-export function getCfapCommander(slug: string) {
-  return CFAP_COMMANDERS.find((commander) => commander.slug === slug);
+export const CFAP_HISTORY_ARTICLE_URL = "https://journalppc.com/RPPC/article/view/2785";
+
+export type CfapCommanderOverride = Required<Pick<CfapCommander,
+  "slug" | "rank" | "name" | "periods" | "inMemoriam" | "isVisible" | "sortOrder"
+>> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "videos" | "sources">;
+
+function defaultBiography(commander: CfapCommander) {
+  return `${commander.rank} ${commander.name} integra a sucessão histórica do comando do Centro de Formação e Aperfeiçoamento de Praças da Polícia Militar do Amazonas. A documentação reunida no artigo-base registra sua gestão em ${commander.periods.join(" e ")}. Sua passagem compõe a memória dos oficiais responsáveis pela continuidade da formação, especialização e aperfeiçoamento das praças da PMAM.`;
+}
+
+export function mergeCfapCommanders(overrides: CfapCommanderOverride[] = [], options?: { includeHidden?: boolean }) {
+  const overrideBySlug = new Map(overrides.map((item) => [item.slug, item]));
+  return CFAP_COMMANDERS
+    .map((commander, index) => {
+      const override = overrideBySlug.get(commander.slug);
+      return {
+        ...commander,
+        portraitUrl: commander.portraitIndex === undefined
+          ? null
+          : `/history/commanders/${commander.slug}.webp`,
+        biography: commander.biography ?? defaultBiography(commander),
+        videos: commander.videos ?? [],
+        sources: [
+          { title: CFAP_HISTORY_SOURCE.title, url: CFAP_HISTORY_ARTICLE_URL },
+          ...(commander.sources ?? []),
+        ],
+        isVisible: true,
+        sortOrder: index,
+        ...override,
+      } satisfies CfapCommander;
+    })
+    .filter((commander) => options?.includeHidden || commander.isVisible !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+}
+
+export function getCfapCommander(slug: string, commanders = mergeCfapCommanders()) {
+  return commanders.find((commander) => commander.slug === slug);
 }
