@@ -33,8 +33,8 @@ export function CommanderPortrait({
 
   const column = portraitIndex % COLUMNS;
   const row = Math.floor(portraitIndex / COLUMNS);
-  const x = COLUMNS === 1 ? 0 : (column / (COLUMNS - 1)) * 100;
-  const y = ROWS === 1 ? 0 : (row / (ROWS - 1)) * 100;
+  const x = (column / (COLUMNS - 1)) * 100;
+  const y = (row / (ROWS - 1)) * 100;
 
   return (
     <div
