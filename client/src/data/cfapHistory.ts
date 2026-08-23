@@ -230,12 +230,25 @@ export type CfapCommanderOverride = Required<Pick<CfapCommander,
 >> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "videos" | "sources">;
 
 function defaultBiography(commander: CfapCommander) {
-  return `${commander.rank} ${commander.name} integra a sucessão histórica do comando do Centro de Formação e Aperfeiçoamento de Praças da Polícia Militar do Amazonas. A documentação reunida no artigo-base registra sua gestão em ${commander.periods.join(" e ")}. Sua passagem compõe a memória dos oficiais responsáveis pela continuidade da formação, especialização e aperfeiçoamento das praças da PMAM.`;
+  const periodText = commander.periods.join(" e ");
+  const firstYear = Number(commander.periods.join(" ").match(/(?:19|20)\d{2}/)?.[0] ?? 0);
+  let context = "Sua passagem integra a continuidade da formação, especialização e aperfeiçoamento das praças da PMAM.";
+  if (firstYear >= 1979 && firstYear <= 1981) context = "Esse período corresponde à instalação do Centro no 1º BPM, à criação formal pelo Decreto nº 4.815/1980 e à transferência para a sede da Rua Aristides Rocha, em Petrópolis. O artigo registra que oficiais, instrutores e alunos participaram da estruturação do novo quartel de ensino.";
+  else if (firstYear >= 1982 && firstYear <= 1989) context = "A gestão situa-se na consolidação da sede do entroncamento da AM-010 com a BR-174. Segundo o artigo, militares e alunos ajudaram a estruturar o quartel; em 1983 foi homologada a Canção do CFAP e o Centro concentrou cursos de formação e aperfeiçoamento de soldados, cabos e sargentos.";
+  else if (firstYear >= 1990 && firstYear <= 2006) context = "A gestão integra uma etapa de ampliação e modernização do ensino. O artigo registra novas técnicas operacionais, a doutrina BP-60, a inauguração do estande de tiro Soldado João Rodrigues da Silva em 1990 e a atuação da Diretoria de Ensino e Instrução, ativada em 1993, na coordenação pedagógica.";
+  else if (firstYear >= 2007 && firstYear <= 2010) context = "A gestão ocorreu durante a reorganização do ensino e a integração das estruturas ao IESP. O artigo descreve a transferência das atividades educacionais, a denominação Campus de Ensino III Coronel Antônio Guedes Brandão e a formação, em 2008 e 2009, de uma turma de mil soldados na ULBRA Manaus.";
+  else if (firstYear >= 2011 && firstYear <= 2023) context = "A gestão pertence à fase posterior à reativação do CFAP pela Portaria nº 168/Ajudância Geral/2010. Conforme o artigo, CFAP e Campus III atuaram conjuntamente na formação de mais de 2.500 policiais militares oriundos do concurso de 2011.";
+  else if (firstYear >= 2024) context = "A gestão integra a fase contemporânea do Centro. Em setembro de 2024, no contexto do Complexo de Ensino, o CFAP retornou a Petrópolis, marco territorial de sua instalação original, reforçando a memória institucional e o sentimento de pertencimento.";
+  return `${commander.rank} ${commander.name} integra a sucessão histórica do comando do Centro de Formação e Aperfeiçoamento de Praças da Polícia Militar do Amazonas. A relação documental do artigo-base registra sua gestão em ${periodText}. ${context} Quando o estudo não individualiza atos administrativos ou realizações pessoais, esta ficha apresenta apenas o contexto institucional comprovado para o período.`;
 }
 
 export function mergeCfapCommanders(overrides: CfapCommanderOverride[] = [], options?: { includeHidden?: boolean }) {
   const overrideBySlug = new Map(overrides.map((item) => [item.slug, item]));
-  return CFAP_COMMANDERS
+  const baseSlugs = new Set(CFAP_COMMANDERS.map((item) => item.slug));
+  const customCommanders: CfapCommander[] = overrides
+    .filter((item) => !baseSlugs.has(item.slug))
+    .map((item) => ({ ...item }));
+  return [...CFAP_COMMANDERS, ...customCommanders]
     .map((commander, index) => {
       const override = overrideBySlug.get(commander.slug);
       return {
