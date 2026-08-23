@@ -22,6 +22,8 @@ const Home = lazyWithRetry(() => import("./pages/Home"));
 const Hymns = lazyWithRetry(() => import("./pages/Hymns"));
 const HymnDetail = lazyWithRetry(() => import("./pages/HymnDetail"));
 const Cfap2026 = lazyWithRetry(() => import("./pages/Cfap2026"));
+const CfapHistory = lazyWithRetry(() => import("./pages/CfapHistory"));
+const CfapCommanderDetail = lazyWithRetry(() => import("./pages/CfapCommanderDetail"));
 const About = lazyWithRetry(() => import("./pages/About"));
 const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const Login = lazyWithRetry(() => import("./pages/Login"));
@@ -56,6 +58,8 @@ function Router() {
       <Route path="/estudos" component={EducationCenter} />
       <Route path="/estudos/:slug" component={EducationModule} />
       <Route path="/cfap-2026" component={Cfap2026} />
+      <Route path="/historia-cfap" component={CfapHistory} />
+      <Route path="/historia-cfap/comandantes/:slug" component={CfapCommanderDetail} />
       <Route path="/drill" component={Drill} />
       <Route path="/drill/:id" component={DrillDetail} />
       <Route path="/blog/:id" component={BlogDetail} />
@@ -94,47 +98,27 @@ function ScrollToTop() {
 }
 
 function App() {
-  // Renovar sessão automaticamente
   useSessionRefresh();
-  
-  // Gerenciar sessão em background
   useSessionManager();
-  
-  // Ativar auto-atualização silenciosa
   useAutoUpdate();
-  
-  // Pré-cachear dados críticos para offline
   useOfflineCache();
-  
-  // Sincronizar em background quando voltar online
   useBackgroundSync();
-
-  // Baixar e manter os toques e dobrados disponíveis em cache (offline e conexão lenta)
   useBugleAudioCache();
-  
-  // Pré-cachear assets para offline
+
   const { precacheAssets } = usePWA();
   useEffect(() => {
-    // Coletar todos os scripts e links carregados
     const assets = new Set<string>();
-    
-    // Scripts
+
     document.querySelectorAll('script[src]').forEach((script) => {
       const src = (script as HTMLScriptElement).src;
-      if (src && src.includes('/assets/')) {
-        assets.add(src);
-      }
+      if (src && src.includes('/assets/')) assets.add(src);
     });
-    
-    // Stylesheets
+
     document.querySelectorAll('link[rel="stylesheet"][href]').forEach((link) => {
       const href = (link as HTMLLinkElement).href;
-      if (href && href.includes('/assets/')) {
-        assets.add(href);
-      }
+      if (href && href.includes('/assets/')) assets.add(href);
     });
-    
-    // Enviar para Service Worker pré-cachear
+
     if (assets.size > 0) {
       console.log('[App] Sending', assets.size, 'assets to SW for pre-cache');
       precacheAssets(Array.from(assets));
