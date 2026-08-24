@@ -14,8 +14,8 @@ function rowsOf(result: unknown): Record<string, any>[] {
 
 function readArray<T>(file: string, variable: string): T[] {
   const source = readFileSync(path.resolve(file), "utf8");
-  const startToken = `const ${variable} = [`;
-  const start = source.indexOf(startToken);
+  let start = source.indexOf(`const ${variable} = [`);
+  if (start < 0) start = source.indexOf(`export const ${variable} = [`);
   if (start < 0) throw new Error(`${variable} nao encontrado em ${file}`);
   const arrayStart = source.indexOf("[", start);
   const marker = source.indexOf("\n];", arrayStart);

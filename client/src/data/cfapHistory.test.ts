@@ -22,7 +22,7 @@ describe("CFAP digital history", () => {
   });
 
   it("preserves photo placeholders for documentary records without an identified portrait", () => {
-    expect(getCfapCommander("adalberto-oliveira-de-souza")?.portraitIndex).toBeUndefined();
+    expect(getCfapCommander("adalberto-oliveira-de-souza")).toBeUndefined();
     expect(getCfapCommander("idevandro-ricardo-colares")?.portraitIndex).toBeUndefined();
   });
 
@@ -33,7 +33,7 @@ describe("CFAP digital history", () => {
   });
 
   it("catalogues the unique commander records used by the gallery", () => {
-    expect(CFAP_COMMANDERS).toHaveLength(39);
+    expect(CFAP_COMMANDERS).toHaveLength(38);
     expect(getCfapCommander("antonio-guedes-brandao")?.name).toBe("Antônio Guedes Brandão");
   });
 
@@ -53,7 +53,7 @@ describe("CFAP digital history", () => {
       sortOrder: 0,
     }]);
 
-    expect(commanders).toHaveLength(39);
+    expect(commanders).toHaveLength(38);
     expect(getCfapCommander("antonio-guedes-brandao", commanders)?.biography).toContain("revisada");
   });
 });

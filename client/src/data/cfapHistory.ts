@@ -146,13 +146,6 @@ export const CFAP_COMMANDERS: CfapCommander[] = [
   { slug: "jose-francisco-bonates-correa", rank: "Tenente-Coronel PM", name: "José Francisco Bonates Corrêa", periods: ["Jun 1997 – Set 1997"], portraitIndex: 15 },
   { slug: "mario-cauper-monteiro", rank: "Tenente-Coronel PM", name: "Mário Cauper Monteiro", periods: ["Set 1997 – Mar 1998"], portraitIndex: 16 },
   { slug: "joao-de-souza-pessoa", rank: "Major PM", name: "João de Souza Pessoa", periods: ["Mar 1998 – Mar 1999"], portraitIndex: 17 },
-  {
-    slug: "adalberto-oliveira-de-souza",
-    rank: "Major PM",
-    name: "Adalberto Oliveira de Souza",
-    periods: ["Mar 1999 – Jun 1999"],
-    highlights: ["O nome consta na relação publicada de comandantes do CFAP. A galeria fotográfica fornecida não apresenta retrato identificado para este registro."],
-  },
   { slug: "mario-jorge-reis-victor", rank: "Major PM", name: "Mário Jorge Reis Victor", periods: ["Jun 1999 – Set 1999"], portraitIndex: 18 },
   { slug: "jose-militao-rodrigues-da-silva", rank: "Major PM", name: "José Militão Rodrigues da Silva", periods: ["Set 1999 – Fev 2000", "Abr 2001 – Mai 2001"], portraitIndex: 19 },
   { slug: "evandro-araujo-de-brito", rank: "Major PM", name: "Evandro Araújo de Brito", periods: ["Fev 1999 – Mai 2000"], portraitIndex: 20 },
