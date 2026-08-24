@@ -255,7 +255,7 @@ export default function Admin() {
         </div>
       )}
 
-      <section className="bg-card border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">

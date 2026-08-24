@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ClipboardList, FileText, GraduationCap, Info, LayoutGrid, ListMusic, Menu, Moon, Music, Search, Shield, Star, Sun, User, Users } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, GraduationCap, Info, LayoutGrid, ListMusic, Medal, Menu, Moon, Music, Search, Shield, Star, Sun, Target, User, Users } from "lucide-react";
 import { getStudentSession, STUDENT_SESSION_CHANGED, type StudentSession } from "@/lib/studentSession";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
@@ -22,6 +22,9 @@ const studentLinks = [
   { href: "/sala-de-aula", label: "Sala de Aula", icon: LayoutGrid },
   { href: "/hinos", label: "Hinos", icon: Music },
   { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
+  { href: "/estudos", label: "Estudos", icon: BookOpen },
+  { href: "/drill", label: "Ordem Unida", icon: Target },
+  { href: "/historia-cfap", label: "Memória do CFAP", icon: Medal },
   { href: "/cfap-2026", label: "CFAP 2026", icon: Shield },
   { href: "/documentos", label: "Meus Documentos", icon: FileText },
   { href: "/sobre", label: "Sobre", icon: Info },
@@ -31,6 +34,9 @@ const publicLinks = [
   { href: "/", label: "Início", icon: Shield },
   { href: "/hinos", label: "Hinos", icon: Music },
   { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
+  { href: "/estudos", label: "Estudos", icon: BookOpen },
+  { href: "/drill", label: "Ordem Unida", icon: Target },
+  { href: "/historia-cfap", label: "Memória do CFAP", icon: Medal },
   { href: "/cfap-2026", label: "CFAP 2026", icon: Shield },
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
@@ -41,6 +47,12 @@ const commandLinks = [
   { href: "/sala-de-aula/peculio", label: "Pecúlio", icon: ClipboardList },
   { href: "/sala-de-aula/efetivo", label: "Efetivo", icon: Users },
   { href: "/sala-administrativa", label: "Administrar", icon: ClipboardList },
+  { href: "/hinos", label: "Hinos", icon: Music },
+  { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
+  { href: "/estudos", label: "Estudos", icon: BookOpen },
+  { href: "/drill", label: "Ordem Unida", icon: Target },
+  { href: "/historia-cfap", label: "Memória do CFAP", icon: Medal },
+  { href: "/cfap-2026", label: "CFAP 2026", icon: Shield },
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
@@ -91,7 +103,7 @@ export default function Navbar() {
     <div className="flex flex-col gap-2">
       {links.map((item) => (
         <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-          <Button variant={active(item.href) ? "default" : "ghost"} className={`w-full justify-start gap-3 ${active(item.href) ? "bg-[#1a3a2a] text-white" : ""}`}>
+          <Button variant={active(item.href) ? "default" : "ghost"} className={`w-full justify-start gap-3 ${active(item.href) ? "bg-[#1a3a2a] text-white hover:bg-[#234b36] hover:text-white" : "text-[#26332b] hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a] dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white"}`}>
             <item.icon className="h-4 w-4" />{item.label}
           </Button>
         </Link>
@@ -102,7 +114,7 @@ export default function Navbar() {
         </Link>
       )}
       <Link href="/xerife" onClick={() => setOpen(false)}>
-        <Button variant="ghost" className="w-full justify-start gap-3 text-[#c4a84b]"><Star className="h-4 w-4" />Posto de Comando</Button>
+        <Button variant="ghost" className="w-full justify-start gap-3 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"><Star className="h-4 w-4" />Posto de Comando</Button>
       </Link>
       {student ? (
         <>
@@ -123,7 +135,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-white/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.45rem)] backdrop-blur-xl dark:bg-[#0c0c0e]/95 md:hidden">
+      <header className="sticky top-0 z-40 border-b border-[#1a3a2a]/20 bg-[#f8f4e8]/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.45rem)] backdrop-blur-xl dark:border-border/40 dark:bg-[#0c0c0e]/95 md:hidden">
         <div className="flex items-center justify-between gap-2">
           <Brand />
           <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border/20 bg-muted/60 px-1 py-0.5">
@@ -132,7 +144,7 @@ export default function Navbar() {
             <NotificationBell />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild><Button size="icon-sm" variant="ghost" className="rounded-full" aria-label="Abrir menu"><Menu className="h-4 w-4" /></Button></SheetTrigger>
-              <SheetContent side="right" className="w-72 bg-white dark:bg-[#15151a] dark:text-foreground">
+              <SheetContent side="right" className="w-72 bg-[#f8f4e8] text-[#17251d] dark:bg-[#15151a] dark:text-foreground">
                 <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
                 <div className="mt-8"><Brand /><div className="mt-6">{menu}</div></div>
               </SheetContent>
@@ -141,7 +153,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      <header className="sticky top-0 z-50 hidden w-full border-b border-border/40 bg-white/95 backdrop-blur dark:bg-[#0c0c0e]/95 md:block">
+      <header className="sticky top-0 z-50 hidden w-full border-b border-[#1a3a2a]/20 bg-[#f8f4e8]/95 backdrop-blur dark:border-border/40 dark:bg-[#0c0c0e]/95 md:block">
         <div className="checkerboard-pattern w-full" />
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
           <Brand />
@@ -150,12 +162,12 @@ export default function Navbar() {
             <NotificationBell />
           </div>
         </div>
-        <div className="hidden justify-center border-t border-border/40 bg-muted/10 py-2 xl:flex">
-          <nav className="flex w-full max-w-7xl items-center justify-center gap-1.5 overflow-x-auto px-4">
+        <div className="flex justify-center border-t border-[#1a3a2a]/15 bg-[#dfe5da] py-2 dark:border-border/40 dark:bg-white/[0.025]">
+          <nav className="flex w-full max-w-7xl flex-wrap items-center justify-center gap-1.5 px-4">
             {links.map((item) => (
-              <Link key={item.href} href={item.href}><Button variant={active(item.href) ? "default" : "ghost"} size="sm" className={`gap-1.5 text-xs ${active(item.href) ? "bg-[#1a3a2a] text-white" : ""}`}><item.icon className="h-3.5 w-3.5" />{item.label}</Button></Link>
+              <Link key={item.href} href={item.href}><Button variant={active(item.href) ? "default" : "ghost"} size="sm" className={`gap-1.5 text-xs ${active(item.href) ? "bg-[#1a3a2a] text-white hover:bg-[#234b36] hover:text-white" : "text-[#26332b] hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a] dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white"}`}><item.icon className="h-3.5 w-3.5" />{item.label}</Button></Link>
             ))}
-            <Link href="/xerife"><Button variant="ghost" size="sm" className="gap-1.5 text-[#c4a84b]"><Star className="h-3.5 w-3.5" />Posto de Comando</Button></Link>
+            <Link href="/xerife"><Button variant="ghost" size="sm" className="gap-1.5 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"><Star className="h-3.5 w-3.5" />Posto de Comando</Button></Link>
           </nav>
         </div>
       </header>

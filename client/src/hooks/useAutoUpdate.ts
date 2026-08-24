@@ -39,6 +39,7 @@ export function useAutoUpdate() {
   const isReloadingRef = useRef(false);
 
   const checkAndUpdate = async (source: string) => {
+    if (import.meta.env.DEV) return;
     if (isReloadingRef.current) return;
 
     try {

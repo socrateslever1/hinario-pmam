@@ -881,7 +881,7 @@ window.print();
       <Navbar />
 
       {/* Hero Section */}
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 print:hidden md:px-0 md:py-12">
+      <section className="military-page-hero border-b px-4 pb-7 pt-6 print:hidden md:px-0 md:py-8">
         <div className="container text-center">
           <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#e2ca76]" style={{ fontFamily: "Merriweather, serif" }}>

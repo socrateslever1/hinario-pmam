@@ -1,6 +1,6 @@
 import {
   FileText,
-  History,
+  Medal,
   Home,
   Info,
   ListMusic,
@@ -12,6 +12,7 @@ import {
   Target,
   LayoutGrid,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getStudentSession, STUDENT_SESSION_CHANGED } from "@/lib/studentSession";
@@ -88,7 +89,8 @@ export default function BottomNavigation() {
   const moreItems = isComandante
     ? [
         { icon: User, label: "Meu Perfil", path: "/perfil" },
-        { icon: History, label: "História do CFAP", path: "/historia-cfap" },
+        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
+        { icon: BookOpen, label: "Centro de Estudos", path: "/estudos" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
@@ -98,9 +100,11 @@ export default function BottomNavigation() {
       ]
     : [
         { icon: User, label: isStudent ? "Perfil do Aluno" : user ? "Meu Perfil" : "Acesso do Aluno", path: isStudent ? "/perfil-aluno" : user ? "/perfil" : "/entrar" },
-        { icon: History, label: "História do CFAP", path: "/historia-cfap" },
+        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
+        { icon: BookOpen, label: "Centro de Estudos", path: "/estudos" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
+        { icon: Target, label: "Ordem Unida", path: "/drill" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Meus Documentos", path: "/documentos" },
         { icon: Info, label: "Sobre o QG Digital", path: "/sobre" },

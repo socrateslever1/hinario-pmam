@@ -81,8 +81,8 @@ describe("useOfflineCache Hook", () => {
 
   describe("Cache name", () => {
     it("deve usar cache name correto", () => {
-      const CACHE_NAME = "hinario-pmam-cache-v9";
-      expect(CACHE_NAME).toBe("hinario-pmam-cache-v9");
+      const CACHE_NAME = "hinario-pmam-cache-v10";
+      expect(CACHE_NAME).toBe("hinario-pmam-cache-v10");
     });
   });
 

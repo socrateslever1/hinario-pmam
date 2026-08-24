@@ -99,7 +99,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
         <Navbar />
 
-      <section className="bg-card border-b border-border/40 relative overflow-hidden px-4 pb-7 pt-6 md:px-0 md:py-14">
+      <section className="military-page-hero relative overflow-hidden border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />

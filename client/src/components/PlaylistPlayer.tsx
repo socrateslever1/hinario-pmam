@@ -463,16 +463,22 @@ export default function PlaylistPlayer({
 
   if (queue.length === 0) {
     return (
-      <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#071018]">
-        <CardContent className="p-6 text-center sm:p-8">
-          <ListMusic className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
-          <h3 className="text-xl font-bold text-foreground">{title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
+      <Card className="overflow-hidden border border-[#c4a84b]/35 bg-gradient-to-br from-[#10281d] via-[#183225] to-[#244b36] text-white shadow-[0_14px_34px_rgba(16,40,29,0.2)] dark:border-[#c4a84b]/25 dark:from-[#08130e] dark:via-[#10251a] dark:to-[#173424]">
+        <CardContent className="flex flex-col items-center gap-4 p-5 text-center sm:flex-row sm:justify-between sm:p-6 sm:text-left">
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#c4a84b]/30 bg-[#c4a84b]/10 text-[#e1c969]">
+              <ListMusic className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-[#fff8e8]">{title}</h3>
+              <p className="mt-1 max-w-2xl text-sm text-white/70">
             {isOnline
               ? "Nenhum item desta selecao possui audio ou YouTube configurado ainda."
               : "Nenhum MP3 desta selecao esta salvo neste aparelho para tocar offline."}
-          </p>
-          <div className="mt-4 flex justify-center">{renderVariantButtons("light")}</div>
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 justify-center">{renderVariantButtons("dark")}</div>
         </CardContent>
       </Card>
     );

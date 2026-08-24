@@ -58,10 +58,10 @@ export default function Hymns() {
   const activeCategoryConfig = categoryConfig[activeCategory] || categoryConfig.all;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
+    <div className="mobile-safe-bottom flex min-h-screen flex-col bg-background dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-3 pb-7 pt-6 dark:border-white/10 dark:bg-[#071018] md:px-0 md:py-12">
+      <section className="military-page-hero border-b px-3 pb-7 pt-6 md:px-0 md:py-8">
         <div className="mx-auto w-full max-w-6xl px-3 text-center md:px-6">
           <Music className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#f8f7f0]" style={{ fontFamily: "Merriweather, serif" }}>

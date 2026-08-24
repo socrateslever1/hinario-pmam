@@ -418,7 +418,7 @@ export default function Cfap2026() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
       <Navbar />
 
-      <section className="bg-white border-b border-border/40 px-4 pb-7 pt-6 md:px-0 md:py-12 dark:bg-zinc-900">
+      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container text-center">
           <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1

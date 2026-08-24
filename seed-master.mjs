@@ -1,28 +1,51 @@
-import { drizzle } from "drizzle-orm/mysql2";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
-dotenv.config();
+import { connect } from '@tidbcloud/serverless';
+import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
-const db = drizzle(process.env.DATABASE_URL);
+const url = process.env.TIDB_URL || process.env.DATABASE_URL;
 
 async function seedMaster() {
-  const hashedPassword = await bcrypt.hash("123456", 12);
-  
-  // Check if user already exists
-  const existing = await db.execute(`SELECT id FROM users WHERE email = 'socrates.lever@gmail.com' LIMIT 1`);
-  
-  if (existing[0] && existing[0].length > 0) {
-    // Update existing user
-    await db.execute(`UPDATE users SET password = '${hashedPassword}', role = 'master', name = 'Sócrates', loginMethod = 'email' WHERE email = 'socrates.lever@gmail.com'`);
-    console.log("Master user updated successfully!");
-  } else {
-    // Insert new user
-    await db.execute(`INSERT INTO users (openId, name, email, password, loginMethod, role, createdAt, updatedAt, lastSignedIn) VALUES ('master-socrates', 'Sócrates', 'socrates.lever@gmail.com', '${hashedPassword}', 'email', 'master', NOW(), NOW(), NOW())`);
-    console.log("Master user created successfully!");
+  if (!url) {
+    console.error("TIDB_URL or DATABASE_URL not set!");
+    process.exit(1);
   }
-  
+
+  const connection = connect({ url });
+  const hashedPassword = await bcrypt.hash("123456", 12);
+  const emails = ['socrates.lever@gmail.com', 'socrates@icomp.ufam.edu.br'];
+
+  console.log("Seeding master users...");
+
+  for (const email of emails) {
+    const existing = await connection.execute(
+      'SELECT id FROM pmam_users WHERE email = ? LIMIT 1',
+      [email]
+    );
+
+    const rows = Array.isArray(existing) ? existing : existing.rows || [];
+
+    if (rows.length > 0) {
+      await connection.execute(
+        'UPDATE pmam_users SET password = ?, role = "admin", name = "Sócrates", login_method = "email" WHERE email = ?',
+        [hashedPassword, email]
+      );
+      console.log(`✓ Master user ${email} updated successfully!`);
+    } else {
+      const openId = `master-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      await connection.execute(
+        'INSERT INTO pmam_users (open_id, name, email, password, login_method, role, created_at, updated_at) VALUES (?, "Sócrates", ?, ?, "email", "admin", NOW(), NOW())',
+        [openId, email, hashedPassword]
+      );
+      console.log(`✓ Master user ${email} created successfully!`);
+    }
+  }
+
+  console.log("Master seed completed!");
   process.exit(0);
 }
 
-seedMaster().catch(e => { console.error(e); process.exit(1); });
+seedMaster().catch(e => {
+  console.error("Seed failed:", e);
+  process.exit(1);
+});
+

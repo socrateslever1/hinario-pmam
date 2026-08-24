@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Film, Shield, UserRound } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Film, Medal, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CommanderPortrait } from "@/components/CommanderPortrait";
@@ -44,7 +44,7 @@ export default function CfapCommanderDetail() {
           <p className="mt-2 text-white/55">Esse comandante não consta na Galeria Digital disponível.</p>
           <Link href="/historia-cfap">
             <Button className="mt-6 bg-[#c4a84b] text-[#111] hover:bg-[#d6bd66]">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar à Galeria
+              <ChevronLeft className="mr-2 h-4 w-4" /> Voltar à Galeria
             </Button>
           </Link>
         </main>
@@ -63,19 +63,39 @@ export default function CfapCommanderDetail() {
       <Navbar />
 
       <main>
-        <section className="border-b border-white/10 px-4 py-7 md:py-10">
+        <section className="border-b border-[#c4a84b]/15 bg-[#071711] px-4 py-5">
           <div className="container mx-auto max-w-6xl">
-            <Link href="/historia-cfap" className="inline-flex items-center gap-2 text-sm font-bold text-[#d6bd66] no-underline hover:text-[#ead78f]">
-              <ArrowLeft className="h-4 w-4" /> Galeria dos Comandantes
+            <Link href="/historia-cfap" className="inline-flex items-center gap-3 rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/5 py-2 pl-2 pr-4 text-xs font-black uppercase tracking-[.12em] text-[#e4ca70] no-underline transition hover:border-[#c4a84b]/55 hover:bg-[#c4a84b]/10">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#c4a84b]/30 bg-[#102a1d]"><ChevronLeft className="h-4 w-4" /></span> Galeria dos Comandantes
             </Link>
           </div>
         </section>
 
-        <section className="px-4 py-8 md:py-14">
+        <section className="relative overflow-hidden px-4 py-8 md:py-14">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(196,168,75,.12),transparent_30%),radial-gradient(circle_at_90%_20%,rgba(20,87,54,.22),transparent_35%)]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[.035] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:42px_42px]" />
+          {Boolean(commander.videos?.length) && (() => {
+            const featured = commander.videos![0];
+            const embedUrl = getVideoEmbedUrl(featured.url);
+            return (
+              <div className="container relative mx-auto mb-8 max-w-6xl overflow-hidden rounded-3xl border border-[#c4a84b]/25 bg-[#07110d] shadow-2xl shadow-black/35">
+                <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 text-[#dfc462]"><Film className="h-4 w-4" /></span><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d6bd66]">Memória audiovisual</p><h2 className="text-sm font-black text-white">{featured.title}</h2></div></div>
+                {embedUrl ? <iframe src={embedUrl} title={featured.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="aspect-video max-h-[560px] w-full border-0 bg-black" /> : <a href={featured.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-6 text-sm font-bold text-white no-underline"><span>Abrir registro audiovisual</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" /></a>}
+              </div>
+            );
+          })()}
           <div className="container mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
             <div>
-              <div className="overflow-hidden rounded-3xl border border-[#c4a84b]/25 bg-white shadow-2xl shadow-black/25">
-                <CommanderPortrait portraitIndex={commander.portraitIndex} portraitUrl={commander.portraitUrl} name={commander.name} />
+              <div className="relative rounded-[2rem] border border-[#c4a84b]/45 bg-gradient-to-b from-[#d8bd61] via-[#715d22] to-[#d8bd61] p-[2px] shadow-[0_24px_70px_rgba(0,0,0,.45)]">
+                <div className="relative rounded-[1.9rem] border-[7px] border-[#10281d] bg-[#07110d] p-3">
+                  <div className="absolute left-1/2 top-0 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#c4a84b]/60 bg-[#0b2117] p-2 shadow-xl">
+                    <img src="/documents/images/brasao_cfap.png" alt="Emblema do CFAP" className="h-full w-full object-contain" />
+                  </div>
+                  <div className="overflow-hidden rounded-2xl border border-[#c4a84b]/25 bg-white">
+                    <CommanderPortrait portraitIndex={commander.portraitIndex} portraitUrl={commander.portraitUrl} name={commander.name} />
+                  </div>
+                  <div className="mt-3 flex items-center justify-center gap-2 border-t border-[#c4a84b]/20 pt-3 text-[9px] font-black uppercase tracking-[.22em] text-[#d6bd66]"><Medal className="h-3.5 w-3.5" /> Centro de Formação e Aperfeiçoamento de Praças</div>
+                </div>
               </div>
               {commander.portraitIndex === undefined && (
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-white/42">
@@ -104,11 +124,11 @@ export default function CfapCommanderDetail() {
                 ))}
               </div>
 
-              <Card className="mt-7 border-white/10 bg-white/[0.045] text-white">
+              <Card className="mt-7 overflow-hidden border-[#c4a84b]/20 bg-[#091812]/95 text-white shadow-xl shadow-black/20">
                 <CardContent className="p-5 md:p-6">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c4a84b]/10 text-[#d6bd66]">
-                      <UserRound className="h-5 w-5" />
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 p-2 text-[#d6bd66]">
+                      <img src="/documents/images/brasao_cfap.png" alt="" className="h-full w-full object-contain" />
                     </span>
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d6bd66]">Registro da gestão</p>
@@ -127,23 +147,23 @@ export default function CfapCommanderDetail() {
                     </ul>
                   ) : (
                     <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-black/10 p-4 text-sm leading-relaxed text-white/58">
-                      A relação histórica publicada registra {commander.rank} {commander.name} no período acima. O artigo-base não individualiza outros atos administrativos ou feitos específicos desta gestão; por isso, a Galeria Digital não acrescenta biografia ou realizações sem respaldo documental.
+                      {commander.rank} {commander.name} integrou a sucessão de comando do CFAP no período indicado. A ficha preserva somente informações históricas confirmadas, sem atribuir realizações pessoais não documentadas.
                     </div>
                   )}
                   {commander.biography && (
-                    <p className="mt-5 border-t border-white/10 pt-5 text-sm leading-7 text-white/70">
+                    <p className="mt-6 border-t border-[#c4a84b]/15 pt-6 font-serif text-[17px] leading-8 text-white/78 first-letter:float-left first-letter:mr-2 first-letter:text-5xl first-letter:font-black first-letter:leading-[.8] first-letter:text-[#d6bd66]">
                       {commander.biography}
                     </p>
                   )}
                 </CardContent>
               </Card>
 
-              {Boolean(commander.videos?.length) && (
+              {Boolean(commander.videos && commander.videos.length > 1) && (
                 <Card className="mt-4 border-white/10 bg-[#081722] text-white">
                   <CardContent className="p-5 md:p-6">
                     <div className="mb-4 flex items-center gap-2 text-[#d6bd66]"><Film className="h-5 w-5" /><h2 className="font-black">Acervo audiovisual</h2></div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {commander.videos?.map((video) => {
+                      {commander.videos?.slice(1).map((video) => {
                         const embedUrl = getVideoEmbedUrl(video.url);
                         return embedUrl ? (
                           <div key={`${video.title}-${video.url}`} className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
@@ -168,7 +188,7 @@ export default function CfapCommanderDetail() {
                     <div>
                       <h2 className="font-black">Base histórica</h2>
                       <p className="mt-2 text-xs leading-relaxed text-white/55">
-                        {CFAP_HISTORY_SOURCE.title}. {CFAP_HISTORY_SOURCE.publication}. A ficha conserva as datas documentadas na relação de comandantes e os registros individualizados expressamente descritos no artigo.
+                        {CFAP_HISTORY_SOURCE.title}. {CFAP_HISTORY_SOURCE.publication}. A ficha conserva as datas e os registros históricos documentados sobre cada gestão.
                       </p>
                       {Boolean(commander.sources?.length) && (
                         <div className="mt-4 flex flex-wrap gap-2">

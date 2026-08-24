@@ -1,4 +1,5 @@
 import { query } from "./mysql";
+import { ensureStudentSessionSchema } from "./studentDb";
 import {
   calculateFoNetCount,
   FO_LC_THRESHOLD,
@@ -250,6 +251,7 @@ function parseIds(value: unknown): number[] {
 export async function ensureServiceScaleTables() {
   if (!schemaPromise) {
     schemaPromise = (async () => {
+      await ensureStudentSessionSchema();
       await query(`
         CREATE TABLE IF NOT EXISTS pmam_xerife_assignments (
           id INT AUTO_INCREMENT PRIMARY KEY,

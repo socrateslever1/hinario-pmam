@@ -31,6 +31,7 @@ export default function Footer() {
               <li><Link href="/hinos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Módulo de Hinos</Link></li>
               <li><Link href="/charlie-mike" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Charlie Mike</Link></li>
               <li><Link href="/estudos" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Centro de Estudos</Link></li>
+              <li><Link href="/drill" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Ordem Unida</Link></li>
               <li><Link href="/cfap-2026" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">CFAP 2026</Link></li>
               <li><Link href="/historia-cfap" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">História e Comandantes</Link></li>
               <li><Link href="/sobre" className="text-white/60 transition-colors no-underline hover:text-[#c4a84b]">Sobre o QG Digital</Link></li>

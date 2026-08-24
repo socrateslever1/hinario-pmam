@@ -53,22 +53,22 @@
   --chart-4: oklch(0.55 0.15 27);
   --chart-5: oklch(0.6 0.12 60);
   --radius: 0.5rem;
-  --background: #f5f2e8;
-  --foreground: oklch(0.2 0.02 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 250);
+  --background: #e9e4d4;
+  --foreground: #17251d;
+  --card: #f8f4e8;
+  --card-foreground: #17251d;
+  --popover: #fbf8ef;
+  --popover-foreground: #17251d;
   --secondary: oklch(0.72 0.14 85);
   --secondary-foreground: oklch(0.2 0.02 250);
-  --muted: oklch(0.95 0.01 150);
-  --muted-foreground: oklch(0.5 0.02 250);
+  --muted: #dde3d8;
+  --muted-foreground: #58675e;
   --accent: oklch(0.72 0.14 85);
   --accent-foreground: oklch(0.2 0.02 250);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.88 0.02 150);
-  --input: oklch(0.88 0.02 150);
+  --border: #b8c3b9;
+  --input: #c4cec5;
   --ring: oklch(0.35 0.08 150);
   --sidebar: oklch(0.22 0.05 150);
   --sidebar-foreground: oklch(0.92 0.03 85);
@@ -120,6 +120,12 @@
   body {
     @apply bg-background text-foreground;
   }
+  html:not(.dark) body {
+    background-image:
+      radial-gradient(circle at 88% 8%, rgba(196, 168, 75, 0.09), transparent 28rem),
+      linear-gradient(180deg, #eee9da 0%, #e7e2d2 100%);
+    background-attachment: fixed;
+  }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -134,6 +140,25 @@
 }
 
 @layer components {
+  .military-page-hero {
+    border-color: rgba(196, 168, 75, 0.35);
+    background: linear-gradient(135deg, #10281d 0%, #1a3a2a 52%, #244b36 100%);
+    color: #fff8e8;
+    box-shadow: 0 8px 22px rgba(16, 40, 29, 0.16);
+  }
+
+  .military-page-hero :is(h1, h2, h3) {
+    color: #fff8e8 !important;
+  }
+
+  .military-page-hero p {
+    color: rgba(255, 255, 255, 0.76) !important;
+  }
+
+  .military-page-hero svg {
+    color: #d6b64c;
+  }
+
   /**
    * Custom container utility that centers content and adds responsive padding.
    *

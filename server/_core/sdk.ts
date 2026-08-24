@@ -273,21 +273,50 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
-    // If user not in DB, sync from OAuth server automatically
+    // The session has already been cryptographically verified above. When the
+    // local user is missing, restore the minimum record from those signed
+    // claims. The former Forge GetUserInfoWithJwt route was removed and now
+    // returns an HTML 404, so authentication must not depend on that legacy
+    // endpoint. A configured external OAuth server may still enrich the record.
     if (!user) {
+      let identity: {
+        openId: string;
+        name: string | null;
+        email: string | null;
+        loginMethod: string | null;
+      } = {
+        openId: session.openId,
+        name: session.name || null,
+        email: null,
+        loginMethod: "session",
+      };
+
+      const hasExternalOAuthServer = Boolean(
+        ENV.oAuthServerUrl && ENV.oAuthServerUrl !== "https://forge.ai.studio",
+      );
+
       try {
-        const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
+        if (hasExternalOAuthServer) {
+          const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
+          identity = {
+            openId: userInfo.openId || session.openId,
+            name: userInfo.name || session.name || null,
+            email: userInfo.email ?? null,
+            loginMethod: userInfo.loginMethod ?? userInfo.platform ?? "oauth",
+          };
+        }
+
         await db.upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          openId: identity.openId,
+          name: identity.name,
+          email: identity.email,
+          loginMethod: identity.loginMethod,
           lastSignedIn: signedInAt,
         });
-        user = await db.getUserByOpenId(userInfo.openId);
+        user = await db.getUserByOpenId(identity.openId);
       } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+        console.error("[Auth] Failed to restore the verified session user:", error);
+        throw ForbiddenError("Failed to restore session user");
       }
     }
 

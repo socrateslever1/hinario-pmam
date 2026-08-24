@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const PWA_CACHE_NAME = "hinario-pmam-cache-v9";
+export const PWA_CACHE_NAME = "hinario-pmam-cache-v10";
+const APP_CACHE_PREFIX = "hinario-pmam-";
+const DEV_SW_RELOAD_KEY = "hinario-pmam-dev-sw-cleanup-v1";
 let registrationStarted = false;
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 let updateIntervalId: number | null = null;
@@ -73,7 +75,35 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
+    if ("serviceWorker" in navigator && import.meta.env.DEV) {
+      // Um service worker instalado por uma versao anterior pode continuar
+      // controlando o localhost e servir menus/assets antigos mesmo no Vite.
+      void (async () => {
+        const hadController = Boolean(navigator.serviceWorker.controller);
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const ownRegistrations = registrations.filter((registration) => {
+          try {
+            return new URL(registration.scope).origin === window.location.origin;
+          } catch {
+            return false;
+          }
+        });
+
+        await Promise.all(ownRegistrations.map((registration) => registration.unregister()));
+
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(
+            keys.filter((key) => key.startsWith(APP_CACHE_PREFIX)).map((key) => caches.delete(key)),
+          );
+        }
+
+        if (hadController && sessionStorage.getItem(DEV_SW_RELOAD_KEY) !== "1") {
+          sessionStorage.setItem(DEV_SW_RELOAD_KEY, "1");
+          window.location.reload();
+        }
+      })().catch((error) => console.warn("[PWA] Falha ao limpar service worker de desenvolvimento:", error));
+    } else if ("serviceWorker" in navigator) {
       if (!registrationStarted) {
         registrationStarted = true;
         registrationPromise = navigator.serviceWorker.register("/sw.js");
@@ -89,6 +119,8 @@ export function usePWA() {
               reg.update().catch(() => undefined);
             }, 3600000);
           }
+
+          void reg.update();
         })
         .catch((err) => console.error("[PWA] SW registration failed:", err));
     }
