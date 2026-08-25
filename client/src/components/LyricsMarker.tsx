@@ -645,6 +645,7 @@ export default function LyricsMarker({ hymn, onSuccess }: LyricsMarkerProps) {
       >
         <Player
           ref={playerRef as any}
+          url={url}
           src={url}
           playing={playing}
           volume={volume}

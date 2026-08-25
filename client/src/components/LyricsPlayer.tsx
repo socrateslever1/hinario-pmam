@@ -192,6 +192,7 @@ export default function LyricsPlayer({
                 {React.createElement(ReactPlayer as any, {
                   key: mediaUrl,
                   ref: playerRef,
+                  url: mediaUrl,
                   src: mediaUrl,
                   playing,
                   volume,

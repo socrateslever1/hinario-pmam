@@ -499,6 +499,7 @@ export default function PlaylistPlayer({
                     {React.createElement(ReactPlayer as any, {
                       key: currentMediaUrl,
                       ref: playerRef,
+                      url: currentMediaUrl,
                       src: currentMediaUrl,
                       playing,
                       volume,
@@ -532,6 +533,7 @@ export default function PlaylistPlayer({
                   {React.createElement(ReactPlayer as any, {
                     key: currentMediaUrl,
                     ref: playerRef,
+                    url: currentMediaUrl,
                     src: currentMediaUrl,
                     playing,
                     volume,
@@ -705,6 +707,7 @@ export default function PlaylistPlayer({
                   {React.createElement(ReactPlayer as any, {
                     key: currentMediaUrl,
                     ref: playerRef,
+                    url: currentMediaUrl,
                     src: currentMediaUrl,
                     playing,
                     volume,

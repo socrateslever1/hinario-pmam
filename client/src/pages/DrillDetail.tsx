@@ -1,5 +1,7 @@
 import { Link, useRoute } from "wouter";
 import ReactPlayer from "react-player";
+
+const Player = ReactPlayer as any;
 import { Streamdown } from "streamdown";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -216,13 +218,13 @@ export default function DrillDetail() {
                       <p className="text-sm font-medium text-foreground">Execução do Movimento</p>
                       <div className="overflow-hidden rounded-3xl border bg-black">
                         <div className="aspect-video w-full">
-                          <ReactPlayer
+                          <Player
+                            url={drill.youtubeUrl!}
                             src={drill.youtubeUrl!}
                             controls
                             width="100%"
                             height="100%"
                             style={{ backgroundColor: "#000" }}
-                            config={undefined}
                           />
                         </div>
                       </div>

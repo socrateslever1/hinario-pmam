@@ -197,23 +197,7 @@ export default function HymnDetail({ catalog = "hymns" }: HymnDetailProps) {
                 audioUrl={isOnline ? hymn.audioUrl : cachedAudioUrl}
                 instrumentalAudioUrl={isOnline ? hymn.instrumentalAudioUrl : cachedInstrumentalAudioUrl}
                 youtubeUrl={isOnline ? hymn.youtubeUrl : null}
-                instrumentalYoutubeUrl={isOnline ? hymn.instrumentalYoutubeUrl : null}
               />
-              {isCharlieMike && sourceUrl && !hymn.lyrics?.trim() && (
-                <Card className="mt-4 border-[#c4a84b]/35 bg-[#c4a84b]/8 dark:border-[#c4a84b]/25 dark:bg-[#132019]">
-                  <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-bold text-foreground">Letra disponível na fonte original</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Abra a página oficial da faixa no Letras.mus.br.</p>
-                    </div>
-                    <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
-                      <Button className="gap-2 bg-[#c4a84b] font-bold text-[#17251d] hover:bg-[#d2b85c]">
-                        Ver letra completa <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Sidebar */}
