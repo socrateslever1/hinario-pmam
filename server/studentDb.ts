@@ -21,6 +21,15 @@ export async function ensureStudentSessionSchema() {
           );
         }
 
+        const registrationRows = await dbQuery(
+          "SHOW COLUMNS FROM pmam_students LIKE 'registration_status'"
+        );
+        if ((registrationRows as any[]).length === 0) {
+          await dbQuery(
+            "ALTER TABLE pmam_students ADD COLUMN registration_status ENUM('available','active','blocked') NOT NULL DEFAULT 'active' AFTER session_token"
+          );
+        }
+
         const conditionRows = await dbQuery(
           "SHOW COLUMNS FROM pmam_students LIKE 'condition'"
         );
@@ -98,6 +107,7 @@ export interface StudentData {
   companhia: number;
   peloton: number;
   sessionToken?: string;
+  registrationStatus?: "available" | "active" | "blocked";
   createdAt: Date;
   updatedAt: Date;
   fotoUrl?: string;
@@ -169,7 +179,7 @@ export async function getStudentByNumerica(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, registration_status as registrationStatus, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -190,7 +200,7 @@ export async function verifyStudentPassword(
 ): Promise<boolean> {
   try {
     const query = `
-      SELECT id, numerica, senha
+      SELECT id, numerica, senha, registration_status as registrationStatus
       FROM pmam_students
       WHERE numerica = ?
       LIMIT 1
@@ -203,11 +213,11 @@ export async function verifyStudentPassword(
       return false;
     }
 
-    const dbSenha = students[0].senha;
-
-    if (senha === numerica || senha === "123456") {
-      return true;
+    if (students[0].registrationStatus !== "active") {
+      return false;
     }
+
+    const dbSenha = students[0].senha;
 
     if (!dbSenha) {
       return false;
@@ -226,9 +236,6 @@ export async function verifyStudentPassword(
     const isMatch = await bcrypt.compare(senha, dbSenha);
     if (isMatch) return true;
 
-    const isMatchDefault = await bcrypt.compare("123456", dbSenha);
-    if (isMatchDefault && (senha === "123456" || senha === numerica)) return true;
-
     return false;
   } finally {
   }
@@ -246,7 +253,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, registration_status as registrationStatus, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE id = ?
       LIMIT 1
@@ -268,7 +275,7 @@ export async function getAllStudents(): Promise<StudentData[]> {
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, CASE WHEN registration_status = 'available' THEN 'Vaga disponível' ELSE nome_guerra END as nomeGuerra, companhia, peloton, session_token as sessionToken, registration_status as registrationStatus, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       ORDER BY numerica ASC
     `;
@@ -395,7 +402,7 @@ export async function verifyStudentSession(id: number, sessionToken: string): Pr
 
   try {
     const rows = await dbQuery(
-      "SELECT id FROM pmam_students WHERE id = ? AND session_token = ? LIMIT 1",
+      "SELECT id FROM pmam_students WHERE id = ? AND session_token = ? AND registration_status = 'active' LIMIT 1",
       [id, sessionToken]
     );
     return (rows as any[]).length > 0;
@@ -436,6 +443,7 @@ export async function updateStudentProfile(
     emergencyContact?: string | null;
     emergencyPhone?: string | null;
     senha?: string;
+    registrationStatus?: "available" | "active" | "blocked";
   }
 ): Promise<void> {
   
@@ -499,6 +507,10 @@ export async function updateStudentProfile(
       params.push(hashedPassword);
       syncedPasswordHash = hashedPassword;
     }
+    if (data.registrationStatus !== undefined) {
+      updates.push("registration_status = ?");
+      params.push(data.registrationStatus);
+    }
 
     if (updates.length === 0) return;
 
@@ -544,6 +556,21 @@ export async function updateStudentProfile(
   }
 }
 
+export async function ensureRegisteredStudentUser(studentId: number): Promise<void> {
+  const openId = `student-account-${studentId}`;
+  await dbQuery(
+    `INSERT INTO pmam_users
+      (open_id, name, email, password, login_method, role, student_id, companhia_id, pelotao_id, foto_url, is_active)
+     SELECT ?, nome_guerra, CONCAT(numerica, '@pmam.com'), senha, 'student', 'student', id, companhia, peloton, foto_url, TRUE
+     FROM pmam_students WHERE id = ? AND registration_status = 'active'
+     ON DUPLICATE KEY UPDATE
+       name = VALUES(name), password = VALUES(password), role = 'student', student_id = VALUES(student_id),
+       companhia_id = VALUES(companhia_id), pelotao_id = VALUES(pelotao_id), foto_url = VALUES(foto_url),
+       is_active = TRUE, updated_at = CURRENT_TIMESTAMP`,
+    [openId, studentId]
+  );
+}
+
 export async function deleteStudent(id: number): Promise<void> {
   await dbQuery("DELETE FROM pmam_student_grades WHERE student_id = ?", [id]);
   for (const table of [
@@ -583,7 +610,7 @@ export async function getStudentByRg(
 
   try {
     const query = `
-      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
+      SELECT id, numerica, nome_guerra as nomeGuerra, companhia, peloton, session_token as sessionToken, registration_status as registrationStatus, foto_url as fotoUrl, nome_completo as nomeCompleto, rg, email, cpf, phone, address, birth_date as birthDate, blood_type as bloodType, emergency_contact as emergencyContact, emergency_phone as emergencyPhone, \`condition\`, desk_number as deskNumber, created_at as createdAt, updated_at as updatedAt
       FROM pmam_students
       WHERE REPLACE(REPLACE(rg, '.', ''), '-', '') = REPLACE(REPLACE(?, '.', ''), '-', '')
       LIMIT 1

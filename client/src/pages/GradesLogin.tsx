@@ -83,7 +83,7 @@ export default function GradesLogin() {
             </div>
           </div>
           <CardTitle className="text-2xl">Acesso do Aluno</CardTitle>
-          <CardDescription>Use sua numérica para entrar nas áreas restritas</CardDescription>
+          <CardDescription>Use sua numérica para entrar ou ativar a vaga reservada na sua sala</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -101,7 +101,7 @@ export default function GradesLogin() {
               </TabsTrigger>
               <TabsTrigger value="register" className="gap-2">
                 <UserPlus className="h-4 w-4" />
-                Criar conta
+                Primeiro acesso
               </TabsTrigger>
             </TabsList>
 
@@ -241,7 +241,7 @@ export default function GradesLogin() {
                   />
                 </div>
                 <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
-                  Criar conta
+                  Ativar minha vaga
                 </Button>
               </form>
             </TabsContent>

@@ -51,12 +51,11 @@ export const studentRouter = router({
       let student: any = null;
 
       if (existingStudent) {
-        // A conta só é considerada ativa se já tiver um sessionToken real e se a senha não for a temporária "temp"
-        const isTempPassword = await studentDb.verifyStudentPassword(input.numerica, "temp");
-        const isAlreadyActivated = existingStudent.sessionToken && 
-                                   existingStudent.sessionToken !== "null" && 
-                                   existingStudent.sessionToken !== "undefined" && 
-                                   !isTempPassword;
+        if (existingStudent.registrationStatus === "blocked") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Esta vaga está bloqueada. Procure a administração." });
+        }
+
+        const isAlreadyActivated = existingStudent.registrationStatus === "active";
 
         if (isAlreadyActivated) {
           // Normalizar CPFs e RGs para comparação
@@ -91,6 +90,7 @@ export const studentRouter = router({
           senha: input.senha,
           cpf: input.cpf || undefined,
           rg: input.rg || undefined,
+          registrationStatus: "active",
         });
         
         // Rotacionar token de sessão para logá-los
@@ -104,23 +104,12 @@ export const studentRouter = router({
           peloton: existingStudent.peloton,
           sessionToken,
         };
+        await studentDb.ensureRegisteredStudentUser(existingStudent.id);
       } else {
-        // Criar novo aluno se não existir
-        student = await studentDb.createStudent(
-          input.numerica,
-          input.nomeGuerra,
-          input.senha,
-          validation.companhia,
-          validation.peloton
-        );
-        
-        // Se CPF ou RG foram preenchidos, salvá-los no perfil recém-criado
-        if (student && (input.cpf || input.rg)) {
-          await studentDb.updateStudentProfile(student.id, {
-            cpf: input.cpf || undefined,
-            rg: input.rg || undefined,
-          });
-        }
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Esta numérica não corresponde a uma vaga disponível. Confirme sua sala com a administração.",
+        });
       }
 
       if (!student) {
@@ -159,6 +148,20 @@ export const studentRouter = router({
         });
       }
 
+      const student = await studentDb.getStudentByNumerica(input.numerica);
+      if (!student) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Vaga não encontrada" });
+      }
+      if (student.registrationStatus === "available") {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Esta vaga ainda não foi cadastrada. Use a opção Criar conta.",
+        });
+      }
+      if (student.registrationStatus === "blocked") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Conta bloqueada. Procure a administração." });
+      }
+
       // Verificar credenciais
       const isValid = await studentDb.verifyStudentPassword(
         input.numerica,
@@ -169,15 +172,6 @@ export const studentRouter = router({
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Numérica ou senha incorretos",
-        });
-      }
-
-      // Buscar dados do aluno
-      const student = await studentDb.getStudentByNumerica(input.numerica);
-      if (!student) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Aluno não encontrado",
         });
       }
 

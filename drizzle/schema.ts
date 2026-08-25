@@ -346,6 +346,7 @@ export const pmamStudents = mysqlTable("pmam_students", {
   nomeGuerra: varchar("nome_guerra", { length: 255 }).notNull(),
   senha: varchar("senha", { length: 255 }).notNull(),
   sessionToken: varchar("session_token", { length: 128 }),
+  registrationStatus: mysqlEnum("registration_status", ["available", "active", "blocked"]).notNull().default("active"),
   companhia: int("companhia").notNull(), // 1-5
   peloton: int("peloton").notNull(), // 1-2
   nomeCompleto: varchar("nome_completo", { length: 255 }),

@@ -484,6 +484,12 @@ export const appRouter = router({
       if (!user && numerica) {
         const student = await studentDb.getStudentByNumerica(numerica);
         if (student) {
+          if (student.registrationStatus !== "active") {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: "Esta vaga ainda não possui cadastro. Use o acesso do aluno para criar sua conta.",
+            });
+          }
           console.info(`[Auth] User not found for ${normalizedEmail}, but student ${numerica} exists. Auto-creating user row...`);
           const hashedPassword = await bcrypt.hash(input.password, 10);
           const openId = `student-${numerica}-${Date.now()}`;

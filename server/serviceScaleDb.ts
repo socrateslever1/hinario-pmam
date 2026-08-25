@@ -31,6 +31,7 @@ export interface ServiceStudent {
   condition?: string;
   deskNumber?: number | null;
   fotoUrl?: string;
+  registrationStatus?: "available" | "active" | "blocked";
 }
 
 export type LcCaseStatus = "pending" | "homologated" | "rejected" | "cancelled";
@@ -709,7 +710,7 @@ export async function ensureServiceScaleTables() {
       await query(`
         UPDATE pmam_users u
         INNER JOIN pmam_xerife_assignments xa ON xa.user_id = u.id
-        SET u.role = 'user', u.updated_at = CURRENT_TIMESTAMP
+        SET u.role = 'student', u.updated_at = CURRENT_TIMESTAMP
         WHERE u.role = 'admin'
       `);
     })().catch((error) => {
@@ -854,7 +855,10 @@ export async function listStudents(scope?: { companhia?: number; peloton?: numbe
   }
 
   const rows = await query(`
-    SELECT id, numerica, nome_guerra AS nomeGuerra, nome_completo AS nomeCompleto, companhia, peloton, \`condition\`, desk_number AS deskNumber, foto_url AS fotoUrl
+    SELECT id, numerica,
+      CASE WHEN registration_status = 'available' THEN 'Vaga disponível' ELSE nome_guerra END AS nomeGuerra,
+      nome_completo AS nomeCompleto, companhia, peloton, \`condition\`, desk_number AS deskNumber,
+      foto_url AS fotoUrl, registration_status AS registrationStatus
     FROM pmam_students
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY companhia ASC, peloton ASC, numerica ASC
@@ -1002,14 +1006,14 @@ export async function promoteStudentToXerife(
   if (existingUsers.length > 0) {
     userId = existingUsers[0].id;
     await query(
-      "UPDATE pmam_users SET name = ?, student_id = ?, foto_url = ?, role = 'user' WHERE id = ?",
+      "UPDATE pmam_users SET name = ?, student_id = ?, foto_url = ?, role = 'student' WHERE id = ?",
       [student.nome_guerra, studentId, student.foto_url || null, userId]
     );
   } else {
     const openId = `student-${student.numerica}-${Date.now()}`;
     const result = await query(
       `INSERT INTO pmam_users (open_id, name, email, password, login_method, role, student_id, foto_url)
-       VALUES (?, ?, ?, ?, 'email', 'user', ?, ?)`,
+       VALUES (?, ?, ?, ?, 'email', 'student', ?, ?)`,
       [openId, student.nome_guerra, email, student.senha, studentId, student.foto_url || null]
     );
     userId = (result as any).insertId;
