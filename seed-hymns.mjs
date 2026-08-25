@@ -313,13 +313,25 @@ async function seed() {
   for (const h of hymns) {
     await connection.execute(
       `INSERT INTO pmam_hymns
-        (number, title, subtitle, author, composer, category, lyrics, description, youtube_url, audio_url, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (number, title, subtitle, author, composer, category, collection, lyrics, description, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           title = VALUES(title), subtitle = VALUES(subtitle), author = VALUES(author),
           composer = VALUES(composer), category = VALUES(category), lyrics = VALUES(lyrics),
-          description = VALUES(description), is_active = 1, updated_at = CURRENT_TIMESTAMP`,
-      [h.number, h.title, h.subtitle || null, h.author || null, h.composer || null, h.category, h.lyrics, h.description || null, null, null, 1]
+          collection = VALUES(collection), description = VALUES(description),
+          is_active = 1, updated_at = CURRENT_TIMESTAMP`,
+      [
+        h.number,
+        h.title,
+        h.subtitle || null,
+        h.author || null,
+        h.composer || null,
+        h.category === "tfm" ? "militar" : h.category,
+        h.category === "tfm" ? "tfm" : null,
+        h.lyrics,
+        h.description || null,
+        1,
+      ]
     );
     console.log("  Restored: " + h.number + ". " + h.title);
   }

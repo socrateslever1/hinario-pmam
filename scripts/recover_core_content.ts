@@ -33,12 +33,22 @@ async function main() {
   for (const hymn of hymns) {
     await db.execute(
       `INSERT INTO pmam_hymns
-       (number, title, subtitle, author, composer, category, lyrics, description, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+       (number, title, subtitle, author, composer, category, collection, lyrics, description, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
        ON DUPLICATE KEY UPDATE title=VALUES(title), subtitle=VALUES(subtitle), author=VALUES(author),
-       composer=VALUES(composer), category=VALUES(category), lyrics=VALUES(lyrics),
+       composer=VALUES(composer), category=VALUES(category), collection=VALUES(collection), lyrics=VALUES(lyrics),
        description=VALUES(description), is_active=1, updated_at=CURRENT_TIMESTAMP`,
-      [hymn.number, hymn.title, hymn.subtitle, hymn.author, hymn.composer, hymn.category, hymn.lyrics, hymn.description],
+      [
+        hymn.number,
+        hymn.title,
+        hymn.subtitle,
+        hymn.author,
+        hymn.composer,
+        hymn.category === "tfm" ? "militar" : hymn.category,
+        hymn.category === "tfm" ? "tfm" : null,
+        hymn.lyrics,
+        hymn.description,
+      ],
     );
   }
   console.log(`hinos: ${hymns.length}`);

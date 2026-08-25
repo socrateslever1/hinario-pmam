@@ -153,6 +153,18 @@ export default function HymnDetail() {
 
       <section className="bg-transparent px-3 py-6 md:bg-background md:px-0 md:py-10">
         <div className="px-0 md:container">
+          {hymn.description && (
+            <Card className="mb-4 border-[#c4a84b]/30 bg-white/80 shadow-sm md:mb-8">
+              <CardContent className="p-5 md:p-7">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8a6f18]">
+                  História e contexto
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+                  {hymn.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             {/* Main Content - Lyrics & Player */}
             <div className="lg:col-span-2">
@@ -185,20 +197,6 @@ export default function HymnDetail() {
                             : cacheStatus === "metadata-only"
                               ? "Letra salva. O MP3 ainda nao ficou disponivel offline neste aparelho."
                               : "Nao foi possivel concluir o cache offline deste hino."}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Description */}
-              {hymn.description && (
-                <Card className="border-border/50">
-                  <CardContent className="p-6">
-                    <h3 className="font-bold text-foreground mb-3 text-sm uppercase tracking-wider">
-                      Sobre este Hino
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {hymn.description}
                     </p>
                   </CardContent>
                 </Card>

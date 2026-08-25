@@ -1,11 +1,12 @@
 import mysql from 'mysql2/promise';
+import 'dotenv/config';
 
 const dbConfig = {
-  host: process.env.TIDB_HOST || 'gateway03.us-east-1.prod.aws.tidbcloud.com',
+  host: process.env.TIDB_HOST,
   port: Number(process.env.TIDB_PORT || '4000'),
-  user: process.env.TIDB_USER || 'CZ6fqEVQpCUKFJb.9db839fe7bfc',
-  password: process.env.TIDB_PASSWORD || 'etH2wXWdiR822X4tgm9p',
-  database: process.env.TIDB_DATABASE || 'oYQqDtLooPR5vbQ65ChDb9',
+  user: process.env.TIDB_USER,
+  password: process.env.TIDB_PASSWORD,
+  database: process.env.TIDB_DATABASE,
   ssl: { rejectUnauthorized: true },
 };
 
