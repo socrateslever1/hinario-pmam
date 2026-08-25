@@ -502,6 +502,10 @@ export const appRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
       }
 
+      if (user.isActive === false) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Conta desativada. Procure um administrador." });
+      }
+
       if (!user.password) {
         console.warn(`[Auth] Login failed: User ${normalizedEmail} has no password set`);
         throw new TRPCError({ code: "UNAUTHORIZED", message: INVALID_LOGIN_MESSAGE });
@@ -3623,6 +3627,19 @@ export const appRouter = router({
       const { id, ...updates } = input;
       await db.updateAccessUser(id, updates);
       return { success: true, message: 'Acesso atualizado com sucesso' };
+    }),
+
+    setActive: masterOnlyProcedure.input(
+      z.object({
+        id: z.number().int().positive(),
+        isActive: z.boolean(),
+      })
+    ).mutation(async ({ ctx, input }) => {
+      if (ctx.user.id === input.id && !input.isActive) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Você não pode desativar a própria conta." });
+      }
+      await db.setUserActive(input.id, input.isActive);
+      return { success: true, message: input.isActive ? "Conta reativada" : "Conta desativada" };
     }),
 
     deleteAccess: masterOnlyProcedure.input(

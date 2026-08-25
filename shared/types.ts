@@ -11,6 +11,7 @@ export interface User {
   password?: string | null;
   loginMethod: string | null;
   role: 'user' | 'admin' | 'master' | string;
+  isActive?: boolean;
   forcePasswordChange?: boolean;
   fotoUrl?: string | null;
   createdAt: Date | string;

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Trash2, Edit2, Copy, Check, Lock } from 'lucide-react';
+import { Trash2, Edit2, Copy, Check, Lock, Power, PowerOff } from 'lucide-react';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -70,6 +70,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const createAccessMutation = trpc.access.createAccess.useMutation();
   const updateAccessMutation = trpc.access.updateAccess.useMutation();
   const deleteAccessMutation = trpc.access.deleteAccess.useMutation();
+  const setActiveMutation = trpc.access.setActive.useMutation();
   const listAccessesQuery = trpc.access.listAccesses.useQuery();
 
   const handleCreateAccess = async () => {
@@ -105,6 +106,11 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
     } catch (error: any) {
       console.error('Erro ao deletar acesso:', error.message);
     }
+  };
+
+  const handleSetActive = async (id: number, isActive: boolean) => {
+    await setActiveMutation.mutateAsync({ id, isActive });
+    await listAccessesQuery.refetch();
   };
 
   const openEditAccess = (access: any) => {
@@ -372,7 +378,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                   <div>
                     <p className="text-sm text-gray-600">Status</p>
                     <p className="font-semibold">
-                      {access.forcePasswordChange ? (
+                      {access.isActive === false ? (
+                        <span className="text-red-600">Desativado</span>
+                      ) : access.forcePasswordChange ? (
                         <span className="text-orange-600">Aguardando primeira senha</span>
                       ) : (
                         <span className="text-green-600">Ativo</span>
@@ -398,6 +406,17 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                     <Button variant="outline" size="sm" onClick={() => openEditAccess(access)}>
                       <Edit2 className="w-4 h-4 mr-2" />
                       Editar
+                    </Button>
+                  )}
+                  {canEditAccess(access) && access.role !== 'master' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={setActiveMutation.isPending}
+                      onClick={() => handleSetActive(access.id, access.isActive === false)}
+                    >
+                      {access.isActive === false ? <Power className="mr-2 h-4 w-4" /> : <PowerOff className="mr-2 h-4 w-4" />}
+                      {access.isActive === false ? 'Reativar' : 'Desativar'}
                     </Button>
                   )}
                   {canDeleteAccess(access) ? (

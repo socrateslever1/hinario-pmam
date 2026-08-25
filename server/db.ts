@@ -28,6 +28,7 @@ function mapUser(u: any) {
     pelotaoId: u.pelotao_id,
     companhiaId: u.companhia_id,
     forcePasswordChange: u.force_password_change === 1 || u.force_password_change === true,
+    isActive: u.is_active === undefined || u.is_active === 1 || u.is_active === true,
     fotoUrl: u.foto_url,
     studentId: u.student_id,
     createdAt: u.created_at,
@@ -775,6 +776,13 @@ export async function resetUserPassword(id: number, hashedPassword: string) {
 
 export async function deleteUser(id: number) {
   await query("DELETE FROM pmam_users WHERE id = ? AND role <> 'master'", [id]);
+}
+
+export async function setUserActive(id: number, isActive: boolean) {
+  await query(
+    "UPDATE pmam_users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND role <> 'master'",
+    [isActive ? 1 : 0, id]
+  );
 }
 
 // ===== SETTINGS =====
