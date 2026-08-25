@@ -316,7 +316,7 @@ export default function GradesManagement() {
 
   if (isLoading) {
     return (
-      <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
+      <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] dark:bg-[#020a0f]">
         <Navbar />
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-foreground">
           <div className="text-center">
@@ -329,7 +329,7 @@ export default function GradesManagement() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
       <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
         <div className="container text-center">

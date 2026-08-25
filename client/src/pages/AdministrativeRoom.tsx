@@ -505,7 +505,7 @@ export default function AdministrativeRoom() {
 
   if (accessLoading) {
     return (
-      <div className="min-h-screen bg-[#f5f2e8]">
+      <div className="min-h-screen bg-[#f5f2e8] dark:bg-[#020a0f]">
         <Navbar />
         <main className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#1a3a2a]" />
@@ -516,7 +516,7 @@ export default function AdministrativeRoom() {
 
   if (!canViewAdministrativeRoom) {
     return (
-      <div className="min-h-screen bg-[#f5f2e8]">
+      <div className="min-h-screen bg-[#f5f2e8] dark:bg-[#020a0f]">
         <Navbar />
         <main className="container mx-auto max-w-xl px-4 py-10">
           <Card>

@@ -35,7 +35,7 @@ export default function ServiceBoard() {
   const { data: board, isLoading } = trpc.serviceScale.published.useQuery({ weekStart });
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
       <main className="container px-4 py-6 md:py-10">
         <section className="mb-6 rounded-2xl border border-white/10 bg-[#092719] p-5 text-[#f8f7f0] shadow-[0_18px_50px_rgba(0,0,0,.25)] md:p-8">

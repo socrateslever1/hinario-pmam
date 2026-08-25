@@ -55,6 +55,11 @@ export default function HymnDetail() {
   );
 
   const isTfm = hymn?.collection === "tfm";
+  const tfmTitleNumber = hymn?.title?.match(/(?:canção|cancao)\s+tfm\s+(\d+)/i)?.[1];
+  const displayNumber = isTfm
+    ? Number(tfmTitleNumber || tfmHymns?.findIndex((item: any) => item.id === hymn.id)! + 1 || hymn.number)
+    : hymn.number;
+  const displayCategory = isTfm ? "Charlie Mike · TFM" : categoryLabels[hymn.category] || hymn.category;
   const catalogHref = isTfm ? "/charlie-mike" : "/hinos";
   const catalogLabel = isTfm ? "Voltar ao Charlie Mike" : "Voltar ao Catalogo";
   const navigationBase = isTfm ? tfmHymns : allHymns;
@@ -105,14 +110,14 @@ export default function HymnDetail() {
   const youtubeId = hymn.youtubeUrl ? extractYouTubeId(hymn.youtubeUrl) : null;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0]">
       <Navbar />
 
       {/* Header */}
       <section className="military-page-hero border-b px-3 pb-7 pt-6 md:px-0 md:py-8">
         <div className="px-0 md:container">
           <Link href={catalogHref}>
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-[#1a3a2a]/5 gap-2 mb-4">
+            <Button variant="ghost" size="sm" className="mb-4 gap-2 text-[#53635a] hover:bg-[#1a3a2a]/5 hover:text-[#17251d] dark:text-[#e2d7b5] dark:hover:bg-white/10 dark:hover:text-white">
               <ArrowLeft className="h-4 w-4" /> {catalogLabel}
             </Button>
           </Link>
@@ -121,19 +126,19 @@ export default function HymnDetail() {
               className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
               style={{ backgroundColor: catColor }}
             >
-              {String(hymn.number).padStart(2, "0")}
+              {String(displayNumber).padStart(2, "0")}
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-[#c4a84b] mb-1">
-                {categoryLabels[hymn.category] || hymn.category}
+                {displayCategory}
               </p>
-              <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
+              <h1 className="text-2xl font-bold text-[#1a3a2a] dark:text-[#fff8e8] md:text-3xl" style={{ fontFamily: 'Merriweather, serif' }}>
                 {hymn.title}
               </h1>
               {hymn.subtitle && (
-                <p className="text-muted-foreground mt-1">{hymn.subtitle}</p>
+                <p className="mt-1 text-muted-foreground dark:text-white/72">{hymn.subtitle}</p>
               )}
-              <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+              <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground dark:text-white/68">
                 {hymn.author && (
                   <span className="flex items-center gap-1">
                     <Pen className="h-3 w-3" /> Letra: {hymn.author}
@@ -151,15 +156,15 @@ export default function HymnDetail() {
         <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
       </section>
 
-      <section className="bg-transparent px-3 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-3 py-6 md:bg-background md:px-0 md:py-10 dark:md:bg-[#020a0f]">
         <div className="px-0 md:container">
           {hymn.description && (
-            <Card className="mb-4 border-[#c4a84b]/30 bg-white/80 shadow-sm md:mb-8">
+            <Card className="mb-4 border-[#c4a84b]/30 bg-white/90 text-[#17251d] shadow-sm dark:border-[#c4a84b]/25 dark:bg-[#0b1720] dark:text-[#f8f7f0] md:mb-8">
               <CardContent className="p-5 md:p-7">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8a6f18]">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#755b08] dark:text-[#e4c75f]">
                   História e contexto
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+                <p className="mt-3 text-sm leading-relaxed text-[#4f5e55] dark:text-[#d4ddd7] md:text-base">
                   {hymn.description}
                 </p>
               </CardContent>
@@ -211,11 +216,11 @@ export default function HymnDetail() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Número</span>
-                      <span className="font-medium text-foreground">{hymn.number}</span>
+                      <span className="font-medium text-foreground">{String(displayNumber).padStart(2, "0")}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Categoria</span>
-                      <span className="font-medium text-foreground">{categoryLabels[hymn.category]}</span>
+                      <span className="font-medium text-foreground">{displayCategory}</span>
                     </div>
                     {hymn.author && (
                       <div className="flex justify-between">

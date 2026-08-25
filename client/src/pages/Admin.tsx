@@ -191,7 +191,7 @@ export default function Admin() {
 
   if (loading || (isAuthenticated && scaleAccessLoading)) {
     return (
-      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -211,7 +211,7 @@ export default function Admin() {
 
   if (!isAuthorized) {
     return (
-      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+      <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-md w-full mx-4 border-border/50 bg-card text-foreground shadow-md">
@@ -245,7 +245,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
       {user?.forcePasswordChange && (

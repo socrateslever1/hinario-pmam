@@ -877,7 +877,7 @@ window.print();
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col print:block print:min-h-0 print:bg-white bg-[#f5f2e8] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f] print:block print:min-h-0 print:bg-white">
       <Navbar />
 
       {/* Hero Section */}

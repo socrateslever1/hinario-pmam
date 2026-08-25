@@ -415,7 +415,7 @@ export default function Cfap2026() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
       <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">

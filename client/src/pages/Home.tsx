@@ -492,7 +492,7 @@ export default function Home() {
   }
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
 
       {meQuery.data?.forcePasswordChange && (

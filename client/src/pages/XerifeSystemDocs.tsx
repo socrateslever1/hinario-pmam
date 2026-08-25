@@ -19,7 +19,7 @@ export default function XerifeSystemDocs() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f5f2e8]">
+    <div className="min-h-screen bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">

@@ -97,7 +97,7 @@ export default function DrillDetail() {
   const youtubeExecutionId = extractYouTubeId(drill.youtubeUrl);
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
 
       <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">

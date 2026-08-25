@@ -34,11 +34,13 @@ export default function Hymns() {
   });
   const { cachedHymns, isLoadingCache } = useCachedHymnCatalog(onlineHymns ?? null);
   const hymns = onlineHymns && onlineHymns.length > 0 ? onlineHymns : cachedHymns;
+  const hymnalHymns = useMemo(
+    () => (hymns ?? []).filter((hymn: any) => hymn.collection !== "tfm" && hymn.category !== "tfm"),
+    [hymns],
+  );
 
   const filteredHymns = useMemo(() => {
-    if (!hymns) return [];
-
-    let filtered = hymns;
+    let filtered = hymnalHymns;
     if (activeCategory !== "all") {
       filtered = filtered.filter((h: any) => h.category === activeCategory);
     }
@@ -53,7 +55,7 @@ export default function Hymns() {
     }
 
     return filtered;
-  }, [activeCategory, hymns, searchTerm]);
+  }, [activeCategory, hymnalHymns, searchTerm]);
 
   const activeCategoryConfig = categoryConfig[activeCategory] || categoryConfig.all;
 
@@ -68,7 +70,7 @@ export default function Hymns() {
             Catálogo de Hinos
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm dark:text-white/70 md:text-base">
-            {hymns?.length ?? 0} hinos, canções e orações militares
+            {hymnalHymns.length} hinos, canções e orações militares
           </p>
         </div>
         <div className="checkerboard-pattern mt-6 hidden w-full md:block" />

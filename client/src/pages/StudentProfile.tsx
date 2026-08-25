@@ -326,7 +326,7 @@ export default function StudentProfilePage() {
   const internalReports = internalReportsQuery.data ?? [];
 
   return (
-    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8]">
+    <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
       <main className="container max-w-5xl px-4 py-4 md:py-8">
         <div className="mb-4 flex flex-col justify-between gap-2 text-foreground md:mb-6 md:flex-row md:items-center md:gap-4 md:p-0">

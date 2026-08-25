@@ -130,7 +130,7 @@ export default function Login() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
       {/* Header bar */}
       <div className="checkerboard-pattern w-full" />
       <div className="bg-card border-b border-border/40 py-6">

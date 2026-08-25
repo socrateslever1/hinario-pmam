@@ -143,7 +143,7 @@ export default function BlogDetail() {
   const likesCount = likesData?.count ?? 0;
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground md:bg-background">
+    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
       {/* Hero com imagem de capa — altura fixa, nunca empurra conteúdo */}
