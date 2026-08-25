@@ -3612,7 +3612,7 @@ export const appRouter = router({
     }),
 
     listAccesses: masterOnlyProcedure.query(async () => {
-      return await db.getAllUsers();
+      return await db.listAccessUsers();
     }),
 
     updateAccess: masterOnlyProcedure.input(

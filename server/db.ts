@@ -1542,7 +1542,7 @@ export async function updateAccessUser(id: number, input: {
 
 export async function listAccessUsers() {
   const rows = await query(
-    "SELECT id, name, email, role, pelotao_id, companhia_id, force_password_change, created_at FROM pmam_users WHERE role IN ('comandante_corpo', 'subcomandante_corpo', 'sub_comandante_corpo', 'comandante_cfap', 'subcomandante_cfap', 'sub_comandante_cfap', 'comandante_cia', 'comandante_pel') ORDER BY created_at DESC"
+    "SELECT id, name, email, role, pelotao_id, companhia_id, force_password_change, is_active, created_at FROM pmam_users WHERE role IN ('master', 'admin', 'comandante_corpo', 'subcomandante_corpo', 'sub_comandante_corpo', 'comandante_cfap', 'subcomandante_cfap', 'sub_comandante_cfap', 'comandante_cia', 'comandante_pel') ORDER BY FIELD(role, 'master', 'admin', 'comandante_cfap', 'subcomandante_cfap', 'comandante_corpo', 'subcomandante_corpo', 'comandante_cia', 'comandante_pel'), name ASC"
   );
   return rows.map((r: any) => ({
     id: r.id,
@@ -1552,6 +1552,7 @@ export async function listAccessUsers() {
     pelotaoId: r.pelotao_id,
     companhiaId: r.companhia_id,
     forcePasswordChange: r.force_password_change === 1 || r.force_password_change === true,
+    isActive: r.is_active === 1 || r.is_active === true,
     createdAt: r.created_at
   }));
 }
