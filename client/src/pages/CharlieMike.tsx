@@ -155,7 +155,7 @@ export default function CharlieMike() {
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Catálogo Charlie Mike</p>
               <h2 className="mt-1 text-xl font-black tracking-tight text-foreground">Canções Militares</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {songs.length} item(ns) na visualização atual. Letras já carregadas e links de mídia conectados quando disponíveis.
+                {songs.length} faixa(s) na visualização atual, com vídeos conectados quando disponíveis.
               </p>
             </div>
           </div>

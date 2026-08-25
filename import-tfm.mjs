@@ -1,297 +1,189 @@
-﻿import fs from 'fs';
-import path from 'path';
-import mysql from 'mysql2/promise';
-import 'dotenv/config';
+import fs from "node:fs/promises";
+import path from "node:path";
+import mysql from "mysql2/promise";
+import "dotenv/config";
 
-const ROOT = process.cwd();
-const TFM_DIR = path.join(ROOT, 'tmp_tfm_import', 'www.letras.mus.br', 'cancoes-de-tfm');
-const REPORT_PATH = path.join(ROOT, 'tmp_tfm_import', 'tfm-import-report.json');
-const COLLECTION = 'tfm';
+const CATALOG_URL = "https://www.letras.mus.br/cancoes-de-tfm/";
+const COLLECTION = "tfm";
 const BASE_NUMBER = 1001;
+const OUTPUT_DIR = path.resolve("tmp", "tfm-import");
 
 const dbConfig = {
   host: process.env.TIDB_HOST,
-  port: Number(process.env.TIDB_PORT || '4000'),
+  port: Number(process.env.TIDB_PORT || "4000"),
   user: process.env.TIDB_USER,
   password: process.env.TIDB_PASSWORD,
   database: process.env.TIDB_DATABASE,
   ssl: { rejectUnauthorized: true },
 };
 
-function normalize(value = '') {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
-}
-
-function decodeEntities(value = '') {
+function decodeEntities(value = "") {
   return value
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([\da-fA-F]+);/g, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
     .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&ndash;/g, '-')
-    .replace(/&mdash;/g, '-');
+    .replace(/&apos;|&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
-function extractTitle(html, fallbackSlug) {
-  const fromLyricPush = html.match(/_omq\.push\(\['ui\/lyric', \{[\s\S]*?"Name":"([^"]+)"/)?.[1];
-  const fromTitle = html.match(/<title>(.*?) - Can/i)?.[1];
-  return decodeEntities(fromLyricPush || fromTitle || fallbackSlug).trim();
-}
-
-function extractLyrics(html) {
-  const raw = html.match(/<div class="lyric-original">([\s\S]*?)<\/div>/i)?.[1];
-  if (!raw) return '';
-  const text = decodeEntities(
-    raw
-      .replace(/<\/?div[^>]*>/gi, '')
-      .replace(/<\/?span[^>]*>/gi, '')
-      .replace(/<\/?strong[^>]*>/gi, '')
-      .replace(/<\/?em[^>]*>/gi, '')
-      .replace(/<\/?i[^>]*>/gi, '')
-      .replace(/<\/?a[^>]*>/gi, '')
-      .replace(/<p[^>]*>/gi, '')
-      .replace(/<\/p>/gi, '\n\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
-  )
-    .replace(/\r/g, '')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n[ \t]+/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  return text;
+function extractTitle(html, slug) {
+  const structured = html.match(/_omq\.push\(\['ui\/lyric', \{[\s\S]*?"Name":"([^"]+)"/)?.[1];
+  const documentTitle = html.match(/<title>(.*?)\s+-\s+Can/i)?.[1];
+  return decodeEntities(structured || documentTitle || slug.replaceAll("-", " ")).trim();
 }
 
 function extractYoutubeId(html) {
-  return html.match(/YoutubeID\"\s*:\s*\"([^\"]*)\"/i)?.[1]?.trim() || '';
+  return html.match(/YoutubeID"\s*:\s*"([^"]+)"/i)?.[1]?.trim() || null;
 }
 
 function extractDuration(html) {
   return html.match(/"duration":"(PT[^"]+)"/i)?.[1] || null;
 }
 
-function parseSearchResults(html) {
-  const candidates = [];
+function durationLabel(isoDuration) {
+  if (!isoDuration) return null;
+  const match = isoDuration.match(/^PT(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!match) return isoDuration;
+  const minutes = Number(match[1] || 0);
+  const seconds = Number(match[2] || 0);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+async function fetchHtml(url) {
+  const response = await fetch(url, {
+    headers: {
+      accept: "text/html,application/xhtml+xml",
+      "user-agent": "Mozilla/5.0 (compatible; QGDigitalCatalogSync/1.0)",
+    },
+    redirect: "follow",
+  });
+  if (!response.ok) throw new Error(`Falha HTTP ${response.status} ao acessar ${url}`);
+  return response.text();
+}
+
+function catalogEntries(html) {
+  const entries = [];
   const seen = new Set();
-  const regex = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
+  const regex = /href="\/cancoes-de-tfm\/([a-z0-9-]+)\/"/gi;
   let match;
-  while ((match = regex.exec(html)) && candidates.length < 15) {
-    const id = match[1];
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const snippet = html.slice(match.index, match.index + 1200);
-    const title = decodeEntities(snippet.match(/"title":\{"runs":\[\{"text":"([^"]+)/)?.[1] || '');
-    const owner = decodeEntities(snippet.match(/"ownerText":\{"runs":\[\{"text":"([^"]+)/)?.[1] || '');
-    if (!title) continue;
-    candidates.push({ id, title, owner });
+  while ((match = regex.exec(html))) {
+    const slug = match[1];
+    if (slug === "ouvir" || seen.has(slug)) continue;
+    seen.add(slug);
+    entries.push({ slug, sourceUrl: `${CATALOG_URL}${slug}/` });
   }
-  return candidates;
+  return entries;
 }
 
-function scoreCandidate(songTitle, candidate) {
-  const songNorm = normalize(songTitle);
-  const titleNorm = normalize(candidate.title);
-  const songWords = songNorm.split(' ').filter((word) => word.length > 2);
-  const overlap = songWords.filter((word) => titleNorm.includes(word));
-  let score = overlap.length * 12;
-  if (titleNorm.includes(songNorm)) score += 80;
-  if (titleNorm.includes('tfm')) score += 24;
-  if (titleNorm.includes('cancoes de tfm')) score += 30;
-  if (titleNorm.includes('cancao')) score += 8;
-  if (titleNorm.includes('charlie mike')) score += 4;
-  if (normalize(candidate.owner).includes('tfm')) score += 10;
-  if (/legendado|oficial|cancoes/.test(titleNorm)) score += 5;
-  return { score, overlapCount: overlap.length, songWordCount: songWords.length };
-}
-
-async function searchYoutubeId(songTitle) {
-  try {
-    const query = encodeURIComponent(`${songTitle} Can??es de TFM`);
-    const html = await fetch(`https://www.youtube.com/results?search_query=${query}`, {
-      headers: { 'user-agent': 'Mozilla/5.0' },
-      redirect: 'follow',
-    }).then((response) => response.text());
-
-    const candidates = parseSearchResults(html);
-    let best = null;
-    for (const candidate of candidates) {
-      const metrics = scoreCandidate(songTitle, candidate);
-      if (!best || metrics.score > best.score) {
-        best = { ...candidate, ...metrics };
-      }
+async function mapConcurrent(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await mapper(items[index], index);
     }
-
-    if (!best) return null;
-    const minOverlap = Math.max(2, Math.ceil(best.songWordCount * 0.45));
-    if (best.score < 32 || best.overlapCount < minOverlap) return null;
-    return { id: best.id, matchedTitle: best.title, owner: best.owner, score: best.score };
-  } catch {
-    return null;
   }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
 }
 
-async function ensureSchema(connection) {
-  const [columnRows] = await connection.execute(`
-    SELECT COLUMN_NAME
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE() AND table_name = 'pmam_hymns' AND COLUMN_NAME = 'collection'
-  `);
-
-  if (columnRows.length === 0) {
-    await connection.execute(`ALTER TABLE pmam_hymns ADD COLUMN collection VARCHAR(64) NULL AFTER category`);
+async function loadCatalog() {
+  const indexHtml = await fetchHtml(CATALOG_URL);
+  const entries = catalogEntries(indexHtml);
+  if (entries.length < 20) {
+    throw new Error(`Importação interrompida: somente ${entries.length} links encontrados no catálogo.`);
   }
 
-  const [indexRows] = await connection.execute(`
-    SELECT INDEX_NAME
-    FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'pmam_hymns' AND INDEX_NAME = 'idx_pmam_hymns_collection'
-  `);
-
-  if (indexRows.length === 0) {
-    await connection.execute(`CREATE INDEX idx_pmam_hymns_collection ON pmam_hymns (collection)`);
-  }
-}
-
-function buildSongs() {
-  const dirs = fs.readdirSync(TFM_DIR, { withFileTypes: true }).filter((entry) => entry.isDirectory());
-  const songs = [];
-
-  for (const dir of dirs) {
-    const file = path.join(TFM_DIR, dir.name, 'index.html');
-    if (!fs.existsSync(file)) continue;
-    const html = fs.readFileSync(file, 'utf8');
-    const title = extractTitle(html, dir.name);
-    const lyrics = extractLyrics(html);
+  return mapConcurrent(entries, 6, async (entry) => {
+    const html = await fetchHtml(entry.sourceUrl);
     const youtubeId = extractYoutubeId(html);
-    const duration = extractDuration(html);
-
-    songs.push({
-      slug: dir.name,
-      title,
-      subtitle: 'Canções de TFM',
-      category: 'militar',
-      collection: COLLECTION,
-      lyrics,
-      youtubeId,
-      duration,
-      sourceUrl: `https://www.letras.mus.br/cancoes-de-tfm/${dir.name}/`,
-    });
-  }
-
-  songs.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
-  return songs;
+    return {
+      ...entry,
+      title: extractTitle(html, entry.slug),
+      duration: extractDuration(html),
+      youtubeUrl: youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null,
+    };
+  });
 }
 
-const connection = await mysql.createConnection(dbConfig);
-await ensureSchema(connection);
-
-const songs = buildSongs();
-const [existingRows] = await connection.execute(
-  `SELECT id, number, title FROM pmam_hymns WHERE collection = ? ORDER BY number ASC`,
-  [COLLECTION]
-);
-const existingByTitle = new Map(existingRows.map((row) => [row.title, row]));
-const usedNumbers = new Set(existingRows.map((row) => Number(row.number)));
-let nextNumber = BASE_NUMBER;
-const nextAvailableNumber = () => {
-  while (usedNumbers.has(nextNumber)) nextNumber += 1;
-  const assigned = nextNumber;
-  usedNumbers.add(assigned);
-  nextNumber += 1;
-  return assigned;
-};
-
-const report = {
-  importedAt: new Date().toISOString(),
-  totalFound: songs.length,
-  imported: 0,
-  updated: 0,
-  inserted: 0,
-  youtubeEmbedded: 0,
-  youtubeSearched: 0,
-  youtubeMissing: 0,
-  emptyLyrics: [],
-  unresolvedYoutube: [],
-  matches: [],
-};
-
-for (const song of songs) {
-  if (!song.lyrics) {
-    report.emptyLyrics.push(song.title);
+function assertDbConfig() {
+  for (const key of ["host", "user", "password", "database"]) {
+    if (!dbConfig[key]) throw new Error(`Configuração ausente: TIDB_${key.toUpperCase()}`);
   }
+}
 
-  let youtubeId = song.youtubeId;
-  let youtubeSource = youtubeId ? 'embedded' : null;
+async function main() {
+  assertDbConfig();
+  console.log(`Lendo catálogo: ${CATALOG_URL}`);
+  const songs = await loadCatalog();
+  const connection = await mysql.createConnection(dbConfig);
+  await fs.mkdir(OUTPUT_DIR, { recursive: true });
 
-  if (!youtubeId) {
-    const searchResult = await searchYoutubeId(song.title);
-    if (searchResult?.id) {
-      youtubeId = searchResult.id;
-      youtubeSource = 'search';
-      report.matches.push({ title: song.title, matchedTitle: searchResult.matchedTitle, owner: searchResult.owner, score: searchResult.score, youtubeId });
-    } else {
-      report.unresolvedYoutube.push(song.title);
+  try {
+    const [previous] = await connection.execute(
+      "SELECT * FROM pmam_hymns WHERE collection = ? ORDER BY number ASC",
+      [COLLECTION],
+    );
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const backupPath = path.join(OUTPUT_DIR, `charlie-before-${stamp}.json`);
+    await fs.writeFile(backupPath, JSON.stringify(previous, null, 2), "utf8");
+
+    const [occupiedRows] = await connection.execute(
+      "SELECT number FROM pmam_hymns WHERE collection IS NULL OR collection <> ?",
+      [COLLECTION],
+    );
+    const occupied = new Set(occupiedRows.map((row) => Number(row.number)));
+    let candidate = BASE_NUMBER;
+    const nextNumber = () => {
+      while (occupied.has(candidate)) candidate += 1;
+      occupied.add(candidate);
+      return candidate++;
+    };
+
+    await connection.beginTransaction();
+    await connection.execute("DELETE FROM pmam_hymns WHERE collection = ?", [COLLECTION]);
+
+    for (const song of songs) {
+      const duration = durationLabel(song.duration);
+      const description = [
+        "Faixa do acervo Charlie Mike.",
+        duration ? `Duração de referência: ${duration}.` : null,
+        `Fonte de catalogação: ${song.sourceUrl}`,
+      ].filter(Boolean).join(" ");
+
+      await connection.execute(
+        `INSERT INTO pmam_hymns
+          (number, title, subtitle, author, composer, category, collection, lyrics, description,
+           youtube_url, instrumental_youtube_url, audio_url, instrumental_audio_url, lyrics_sync, is_active)
+         VALUES (?, ?, ?, NULL, NULL, 'militar', ?, '', ?, ?, NULL, NULL, NULL, NULL, 1)`,
+        [nextNumber(), song.title, "Canções de TFM", COLLECTION, description, song.youtubeUrl],
+      );
     }
-    await new Promise((resolve) => setTimeout(resolve, 180));
+
+    await connection.commit();
+    const report = {
+      importedAt: new Date().toISOString(),
+      source: CATALOG_URL,
+      previousRecords: previous.length,
+      importedRecords: songs.length,
+      withYoutube: songs.filter((song) => song.youtubeUrl).length,
+      withoutYoutube: songs.filter((song) => !song.youtubeUrl).map((song) => song.title),
+      backupPath,
+    };
+    await fs.writeFile(path.join(OUTPUT_DIR, "latest-report.json"), JSON.stringify(report, null, 2), "utf8");
+    console.log(JSON.stringify(report, null, 2));
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    await connection.end();
   }
-
-  const youtubeUrl = youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null;
-  if (youtubeSource === 'embedded') report.youtubeEmbedded += 1;
-  else if (youtubeSource === 'search') report.youtubeSearched += 1;
-  else report.youtubeMissing += 1;
-
-  const existing = existingByTitle.get(song.title);
-  const assignedNumber = existing?.number ? Number(existing.number) : nextAvailableNumber();
-  const description = [
-    'Coleção Charlie Mike importada do acervo TFM.',
-    song.duration ? `Duração de referência: ${song.duration}.` : null,
-    youtubeSource === 'search' ? 'Link de vídeo complementado por busca automática.' : null,
-    !youtubeUrl ? 'Sem vídeo associado no acervo importado.' : null,
-  ].filter(Boolean).join(' ');
-
-  if (existing) {
-    await connection.execute(
-      `UPDATE pmam_hymns
-       SET number = ?, subtitle = ?, author = NULL, composer = NULL, category = ?, collection = ?, lyrics = ?, description = ?, youtube_url = ?, audio_url = NULL, lyrics_sync = NULL, is_active = 1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [assignedNumber, song.subtitle, song.category, song.collection, song.lyrics, description, youtubeUrl, existing.id]
-    );
-    report.updated += 1;
-  } else {
-    await connection.execute(
-      `INSERT INTO pmam_hymns
-       (number, title, subtitle, author, composer, category, collection, lyrics, description, youtube_url, audio_url, lyrics_sync, is_active)
-       VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, NULL, NULL, 1)`,
-      [assignedNumber, song.title, song.subtitle, song.category, song.collection, song.lyrics, description, youtubeUrl]
-    );
-    report.inserted += 1;
-  }
-
-  report.imported += 1;
 }
 
-const importedTitles = songs.map((song) => song.title);
-if (importedTitles.length > 0) {
-  const placeholders = importedTitles.map(() => '?').join(',');
-  await connection.execute(
-    `DELETE FROM pmam_hymns WHERE collection = ? AND title NOT IN (${placeholders})`,
-    [COLLECTION, ...importedTitles]
-  );
-}
-
-fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), 'utf8');
-console.log(JSON.stringify(report, null, 2));
-await connection.end();
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
