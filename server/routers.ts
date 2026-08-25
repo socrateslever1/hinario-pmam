@@ -194,6 +194,16 @@ async function requireStudentSession(studentId: number, sessionToken: string) {
   }
 }
 
+function requireActivatedStudent(student: studentDb.StudentData) {
+  if (student.registrationStatus !== "active") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Esta numérica ainda é uma vaga disponível. Nenhum lançamento pode ser vinculado a uma vaga sem aluno cadastrado.",
+    });
+  }
+  return student;
+}
+
 async function requireStudyStudentSession(
   studentId: number,
   sessionToken: string,
@@ -1826,6 +1836,9 @@ export const appRouter = router({
         senha: z.string().min(6),
       })
     ).mutation(async ({ input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await studentDb.updateStudentPassword(input.studentId, input.senha);
       return { success: true };
     }),
@@ -1842,7 +1855,7 @@ export const appRouter = router({
     students: scaleManagerProcedure.query(async ({ ctx }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
       const scope = serviceScaleDb.getDefaultScope(ctx.user, assignment);
-      const all = await studentDb.getAllStudents();
+      const all = (await studentDb.getAllStudents()).filter((student) => student.registrationStatus === "active");
       if (ctx.user.role === "admin" || ctx.user.role === "master" || !scope.companhia) {
         return all;
       }
@@ -2288,6 +2301,16 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const assignedStudentIds = [
+        input.xerifeId,
+        input.subXerifeId,
+        ...(input.cleaning ?? []).flatMap((item) => item.studentIds),
+      ].filter((id): id is number => typeof id === "number");
+      for (const studentId of Array.from(new Set(assignedStudentIds))) {
+        const student = await studentDb.getStudentById(studentId);
+        if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+        requireActivatedStudent(student);
+      }
       const week = await serviceScaleDb.upsertWeeklyScale({
         ...input,
         updatedBy: ctx.user.id,
@@ -2305,6 +2328,7 @@ export const appRouter = router({
       if (!student) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       }
+      requireActivatedStudent(student);
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       await studentDb.updateStudentCondition(input.studentId, input.condition);
       return { success: true };
@@ -2340,6 +2364,7 @@ export const appRouter = router({
       if (!student) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       }
+      requireActivatedStudent(student);
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       await studentDb.updateStudentCondition(input.studentId, input.isBaixado ? "baixado" : "pronto");
       return { success: true };
@@ -2360,6 +2385,7 @@ export const appRouter = router({
       if (!student) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       }
+      requireActivatedStudent(student);
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       if (!BAIXADO_DOCUMENT_MIME_TYPES.has(input.mimeType)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem do atestado/documento" });
@@ -2429,6 +2455,7 @@ export const appRouter = router({
       if (!student) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       }
+      requireActivatedStudent(student);
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       const id = await serviceScaleDb.createInternalReport({
         studentId: student.id,
@@ -2658,6 +2685,9 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await serviceScaleDb.promoteStudentToXerife(
         input.studentId,
         input.role,
@@ -2733,6 +2763,7 @@ export const appRouter = router({
       if (input.studentId) {
         const student = await studentDb.getStudentById(input.studentId);
         if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+        requireActivatedStudent(student);
         companhia = student.companhia;
         peloton = student.peloton;
         await requireServiceScaleAccess(ctx.user, companhia, peloton);
@@ -2759,6 +2790,7 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
       const isComandante = isGlobalCommandRole(ctx.user.role);
       const general = await isXerifeGeral(ctx.user);
@@ -3068,6 +3100,7 @@ export const appRouter = router({
       if (!student) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
       }
+      requireActivatedStudent(student);
       await requireServiceScaleAccess(ctx.user, student.companhia, student.peloton);
       const lcCase = await serviceScaleDb.createDirectLcCase({
         studentId: student.id,
@@ -3129,6 +3162,7 @@ export const appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       const id = await serviceScaleDb.createStudentHighlight({
         studentId: student.id,
         companhia: student.companhia,
@@ -3244,6 +3278,11 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      for (const status of input.statuses) {
+        const student = await studentDb.getStudentById(status.studentId);
+        if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+        requireActivatedStudent(student);
+      }
       const current = await peculioDb.getPeculioReport(input.companhia, input.peloton, input.date);
       const lock = await getPeculioLockState(ctx.user, input.companhia, input.peloton, input.date, current.report);
       if (!lock.canEdit) {
@@ -3314,6 +3353,9 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       const belongs = await peculioDb.studentBelongsToPeculioScope(input.studentId, input.companhia, input.peloton);
       if (!belongs) {
         throw new TRPCError({
@@ -3351,6 +3393,9 @@ export const appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       const belongs = await peculioDb.studentBelongsToPeculioScope(input.studentId, input.companhia, input.peloton);
       if (!belongs) {
         throw new TRPCError({
@@ -3381,6 +3426,9 @@ export const appRouter = router({
         approvedStatus: z.enum(["pronto", "atraso", "dispensa_administrativa"]).default("pronto"),
       })
     ).mutation(async ({ ctx, input }) => {
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       return peculioDb.reviewPeculioJustification({
         companhia: input.companhia,
         peloton: input.peloton,
@@ -3464,6 +3512,9 @@ export const appRouter = router({
       const scope = await serviceScaleDb.getCargoScope(input.cargoId);
       if (!scope) throw new TRPCError({ code: "NOT_FOUND", message: "Função não encontrada" });
       await requireServiceScaleAccess(ctx.user, scope.companhia, scope.peloton);
+      const student = await studentDb.getStudentById(input.studentId);
+      if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await serviceScaleDb.addCargoMember(input.cargoId, input.studentId, input.tituloCargo);
       return { success: true };
     }),

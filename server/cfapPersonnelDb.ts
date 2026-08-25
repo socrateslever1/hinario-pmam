@@ -183,7 +183,7 @@ export async function getCfapPersonnelSummary() {
              SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) AS active
       FROM pmam_cfap_personnel
     `),
-    query(`SELECT COUNT(*) AS total FROM pmam_students`),
+    query(`SELECT COUNT(*) AS total FROM pmam_students WHERE registration_status = 'active'`),
   ]);
   return {
     total: Number((personnelRows[0] as any)?.total || 0),

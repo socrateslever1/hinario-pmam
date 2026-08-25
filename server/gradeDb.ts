@@ -501,7 +501,7 @@ export async function getGradeRanking(filters?: {
   companhia?: number;
   peloton?: number;
 }): Promise<GradeRankingRow[]> {
-  const where: string[] = [];
+  const where: string[] = ["s.registration_status = 'active'"];
   const params: any[] = [];
 
   if (filters?.companhia !== undefined) {

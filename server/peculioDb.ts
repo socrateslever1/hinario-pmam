@@ -312,6 +312,7 @@ export async function listPeculioSummaries(date: string) {
   const studentRows = await query(`
     SELECT companhia, peloton, COUNT(*) AS total
     FROM pmam_students
+    WHERE registration_status = 'active'
     GROUP BY companhia, peloton
   `);
 
@@ -493,7 +494,7 @@ export async function studentBelongsToPeculioScope(studentId: number, companhia:
   const rows = await query(`
     SELECT id
     FROM pmam_students
-    WHERE id = ? AND companhia = ? AND peloton = ?
+    WHERE id = ? AND companhia = ? AND peloton = ? AND registration_status = 'active'
     LIMIT 1
   `, [studentId, companhia, peloton]);
   return Boolean(rows[0]);

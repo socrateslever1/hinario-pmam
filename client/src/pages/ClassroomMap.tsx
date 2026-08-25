@@ -481,6 +481,11 @@ export default function ClassroomMap() {
     );
   }, [students, searchQuery]);
 
+  const activeStudents = useMemo(
+    () => students.filter((student: any) => student.registrationStatus === "active"),
+    [students],
+  );
+
   const foTextClassification = useMemo(
     () => classifyFoText(foType, foDetails),
     [foType, foDetails]
@@ -1035,7 +1040,7 @@ export default function ClassroomMap() {
   const handleLaunchFO = async () => {
     let idsToSend = [...foSelectedStudentIds];
     if (foIsAllSelected && isXerifeGeral) {
-      idsToSend = students.map((s: any) => s.id);
+      idsToSend = activeStudents.map((s: any) => s.id);
     }
 
     if (idsToSend.length === 0) {
@@ -1228,10 +1233,10 @@ export default function ClassroomMap() {
     deleteRosterStudent.mutate({ studentId: student.id });
   };
 
-  const roleOptions = useMemo(() => students.map((student: any) => ({
+  const roleOptions = useMemo(() => activeStudents.map((student: any) => ({
     value: String(student.id),
     label: `${student.numerica} - ${student.nomeGuerra}`,
-  })), [students]);
+  })), [activeStudents]);
 
   // View Navigation links
   const menuOptions = [
@@ -1712,7 +1717,7 @@ export default function ClassroomMap() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todo o Pelotão</SelectItem>
-                          {students.map((student: any) => (
+                          {activeStudents.map((student: any) => (
                             <SelectItem key={student.id} value={String(student.id)}>
                               {student.numerica} - {student.nomeGuerra}
                             </SelectItem>
@@ -1795,7 +1800,7 @@ export default function ClassroomMap() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Desocupada / Vazia</SelectItem>
-                      {students.map((student: any) => (
+                      {activeStudents.map((student: any) => (
                         <SelectItem key={student.id} value={String(student.id)}>
                           {student.numerica} - {student.nomeGuerra}
                         </SelectItem>
@@ -2079,7 +2084,7 @@ export default function ClassroomMap() {
                     */}
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {filteredStudents.map((student: any) => (
+                      {filteredStudents.filter((student: any) => student.registrationStatus === "active").map((student: any) => (
                         <div key={student.id} className="flex flex-col justify-between rounded-lg border bg-white p-3 text-sm dark:bg-zinc-900">
                           <button
                             type="button"
@@ -2347,7 +2352,7 @@ export default function ClassroomMap() {
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto bg-white dark:bg-zinc-900 border" align="start">
                                   <div className="space-y-1.5">
-                                    {students.map((student: any) => {
+                                    {activeStudents.map((student: any) => {
                                       const studentIdStr = String(student.id);
                                       const isChecked = selectedIds.includes(studentIdStr);
                                       return (
@@ -3296,7 +3301,7 @@ export default function ClassroomMap() {
                           onCheckedChange={(checked) => {
                             setFoIsAllSelected(Boolean(checked));
                             if (checked) {
-                              setFoSelectedStudentIds(students.map((s: any) => s.id));
+                              setFoSelectedStudentIds(activeStudents.map((s: any) => s.id));
                             } else {
                               setFoSelectedStudentIds([]);
                             }
@@ -3309,7 +3314,7 @@ export default function ClassroomMap() {
                     )}
 
                     <div className="max-h-36 overflow-y-auto border rounded p-2 bg-muted/5 space-y-1.5">
-                      {students.map((student: any) => {
+                      {activeStudents.map((student: any) => {
                         const isChecked = foSelectedStudentIds.includes(student.id);
                         return (
                           <div key={student.id} className="flex items-center space-x-2 text-xs">
