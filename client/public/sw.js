@@ -1,4 +1,4 @@
-const CACHE_NAME = "hinario-pmam-cache-v10";
+const CACHE_NAME = "hinario-pmam-cache-v11";
 const AUDIO_CACHE_NAME = "hinario-pmam-audio-v2";
 const AUDIO_DOWNLOAD_CONCURRENCY = 3;
 let audioSyncQueue = Promise.resolve();
@@ -38,6 +38,8 @@ const PUBLIC_CATALOG_PROCEDURES = new Set([
   "blog.list",
   "buglePanel.list",
   "hymns.list",
+  "charlieMike.list",
+  "charlieMike.getById",
   "ordemUnidaAudio.list",
   "ordemUnidaAudio.listVoiceProfiles",
 ]);

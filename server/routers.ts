@@ -796,6 +796,17 @@ export const appRouter = router({
     }),
   }),
 
+  charlieMike: router({
+    list: publicProcedure.query(async () => db.getHymnsByCollection("tfm")),
+    getById: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const track = await db.getHymnById(input.id);
+      if (!track || track.collection !== "tfm") {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Faixa Charlie Mike não encontrada" });
+      }
+      return track;
+    }),
+  }),
+
   missions: router({
     list: publicProcedure.input(
       z.object({

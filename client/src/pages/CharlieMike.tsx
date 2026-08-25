@@ -34,7 +34,7 @@ function normalizeText(value = "") {
 
 export default function CharlieMike() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: songsData, isLoading } = trpc.hymns.getByCollection.useQuery({ collection: "tfm" });
+  const { data: songsData, isLoading } = trpc.charlieMike.list.useQuery();
 
   const allSongs = useMemo(() => {
     return (songsData ?? []).map((item: any, index: number) => ({
@@ -117,7 +117,7 @@ export default function CharlieMike() {
               {featuredSongs.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {featuredSongs.slice(0, 8).map((song: any) => (
-                    <Link key={song.id} href={`/hino/${song.id}`}>
+                    <Link key={song.id} href={`/charlie-mike/${song.id}`}>
                       <span className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#c4a84b]/35 bg-[#c4a84b]/10 px-3 py-1.5 text-xs font-bold text-[#7b641f] transition-colors hover:bg-[#c4a84b]/20">
                         <Flame className="h-3.5 w-3.5" />
                         {song.title}
@@ -132,7 +132,7 @@ export default function CharlieMike() {
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#52685b] dark:text-[#d6bd66]">Mais fortes do acervo</p>
               <div className="mt-3 space-y-2.5">
                 {featuredSongs.slice(0, 4).map((song: any) => (
-                  <Link key={song.id} href={`/hino/${song.id}`}>
+                  <Link key={song.id} href={`/charlie-mike/${song.id}`}>
                     <div className="cursor-pointer rounded-2xl border border-[#1a3a2a]/10 bg-white px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/45 hover:shadow-sm dark:border-white/10 dark:bg-[#1b2921] dark:hover:border-[#c4a84b]/55">
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a3a2a] text-[11px] font-black text-white shadow-sm">
@@ -174,7 +174,7 @@ export default function CharlieMike() {
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {songs.map((song: any) => (
-                <Link key={song.id} href={`/hino/${song.id}`}>
+                <Link key={song.id} href={`/charlie-mike/${song.id}`}>
                   <Card className="hymn-card-hover group cursor-pointer overflow-hidden border-border/50 bg-card py-0 text-foreground shadow-sm hover:border-[#c4a84b]/50">
                     <CardContent className="p-0">
                       <div className="h-1 w-full bg-[#2d5a27]" />

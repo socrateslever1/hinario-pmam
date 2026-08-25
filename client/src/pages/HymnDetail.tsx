@@ -5,7 +5,7 @@ import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock } from "lucide-react";
+import { ArrowLeft, Music, User, Pen, ChevronLeft, ChevronRight, Play, Youtube, Clock, ExternalLink } from "lucide-react";
 import { useMemo } from "react";
 import LyricsPlayer from "@/components/LyricsPlayer";
 import { useCachedHymn } from "@/hooks/useCachedHymn";
@@ -32,29 +32,39 @@ function extractYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function HymnDetail() {
+interface HymnDetailProps {
+  catalog?: "hymns" | "charlie-mike";
+}
+
+export default function HymnDetail({ catalog = "hymns" }: HymnDetailProps) {
   const { id } = useParams<{ id: string }>();
   const hymnId = parseInt(id || "0");
   const { isOnline } = usePWA();
+  const isCharlieMike = catalog === "charlie-mike";
   const { data: onlineHymn, isLoading: isLoadingOnline } = trpc.hymns.getById.useQuery(
     { id: hymnId },
-    { enabled: hymnId > 0 && isOnline, refetchOnMount: "always", refetchOnWindowFocus: true }
+    { enabled: !isCharlieMike && hymnId > 0 && isOnline, refetchOnMount: "always", refetchOnWindowFocus: true }
   );
-  const { cachedHymn, cachedAudioUrl, cachedInstrumentalAudioUrl, isLoadingCache, cacheStatus } = useCachedHymn(hymnId, onlineHymn ?? null);
-  const hymn = onlineHymn ?? cachedHymn;
-  const usingCachedHymn = !onlineHymn && Boolean(cachedHymn);
+  const { data: onlineCharlieTrack, isLoading: isLoadingCharlie } = trpc.charlieMike.getById.useQuery(
+    { id: hymnId },
+    { enabled: isCharlieMike && hymnId > 0 && isOnline, refetchOnMount: "always", refetchOnWindowFocus: true }
+  );
+  const onlineTrack = isCharlieMike ? onlineCharlieTrack : onlineHymn;
+  const { cachedHymn, cachedAudioUrl, cachedInstrumentalAudioUrl, isLoadingCache, cacheStatus } = useCachedHymn(hymnId, onlineTrack ?? null);
+  const hymn = onlineTrack ?? cachedHymn;
+  const usingCachedHymn = !onlineTrack && Boolean(cachedHymn);
 
   const { data: allHymns } = trpc.hymns.list.useQuery(undefined, {
     enabled: isOnline,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
-  const { data: tfmHymns } = trpc.hymns.getByCollection.useQuery(
-    { collection: "tfm" },
-    { enabled: isOnline && hymn?.collection === "tfm", refetchOnMount: "always", refetchOnWindowFocus: true }
+  const { data: tfmHymns } = trpc.charlieMike.list.useQuery(
+    undefined,
+    { enabled: isOnline && isCharlieMike, refetchOnMount: "always", refetchOnWindowFocus: true }
   );
 
-  const isTfm = hymn?.collection === "tfm";
+  const isTfm = isCharlieMike;
   const tfmTitleNumber = hymn?.title?.match(/(?:canção|cancao)\s+tfm\s+(\d+)/i)?.[1];
   const displayNumber = isTfm
     ? Number(tfmTitleNumber || tfmHymns?.findIndex((item: any) => item.id === hymn.id)! + 1 || hymn.number)
@@ -73,7 +83,7 @@ export default function HymnDetail() {
     };
   }, [navigationBase, hymn]);
 
-  if ((isLoadingOnline || isLoadingCache) && !hymn) {
+  if ((isLoadingOnline || isLoadingCharlie || isLoadingCache) && !hymn) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -93,9 +103,9 @@ export default function HymnDetail() {
         <Navbar />
         <div className="container py-20 text-center">
           <Music className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-foreground">Hino não encontrado</h2>
-          <p className="text-muted-foreground mt-2">O hino solicitado não existe ou foi removido.</p>
-          <Link href="/hinos">
+          <h2 className="text-2xl font-bold text-foreground">{isCharlieMike ? "Faixa não encontrada" : "Hino não encontrado"}</h2>
+          <p className="text-muted-foreground mt-2">O item solicitado não existe ou foi removido.</p>
+          <Link href={isCharlieMike ? "/charlie-mike" : "/hinos"}>
             <Button className="mt-6 bg-[#1a3a2a] text-white gap-2">
               <ArrowLeft className="h-4 w-4" /> Voltar ao Catálogo
             </Button>
@@ -108,6 +118,13 @@ export default function HymnDetail() {
 
   const catColor = categoryColors[hymn.category] || "#1a3a2a";
   const youtubeId = hymn.youtubeUrl ? extractYouTubeId(hymn.youtubeUrl) : null;
+  const sourceUrl = isCharlieMike
+    ? hymn.description?.match(/https:\/\/www\.letras\.mus\.br\/[^\s]+/i)?.[0]?.replace(/[.,;]+$/, "") ?? null
+    : null;
+  const contextDescription = sourceUrl
+    ? hymn.description?.replace(/\s*Fonte de cataloga(?:ç|c)ão:\s*https:\/\/www\.letras\.mus\.br\/[^\s]+/i, "").trim()
+    : hymn.description;
+  const detailBase = isCharlieMike ? "/charlie-mike" : "/hino";
 
   return (
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0]">
@@ -158,14 +175,14 @@ export default function HymnDetail() {
 
       <section className="bg-transparent px-3 py-6 md:bg-background md:px-0 md:py-10 dark:md:bg-[#020a0f]">
         <div className="px-0 md:container">
-          {hymn.description && (
+          {contextDescription && (
             <Card className="mb-4 border-[#c4a84b]/30 bg-white/90 text-[#17251d] shadow-sm dark:border-[#c4a84b]/25 dark:bg-[#0b1720] dark:text-[#f8f7f0] md:mb-8">
               <CardContent className="p-5 md:p-7">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#755b08] dark:text-[#e4c75f]">
                   História e contexto
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-[#4f5e55] dark:text-[#d4ddd7] md:text-base">
-                  {hymn.description}
+                  {contextDescription}
                 </p>
               </CardContent>
             </Card>
@@ -182,6 +199,21 @@ export default function HymnDetail() {
                 youtubeUrl={isOnline ? hymn.youtubeUrl : null}
                 instrumentalYoutubeUrl={isOnline ? hymn.instrumentalYoutubeUrl : null}
               />
+              {isCharlieMike && sourceUrl && !hymn.lyrics?.trim() && (
+                <Card className="mt-4 border-[#c4a84b]/35 bg-[#c4a84b]/8 dark:border-[#c4a84b]/25 dark:bg-[#132019]">
+                  <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-bold text-foreground">Letra disponível na fonte original</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Abra a página oficial da faixa no Letras.mus.br.</p>
+                    </div>
+                    <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                      <Button className="gap-2 bg-[#c4a84b] font-bold text-[#17251d] hover:bg-[#d2b85c]">
+                        Ver letra completa <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -241,7 +273,7 @@ export default function HymnDetail() {
               {/* Navigation */}
               <div className="flex gap-3">
                 {navigation.prev ? (
-                  <Link href={`/hino/${navigation.prev.id}`} className="flex-1">
+                  <Link href={`${detailBase}/${navigation.prev.id}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full gap-1 text-xs">
                       <ChevronLeft className="h-3 w-3" />
                       Anterior
@@ -249,7 +281,7 @@ export default function HymnDetail() {
                   </Link>
                 ) : <div className="flex-1" />}
                 {navigation.next ? (
-                  <Link href={`/hino/${navigation.next.id}`} className="flex-1">
+                  <Link href={`${detailBase}/${navigation.next.id}`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full gap-1 text-xs">
                       Próximo
                       <ChevronRight className="h-3 w-3" />

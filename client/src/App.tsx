@@ -54,7 +54,12 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/hinos" component={Hymns} />
       <Route path="/charlie-mike" component={CharlieMike} />
-      <Route path="/hino/:id" component={HymnDetail} />
+      <Route path="/charlie-mike/:id">
+        <HymnDetail catalog="charlie-mike" />
+      </Route>
+      <Route path="/hino/:id">
+        <HymnDetail />
+      </Route>
       <Route path="/estudos" component={EducationCenter} />
       <Route path="/estudos/:slug" component={EducationModule} />
       <Route path="/cfap-2026" component={Cfap2026} />
