@@ -170,6 +170,28 @@ export async function createStudent(
   }
 }
 
+export async function createStudentSlot(
+  numerica: string,
+  companhia: number,
+  peloton: number,
+  deskNumber?: number | null
+): Promise<StudentData | null> {
+  await ensureStudentSessionSchema();
+
+  // A senha aleatória mantém o campo legado NOT NULL protegido. Ela nunca é
+  // aceita enquanto o registro permanecer como vaga disponível.
+  const unavailablePassword = await bcrypt.hash(nanoid(48), 10);
+  const result = await dbQuery(
+    `INSERT INTO pmam_students
+      (numerica, nome_guerra, senha, session_token, registration_status, companhia, peloton, desk_number)
+     VALUES (?, 'Vaga disponível', ?, NULL, 'available', ?, ?, ?)`,
+    [numerica, unavailablePassword, companhia, peloton, deskNumber ?? null]
+  );
+
+  const insertId = (result as any).insertId;
+  return insertId ? getStudentById(insertId) : null;
+}
+
 export async function getStudentByNumerica(
   numerica: string
 ): Promise<StudentData | null> {

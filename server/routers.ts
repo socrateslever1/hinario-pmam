@@ -2469,27 +2469,30 @@ export const appRouter = router({
     createRosterStudent: scaleManagerProcedure.input(
       z.object({
         numerica: z.string().trim().length(4),
-        nomeGuerra: z.string().trim().min(2).max(255),
-        senha: z.string().min(6),
+        companhia: z.number().int().min(1).max(5),
+        peloton: z.number().int().min(1).max(2),
+        deskNumber: z.number().int().positive().nullable().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
       const validation = validateNumerica(input.numerica);
       if (!validation.isValid) {
         throw new TRPCError({ code: "BAD_REQUEST", message: validation.error || "Numérica inválida" });
       }
+      if (validation.companhia !== input.companhia || validation.peloton !== input.peloton) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "A numérica informada não pertence à sala selecionada" });
+      }
       await requireServiceScaleAccess(ctx.user, validation.companhia, validation.peloton);
       if (await studentDb.studentExists(input.numerica)) {
-        throw new TRPCError({ code: "CONFLICT", message: "Aluno com esta numérica já existe" });
+        throw new TRPCError({ code: "CONFLICT", message: "Esta numérica já está cadastrada" });
       }
-      const student = await studentDb.createStudent(
+      const student = await studentDb.createStudentSlot(
         input.numerica,
-        input.nomeGuerra,
-        input.senha,
         validation.companhia,
-        validation.peloton
+        validation.peloton,
+        input.deskNumber
       );
       if (!student) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar aluno" });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar vaga" });
       }
       return student;
     }),

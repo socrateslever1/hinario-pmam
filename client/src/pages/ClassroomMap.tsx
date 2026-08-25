@@ -263,7 +263,7 @@ export default function ClassroomMap() {
     procedures: "",
   });
 
-  const [newStudentForm, setNewStudentForm] = useState({ numerica: "", nomeGuerra: "", senha: "" });
+  const [newStudentForm, setNewStudentForm] = useState({ numerica: "", deskNumber: "" });
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const [editStudentForm, setEditStudentForm] = useState({
     numerica: "",
@@ -628,8 +628,8 @@ export default function ClassroomMap() {
 
   const createRosterStudent = trpc.serviceScale.createRosterStudent.useMutation({
     onSuccess: async () => {
-      toast.success("Aluno adicionado ao efetivo");
-      setNewStudentForm({ numerica: "", nomeGuerra: "", senha: "" });
+      toast.success("Vaga adicionada à sala");
+      setNewStudentForm({ numerica: "", deskNumber: "" });
       await platoonPublicQuery.refetch();
     },
     onError: (err) => toast.error(err.message),
@@ -1203,8 +1203,9 @@ export default function ClassroomMap() {
   const handleCreateRosterStudent = () => {
     createRosterStudent.mutate({
       numerica: cleanNumerica(newStudentForm.numerica),
-      nomeGuerra: newStudentForm.nomeGuerra.trim(),
-      senha: newStudentForm.senha,
+      companhia: selectedCompanhia,
+      peloton: selectedPeloton,
+      deskNumber: newStudentForm.deskNumber ? Number(newStudentForm.deskNumber) : null,
     });
   };
 
@@ -1901,9 +1902,12 @@ export default function ClassroomMap() {
                     <div className="mb-4 rounded-lg border bg-muted/10 p-3">
                       <div className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
                         <UserPlus className="h-4 w-4 text-[#c4a84b]" />
-                        Adicionar aluno ao efetivo
+                        Adicionar vaga à sala
                       </div>
-                      <div className="grid gap-2 md:grid-cols-[120px_1fr_150px_auto]">
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        Informe a numérica reservada. O aluno definirá seus dados e sua senha no primeiro acesso.
+                      </p>
+                      <div className="grid gap-2 md:grid-cols-[140px_160px_auto]">
                         <Input
                           value={newStudentForm.numerica}
                           onChange={(event) => setNewStudentForm((current) => ({ ...current, numerica: cleanNumerica(event.target.value) }))}
@@ -1911,16 +1915,11 @@ export default function ClassroomMap() {
                           className="h-9 text-sm"
                         />
                         <Input
-                          value={newStudentForm.nomeGuerra}
-                          onChange={(event) => setNewStudentForm((current) => ({ ...current, nomeGuerra: event.target.value }))}
-                          placeholder="Nome de guerra"
-                          className="h-9 text-sm"
-                        />
-                        <Input
-                          type="password"
-                          value={newStudentForm.senha}
-                          onChange={(event) => setNewStudentForm((current) => ({ ...current, senha: event.target.value }))}
-                          placeholder="Senha inicial"
+                          type="number"
+                          min={1}
+                          value={newStudentForm.deskNumber}
+                          onChange={(event) => setNewStudentForm((current) => ({ ...current, deskNumber: event.target.value }))}
+                          placeholder="Carteira (opcional)"
                           className="h-9 text-sm"
                         />
                         <Button
@@ -1931,7 +1930,7 @@ export default function ClassroomMap() {
                           disabled={createRosterStudent.isPending}
                         >
                           <Plus className="h-4 w-4" />
-                          Adicionar
+                          Criar vaga
                         </Button>
                       </div>
                     </div>
