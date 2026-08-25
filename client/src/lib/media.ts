@@ -1,4 +1,4 @@
-﻿export function extractYouTubeId(url?: string | null): string | null {
+export function extractYouTubeId(url?: string | null): string | null {
   if (!url) return null;
 
   const match = url.match(
@@ -22,12 +22,12 @@ export function resolvePlayableMediaUrl(input: {
   audioUrl?: string | null;
   isOffline?: boolean;
 }): string | null {
-  // Offline: preferir MP3 em cache
-  if (input.isOffline && input.audioUrl) {
+  // If an explicit audio file (MP3 / WAV / OGG / Data URL / remote audio) is provided and is NOT a YouTube link, prioritize the MP3!
+  if (input.audioUrl && input.audioUrl.trim() !== "" && !isYouTubeUrl(input.audioUrl)) {
     return input.audioUrl;
   }
 
-  // Online: preferir YouTube
+  // Fallback to YouTube URL if available
   const youtubeUrl = normalizeYouTubeUrl(input.youtubeUrl);
   if (youtubeUrl) return youtubeUrl;
 

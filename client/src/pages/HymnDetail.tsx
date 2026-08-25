@@ -67,9 +67,9 @@ export default function HymnDetail({ catalog = "hymns" }: HymnDetailProps) {
   const isTfm = isCharlieMike;
   const tfmTitleNumber = hymn?.title?.match(/(?:canção|cancao)\s+tfm\s+(\d+)/i)?.[1];
   const displayNumber = isTfm
-    ? Number(tfmTitleNumber || tfmHymns?.findIndex((item: any) => item.id === hymn.id)! + 1 || hymn.number)
-    : hymn.number;
-  const displayCategory = isTfm ? "Charlie Mike · TFM" : categoryLabels[hymn.category] || hymn.category;
+    ? Number(tfmTitleNumber || (hymn && tfmHymns ? tfmHymns.findIndex((item: any) => item.id === hymn.id) + 1 : 0) || hymn?.number || 0)
+    : hymn?.number || 0;
+  const displayCategory = isTfm ? "Charlie Mike · TFM" : (hymn?.category ? categoryLabels[hymn.category] || hymn.category : "");
   const catalogHref = isTfm ? "/charlie-mike" : "/hinos";
   const catalogLabel = isTfm ? "Voltar ao Charlie Mike" : "Voltar ao Catalogo";
   const navigationBase = isTfm ? tfmHymns : allHymns;

@@ -216,28 +216,30 @@ export default function LyricsPlayer({
             </div>
           ) : null}
 
-          <div className="mobile-military-bg p-4 text-white sm:p-5 md:bg-gradient-to-br md:from-[#f8f5ea] md:via-white md:to-[#f7f9f6] md:p-6 md:text-foreground">
+          <div className="p-4 sm:p-5 md:p-6 bg-card text-card-foreground dark:bg-[#0b1720] border-t border-border/40">
             {/* Linha única: ícone + nome + botões de controle */}
             <div className="flex items-center gap-3 sm:gap-4">
               {/* Ícone animado */}
               <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#f0bd3a]/25 bg-[#062417] shadow-lg shadow-black/25 sm:h-14 sm:w-14 md:bg-[#1a3a2a]"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/30 bg-[#1a3a2a] shadow-md sm:h-14 sm:w-14 dark:bg-[#102419]"
                 style={playing ? { animation: "player-spin 12s linear infinite" } : undefined}
               >
-                <Music className="h-5 w-5 text-[#f0bd3a] sm:h-6 sm:w-6 md:text-[#c4a84b]" />
+                <Music className="h-5 w-5 text-[#c4a84b] sm:h-6 sm:w-6" />
               </div>
 
               {/* Nome do hino — ocupa o espaço disponível */}
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-base font-extrabold tracking-normal text-white sm:text-lg md:text-xl md:text-[#1d2b23]">
+                <h3 className="truncate text-base font-extrabold tracking-normal text-foreground dark:text-[#fff8e8] sm:text-lg md:text-xl">
                   {hymnTitle}
                 </h3>
-              <span className="mt-0.5 inline-block rounded-full bg-card/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 md:bg-[#1a3a2a]/6 md:text-[#1a3a2a]/70">
-                {mediaLabel}
-              </span>
-              <span className="ml-1 mt-0.5 inline-block rounded-full bg-[#f0bd3a]/18 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f0bd3a] md:bg-[#c4a84b]/15 md:text-[#1a3a2a]/70">
-                {availabilityLabel}
-              </span>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span className="inline-block rounded-full bg-[#1a3a2a]/10 dark:bg-[#c4a84b]/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#f0bd3a]">
+                    {mediaLabel}
+                  </span>
+                  <span className="inline-block rounded-full bg-[#c4a84b]/20 dark:bg-[#c4a84b]/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#755b08] dark:text-[#e4c75f]">
+                    {availabilityLabel}
+                  </span>
+                </div>
               </div>
 
               {/* Botões de controle: reiniciar + play/pause */}
@@ -246,7 +248,7 @@ export default function LyricsPlayer({
                   variant="ghost"
                   size="icon"
                   onClick={() => seekTo(0)}
-                  className="h-9 w-9 rounded-full text-white/70 transition-all hover:bg-card/10 hover:text-white active:scale-95 md:text-muted-foreground md:hover:bg-[#1a3a2a]/8 md:hover:text-[#1a3a2a]"
+                  className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
                   disabled={!mediaUrl}
                   title="Reiniciar"
                 >
@@ -257,7 +259,7 @@ export default function LyricsPlayer({
                   size="icon"
                   onClick={() => mediaUrl && setPlaying(!playing)}
                   disabled={!mediaUrl}
-                  className="h-12 w-12 rounded-full border-4 border-[#f0bd3a]/15 bg-[#f0bd3a] text-[#062417] shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-all hover:bg-[#d6b64c] active:scale-95 sm:h-14 sm:w-14 md:border-[#c4a84b]/10 md:bg-[#1a3a2a] md:text-white md:hover:bg-[#1a3a2a]/95 dark:border-[#f0bd3a]/20 dark:bg-[#f0bd3a] dark:text-[#062417] dark:hover:bg-[#d6b64c]"
+                  className="h-12 w-12 rounded-full border-2 border-[#c4a84b]/40 bg-[#c4a84b] text-[#17251d] shadow-md transition-all hover:bg-[#d6b64c] active:scale-95 sm:h-14 sm:w-14 dark:bg-[#c4a84b] dark:text-[#0c140f] dark:hover:bg-[#e4ca6f]"
                 >
                   {playing ? <Pause className="h-5 w-5 sm:h-6 sm:w-6" /> : <Play className="ml-0.5 h-5 w-5 sm:h-6 sm:w-6" />}
                 </Button>
@@ -274,16 +276,16 @@ export default function LyricsPlayer({
                 disabled={!mediaUrl}
                 className="cursor-pointer py-1"
               />
-              <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-white/55 md:text-muted-foreground/70">
+              <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-[#a0b0a5] font-mono">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
             </div>
 
             {/* Controles compactos */}
-            <div className="mt-3 grid gap-3 border-t border-white/10 pt-3 md:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)_auto] md:items-center md:border-[#1a3a2a]/8">
+            <div className="mt-3 grid gap-3 border-t border-border/40 pt-3 md:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)_auto] md:items-center">
               <div className="flex items-center gap-2 md:min-w-0">
-                <Volume2 className="h-4 w-4 shrink-0 text-white/60 md:text-muted-foreground" />
+                <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <Slider
                   value={[volume * 100]}
                   max={100}
@@ -294,10 +296,10 @@ export default function LyricsPlayer({
               </div>
 
               <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-center">
-                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white/55 md:text-[#1a3a2a]/55">
-                  Fonte
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Fonte:
                 </span>
-                <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-full border border-white/10 bg-card/8 p-0.5 md:rounded-md md:border-[#1a3a2a]/12 md:bg-[#1a3a2a]/5">
+                <div className="grid min-w-0 grid-cols-2 overflow-hidden rounded-md border border-border/50 bg-muted/30 p-0.5">
                 {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
                   const isActive = audioVariant === variant;
                   return (
@@ -312,10 +314,10 @@ export default function LyricsPlayer({
                         }
                         setAudioVariant(variant);
                       }}
-                      className={`h-8 rounded px-3 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
+                      className={`h-8 rounded px-3 text-[10px] font-bold uppercase tracking-wider transition-all ${
                         isActive
-                          ? "bg-[#f0bd3a] text-[#062417] shadow-sm hover:bg-[#d6b64c] md:bg-[#c4a84b] md:text-[#1a3a2a] md:hover:bg-[#c4a84b]/90"
-                          : "text-white/65 hover:bg-white/10 hover:text-white md:text-[#1a3a2a]/70 md:hover:bg-[#1a3a2a]/10 md:hover:text-[#1a3a2a]"
+                          ? "bg-[#1a3a2a] text-white shadow-xs dark:bg-[#c4a84b] dark:text-[#0c140f]"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                     >
                       {variant === "voice" ? "Voz" : "Instrumental"}
@@ -337,10 +339,10 @@ export default function LyricsPlayer({
                       onClick={() => setPlayMode(mode)}
                       disabled={!mediaUrl}
                       title={cfg.label}
-                      className={`h-8 gap-1 rounded-full px-2.5 text-[10px] font-black uppercase tracking-[0.1em] transition-all ${
+                      className={`h-8 gap-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
                         isActive
-                          ? "bg-[#145c3a] text-[#f0bd3a] shadow-sm hover:bg-[#145c3a]/90 md:bg-[#1a3a2a] md:text-white md:hover:bg-[#1a3a2a]/90"
-                          : "text-white/60 hover:bg-white/8 hover:text-white md:text-[#1a3a2a]/60 md:hover:bg-[#1a3a2a]/8 md:hover:text-[#1a3a2a]"
+                          ? "bg-[#1a3a2a] text-white shadow-xs dark:bg-[#c4a84b] dark:text-[#0c140f]"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                     >
                       {cfg.icon}
