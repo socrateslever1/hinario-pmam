@@ -42,16 +42,16 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const [editingAccess, setEditingAccess] = useState<any | null>(null);
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
   
-  const canManageAccess = user?.role === 'master';
-  const canDeleteAccess = (_access: any) => user?.role === 'master';
-  const canEditAccess = (_access: any) => user?.role === 'master';
+  const canManageAccess = user?.role === 'master' || user?.role === 'admin';
+  const canDeleteAccess = (_access: any) => user?.role === 'master' || user?.role === 'admin';
+  const canEditAccess = (_access: any) => user?.role === 'master' || user?.role === 'admin';
 
   useEffect(() => {
     if (!isTab && user !== undefined && myAccess !== undefined) {
       if (!user) {
         setLocation("/login");
       } else {
-        const canManage = user.role === 'master';
+        const canManage = user.role === 'master' || user.role === 'admin';
         if (!canManage) {
           setLocation("/xerife");
         }
@@ -159,9 +159,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Usuários e Acessos</h1>
         {!canManageAccess && (
-          <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-2 rounded">
-            <Lock className="w-4 h-4" />
-            <span className="text-sm">Você nao tem permissao para gerenciar contas</span>
+          <div className="flex items-center gap-2 text-amber-800 bg-amber-100 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700 px-3.5 py-2 rounded-md shadow-xs">
+            <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-sm font-medium">Você não tem permissão para gerenciar contas</span>
           </div>
         )}
         {canManageAccess && (

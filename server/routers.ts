@@ -155,6 +155,7 @@ const GLOBAL_COMMAND_ROLES = [
 ] as const;
 const COMMAND_ACCESS_ROLES = [
   "admin",
+  "master",
   "comandante_corpo",
   "subcomandante_corpo",
   "comandante_cfap",
@@ -236,8 +237,8 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 const masterOnlyProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "master") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral" });
+  if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral ou Administrador" });
   }
   return next({ ctx });
 });

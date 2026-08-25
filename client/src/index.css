@@ -410,13 +410,13 @@ button[role="tab"][data-state="active"] {
   border-color: oklch(1 0 0 / 15%);
 }
 
-/* Melhorar contraste de texto em modo escuro geral */
-.dark :is(p, span, li, td, th, label, div):not(.official-document-sheet *) {
+/* Melhorar contraste de texto em modo escuro sem sobrescrever cores explícitas de utilitários */
+.dark :where(p, span, li, td, th, label, div):not(.official-document-sheet *, [class*="text-"], [class*="bg-"]) {
   color: var(--foreground);
 }
 
 /* Melhorar contraste de títulos no modo escuro */
-.dark :is(h1, h2, h3, h4, h5, h6):not(.official-document-sheet *) {
+.dark :where(h1, h2, h3, h4, h5, h6):not(.official-document-sheet *, [class*="text-"]) {
   color: var(--foreground);
 }
 
