@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:import-tfm": "node import-tfm.mjs",
+    "content:export-hymns": "node scripts/export_global_hymns.mjs",
     "db:seed-bugle": "node seed-bugle-calls.mjs",
     "sync:tidb-to-local": "tsx server/syncGrades.ts tidb-to-local",
     "sync:local-to-tidb": "tsx server/syncGrades.ts local-to-tidb",

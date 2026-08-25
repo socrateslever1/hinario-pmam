@@ -4,6 +4,15 @@ import { nanoid } from "nanoid";
 import type { StudyDashboard, StudyModuleProgressRecord, StudyStudent, StudyStudentSession } from "../shared/types";
 import { isValidStudyStudentNumber, normalizeStudyStudentNumber } from "../shared/study";
 import bcrypt from "bcryptjs";
+import {
+  bundledActiveHymns,
+  bundledHymnById,
+  bundledHymnByNumber,
+  bundledHymnsByCategory,
+  bundledHymnsByCollection,
+  globalHymnCatalog,
+  restoreBundledHymnsIfNeeded,
+} from "./globalHymnCatalog";
 
 // Helper to map snake_case to camelCase
 function mapUser(u: any) {
@@ -322,53 +331,78 @@ export async function getUserByOpenId(openId: string) {
 let hymnSchemaPromise: Promise<void> | null = null;
 
 async function ensureHymnSchema() {
-  // O esquema já é versionado; SHOW/ALTER em cold start atrasava todas as listas.
-  hymnSchemaPromise ??= Promise.resolve();
+  hymnSchemaPromise ??= restoreBundledHymnsIfNeeded().catch((error) => {
+    console.error("[Hymns] TiDB indisponível; usando catálogo global interno.", error);
+  });
   await hymnSchemaPromise;
 }
 
 export async function getAllHymns() {
   await ensureHymnSchema();
-  const rows = await query('SELECT * FROM pmam_hymns ORDER BY number ASC');
-  return rows.map(mapHymn);
+  try {
+    const rows = await query('SELECT * FROM pmam_hymns ORDER BY number ASC');
+    return rows.length > 0 ? rows.map(mapHymn) : globalHymnCatalog;
+  } catch {
+    return globalHymnCatalog;
+  }
 }
 
 export async function getActiveHymns() {
   await ensureHymnSchema();
-  const rows = await query(
-    "SELECT * FROM pmam_hymns WHERE is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC"
-  );
-  return rows.map(mapHymn);
+  try {
+    const rows = await query(
+      "SELECT * FROM pmam_hymns WHERE is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC"
+    );
+    return rows.length > 0 ? rows.map(mapHymn) : bundledActiveHymns();
+  } catch {
+    return bundledActiveHymns();
+  }
 }
 
 export async function getHymnById(id: number) {
   await ensureHymnSchema();
-  const rows = await query('SELECT * FROM pmam_hymns WHERE id = ? LIMIT 1', [id]);
-  return mapHymn(rows[0]);
+  try {
+    const rows = await query('SELECT * FROM pmam_hymns WHERE id = ? LIMIT 1', [id]);
+    return mapHymn(rows[0]) || bundledHymnById(id);
+  } catch {
+    return bundledHymnById(id);
+  }
 }
 
 export async function getHymnByNumber(number: number) {
   await ensureHymnSchema();
-  const rows = await query('SELECT * FROM pmam_hymns WHERE number = ? LIMIT 1', [number]);
-  return mapHymn(rows[0]);
+  try {
+    const rows = await query('SELECT * FROM pmam_hymns WHERE number = ? LIMIT 1', [number]);
+    return mapHymn(rows[0]) || bundledHymnByNumber(number);
+  } catch {
+    return bundledHymnByNumber(number);
+  }
 }
 
 export async function getHymnsByCategory(category: string) {
   await ensureHymnSchema();
-  const rows = await query(
-    "SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC",
-    [category]
-  );
-  return rows.map(mapHymn);
+  try {
+    const rows = await query(
+      "SELECT * FROM pmam_hymns WHERE category = ? AND is_active = 1 AND (collection IS NULL OR collection <> 'tfm') ORDER BY number ASC",
+      [category]
+    );
+    return rows.length > 0 ? rows.map(mapHymn) : bundledHymnsByCategory(category);
+  } catch {
+    return bundledHymnsByCategory(category);
+  }
 }
 
 export async function getHymnsByCollection(collection: string) {
   await ensureHymnSchema();
-  const rows = await query(
-    'SELECT * FROM pmam_hymns WHERE collection = ? AND is_active = 1 ORDER BY number ASC',
-    [collection]
-  );
-  return rows.map(mapHymn);
+  try {
+    const rows = await query(
+      'SELECT * FROM pmam_hymns WHERE collection = ? AND is_active = 1 ORDER BY number ASC',
+      [collection]
+    );
+    return rows.length > 0 ? rows.map(mapHymn) : bundledHymnsByCollection(collection);
+  } catch {
+    return bundledHymnsByCollection(collection);
+  }
 }
 
 export async function createHymn(hymn: any) {
