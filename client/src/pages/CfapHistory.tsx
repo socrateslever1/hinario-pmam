@@ -98,9 +98,9 @@ export default function CfapHistory() {
           </div>
         </section>
 
-        <section className="order-1 border-y border-[#1a3a2a]/15 bg-[#dfe5da] px-4 py-10 dark:border-white/10 dark:bg-[#081722] md:py-14">
+        <section className="order-1 border-y border-[#1a3a2a]/15 bg-[#dfe5da] py-10 dark:border-white/10 dark:bg-[#081722] md:py-14">
           <div className="container mx-auto max-w-7xl">
-            <div className="relative overflow-hidden rounded-[1.75rem] border border-[#c4a84b]/35 bg-[radial-gradient(circle_at_top_right,rgba(214,189,102,.18),transparent_36%),linear-gradient(135deg,#153727_0%,#0b251a_58%,#071710_100%)] px-5 py-7 text-white shadow-[0_18px_55px_rgba(8,31,22,.24)] sm:px-8 sm:py-9 md:flex md:items-end md:justify-between md:gap-8 lg:px-10">
+            <div className="relative overflow-hidden rounded-[1.25rem] border border-[#c4a84b]/35 bg-[radial-gradient(circle_at_top_right,rgba(214,189,102,.18),transparent_36%),linear-gradient(135deg,#153727_0%,#0b251a_58%,#071710_100%)] px-5 py-7 text-white shadow-[0_18px_55px_rgba(8,31,22,.24)] sm:rounded-[1.75rem] sm:px-8 sm:py-9 md:flex md:items-end md:justify-between md:gap-8 lg:px-10">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#e5c65d]/75 to-transparent" />
               <div className="relative">
                 <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#e5c65d] sm:text-xs">Galeria dos Comandantes</p>
@@ -120,8 +120,8 @@ export default function CfapHistory() {
               </div>
             </div>
 
-            <div className="relative mt-8 rounded-[1.75rem] border border-[#c4a84b]/35 bg-gradient-to-b from-[#10281d] via-[#081a13] to-[#06110d] p-2 shadow-[0_30px_90px_rgba(0,0,0,.38)] sm:p-4 lg:p-6">
-              <div className="pointer-events-none absolute inset-1 rounded-[1.5rem] border border-white/[.045]" />
+            <div className="relative mt-8 rounded-[1.25rem] border border-[#c4a84b]/35 bg-gradient-to-b from-[#10281d] via-[#081a13] to-[#06110d] p-2 shadow-[0_30px_90px_rgba(0,0,0,.38)] sm:rounded-[1.75rem] sm:p-4 lg:p-6">
+              <div className="pointer-events-none absolute inset-1 rounded-[1rem] border border-white/[.045] sm:rounded-[1.5rem]" />
               <div className="relative mb-4 grid min-h-[5.75rem] grid-cols-[4.25rem_minmax(0,1fr)_6.25rem] items-center gap-1 border-b border-[#c4a84b]/25 px-1 pb-4 sm:min-h-[7.5rem] sm:grid-cols-[6.5rem_minmax(0,1fr)_9rem] sm:gap-4 sm:px-3">
                 <img
                   src="/documents/images/brasao_cfap.png"
