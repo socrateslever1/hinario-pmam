@@ -105,9 +105,6 @@ export default function CfapHistory() {
               <div className="relative">
                 <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#e5c65d] sm:text-xs">Galeria dos Comandantes</p>
                 <h1 className="mt-2 max-w-3xl font-serif text-3xl font-black leading-[1.05] text-[#fffdf5] sm:text-4xl md:text-5xl">Quem conduziu esta Casa de Ensino</h1>
-                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/68 md:text-base">
-                  Toque ou clique em qualquer retrato para abrir o registro individual da gestão.
-                </p>
               </div>
               <div className="relative mt-6 w-full shrink-0 md:mt-0 md:max-w-sm">
                 <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[#365244]" />
