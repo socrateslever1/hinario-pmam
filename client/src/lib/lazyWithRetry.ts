@@ -1,6 +1,7 @@
 import { ComponentType, lazy, LazyExoticComponent } from "react";
 import {
   hasAttemptedDeploymentRecovery,
+  isDeploymentLoadError,
   recoverFromStaleDeployment,
   resetDeploymentRecovery,
 } from "./deploymentRecovery";
@@ -23,13 +24,7 @@ export function lazyWithRetry<T extends ComponentType<any>>(
       const firstExport = Object.values(module)[0];
       return { default: firstExport } as { default: T };
     } catch (error: any) {
-      const isChunkError =
-        error?.message?.includes("Failed to fetch dynamically imported module") ||
-        error?.message?.includes("Importing a module script failed") ||
-        error?.message?.includes("error loading dynamically imported module") ||
-        error?.name === "ChunkLoadError";
-
-      if (isChunkError && !hasAttemptedDeploymentRecovery()) {
+      if (isDeploymentLoadError(error) && !hasAttemptedDeploymentRecovery()) {
         console.warn("[App] Chunk loading failed due to new deployment. Reloading page...", error);
         await recoverFromStaleDeployment();
       }

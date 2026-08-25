@@ -9,8 +9,20 @@ export function resetDeploymentRecovery() {
   window.sessionStorage.removeItem(CHUNK_RECOVERY_KEY);
 }
 
-export async function recoverFromStaleDeployment() {
-  if (hasAttemptedDeploymentRecovery()) return false;
+export function isDeploymentLoadError(error: unknown) {
+  const candidate = error as { name?: string; message?: string } | null;
+  const name = candidate?.name || "";
+  const message = candidate?.message || "";
+
+  return (
+    name === "ChunkLoadError" ||
+    name === "CSS_CHUNK_LOAD_FAILED" ||
+    /dynamically imported module|module script|loading (?:css )?chunk|unable to preload css|importing a module script/i.test(message)
+  );
+}
+
+export async function recoverFromStaleDeployment(force = false) {
+  if (!force && hasAttemptedDeploymentRecovery()) return false;
 
   window.sessionStorage.setItem(CHUNK_RECOVERY_KEY, "true");
 
@@ -25,11 +37,13 @@ export async function recoverFromStaleDeployment() {
     }
 
     if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.getRegistration();
-      await registration?.update().catch(() => undefined);
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
     }
   } finally {
-    window.location.reload();
+    const freshUrl = new URL(window.location.href);
+    freshUrl.searchParams.set("app-refresh", Date.now().toString());
+    window.location.replace(freshUrl.toString());
   }
 
   return true;

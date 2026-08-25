@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import { Component, ReactNode, type ErrorInfo } from "react";
+import { isDeploymentLoadError, recoverFromStaleDeployment } from "@/lib/deploymentRecovery";
 
 interface Props {
   children: ReactNode;
@@ -12,17 +13,7 @@ interface State {
 }
 
 function reloadAndClearCache() {
-  try {
-    if (typeof caches !== "undefined") {
-      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).finally(() => {
-        globalThis.location.reload();
-      });
-      return;
-    }
-  } catch {
-    // ignore
-  }
-  globalThis.location?.reload();
+  void recoverFromStaleDeployment(true);
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -35,13 +26,13 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[App] Erro não tratado pela interface", error, info.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
-      const isChunkError =
-        this.state.error?.message?.includes("Failed to fetch dynamically imported module") ||
-        this.state.error?.message?.includes("Importing a module script failed") ||
-        this.state.error?.message?.includes("error loading dynamically imported module") ||
-        this.state.error?.name === "ChunkLoadError";
+      const isChunkError = isDeploymentLoadError(this.state.error);
 
       return (
         <div className="flex items-center justify-center min-h-screen p-8 bg-background">
