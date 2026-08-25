@@ -32,8 +32,8 @@ export default function CfapHistory() {
     <div className="mobile-safe-bottom min-h-screen bg-background text-foreground dark:bg-[#061019] dark:text-white">
       <Navbar />
 
-      <main>
-        <section className="relative overflow-hidden border-b border-[#c4a84b]/30 px-4 py-10 text-white md:py-16">
+      <main className="flex flex-col">
+        <section className="order-2 relative overflow-hidden border-b border-[#c4a84b]/30 px-4 py-10 text-white md:py-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(196,168,75,.2),transparent_38%),linear-gradient(135deg,#10281d_0%,#1a3a2a_55%,#244b36_100%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(196,168,75,.18),transparent_38%),linear-gradient(135deg,#061019_0%,#0b3323_55%,#061019_100%)]" />
           <div className="container relative mx-auto max-w-6xl">
             <div className="max-w-4xl">
@@ -71,7 +71,7 @@ export default function CfapHistory() {
           </div>
         </section>
 
-        <section className="bg-background px-4 py-10 dark:bg-[#061019] md:py-14">
+        <section className="order-3 bg-background px-4 py-10 dark:bg-[#061019] md:py-14">
           <div className="container mx-auto max-w-6xl">
             <div className="mb-7">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#755b08] dark:text-[#d6bd66]">Cronologia</p>
@@ -98,34 +98,47 @@ export default function CfapHistory() {
           </div>
         </section>
 
-        <section className="border-y border-[#1a3a2a]/15 bg-[#dfe5da] px-4 py-10 dark:border-white/10 dark:bg-[#081722] md:py-14">
+        <section className="order-1 border-y border-[#1a3a2a]/15 bg-[#dfe5da] px-4 py-10 dark:border-white/10 dark:bg-[#081722] md:py-14">
           <div className="container mx-auto max-w-7xl">
-            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#755b08] dark:text-[#d6bd66]">Galeria dos Comandantes</p>
-                <h2 className="mt-2 text-3xl font-black md:text-4xl">Quem conduziu esta Casa de Ensino</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground dark:text-white/58 md:text-base">
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-[#c4a84b]/35 bg-[radial-gradient(circle_at_top_right,rgba(214,189,102,.18),transparent_36%),linear-gradient(135deg,#153727_0%,#0b251a_58%,#071710_100%)] px-5 py-7 text-white shadow-[0_18px_55px_rgba(8,31,22,.24)] sm:px-8 sm:py-9 md:flex md:items-end md:justify-between md:gap-8 lg:px-10">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#e5c65d]/75 to-transparent" />
+              <div className="relative">
+                <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#e5c65d] sm:text-xs">Galeria dos Comandantes</p>
+                <h1 className="mt-2 max-w-3xl font-serif text-3xl font-black leading-[1.05] text-[#fffdf5] sm:text-4xl md:text-5xl">Quem conduziu esta Casa de Ensino</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/68 md:text-base">
                   Toque ou clique em qualquer retrato para abrir o registro individual da gestão.
                 </p>
               </div>
-              <div className="relative w-full md:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#526259] dark:text-white/40" />
+              <div className="relative mt-6 w-full shrink-0 md:mt-0 md:max-w-sm">
+                <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[#365244]" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Buscar comandante ou período"
-                  className="border-[#1a3a2a]/20 bg-[#fbf8ef] pl-9 text-[#17251d] placeholder:text-[#66736b] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/35"
+                  className="h-12 border-[#d6bd66]/45 bg-[#fffdf7] pl-11 text-[#17251d] shadow-lg placeholder:text-[#66736b] focus-visible:ring-[#d6bd66]"
                 />
               </div>
             </div>
 
             <div className="relative mt-8 rounded-[1.75rem] border border-[#c4a84b]/35 bg-gradient-to-b from-[#10281d] via-[#081a13] to-[#06110d] p-2 shadow-[0_30px_90px_rgba(0,0,0,.38)] sm:p-4 lg:p-6">
               <div className="pointer-events-none absolute inset-1 rounded-[1.5rem] border border-white/[.045]" />
-              <div className="relative mb-4 flex items-center justify-center gap-3 border-b border-[#c4a84b]/20 pb-4">
-                <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c4a84b]/40" />
-                <img src="/documents/images/brasao_cfap.png" alt="Emblema do CFAP" className="h-10 w-10 object-contain sm:h-14 sm:w-14" />
-                <div className="text-center"><p className="text-[9px] font-black uppercase tracking-[.22em] text-[#d6bd66] sm:text-[11px]">Quadro de Honra</p><p className="mt-0.5 font-serif text-xs font-black text-white sm:text-base">Comandantes do CFAP</p></div>
-                <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c4a84b]/40" />
+              <div className="relative mb-4 grid min-h-[5.75rem] grid-cols-[4.25rem_minmax(0,1fr)_6.25rem] items-center gap-1 border-b border-[#c4a84b]/25 px-1 pb-4 sm:min-h-[7.5rem] sm:grid-cols-[6.5rem_minmax(0,1fr)_9rem] sm:gap-4 sm:px-3">
+                <img
+                  src="/documents/images/brasao_cfap.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-[5rem] w-[8rem] -translate-x-1/2 -translate-y-[58%] object-contain opacity-[.055] sm:h-[7rem] sm:w-[11rem]"
+                />
+                <div className="flex h-full items-center justify-start">
+                  <img src="/documents/images/pmam-brasao.png" alt="Brasão da Polícia Militar do Amazonas" className="h-[3.75rem] w-[3.75rem] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,.45)] sm:h-[5.5rem] sm:w-[5.5rem]" />
+                </div>
+                <div className="relative z-10 min-w-0 text-center drop-shadow-[0_2px_5px_rgba(0,0,0,.8)]">
+                  <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#e5c65d] sm:text-[13px] sm:tracking-[.24em]">Quadro de Honra</p>
+                  <p className="mt-1 font-serif text-base font-black leading-tight text-white sm:text-2xl">Comandantes do CFAP</p>
+                </div>
+                <div className="flex h-full items-center justify-end">
+                  <img src="/documents/images/brasao_cfap.png" alt="Emblema do CFAP" className="h-[4.5rem] w-[6.25rem] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,.45)] sm:h-[6.5rem] sm:w-[9rem]" />
+                </div>
               </div>
               <div className="relative grid grid-cols-3 gap-1.5 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {filteredCommanders.map((commander) => (
@@ -175,7 +188,7 @@ export default function CfapHistory() {
           </div>
         </section>
 
-        <section className="bg-background px-4 py-10 dark:bg-[#061019] md:py-14">
+        <section className="order-4 bg-background px-4 py-10 dark:bg-[#061019] md:py-14">
           <div className="container mx-auto max-w-6xl">
             <Card className="border-[#1a3a2a]/20 bg-card text-card-foreground shadow-sm dark:border-[#c4a84b]/25 dark:bg-[#0a281c] dark:text-white">
               <CardContent className="p-6 md:p-8">
