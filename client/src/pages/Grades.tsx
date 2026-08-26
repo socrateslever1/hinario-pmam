@@ -357,7 +357,7 @@ export default function Grades() {
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
         <div className="container text-center flex flex-col items-center">
           {studentPhotoUrl ? (
             <img
@@ -375,7 +375,7 @@ export default function Grades() {
             {studentName} (Nº {studentNumber}) — Acompanhe seu desempenho acadêmico, média geral e classificação.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
       <main className="container flex-1 px-4 py-6 md:py-8">

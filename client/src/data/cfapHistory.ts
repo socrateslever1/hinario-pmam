@@ -5,6 +5,7 @@ export type CfapCommander = {
   periods: string[];
   portraitIndex?: number;
   inMemoriam?: boolean;
+  isCurrent?: boolean;
   highlights?: string[];
   portraitUrl?: string | null;
   biography?: string | null;
@@ -13,6 +14,11 @@ export type CfapCommander = {
   isVisible?: boolean;
   sortOrder?: number;
 };
+
+export function isCurrentCommander(commander: CfapCommander): boolean {
+  if (typeof commander.isCurrent === "boolean") return commander.isCurrent;
+  return commander.periods.some((p) => p.toLocaleLowerCase("pt-BR").includes("atual"));
+}
 
 export type CfapTimelineItem = {
   year: string;
@@ -190,6 +196,7 @@ export const CFAP_COMMANDERS: CfapCommander[] = [
     rank: "Tenente-Coronel PM",
     name: "Idevandro Ricardo Colares",
     periods: ["Abr 2024 – atual"],
+    isCurrent: true,
     highlights: [
       "Assumiu o comando em abril de 2024.",
       "Foi o primeiro comandante do CFAP que também havia sido Soldado da PMAM formado nos bancos do próprio CFAP, em 1999.",
@@ -220,7 +227,7 @@ export const CFAP_HISTORY_ARTICLE_URL = "https://journalppc.com/RPPC/article/vie
 
 export type CfapCommanderOverride = Required<Pick<CfapCommander,
   "slug" | "rank" | "name" | "periods" | "inMemoriam" | "isVisible" | "sortOrder"
->> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "videos" | "sources">;
+>> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "videos" | "sources" | "isCurrent">;
 
 function defaultBiography(commander: CfapCommander) {
   const periodText = commander.periods.join(" e ");

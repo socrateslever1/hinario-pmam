@@ -43,7 +43,7 @@ const quickAccessItems = [
   { icon: Music, value: "24", label: "Hinos", desc: "Catálogo oficial", href: "/hinos" },
   { icon: Target, value: "01", label: "Charlie Mike", desc: "Ritmo de treino", href: "/charlie-mike" },
   { icon: FileText, value: "12", label: "Notas", desc: "Curso e ranking", href: "/notas-do-curso" },
-  { icon: BookOpen, value: "08", label: "Estudos", desc: "Módulos CFAP", href: "/estudos" },
+  { icon: Target, value: "OU", label: "Ordem Unida", desc: "Manual e toques", href: "/drill" },
   { icon: Medal, value: "05", label: "Medalhas", desc: "Mérito e honra", href: "/sobre" },
   { icon: Star, value: "03", label: "Favoritos", desc: "Itens salvos", href: "/hinos" },
 ];
@@ -76,13 +76,13 @@ const heroSlides = [
     icon: Target,
   },
   {
-    badge: "Estudo e Mérito",
-    title: "Canções, Notas",
-    highlight: "e Estudos",
-    text: "Acesse hinos, Charlie Mike, biblioteca de estudos, notas do curso e materiais de consulta em uma experiência mobile unificada.",
-    href: "/estudos",
-    action: "Abrir Estudos",
-    icon: BookOpen,
+    badge: "Formação e Mérito",
+    title: "Notas e",
+    highlight: "Desempenho",
+    text: "Consulte o ranking, médias das disciplinas, comunicados e sua evolução durante o curso de formação militar.",
+    href: "/notas-do-curso",
+    action: "Ver Notas",
+    icon: FileText,
   },
 ];
 
@@ -197,7 +197,7 @@ function QuickAccess() {
         { icon: Music, value: "24", label: "Hinos", desc: "Catálogo oficial", href: "/hinos" },
         { icon: Target, value: "01", label: "Charlie Mike", desc: "Ritmo de treino", href: "/charlie-mike" },
         { icon: ClipboardList, value: "✓", label: "Administrar", desc: "Sala Administrativa", href: "/sala-administrativa" },
-        { icon: BookOpen, value: "08", label: "Estudos", desc: "Módulos CFAP", href: "/estudos" },
+        { icon: Target, value: "OU", label: "Ordem Unida", desc: "Manual e toques", href: "/drill" },
         { icon: Medal, value: "05", label: "Medalhas", desc: "Mérito e honra", href: "/sobre" },
         { icon: Star, value: "03", label: "Favoritos", desc: "Itens salvos", href: "/hinos" },
       ]
@@ -627,7 +627,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-5 w-full md:mt-8" />
       </section>
 
       <div>

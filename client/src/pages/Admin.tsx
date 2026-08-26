@@ -255,7 +255,7 @@ export default function Admin() {
         </div>
       )}
 
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
         <div className="container">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -280,7 +280,7 @@ export default function Admin() {
             </div>
           </div>
         </div>
-        <div className="checkerboard-pattern w-full mt-6" />
+        <div className="checkerboard-pattern w-full mt-5 hidden md:block" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">

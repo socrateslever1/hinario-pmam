@@ -10,7 +10,7 @@ export default function About() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
         <div className="container text-center">
           <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -20,7 +20,7 @@ export default function About() {
             Plataforma Militar para gestão, formação, comunicação, documentos, disciplina e rotina institucional.
           </p>
         </div>
-        <div className="checkerboard-pattern w-full mt-8" />
+        <div className="checkerboard-pattern w-full mt-5 hidden md:block" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-12">

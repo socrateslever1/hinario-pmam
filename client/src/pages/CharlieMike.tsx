@@ -79,21 +79,21 @@ export default function CharlieMike() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      <section className="military-gradient py-8 md:py-10">
+      <section className="military-gradient py-5 md:py-7">
         <div className="container text-center">
-          <Shield className="mx-auto mb-3 h-8 w-8 text-[#c4a84b] md:h-9 md:w-9" />
+          <Shield className="mx-auto mb-2 h-7 w-7 text-[#c4a84b] md:h-8 md:w-8" />
           <h1
-            className="text-3xl font-bold text-white md:text-[2.65rem]"
+            className="text-2xl font-bold text-white md:text-3xl"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             Charlie Mike
           </h1>
-          <p className="mx-auto mt-3 max-w-3xl text-sm text-white/72 md:text-base">
+          <p className="mx-auto mt-2 max-w-3xl text-sm text-white/72 md:text-base">
             Coleção TFM com canções militares para marcha, moral, instrução e
             preparo contínuo.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-6 w-full md:mt-7" />
+        <div className="checkerboard-pattern mt-4 w-full md:mt-5" />
       </section>
 
       <section className="bg-background py-5 md:py-6">

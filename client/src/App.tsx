@@ -28,8 +28,6 @@ const About = lazyWithRetry(() => import("./pages/About"));
 const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const Login = lazyWithRetry(() => import("./pages/Login"));
 const CharlieMike = lazyWithRetry(() => import("./pages/CharlieMike"));
-const EducationCenter = lazyWithRetry(() => import("./pages/EducationCenter"));
-const EducationModule = lazyWithRetry(() => import("./pages/EducationModule"));
 const SyncStudio = lazyWithRetry(() => import("./pages/SyncStudio"));
 const Drill = lazyWithRetry(() => import("./pages/Drill"));
 const DrillDetail = lazyWithRetry(() => import("./pages/DrillDetail"));
@@ -60,8 +58,6 @@ function Router() {
       <Route path="/hino/:id">
         <HymnDetail />
       </Route>
-      <Route path="/estudos" component={EducationCenter} />
-      <Route path="/estudos/:slug" component={EducationModule} />
       <Route path="/cfap-2026" component={Cfap2026} />
       <Route path="/historia-cfap" component={CfapHistory} />
       <Route path="/historia-cfap/comandantes/:slug" component={CfapCommanderDetail} />

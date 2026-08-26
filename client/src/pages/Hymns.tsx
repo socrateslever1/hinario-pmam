@@ -108,20 +108,20 @@ export default function Hymns() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      <section className="military-gradient py-12">
+      <section className="military-gradient py-6 md:py-8">
         <div className="container text-center">
-          <Music className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <Music className="mx-auto mb-2 h-7 w-7 text-[#c4a84b] md:h-9 md:w-9" />
           <h1
-            className="text-3xl font-bold text-white md:text-4xl"
+            className="text-2xl font-bold text-white md:text-3xl"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             Catálogo de Hinos
           </h1>
-          <p className="mt-3 text-white/60">
+          <p className="mt-2 text-sm text-white/60 md:text-base">
             {hymns?.length ?? 0} hinos, canções e orações militares
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-5 w-full md:mt-6" />
       </section>
 
       <section className="bg-background py-8">

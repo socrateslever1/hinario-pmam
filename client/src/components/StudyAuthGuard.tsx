@@ -120,7 +120,7 @@ export default function StudyAuthGuard({ children }: { children: ReactNode }) {
                 Área Restrita do Aluno
               </CardTitle>
               <CardDescription className="mt-2 text-base">
-                Entre com sua numérica e senha para acessar o Centro de Estudos.
+                Entre com sua numérica e senha para acessar Estudos.
               </CardDescription>
             </div>
           </CardHeader>

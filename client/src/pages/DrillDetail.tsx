@@ -102,7 +102,7 @@ export default function DrillDetail() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
         <div className="container text-center">
           <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
             {drill.category && <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{drill.category}</Badge>}
@@ -139,7 +139,7 @@ export default function DrillDetail() {
             </Link>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">

@@ -881,7 +881,7 @@ window.print();
       <Navbar />
 
       {/* Hero Section */}
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 print:hidden md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-5 print:hidden md:px-0 md:py-6">
         <div className="container text-center">
           <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
           <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#e2ca76]" style={{ fontFamily: "Merriweather, serif" }}>
@@ -891,7 +891,7 @@ window.print();
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col print:block">
