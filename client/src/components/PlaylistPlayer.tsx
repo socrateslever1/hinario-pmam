@@ -14,6 +14,8 @@ import {
   SkipForward,
   Volume2,
   Youtube,
+  Radio,
+  Sparkles,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import type { LyricsSyncInput } from "@/lib/lyricsSync";
@@ -22,7 +24,6 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { isYouTubeUrl, resolvePlayableMediaUrl } from "@/lib/media";
 import { usePWA } from "@/hooks/usePWA";
 import { cacheHymnForOffline, getCachedHymnAudio } from "@/lib/offlineHymns";
-import type { Hymn } from "@shared/types";
 
 interface PlaylistItem {
   id: number;
@@ -98,303 +99,190 @@ function getOnlineMediaUrl(item: PlaylistItem, variant: AudioVariant) {
   return getVoiceOnlineMediaUrl(item);
 }
 
-function getVariantSourceUrl(item: PlaylistItem, variant: AudioVariant) {
-  return variant === "instrumental" ? item.instrumentalAudioUrl : item.audioUrl;
-}
-
-function hasOnlineMedia(item: PlaylistItem) {
-  return Boolean(getVoiceOnlineMediaUrl(item) || getInstrumentalOnlineMediaUrl(item));
-}
-
-function toHymn(item: PlaylistItem): Hymn {
-  return {
-    id: item.id,
-    number: item.number,
-    title: item.title,
-    subtitle: item.subtitle ?? null,
-    author: item.author ?? null,
-    composer: null,
-    category: (item.category ?? "pmam") as Hymn["category"],
-    collection: null,
-    lyrics: item.lyrics ?? "",
-    description: null,
-    youtubeUrl: item.youtubeUrl ?? null,
-    instrumentalYoutubeUrl: item.instrumentalYoutubeUrl ?? null,
-    audioUrl: item.audioUrl ?? null,
-    instrumentalAudioUrl: item.instrumentalAudioUrl ?? null,
-    lyricsSync: (item.lyricsSync as any) ?? null,
-    isActive: true,
-    likesCount: 0,
-    viewsCount: 0,
-    createdAt: "",
-    updatedAt: "",
-  };
-}
-
 export default function PlaylistPlayer({
   title,
   description,
   items,
-  accentColor = "#c4a84b",
+  accentColor = "#f0bd3a",
 }: PlaylistPlayerProps) {
   const isMobile = useIsMobile();
   const { isOnline } = usePWA();
-  const [cachedAudioUrls, setCachedAudioUrls] = useState<Record<string, string>>({});
+  const [offlineAudios, setOfflineAudios] = useState<Record<string, string>>({});
   const [isPreparingOffline, setIsPreparingOffline] = useState(false);
   const [audioVariant, setAudioVariant] = useState<AudioVariant>("voice");
-  const hasCachedVariant = (item: PlaylistItem, variant: AudioVariant) => Boolean(cachedAudioUrls[audioCacheKey(item.id, variant)]);
-  const getOfflineMediaUrl = (item: PlaylistItem, variant: AudioVariant) => (
-    cachedAudioUrls[audioCacheKey(item.id, variant)] ??
-    (variant === "instrumental" ? cachedAudioUrls[audioCacheKey(item.id, "voice")] : null) ??
-    null
-  );
-  const queue = useMemo(
-    () => items.filter((item) => {
-      if (isOnline) return hasOnlineMedia(item);
-      return hasCachedVariant(item, "voice") || hasCachedVariant(item, "instrumental");
-    }),
-    [cachedAudioUrls, isOnline, items],
-  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [playlistOpen, setPlaylistOpen] = useState(false);
-  const playerRef = useRef<MediaPlayerElement | null>(null);
 
+  const playerRef = useRef<any>(null);
+  const timeBeforeVariantChange = useRef<number | null>(null);
+
+  // Carregar áudios em cache offline
   useEffect(() => {
-    let cancelled = false;
-    const objectUrls: string[] = [];
-
-    async function loadCachedAudio() {
-      const entries = await Promise.all(
-        items.flatMap((item) => (["voice", "instrumental"] as AudioVariant[]).map(async (variant) => {
-          const sourceUrl = getVariantSourceUrl(item, variant);
-          if (!sourceUrl) return null;
-          const blob = await getCachedHymnAudio(item.id, sourceUrl, variant);
-          if (!blob) return null;
-          const objectUrl = URL.createObjectURL(blob);
-          objectUrls.push(objectUrl);
-          return [audioCacheKey(item.id, variant), objectUrl] as const;
-        })),
-      );
-
-      if (cancelled) {
-        objectUrls.forEach((url) => URL.revokeObjectURL(url));
-        return;
+    let isMounted = true;
+    async function loadCachedAudios() {
+      const nextMap: Record<string, string> = {};
+      for (const item of items) {
+        for (const variant of ["voice", "instrumental"] as const) {
+          const cachedBlob = await getCachedHymnAudio(item.id, variant).catch(() => null);
+          if (cachedBlob && isMounted) {
+            nextMap[audioCacheKey(item.id, variant)] = URL.createObjectURL(cachedBlob);
+          }
+        }
       }
-
-      setCachedAudioUrls((current) => {
-        Object.values(current).forEach((url) => URL.revokeObjectURL(url));
-        return Object.fromEntries(entries.filter(Boolean) as Array<readonly [string, string]>);
-      });
+      if (isMounted) setOfflineAudios(nextMap);
     }
-
-    loadCachedAudio();
-
+    loadCachedAudios();
     return () => {
-      cancelled = true;
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      isMounted = false;
+      Object.values(offlineAudios).forEach((url) => {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
     };
   }, [items]);
 
-  useEffect(() => {
-    if (!isOnline || items.length === 0) return;
-
-    let cancelled = false;
-
-    async function prepareOfflineQueue() {
-      setIsPreparingOffline(true);
-
-      for (const item of items) {
-        if (cancelled) break;
-        const hymn = toHymn(item);
-        await cacheHymnForOffline(hymn);
-
-        for (const variant of ["voice", "instrumental"] as AudioVariant[]) {
-          const sourceUrl = variant === "instrumental" ? hymn.instrumentalAudioUrl : hymn.audioUrl;
-          if (!sourceUrl || cancelled) continue;
-          const blob = await getCachedHymnAudio(hymn.id, sourceUrl, variant);
-          if (!blob || cancelled) continue;
-
-          const objectUrl = URL.createObjectURL(blob);
-          const key = audioCacheKey(hymn.id, variant);
-          setCachedAudioUrls((current) => {
-            if (current[key]) URL.revokeObjectURL(current[key]);
-            return { ...current, [key]: objectUrl };
-          });
-        }
+  const queue = useMemo(() => {
+    return items.filter((item) => {
+      if (isOnline) {
+        return Boolean(
+          item.youtubeUrl ||
+            item.audioUrl ||
+            item.instrumentalYoutubeUrl ||
+            item.instrumentalAudioUrl
+        );
       }
-
-      if (!cancelled) setIsPreparingOffline(false);
-    }
-
-    prepareOfflineQueue();
-
-    return () => {
-      cancelled = true;
-      setIsPreparingOffline(false);
-    };
-  }, [isOnline, items]);
-
-  useEffect(() => {
-    if (queue.length === 0) {
-      setCurrentIndex(0);
-      setPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      return;
-    }
-    setCurrentIndex((current) => Math.min(current, queue.length - 1));
-  }, [queue.length]);
+      return Boolean(
+        offlineAudios[audioCacheKey(item.id, "voice")] ||
+          offlineAudios[audioCacheKey(item.id, "instrumental")]
+      );
+    });
+  }, [items, isOnline, offlineAudios]);
 
   const currentItem = queue[currentIndex] ?? null;
-  const currentMediaUrl = currentItem
-    ? isOnline
-      ? getOnlineMediaUrl(currentItem, audioVariant)
-      : getOfflineMediaUrl(currentItem, audioVariant)
-    : null;
-  const isYoutube = isYouTubeUrl(currentMediaUrl);
-  const isUsingFallbackVoice = Boolean(
-    currentItem &&
-    audioVariant === "instrumental" &&
-    (
-      isOnline
-        ? !getInstrumentalOnlineMediaUrl(currentItem) && getVoiceOnlineMediaUrl(currentItem)
-        : !hasCachedVariant(currentItem, "instrumental") && hasCachedVariant(currentItem, "voice")
-    ),
-  );
-  const selectedMediaConfigured = Boolean(currentItem && (
-    audioVariant === "instrumental"
-      ? isOnline ? getInstrumentalOnlineMediaUrl(currentItem) : hasCachedVariant(currentItem, "instrumental")
-      : isOnline ? getVoiceOnlineMediaUrl(currentItem) : hasCachedVariant(currentItem, "voice")
-  ));
-  const mediaModeLabel = audioVariant === "instrumental"
-    ? isUsingFallbackVoice ? "Hino com voz" : "Instrumental"
-    : !isOnline
-      ? "MP3 offline"
-      : isYoutube
-        ? "YouTube"
-        : "Audio";
-  const availabilityLabel = !currentMediaUrl
-    ? "Midia indisponivel"
-    : isUsingFallbackVoice
-      ? "Variante nao alimentada"
-      : !isOnline
-        ? "Salvo offline"
-        : isYoutube
-          ? "Video online"
-          : "Audio online";
 
-  // Armazenar tempo atual antes de mudar de variante
-  const timeBeforeVariantChange = useRef<number | null>(null);
+  const currentMediaUrl = useMemo(() => {
+    if (!currentItem) return null;
+    const cacheKey = audioCacheKey(currentItem.id, audioVariant);
+    const cachedUrl = offlineAudios[cacheKey];
+    if (cachedUrl) return cachedUrl;
 
-  useEffect(() => {
-    // Quando a URL de mídia muda, restaurar o tempo se for a mesma música
-    if (playerRef.current && timeBeforeVariantChange.current !== null) {
-      const savedTime = timeBeforeVariantChange.current;
-      timeBeforeVariantChange.current = null; // Limpa para a próxima faixa
-      // Usar setTimeout para garantir que o player esteja pronto
-      const timer = setTimeout(() => {
-        if (playerRef.current) {
-          playerRef.current.currentTime = savedTime;
-          setCurrentTime(savedTime);
-          setPlaying(true);
-        }
-      }, 50);
-      return () => clearTimeout(timer);
+    if (audioVariant === "instrumental") {
+      const voiceCacheKey = audioCacheKey(currentItem.id, "voice");
+      const cachedVoice = offlineAudios[voiceCacheKey];
+      if (!isOnline && cachedVoice) return cachedVoice;
     }
-    setCurrentTime(0);
-    setDuration(0);
-  }, [currentMediaUrl]);
 
-  const syncMediaState = (media?: MediaPlayerElement | null) => {
+    if (isOnline) return getOnlineMediaUrl(currentItem, audioVariant);
+    return null;
+  }, [currentItem, audioVariant, offlineAudios, isOnline]);
+
+  const isYoutube = isYouTubeUrl(currentMediaUrl);
+
+  const isUsingFallbackVoice =
+    audioVariant === "instrumental" &&
+    currentItem &&
+    !offlineAudios[audioCacheKey(currentItem.id, "instrumental")] &&
+    !getInstrumentalOnlineMediaUrl(currentItem) &&
+    Boolean(getVoiceOnlineMediaUrl(currentItem));
+
+  const selectedMediaConfigured = useMemo(() => {
+    if (!currentItem) return false;
+    if (audioVariant === "instrumental") {
+      return Boolean(
+        offlineAudios[audioCacheKey(currentItem.id, "instrumental")] ||
+          getInstrumentalOnlineMediaUrl(currentItem)
+      );
+    }
+    return Boolean(
+      offlineAudios[audioCacheKey(currentItem.id, "voice")] ||
+        getVoiceOnlineMediaUrl(currentItem)
+    );
+  }, [currentItem, audioVariant, offlineAudios]);
+
+  const mediaModeLabel = isYoutube
+    ? "YouTube • Vídeo"
+    : currentMediaUrl?.startsWith("blob:")
+    ? "Áudio Offline"
+    : "Áudio Online";
+
+  const availabilityLabel = !isOnline
+    ? "Modo Offline"
+    : isUsingFallbackVoice
+    ? "Voz (Instrumental não disponível)"
+    : audioVariant === "instrumental"
+    ? "Instrumental"
+    : "Hino com Voz";
+
+  const syncMediaState = (media: MediaPlayerElement | null) => {
     if (!media) return;
-    playerRef.current = media;
-
     if (Number.isFinite(media.currentTime)) setCurrentTime(media.currentTime);
     if (Number.isFinite(media.duration) && media.duration > 0) setDuration(media.duration);
   };
 
-  useEffect(() => {
-    if (!currentMediaUrl) return;
-
-    const interval = window.setInterval(() => {
-      syncMediaState(playerRef.current);
-    }, playing ? 100 : 300);
-
-    return () => window.clearInterval(interval);
-  }, [currentMediaUrl, playing]);
-
-  const goToIndex = (nextIndex: number, shouldPlay = playing) => {
-    if (queue.length === 0) return;
-    const boundedIndex = Math.max(0, Math.min(queue.length - 1, nextIndex));
-    setCurrentIndex(boundedIndex);
-    setPlaying(shouldPlay);
-    setCurrentTime(0);
-    if (isMobile) setPlaylistOpen(false);
-  };
-
-  const seekTo = (time: number) => {
-    if (!playerRef.current) return;
-    const safeTime = Math.max(0, Math.min(duration || time, time));
-    playerRef.current.currentTime = safeTime;
-    setCurrentTime(safeTime);
-  };
-
-  const handlePrev = () => {
-    if (queue.length === 0) return;
-
-    if (currentTime > 3) {
-      seekTo(0);
+  const seekTo = (seconds: number) => {
+    setCurrentTime(seconds);
+    const player = playerRef.current;
+    if (!player) return;
+    if (typeof player.seekTo === "function") {
+      player.seekTo(seconds, "seconds");
       return;
     }
-
-    if (currentIndex === 0) {
-      goToIndex(repeatMode === "all" ? queue.length - 1 : 0);
-      return;
+    if (typeof player.currentTime === "number") {
+      player.currentTime = seconds;
     }
-
-    goToIndex(currentIndex - 1);
   };
 
-  const handleNext = () => {
-    if (queue.length === 0) return;
-
+  const handleEnded = () => {
     if (repeatMode === "one") {
       seekTo(0);
       setPlaying(true);
       return;
     }
-
     if (currentIndex < queue.length - 1) {
-      goToIndex(currentIndex + 1, true);
-      return;
+      setCurrentIndex((prev) => prev + 1);
+      setCurrentTime(0);
+      setPlaying(true);
+    } else if (repeatMode === "all") {
+      setCurrentIndex(0);
+      setCurrentTime(0);
+      setPlaying(true);
+    } else {
+      setPlaying(false);
     }
-
-    if (repeatMode === "all") {
-      goToIndex(0, true);
-      return;
-    }
-
-    setPlaying(false);
   };
 
-  const handleEnded = () => {
-    if (!autoAdvance) {
-      if (repeatMode === "one") {
-        seekTo(0);
-        setPlaying(true);
-      } else {
-        setPlaying(false);
-      }
+  const goToIndex = (index: number, autoPlay = true) => {
+    if (index < 0 || index >= queue.length) return;
+    setCurrentIndex(index);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaylistOpen(false);
+    if (autoPlay) setPlaying(true);
+  };
+
+  const handlePrev = () => {
+    if (currentTime > 4) {
+      seekTo(0);
       return;
     }
+    if (currentIndex > 0) {
+      goToIndex(currentIndex - 1, playing);
+    } else if (repeatMode === "all") {
+      goToIndex(queue.length - 1, playing);
+    }
+  };
 
-    handleNext();
+  const handleNext = () => {
+    if (currentIndex < queue.length - 1) {
+      goToIndex(currentIndex + 1, playing);
+    } else if (repeatMode === "all") {
+      goToIndex(0, playing);
+    }
   };
 
   const cycleRepeatMode = () => {
@@ -415,295 +303,78 @@ export default function PlaylistPlayer({
     }
   };
 
-  const renderVariantButtons = (tone: "dark" | "light" = "dark") => (
-    <div className={`flex w-full flex-col gap-1.5 rounded-lg border p-2 sm:w-auto ${
-      tone === "dark" ? "border-white/15 bg-white/8" : "border-[#1a3a2a]/10 bg-[#1a3a2a]/5"
-    }`}>
-      <span className={`text-[9px] font-black uppercase tracking-[0.22em] ${
-        tone === "dark" ? "text-white/55" : "text-[#1a3a2a]/55"
-      }`}>
-        Fonte do audio
-      </span>
-      <div className="grid grid-cols-2 gap-1">
-      {(["voice", "instrumental"] as AudioVariant[]).map((variant) => {
-        const isActive = audioVariant === variant;
-        return (
-          <Button
-            key={variant}
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              // Salvar tempo atual antes de mudar a variante
-              if (playerRef.current && Number.isFinite(playerRef.current.currentTime)) {
-                timeBeforeVariantChange.current = playerRef.current.currentTime;
-              }
-              setAudioVariant(variant);
-            }}
-            className={`h-10 rounded-md px-3 text-[11px] font-black uppercase tracking-[0.12em] ${
-              isActive
-                ? "bg-[#c4a84b] text-[#10281d] hover:bg-[#c4a84b]/90"
-                : tone === "dark"
-                  ? "text-white/60 hover:bg-white/10 hover:text-white"
-                  : "text-[#1a3a2a]/60 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a]"
-            }`}
-          >
-            {variant === "voice" ? "Hino com voz" : "Instrumental"}
-          </Button>
-        );
-      })}
-      </div>
-      {isUsingFallbackVoice && (
-        <span className={`text-[10px] font-semibold ${tone === "dark" ? "text-white/60" : "text-[#1a3a2a]/60"}`}>
-          Instrumental indisponivel neste hino; tocando a versao com voz.
-        </span>
-      )}
-    </div>
-  );
-
   if (queue.length === 0) {
     return (
-      <Card className="overflow-hidden border border-[#c4a84b]/35 bg-gradient-to-br from-[#10281d] via-[#183225] to-[#244b36] text-white shadow-[0_14px_34px_rgba(16,40,29,0.2)] dark:border-[#c4a84b]/25 dark:from-[#08130e] dark:via-[#10251a] dark:to-[#173424]">
-        <CardContent className="flex flex-col items-center gap-4 p-5 text-center sm:flex-row sm:justify-between sm:p-6 sm:text-left">
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#c4a84b]/30 bg-[#c4a84b]/10 text-[#e1c969]">
-              <ListMusic className="h-6 w-6" />
+      <Card className="overflow-hidden border border-[#c4a84b]/35 bg-gradient-to-br from-[#10281d] via-[#183225] to-[#244b36] text-white shadow-md">
+        <CardContent className="flex flex-col items-center gap-3 p-4 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#c4a84b]/30 bg-[#c4a84b]/15 text-[#f0bd3a]">
+              <ListMusic className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-[#fff8e8]">{title}</h3>
-              <p className="mt-1 max-w-2xl text-sm text-white/70">
-            {isOnline
-              ? "Nenhum item desta selecao possui audio ou YouTube configurado ainda."
-              : "Nenhum MP3 desta selecao esta salvo neste aparelho para tocar offline."}
+              <h3 className="text-base font-bold text-white">{title}</h3>
+              <p className="text-xs text-white/70">
+                {isOnline
+                  ? "Nenhum item desta seleção possui áudio configurado ainda."
+                  : "Nenhum MP3 salvo neste aparelho para reproduzir offline."}
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 justify-center">{renderVariantButtons("dark")}</div>
         </CardContent>
       </Card>
     );
   }
 
-  // Layout Mobile: Player compacto + Playlist em drawer
-  if (isMobile) {
-    return (
-      <div className="flex flex-col gap-3 md:gap-4 md:grid md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
-        {/* Player Compacto */}
-        <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#071018]">
-          <CardContent className="p-0">
-            <div className="bg-gradient-to-br from-[#0f2017] via-[#183225] to-[#10281d] text-white">
-              {/* Video YouTube (se houver) */}
-              {currentMediaUrl && isYoutube && (
-                <div className="overflow-hidden border-b border-white/10 bg-black">
-                  <div className="mx-auto aspect-video w-full bg-black">
-                    {React.createElement(ReactPlayer as any, {
-                      key: currentMediaUrl,
-                      ref: playerRef,
-                      url: currentMediaUrl,
-                      src: currentMediaUrl,
-                      playing,
-                      volume,
-                      muted: volume === 0,
-                      playsInline: true,
-                      width: "100%",
-                      height: "100%",
-                      onReady: () => syncMediaState(playerRef.current),
-                      onTimeUpdate: (value: any) => {
-                        const nextTime = readTimeValue(value, playerRef.current);
-                        if (nextTime !== null) setCurrentTime(nextTime);
-                      },
-                      onDurationChange: (value: any) => {
-                        const nextDuration = readDurationValue(value, playerRef.current);
-                        if (nextDuration !== null) setDuration(nextDuration);
-                      },
-                      onPlay: () => setPlaying(true),
-                      onPause: () => setPlaying(false),
-                      onEnded: handleEnded,
-                      config: isYoutube
-                        ? undefined
-                        : undefined,
-                    })}
-                  </div>
-                </div>
-              )}
+  // Componente de Seleção de Variante (Voz / Instrumental)
+  const renderVariantSelector = () => (
+    <div className="inline-flex items-center rounded-lg border border-[#c4a84b]/35 bg-[#f7f1da] p-0.5 shadow-sm dark:border-white/15 dark:bg-black/40">
+      <button
+        type="button"
+        onClick={() => {
+          if (playerRef.current && Number.isFinite(playerRef.current.currentTime)) {
+            timeBeforeVariantChange.current = playerRef.current.currentTime;
+          }
+          setAudioVariant("voice");
+        }}
+        className={`rounded-md px-2.5 py-1 text-[11px] font-black uppercase tracking-wider transition-all ${
+          audioVariant === "voice"
+            ? "bg-[#f0bd3a] text-[#061710] shadow-sm"
+            : "text-[#1a3a2a]/75 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+        }`}
+      >
+        Hino com Voz
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (playerRef.current && Number.isFinite(playerRef.current.currentTime)) {
+            timeBeforeVariantChange.current = playerRef.current.currentTime;
+          }
+          setAudioVariant("instrumental");
+        }}
+        className={`rounded-md px-2.5 py-1 text-[11px] font-black uppercase tracking-wider transition-all ${
+          audioVariant === "instrumental"
+            ? "bg-[#f0bd3a] text-[#061710] shadow-sm"
+            : "text-[#1a3a2a]/75 hover:bg-[#1a3a2a]/8 hover:text-[#1a3a2a] dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+        }`}
+      >
+        Instrumental
+      </button>
+    </div>
+  );
 
-              {/* Player de Áudio (se não for YouTube) */}
-              {currentMediaUrl && !isYoutube && (
-                <div className="overflow-hidden border-b border-white/10 px-3 pt-3">
-                  {React.createElement(ReactPlayer as any, {
-                    key: currentMediaUrl,
-                    ref: playerRef,
-                    url: currentMediaUrl,
-                    src: currentMediaUrl,
-                    playing,
-                    volume,
-                    muted: volume === 0,
-                    playsInline: true,
-                    width: "0",
-                    height: "0",
-                    onReady: () => syncMediaState(playerRef.current),
-                    onTimeUpdate: (value: any) => {
-                      const nextTime = readTimeValue(value, playerRef.current);
-                      if (nextTime !== null) setCurrentTime(nextTime);
-                    },
-                    onDurationChange: (value: any) => {
-                      const nextDuration = readDurationValue(value, playerRef.current);
-                      if (nextDuration !== null) setDuration(nextDuration);
-                    },
-                    onPlay: () => setPlaying(true),
-                    onPause: () => setPlaying(false),
-                    onEnded: handleEnded,
-                  })}
-                </div>
-              )}
-
-              {/* Informações Compactas */}
-              <div className="space-y-3 p-3.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
-                      {mediaModeLabel} • {currentIndex + 1}/{queue.length}
-                    </p>
-                    <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
-                      {availabilityLabel}
-                    </p>
-                    <h4 className="mt-0.5 line-clamp-2 text-sm font-bold leading-tight text-white">
-                      {currentItem?.title}
-                    </h4>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-white/60">
-                      {currentItem?.subtitle || currentItem?.author || "Faixa atual"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Barra de Progresso */}
-                <div className="space-y-1">
-                  <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="cursor-pointer py-1" />
-                  <div className="flex justify-between text-[9px] font-black uppercase tracking-[0.2em] text-white/45">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                </div>
-
-                {/* Controles Compactos */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full" onClick={handlePrev}>
-                      <SkipBack className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      className="h-10 w-10 rounded-full bg-[#f0bd3a] text-[#062417] hover:bg-[#d6b64c]"
-                      onClick={() => setPlaying((current) => !current)}
-                    >
-                      {playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
-                    </Button>
-                    <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full" onClick={handleNext}>
-                      <SkipForward className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* Botão Playlist - Apenas em Mobile */}
-                  <Sheet open={playlistOpen} onOpenChange={setPlaylistOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="secondary" size="icon" className="h-9 w-9 rounded-full md:hidden">
-                        <ListMusic className="h-4 w-4" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-full p-0 sm:w-96">
-                      <SheetTitle className="sr-only">Fila de reprodução</SheetTitle>
-                      <div className="flex h-full flex-col bg-[#f6faf6] dark:bg-[#071018]">
-                        <div className="border-b border-[#1a3a2a]/10 px-4 py-3 flex items-center justify-between dark:border-white/10">
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 dark:text-white/60">
-                            Fila ({queue.length})
-                          </p>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2">
-                          {queue.map((item, index) => {
-                            const isCurrent = index === currentIndex;
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => goToIndex(index, true)}
-                                className={`mb-2 flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-all ${
-                                  isCurrent ? "bg-[#1a3a2a] text-white shadow-md dark:bg-[#145c3a]" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0] dark:bg-[#0b1720] dark:text-white dark:ring-white/10 dark:hover:bg-[#102436]"
-                                }`}
-                              >
-                                <div
-                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded text-[10px] font-black ${
-                                    isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a] dark:bg-[#d6b64c]/15 dark:text-[#f0bd3a]"
-                                  }`}
-                                >
-                                  {String(item.number).padStart(2, "0")}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className={`line-clamp-1 text-xs font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23] dark:text-white"}`}>
-                                    {item.title}
-                                  </p>
-                                  <p className={`mt-0.5 line-clamp-1 text-[10px] ${isCurrent ? "text-white/75" : "text-[#1d2b23]/60 dark:text-white/65"}`}>
-                                    {item.subtitle || item.author || "Faixa"}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-
-                {/* Status Compacto */}
-                {renderVariantButtons("dark")}
-
-                {/* Status Compacto */}
-                <div className="flex flex-wrap items-center gap-1 text-[8px] font-bold uppercase tracking-[0.15em] text-white/45">
-                  <span className="rounded-full bg-card/10 px-2 py-0.5">Repeat: {repeatMode}</span>
-                  <span className="rounded-full bg-card/10 px-2 py-0.5">Auto: {autoAdvance ? "on" : "off"}</span>
-                  <span className="rounded-full bg-card/10 px-2 py-0.5">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
-                  {isPreparingOffline && <span className="rounded-full bg-card/10 px-2 py-0.5">Salvando offline</span>}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Letras Sincronizadas */}
-        {currentItem && (
-          <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-lg dark:border-white/10 dark:bg-[#071018]">
-            <CardContent className="p-3">
-              <SyncedLyricsPanel
-                hymnTitle={currentItem.title}
-                lyrics={currentItem.lyrics ?? ""}
-                lyricsSync={currentItem.lyricsSync}
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={(time) => {
-                  seekTo(time);
-                  setPlaying(true);
-                }}
-                titleLabel={`Letra`}
-                descriptionLabel="Sincronizada em tempo real"
-                className="shadow-none"
-                maxHeightClassName="max-h-[16rem]"
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    );
-  }
-
-  // Layout Desktop: Grid com playlist lateral
   return (
-    <Card className="overflow-hidden border border-[#1a3a2a]/10 bg-white shadow-xl dark:border-white/10 dark:bg-[#071018]">
+    <Card className="overflow-hidden border border-[#c4a84b]/35 bg-white text-[#122016] shadow-xl dark:bg-[#0a1b12] dark:text-white">
       <CardContent className="p-0">
-        <div className="grid min-h-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0 bg-gradient-to-br from-[#0f2017] via-[#183225] to-[#10281d] text-white">
-            {currentMediaUrl ? (
+        <div className="grid min-h-0 lg:grid-cols-[minmax(0,1fr)_300px]">
+
+          {/* Lado Esquerdo / Painel Principal do Player */}
+          <div className="min-w-0 bg-[#fffdf5] text-[#122016] dark:bg-gradient-to-br dark:from-[#0c1f15] dark:via-[#142d20] dark:to-[#0a1711] dark:text-white">
+
+            {/* Player de Vídeo YouTube (se houver e estiver ativo - proporção 16:9 completa sem cortes) */}
+            {currentMediaUrl && isYoutube && (
               <div className="overflow-hidden border-b border-white/10 bg-black">
-                <div className={isYoutube ? "mx-auto aspect-video w-full bg-black" : "h-0 overflow-hidden"}>
+                <div className="relative aspect-video w-full bg-black">
                   {React.createElement(ReactPlayer as any, {
                     key: currentMediaUrl,
                     ref: playerRef,
@@ -727,106 +398,273 @@ export default function PlaylistPlayer({
                     onPlay: () => setPlaying(true),
                     onPause: () => setPlaying(false),
                     onEnded: handleEnded,
-                    config: isYoutube
-                      ? undefined
-                      : undefined,
                   })}
                 </div>
               </div>
-            ) : null}
+            )}
 
-            <div className="space-y-3 p-4 sm:p-4 md:p-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">Playlist ativa</p>
-                  <h3 className="mt-1 text-xl font-black tracking-tight sm:text-2xl" style={{ color: accentColor }}>
-                    {title}
-                  </h3>
-                  {description && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/70">{description}</p>}
+            {/* Player de Áudio Oculto (quando não for YouTube) */}
+            {currentMediaUrl && !isYoutube && (
+              <div className="h-0 overflow-hidden">
+                {React.createElement(ReactPlayer as any, {
+                  key: currentMediaUrl,
+                  ref: playerRef,
+                  url: currentMediaUrl,
+                  src: currentMediaUrl,
+                  playing,
+                  volume,
+                  muted: volume === 0,
+                  playsInline: true,
+                  width: "0",
+                  height: "0",
+                  onReady: () => syncMediaState(playerRef.current),
+                  onTimeUpdate: (value: any) => {
+                    const nextTime = readTimeValue(value, playerRef.current);
+                    if (nextTime !== null) setCurrentTime(nextTime);
+                  },
+                  onDurationChange: (value: any) => {
+                    const nextDuration = readDurationValue(value, playerRef.current);
+                    if (nextDuration !== null) setDuration(nextDuration);
+                  },
+                  onPlay: () => setPlaying(true),
+                  onPause: () => setPlaying(false),
+                  onEnded: handleEnded,
+                })}
+              </div>
+            )}
+
+            {/* CORPO COMPACTO DO PLAYER (-60% de altura / Alto Contraste) */}
+            <div className="space-y-2.5 p-3 sm:p-3.5">
+
+              {/* Cabeçalho da Playlist (Contraste Corrigido: Dourado + Branco) */}
+              <div className="flex items-center justify-between gap-2 border-b border-[#1a3a2a]/10 pb-2 dark:border-white/10">
+                <div className="min-w-0 flex items-center gap-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#f0bd3a]/20 text-[#8a6a0c] dark:text-[#f0bd3a]">
+                    <Music className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8a6a0c] dark:text-[#e5c65d]">
+                        Playlist Ativa
+                      </span>
+                      <span className="truncate text-xs font-black text-[#1a3a2a] dark:text-white">
+                        • {title}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="rounded-full bg-card/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
-                  {currentIndex + 1}/{queue.length}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="rounded-full border border-[#c4a84b]/40 bg-[#f7f1da] px-2.5 py-0.5 text-[10px] font-black tracking-wider text-[#1a3a2a] dark:border-[#f0bd3a]/30 dark:bg-black/40 dark:text-[#f0bd3a]">
+                    {currentIndex + 1} / {queue.length}
+                  </span>
+
+                  {/* Botão para abrir fila no Mobile */}
+                  <Sheet open={playlistOpen} onOpenChange={setPlaylistOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-[#1a3a2a] hover:bg-[#1a3a2a]/8 dark:text-white/80 dark:hover:bg-white/10 lg:hidden">
+                        <ListMusic className="h-4 w-4 mr-1 text-[#f0bd3a]" />
+                        Fila
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-full p-0 sm:w-96">
+                      <SheetTitle className="sr-only">Fila de reprodução</SheetTitle>
+                      <div className="flex h-full flex-col bg-[#fffdf5] text-[#122016] dark:bg-[#071018] dark:text-white">
+                        <div className="flex items-center justify-between border-b border-[#1a3a2a]/10 px-4 py-3 dark:border-white/10">
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a6a0c] dark:text-[#f0bd3a]">
+                            Fila de Execução ({queue.length})
+                          </p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                          {queue.map((item, index) => {
+                            const isCurrent = index === currentIndex;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => goToIndex(index, true)}
+                                className={`flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left transition-all ${
+                                  isCurrent
+                                    ? "border border-[#c4a84b]/50 bg-[#1a3a2a] text-white shadow-md dark:bg-[#145c3a]"
+                                    : "border border-[#1a3a2a]/8 bg-[#1a3a2a]/5 text-[#1a3a2a]/80 hover:bg-[#1a3a2a]/10 dark:border-white/5 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
+                                }`}
+                              >
+                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${
+                                  isCurrent ? "bg-[#f0bd3a] text-black" : "bg-[#1a3a2a]/10 text-[#1a3a2a]/70 dark:bg-white/10 dark:text-white/70"
+                                }`}>
+                                  {String(item.number).padStart(2, "0")}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-xs font-bold leading-tight text-[#061710] dark:text-white">
+                                    {item.title}
+                                  </p>
+                                  <p className="truncate text-[10px] text-[#31443a]/70 dark:text-white/60">
+                                    {item.subtitle || item.author || "Faixa"}
+                                  </p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-card/6 p-3 backdrop-blur-sm">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-card/10 ring-1 ring-white/10">
-                    {isYoutube ? <Youtube className="h-6 w-6" style={{ color: accentColor }} /> : <Music className="h-6 w-6" style={{ color: accentColor }} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+              {/* Card da Faixa Atual (Compacto e Elegante) */}
+              <div className="flex items-center gap-3 rounded-xl border border-[#c4a84b]/25 bg-[#f8f3df] p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#c4a84b]/35 bg-[#1a3a2a] text-[#f0bd3a] shadow-inner dark:bg-gradient-to-br dark:from-[#1b3d2b] dark:to-[#0b1c13]">
+                  {isYoutube ? <Youtube className="h-5 w-5" /> : <Music className="h-5 w-5" />}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#8a6a0c] dark:text-[#e5c65d]">
                       {mediaModeLabel}
-                    </p>
-                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
+                    </span>
+                    <span className="text-[9px] text-[#1a3a2a]/35 dark:text-white/40">•</span>
+                    <span className="text-[9px] font-bold text-[#1a3a2a]/70 dark:text-white/70">
                       {availabilityLabel}
-                    </p>
-                    <h4 className="mt-1 line-clamp-2 text-base font-bold leading-tight text-white sm:text-lg xl:text-xl">
-                      {currentItem?.title}
-                    </h4>
-                    <p className="mt-1 line-clamp-2 text-sm text-white/60">
-                      {currentItem?.subtitle || currentItem?.author || "Faixa atual da playlist"}
-                    </p>
+                    </span>
                   </div>
+                  <h4 className="truncate text-sm font-bold leading-snug text-[#061710] dark:text-white sm:text-base">
+                    {currentItem?.title}
+                  </h4>
+                  <p className="truncate text-xs text-[#31443a] dark:text-white/75">
+                    {currentItem?.subtitle || currentItem?.author || "Faixa selecionada"}
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="cursor-pointer py-1" />
-                <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-white/55">
-                  <span>{formatTime(currentTime)}</span>
+              {/* Barra de Progresso com Timers Integrados */}
+              <div className="space-y-0.5 pt-0.5">
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={handleSeek}
+                  className="cursor-pointer py-1"
+                />
+                <div className="flex justify-between font-mono text-[10px] font-bold text-[#1a3a2a]/65 dark:text-white/70">
+                  <span className="text-[#8a6a0c] dark:text-[#f0bd3a]">{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={handlePrev}>
-                  <SkipBack className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="h-14 w-14 rounded-full bg-[#f0bd3a] text-[#062417] hover:bg-[#d6b64c]"
-                  onClick={() => setPlaying((current) => !current)}
-                >
-                  {playing ? <Pause className="h-6 w-6 sm:h-7 sm:w-7" /> : <Play className="ml-0.5 h-6 w-6 sm:h-7 sm:w-7" />}
-                </Button>
-                <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={handleNext}>
-                  <SkipForward className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant={autoAdvance ? "default" : "secondary"}
-                  className="rounded-full px-3.5 text-[11px] font-bold uppercase tracking-[0.16em]"
-                  onClick={() => setAutoAdvance((value) => !value)}
-                >
-                  Proxima auto
-                </Button>
-                <Button variant="secondary" size="icon" className="h-11 w-11 rounded-full" onClick={cycleRepeatMode}>
-                  {repeatMode === "off" ? <Repeat className="h-5 w-5" /> : repeatMode === "all" ? <Repeat className="h-5 w-5 text-white" /> : <Repeat1 className="h-5 w-5 text-white" />}
-                </Button>
-                {renderVariantButtons("dark")}
+              {/* Barra Unificada de Controles (Sleek Toolbar) */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1a3a2a]/10 pt-1 dark:border-white/10">
+
+                {/* Controles de Reprodução */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-[#1a3a2a]/10 text-[#1a3a2a] hover:bg-[#1a3a2a]/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                    onClick={handlePrev}
+                    title="Anterior"
+                  >
+                    <SkipBack className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    className="h-11 w-11 rounded-full bg-[#f0bd3a] text-[#061710] hover:bg-[#ffc83b] shadow-lg shadow-[#f0bd3a]/25 transition-transform active:scale-95"
+                    onClick={() => setPlaying((current) => !current)}
+                    title={playing ? "Pausar" : "Tocar"}
+                  >
+                    {playing ? (
+                      <Pause className="h-5 w-5 fill-current" />
+                    ) : (
+                      <Play className="ml-0.5 h-5 w-5 fill-current" />
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-[#1a3a2a]/10 text-[#1a3a2a] hover:bg-[#1a3a2a]/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                    onClick={handleNext}
+                    title="Próxima"
+                  >
+                    <SkipForward className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 rounded-full transition-colors ${
+                      repeatMode !== "off"
+                        ? "bg-[#f0bd3a] text-black"
+                        : "bg-[#1a3a2a]/10 text-[#1a3a2a]/70 hover:bg-[#1a3a2a]/15 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20"
+                    }`}
+                    onClick={cycleRepeatMode}
+                    title={`Repetir: ${repeatMode}`}
+                  >
+                    {repeatMode === "one" ? (
+                      <Repeat1 className="h-4 w-4" />
+                    ) : (
+                      <Repeat className="h-4 w-4" />
+                    )}
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAutoAdvance((v) => !v)}
+                    className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all ${
+                      autoAdvance
+                        ? "border border-[#c4a84b]/45 bg-[#1a3a2a] text-[#f0bd3a] dark:border-[#f0bd3a]/40 dark:bg-[#145c3a]"
+                        : "border border-[#1a3a2a]/10 bg-[#1a3a2a]/8 text-[#1a3a2a]/55 hover:bg-[#1a3a2a]/12 dark:border-white/10 dark:bg-white/10 dark:text-white/50 dark:hover:bg-white/15"
+                    }`}
+                    title="Avançar automaticamente para a próxima música"
+                  >
+                    Próxima Auto
+                  </button>
+                </div>
+
+                {/* Seletor de Áudio (Voz / Instrumental) */}
+                <div className="flex items-center">
+                  {renderVariantSelector()}
+                </div>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <Volume2 className="h-4 w-4 text-white/70" />
-                  <Slider value={[volume * 100]} max={100} onValueChange={handleVolumeChange} className="w-28 md:w-32" />
+              {/* Rodapé do Player: Volume & Status em Linha Única */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1a3a2a]/8 pt-1 text-[9px] font-bold uppercase tracking-wider text-[#1a3a2a]/60 dark:border-white/5 dark:text-white/60">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-3.5 w-3.5 text-[#8a6a0c] dark:text-[#f0bd3a]" />
+                  <Slider
+                    value={[volume * 100]}
+                    max={100}
+                    onValueChange={handleVolumeChange}
+                    className="w-20 sm:w-24 cursor-pointer"
+                  />
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-                  <span className="rounded-full bg-card/10 px-3 py-1">Repeat: {repeatMode}</span>
-                  <span className="rounded-full bg-card/10 px-3 py-1">Auto: {autoAdvance ? "ligado" : "desligado"}</span>
-                  <span className="rounded-full bg-card/10 px-3 py-1">{selectedMediaConfigured ? "Base ok" : "Base sem variante"}</span>
-                  {isPreparingOffline && <span className="rounded-full bg-card/10 px-3 py-1">Salvando offline</span>}
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="rounded border border-[#c4a84b]/25 bg-[#f7f1da] px-2 py-0.5 text-[#8a6a0c] dark:border-white/10 dark:bg-black/40 dark:text-[#f0bd3a]">
+                    Repeat: {repeatMode}
+                  </span>
+                  <span className="rounded border border-[#1a3a2a]/10 bg-[#1a3a2a]/5 px-2 py-0.5 dark:border-white/10 dark:bg-black/40">
+                    Auto: {autoAdvance ? "Ligado" : "Desligado"}
+                  </span>
+                  <span className="rounded border border-[#1a3a2a]/10 bg-[#1a3a2a]/5 px-2 py-0.5 dark:border-white/10 dark:bg-black/40">
+                    {selectedMediaConfigured ? "Base OK" : "Sem Variante"}
+                  </span>
                 </div>
               </div>
+
             </div>
           </div>
 
-          <div className="min-h-0 border-t border-[#1a3a2a]/10 bg-[#f6faf6] dark:border-white/10 dark:bg-[#071018] lg:border-l lg:border-t-0">
-            <div className="border-b border-[#1a3a2a]/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/55 dark:border-white/10 dark:text-white/60">
-              Fila da playlist
+          {/* Lado Direito / Fila da Playlist (Desktop) */}
+          <div className="hidden min-h-0 border-l border-[#1a3a2a]/10 bg-[#f8f3df] text-[#122016] dark:border-white/10 dark:bg-[#071018] dark:text-white lg:flex lg:flex-col">
+            <div className="flex items-center justify-between border-b border-[#1a3a2a]/10 bg-[#eee6cb] px-3 py-2 dark:border-white/10 dark:bg-black/30">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#8a6a0c] dark:text-[#f0bd3a]">
+                <ListMusic className="h-3.5 w-3.5" /> Fila ({queue.length})
+              </span>
             </div>
-            <div className="max-h-[20rem] overflow-y-auto p-2 sm:max-h-[24rem] lg:max-h-[34rem]">
+
+            <div className="max-h-[16rem] flex-1 space-y-1 overflow-y-auto p-2">
               {queue.map((item, index) => {
                 const isCurrent = index === currentIndex;
                 return (
@@ -834,26 +672,27 @@ export default function PlaylistPlayer({
                     key={item.id}
                     type="button"
                     onClick={() => goToIndex(index, true)}
-                    className={`mb-2 flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-all ${
-                      isCurrent ? "bg-[#1a3a2a] text-white shadow-lg dark:bg-[#145c3a]" : "bg-white text-[#243329] ring-1 ring-[#1a3a2a]/8 hover:bg-[#f0f5f0] dark:bg-[#0b1720] dark:text-white dark:ring-white/10 dark:hover:bg-[#102436]"
+                    className={`flex w-full items-center gap-2 rounded-lg p-2 text-left transition-all ${
+                      isCurrent
+                        ? "border border-[#c4a84b]/50 bg-[#1a3a2a] text-white shadow-sm dark:border-[#f0bd3a]/40 dark:bg-[#145c3a]"
+                        : "border border-transparent bg-white/55 text-[#1a3a2a]/80 hover:bg-white dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
                     }`}
                   >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-black ${
-                        isCurrent ? "bg-white/15 text-white" : "bg-[#1a3a2a]/8 text-[#1a3a2a] dark:bg-[#d6b64c]/15 dark:text-[#f0bd3a]"
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-black ${
+                        isCurrent
+                          ? "bg-[#f0bd3a] text-black"
+                          : "bg-[#1a3a2a]/10 text-[#1a3a2a]/70 dark:bg-white/10 dark:text-white/70"
                       }`}
                     >
                       {String(item.number).padStart(2, "0")}
-                    </div>
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className={`line-clamp-2 text-sm font-bold leading-tight ${isCurrent ? "text-white" : "text-[#1d2b23] dark:text-white"}`}>
-                          {item.title}
-                        </p>
-                        {isOnline && item.youtubeUrl ? <Youtube className="h-4 w-4 shrink-0" /> : <Music className="h-4 w-4 shrink-0" />}
-                      </div>
-                      <p className={`mt-1 line-clamp-2 text-xs ${isCurrent ? "text-white/75" : "text-[#1d2b23]/60 dark:text-white/65"}`}>
-                        {item.subtitle || item.author || "Selecionar faixa"}
+                      <p className="truncate text-xs font-bold leading-tight text-[#061710] dark:text-white">
+                        {item.title}
+                      </p>
+                      <p className="truncate text-[10px] text-[#31443a]/70 dark:text-white/50">
+                        {item.subtitle || item.author || "Faixa"}
                       </p>
                     </div>
                   </button>
@@ -861,10 +700,12 @@ export default function PlaylistPlayer({
               })}
             </div>
           </div>
+
         </div>
 
+        {/* Letras Sincronizadas (Abaixo do Player) */}
         {currentItem && (
-          <div className="border-t border-[#1a3a2a]/10 bg-[#f7faf7] p-3 dark:border-white/10 dark:bg-[#071018] sm:p-4 md:p-5">
+          <div className="border-t border-[#1a3a2a]/10 bg-[#fffdf5] p-3 text-[#122016] dark:border-white/10 dark:bg-[#061019] dark:text-white sm:p-4">
             <SyncedLyricsPanel
               hymnTitle={currentItem.title}
               lyrics={currentItem.lyrics ?? ""}
@@ -875,10 +716,10 @@ export default function PlaylistPlayer({
                 seekTo(time);
                 setPlaying(true);
               }}
-              titleLabel={`Letra da faixa atual`}
-              descriptionLabel="A letra da musica em execucao ja aparece aqui embaixo. Quando houver sincronizacao salva, ela acompanha em tempo real; caso contrario, entra uma estimativa automatica."
-              className="shadow-none"
-              maxHeightClassName="max-h-[18rem] md:max-h-[22rem] xl:max-h-[24rem]"
+              titleLabel="Letra da faixa"
+              descriptionLabel="Acompanhe a reprodução e toque em um trecho para avançar."
+              className="border-[#c4a84b]/25 bg-white/80 shadow-none dark:border-white/10 dark:bg-transparent"
+              maxHeightClassName="max-h-[13rem] md:max-h-[15rem]"
             />
           </div>
         )}

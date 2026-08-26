@@ -65,6 +65,12 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
   app.use(express.json({ limit: "80mb" }));
   app.use(express.urlencoded({ limit: "80mb", extended: true }));
   app.use(express.text({ limit: "80mb" }));
+
+  const rootUploadsDir = path.resolve(process.cwd(), "uploads");
+  const clientUploadsDir = path.resolve(process.cwd(), "client", "public", "uploads");
+  app.use("/uploads", express.static(rootUploadsDir));
+  app.use("/uploads", express.static(clientUploadsDir));
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   

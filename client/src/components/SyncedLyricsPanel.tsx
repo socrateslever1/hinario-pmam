@@ -166,14 +166,14 @@ export default function SyncedLyricsPanel({
   return (
     <Card className={`overflow-hidden border border-[#1a3a2a]/10 bg-white dark:bg-[#15151a] shadow-lg ${className}`.trim()}>
       <CardContent className="p-0">
-        <div className="border-b border-[#1a3a2a]/8 dark:border-white/10 bg-[#f8faf8] dark:bg-[#1a1a1f] px-4 py-3 sm:px-5 md:px-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="border-b border-[#1a3a2a]/8 bg-[#f8faf8] px-4 py-2.5 dark:border-white/10 dark:bg-[#1a1a1f] sm:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h4 className="text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a] dark:text-white/90 md:text-sm">{titleLabel}</h4>
-              <p className="mt-1 text-xs leading-relaxed text-[#666] dark:text-white/70 md:text-sm">{descriptionLabel}</p>
+              <p className="mt-0.5 text-xs leading-snug text-[#4b5b52] dark:text-white/70">{descriptionLabel}</p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#1a3a2a]/6 dark:bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#1a3a2a] dark:text-white/80">
                 {hasManualSync ? "Sync manual" : hasSync ? "Sync estimado" : "Leitura livre"}
               </span>
@@ -185,7 +185,7 @@ export default function SyncedLyricsPanel({
           </div>
         </div>
 
-        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-2.5 overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch] sm:px-4 md:px-6 md:py-4`}>
+        <div ref={lyricsContainerRef} className={`${maxHeightClassName} space-y-1.5 overflow-y-auto overscroll-contain px-3 py-2.5 [-webkit-overflow-scrolling:touch] sm:px-4`}>
           {lines.length > 0 ? (
             lines.map((line, index) => {
               const isSection = isLyricsSectionLabel(line.text);
@@ -195,7 +195,7 @@ export default function SyncedLyricsPanel({
                   key={index}
                   data-line-index={index}
                   onClick={() => handleLineClick(line.time)}
-                  className={`rounded-xl px-4 py-3 transition-all ${
+                  className={`rounded-lg px-3 py-2 transition-all ${
                     isSection
                       ? "cursor-default bg-[#f4f6f4] dark:bg-white/5 text-center text-xs font-black uppercase tracking-[0.18em] text-[#1a3a2a] dark:text-white/60"
                       : isActive
@@ -206,11 +206,11 @@ export default function SyncedLyricsPanel({
                   }`}
                 >
                   {!isSection && line.time >= 0 && (
-                    <div className={`mb-1 text-[10px] font-black uppercase tracking-[0.18em] ${isActive ? "text-[#8d6c0c]" : "text-[#1a3a2a]/35 dark:text-white/40"}`}>
+                    <div className={`mb-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${isActive ? "text-[#8d6c0c]" : "text-[#1a3a2a]/35 dark:text-white/40"}`}>
                       {formatTime(line.time)}
                     </div>
                   )}
-                  <p className={isSection ? "leading-none" : "text-[14px] leading-[1.55] md:text-[15px] md:leading-[1.65] xl:text-base xl:leading-[1.7]"}>{line.text}</p>
+                  <p className={isSection ? "leading-none" : "text-[13px] leading-[1.45] md:text-sm md:leading-[1.55]"}>{line.text}</p>
                 </div>
               );
             })

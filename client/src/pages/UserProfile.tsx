@@ -79,6 +79,7 @@ export default function UserProfilePage() {
   const [senhaNova, setSenhaNova] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const updateProfile = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
@@ -103,6 +104,7 @@ export default function UserProfilePage() {
       funcao: local.funcao || ROLE_LABELS[user.role || ""] || user.role || "",
     });
     setPhotoUrl(user.fotoUrl || "");
+    setPhotoLoadFailed(false);
   }, [user?.id, user?.name, user?.email, user?.role, user?.fotoUrl]);
 
   const updateField = (field: keyof CommandProfile, value: string) => {
@@ -131,6 +133,7 @@ export default function UserProfilePage() {
       const result = await response.json();
       if (!result.url) throw new Error("Servidor não retornou a URL da foto.");
       setPhotoUrl(result.url);
+      setPhotoLoadFailed(false);
       await updateProfile.mutateAsync({ fotoUrl: result.url });
       toast.success("Foto atualizada.");
     } catch (error: any) {
@@ -263,8 +266,13 @@ export default function UserProfilePage() {
                 <div className="group relative flex aspect-[3/4] w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 shadow-inner md:w-44">
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 animate-spin text-[#c4a84b]" />
-                  ) : photoUrl ? (
-                    <img src={photoUrl} alt="Foto do comando" className="h-full w-full object-cover" />
+                  ) : photoUrl && !photoLoadFailed ? (
+                    <img
+                      src={photoUrl}
+                      alt="Foto do comando"
+                      className="h-full w-full object-cover"
+                      onError={() => setPhotoLoadFailed(true)}
+                    />
                   ) : (
                     <div className="flex flex-col items-center gap-2 p-4 text-center text-muted-foreground">
                       <User className="h-14 w-14 opacity-40" />

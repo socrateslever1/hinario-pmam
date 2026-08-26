@@ -84,18 +84,20 @@ const commandLinks = [
 function ProfileAvatar({ src, alt }: { src?: string | null; alt: string }) {
   return (
     <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/40 bg-[#1a3a2a]/10 dark:bg-zinc-800 shadow-sm">
+      <span className="absolute inset-0 flex h-full w-full items-center justify-center">
+        <User className="h-4 w-4 text-[#c4a84b]" />
+      </span>
       {src ? (
         <img
           src={src}
           alt={alt}
           draggable={false}
-          className="block h-full w-full object-cover object-center"
+          className="relative block h-full w-full object-cover object-center"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
         />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center">
-          <User className="h-4 w-4 text-[#c4a84b]" />
-        </span>
-      )}
+      ) : null}
     </span>
   );
 }

@@ -188,6 +188,9 @@ export function SettingsTab() {
                     src={form.cfap_current_commander_left_photo}
                     alt="Preview Esquerda"
                     className="h-full w-full object-cover object-left opacity-60 mix-blend-luminosity filter contrast-125"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                   />
                   <span className="absolute bottom-1 left-2 z-20 text-[10px] font-black uppercase text-[#f0bd3a]">
                     Efeito Fumê Esquerdo
@@ -251,6 +254,9 @@ export function SettingsTab() {
                     src={form.cfap_current_commander_right_photo}
                     alt="Preview Direita"
                     className="h-full w-full object-cover object-right opacity-60 mix-blend-luminosity filter contrast-125"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                   />
                   <span className="absolute bottom-1 right-2 z-20 text-[10px] font-black uppercase text-[#f0bd3a]">
                     Efeito Fumê Direito

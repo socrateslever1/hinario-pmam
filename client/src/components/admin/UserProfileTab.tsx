@@ -186,18 +186,20 @@ export function UserProfileTab({ showDirectory = true }: UserProfileTabProps) {
             <CardContent className="flex flex-col items-center justify-center p-6 text-center">
               {/* Avatar com upload */}
               <div className="relative group cursor-pointer mb-4" onClick={triggerFileInput}>
-                <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-[#c4a84b]/60 bg-muted flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105">
+                <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-[#c4a84b]/60 bg-muted flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105">
+                  <User className="h-16 w-16 text-muted-foreground" />
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 text-[#c4a84b] animate-spin" />
                   ) : user?.fotoUrl ? (
                     <img 
                       src={user.fotoUrl} 
                       alt="Foto do Comandante" 
-                      className="h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
                     />
-                  ) : (
-                    <User className="h-16 w-16 text-muted-foreground" />
-                  )}
+                  ) : null}
                 </div>
                 {/* Overlay de hover */}
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -389,16 +391,18 @@ export function UserProfileTab({ showDirectory = true }: UserProfileTabProps) {
                 {commandUsers.map((member) => (
                   <Card key={member.id} className="border-border/40 hover:border-[#c4a84b]/60 transition-all overflow-hidden bg-muted/5 hover:shadow-md py-0">
                     <CardContent className="p-4 flex items-center gap-3">
-                      <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-[#c4a84b]/40 bg-muted shrink-0 flex items-center justify-center shadow">
+                      <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-[#c4a84b]/40 bg-muted shrink-0 flex items-center justify-center shadow">
+                        <User className="h-8 w-8 text-muted-foreground" />
                         {member.fotoUrl ? (
                           <img 
                             src={member.fotoUrl} 
                             alt={member.name || "Comandante"} 
-                            className="h-full w-full object-cover"
+                            className="absolute inset-0 h-full w-full object-cover"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
                           />
-                        ) : (
-                          <User className="h-8 w-8 text-muted-foreground" />
-                        )}
+                        ) : null}
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-sm text-foreground truncate">

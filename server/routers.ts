@@ -1076,12 +1076,15 @@ export const appRouter = router({
       return { key: input.key, value: value ?? null };
     }),
     getAll: publicProcedure.query(async () => {
-      const keys = ["footer_phone", "footer_email", "footer_address", "footer_text", "footer_instagram", "footer_facebook"];
-      const results: Record<string, string | null> = {};
-      for (const key of keys) {
-        results[key] = (await db.getSetting(key)) ?? null;
+      const all = await db.getAllSettings();
+      const defaultKeys = [
+        "footer_phone", "footer_email", "footer_address", "footer_text", "footer_instagram", "footer_facebook",
+        "cfap_current_commander_flanks_enabled", "cfap_current_commander_left_photo", "cfap_current_commander_right_photo"
+      ];
+      for (const key of defaultKeys) {
+        if (all[key] === undefined) all[key] = null;
       }
-      return results;
+      return all;
     }),
     update: protectedProcedure.input(z.object({
       key: z.string(),

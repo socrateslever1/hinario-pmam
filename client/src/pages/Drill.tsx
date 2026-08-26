@@ -831,7 +831,7 @@ export default function Drill() {
       <audio ref={sfxAudioRef} preload="none" loop={false} onEnded={() => handleAudioEnded(true)} onTimeUpdate={() => handleTimeUpdate(true)} />
 
       <main className="container space-y-4 px-3 py-3 sm:px-4 md:space-y-6 md:py-7">
-        <section className="sticky top-2 z-30 overflow-hidden rounded-2xl bg-[#10281d] text-white shadow-xl md:top-4 md:rounded-3xl">
+        <section className="sticky top-[4.75rem] z-30 overflow-hidden rounded-2xl bg-[#10281d] text-white shadow-xl md:top-[7.25rem] md:rounded-3xl">
           <div className="p-3 md:p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
@@ -879,7 +879,7 @@ export default function Drill() {
           <div
             role="alert"
             aria-live="assertive"
-            className="fixed left-1/2 top-1/2 z-50 w-[min(88vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#d8c46a]/70 bg-[#10281d] px-4 py-3 text-sm font-bold text-white shadow-2xl md:sticky md:left-auto md:top-24 md:w-full md:translate-x-0 md:translate-y-0"
+            className="fixed left-1/2 top-1/2 z-50 w-[min(88vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[#d8c46a]/70 bg-[#10281d] px-4 py-3 text-sm font-bold text-white shadow-2xl md:sticky md:left-auto md:top-[8rem] md:w-full md:translate-x-0 md:translate-y-0"
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 shrink-0 text-[#ead46e]" />

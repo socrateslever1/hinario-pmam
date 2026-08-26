@@ -791,6 +791,17 @@ export async function getSetting(key: string) {
   return rows[0]?.setting_value ?? null;
 }
 
+export async function getAllSettings(): Promise<Record<string, string | null>> {
+  const rows = await query('SELECT setting_key, setting_value FROM pmam_site_settings');
+  const results: Record<string, string | null> = {};
+  for (const row of rows) {
+    if (row.setting_key) {
+      results[row.setting_key] = row.setting_value ?? null;
+    }
+  }
+  return results;
+}
+
 export async function setSetting(key: string, value: string) {
   await query(
     'INSERT INTO pmam_site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)',

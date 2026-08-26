@@ -28,37 +28,37 @@ const categoryConfig: Record<
   all: {
     label: "Todos",
     icon: Music,
-    color: "#1a3a2a",
+    color: "#f0bd3a",
     description: "Todos os hinos, canções e orações disponíveis no sistema.",
   },
   nacional: {
     label: "Hinos Nacionais",
     icon: Star,
-    color: "#c4a84b",
+    color: "#f0bd3a",
     description: "Patrimônio musical nacional para estudo e execução.",
   },
   militar: {
     label: "Canções Militares",
     icon: Shield,
-    color: "#2d5a27",
+    color: "#4ade80",
     description: "Canções de marcha, fibra e tradição militar.",
   },
   pmam: {
     label: "Canções PMAM",
     icon: Music,
-    color: "#1a3a2a",
+    color: "#f0bd3a",
     description: "Repertório institucional da PMAM.",
   },
   arma: {
     label: "Canções de Armas",
     icon: Target,
-    color: "#8b4513",
+    color: "#fb923c",
     description: "Canções históricas e de especialidades militares.",
   },
   oracao: {
     label: "Orações",
     icon: BookOpen,
-    color: "#1a2744",
+    color: "#60a5fa",
     description: "Textos de formação, fé e inspiração.",
   },
 };
@@ -158,20 +158,20 @@ export default function Hymns() {
             accentColor={activeCategoryConfig.color}
           />
 
-          <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-white/90 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-2xl border border-[#c4a84b]/30 bg-white/95 p-5 shadow-sm shadow-black/5 dark:border-[#c4a84b]/35 dark:bg-[#10261d] dark:shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#7a6425] dark:text-[#d8c46a]">
                 Seleção atual
               </p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-[#173629] dark:text-[#f6f0dc]">
                 {activeCategoryConfig.label}
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-[#4d5b54] dark:text-[#d8d1bd]">
                 {filteredHymns.length} item(ns) prontos para ouvir
                 individualmente ou em sequência.
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-[#1a3a2a]/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a]">
+            <div className="flex items-center gap-2 rounded-full border border-[#1a3a2a]/15 bg-[#1a3a2a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#173629] dark:border-[#d8c46a]/30 dark:bg-[#d8c46a]/15 dark:text-[#f1d866]">
               <ListMusic className="h-4 w-4" />
               Player em lista
             </div>
