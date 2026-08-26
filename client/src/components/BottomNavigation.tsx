@@ -104,7 +104,9 @@ export default function BottomNavigation() {
         { icon: MoreHorizontal, label: "Mais", path: "__more" },
       ];
 
-  const gridItems = isComandante
+  const navPaths = new Set(navItems.map((item) => item.path).filter((p) => p !== "__more"));
+
+  const allGridItems = isComandante
     ? [
         { icon: Home, label: "Início", path: "/" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
@@ -147,6 +149,8 @@ export default function BottomNavigation() {
         { icon: Star, label: "Posto Comando", path: "/xerife" },
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ];
+
+  const gridItems = allGridItems.filter((item) => !navPaths.has(item.path));
 
   const isActive = (path: string) => {
     if (path === "__more") {
