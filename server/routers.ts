@@ -722,8 +722,8 @@ export const appRouter = router({
       if (!canManageHymns) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
-      await db.createHymn(input);
-      return { success: true };
+      const result = await db.createHymn(input);
+      return { success: true, id: (result as any).insertId ?? null };
     }),
     update: masterProcedure.input(z.object({
       id: z.number(),

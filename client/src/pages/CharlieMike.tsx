@@ -1,4 +1,4 @@
-import Navbar from "@/components/Navbar";
+﻿import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlaylistPlayer from "@/components/PlaylistPlayer";
 import { trpc } from "@/lib/trpc";
@@ -6,7 +6,15 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Search, Play, Music, Flame, Radio, ListMusic } from "lucide-react";
+import {
+  Shield,
+  Search,
+  Play,
+  Music,
+  Flame,
+  Radio,
+  ListMusic,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 const FEATURED_TRACK_TITLES = [
@@ -34,7 +42,9 @@ function normalizeText(value = "") {
 
 export default function CharlieMike() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: songsData, isLoading } = trpc.charlieMike.list.useQuery();
+  const { data: songsData, isLoading } = trpc.hymns.getByCollection.useQuery({
+    collection: "tfm",
+  });
 
   const allSongs = useMemo(() => {
     return (songsData ?? []).map((item: any, index: number) => ({
@@ -48,37 +58,46 @@ export default function CharlieMike() {
     if (!searchTerm.trim()) return allSongs;
 
     const term = searchTerm.toLowerCase();
-    return allSongs.filter((item: any) =>
-      item.title.toLowerCase().includes(term) ||
-      item.subtitle?.toLowerCase().includes(term) ||
-      item.author?.toLowerCase().includes(term)
+    return allSongs.filter(
+      (item: any) =>
+        item.title.toLowerCase().includes(term) ||
+        item.subtitle?.toLowerCase().includes(term) ||
+        item.author?.toLowerCase().includes(term)
     );
   }, [allSongs, searchTerm]);
 
   const featuredSongs = useMemo(() => {
-    const byTitle = new Map(allSongs.map((item: any) => [normalizeText(item.title), item]));
-    return FEATURED_TRACK_TITLES.map((title) => byTitle.get(normalizeText(title))).filter(Boolean) as any[];
+    const byTitle = new Map(
+      allSongs.map((item: any) => [normalizeText(item.title), item])
+    );
+    return FEATURED_TRACK_TITLES.map(title =>
+      byTitle.get(normalizeText(title))
+    ).filter(Boolean) as any[];
   }, [allSongs]);
 
   return (
-    <div className="mobile-safe-bottom flex min-h-screen flex-col bg-background text-foreground dark:bg-[#0b1210] dark:text-[#f4f0df]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      <section className="military-page-hero border-b px-3 pb-7 pt-6 md:px-0 md:py-8">
-        <div className="mx-auto w-full max-w-6xl px-3 text-center md:px-6">
-          <ListMusic className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl font-bold text-[#fff8e8] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+      <section className="military-gradient py-8 md:py-10">
+        <div className="container text-center">
+          <Shield className="mx-auto mb-3 h-8 w-8 text-[#c4a84b] md:h-9 md:w-9" />
+          <h1
+            className="text-3xl font-bold text-white md:text-[2.65rem]"
+            style={{ fontFamily: "Merriweather, serif" }}
+          >
             Charlie Mike
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">
-            Coleção TFM com canções militares para marcha, moral, instrução e preparo contínuo.
+          <p className="mx-auto mt-3 max-w-3xl text-sm text-white/72 md:text-base">
+            Coleção TFM com canções militares para marcha, moral, instrução e
+            preparo contínuo.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-6 hidden w-full md:block" />
+        <div className="checkerboard-pattern mt-6 w-full md:mt-7" />
       </section>
 
-      <section className="bg-transparent px-3 py-5 md:px-0 md:py-7">
-        <div className="mx-auto w-full max-w-6xl space-y-5 px-0 md:space-y-6 md:px-6">
+      <section className="bg-background py-5 md:py-6">
+        <div className="container space-y-5 md:space-y-6">
           <PlaylistPlayer
             title="Charlie Mike"
             description="Acervo TFM em fila contínua para treino, instrução e ambientação, com leitura mais confortável em web e mobile."
@@ -87,18 +106,19 @@ export default function CharlieMike() {
           />
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-            <div className="rounded-[1.75rem] border border-[#1a3a2a]/20 bg-[#faf7ec] p-4 text-[#18251e] shadow-[0_8px_24px_rgba(26,58,42,0.08)] dark:border-white/10 dark:bg-[#132019] dark:text-[#f4f0df] md:rounded-[28px] md:p-5">
+            <div className="rounded-[28px] border border-border/60 bg-white/95 p-4 shadow-sm backdrop-blur md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#315342] dark:text-[#d6bd66]">
+                  <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#1a3a2a]/60">
                     <Radio className="h-4 w-4 text-[#c4a84b]" />
                     Explorar coleção
                   </div>
-                  <p className="mt-1 text-sm text-[#5d6b62] dark:text-[#c5cec8]">
-                    Filtre o acervo e encontre rapidamente a faixa que você quer abrir ou estudar.
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Filtre o acervo e encontre rapidamente a faixa que você quer
+                    abrir ou estudar.
                   </p>
                 </div>
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#1a3a2a]/15 bg-[#1a3a2a]/8 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a] dark:border-[#c4a84b]/25 dark:bg-[#c4a84b]/10 dark:text-[#d6bd66]">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1a3a2a]/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a]">
                   <ListMusic className="h-4 w-4" />
                   {songs.length} faixa(s)
                 </div>
@@ -108,17 +128,17 @@ export default function CharlieMike() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar canção militar..."
-                  className="h-11 rounded-2xl border-[#1a3a2a]/20 bg-white/80 pl-10 text-[#18251e] placeholder:text-[#66736b] dark:border-white/10 dark:bg-[#0e1813] dark:text-[#f4f0df] dark:placeholder:text-[#aeb9b2]"
+                  className="h-11 rounded-2xl pl-10"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
 
               {featuredSongs.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {featuredSongs.slice(0, 8).map((song: any) => (
-                    <Link key={song.id} href={`/charlie-mike/${song.id}`}>
-                      <span className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#c4a84b]/35 bg-[#c4a84b]/10 px-3 py-1.5 text-xs font-bold text-[#7b641f] transition-colors hover:bg-[#c4a84b]/20">
+                    <Link key={song.id} href={`/hino/${song.id}`}>
+                      <span className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#c4a84b]/35 bg-[#c4a84b]/10 px-3 py-1.5 text-xs font-bold text-[#7b641f] transition-colors hover:bg-[#c4a84b]/18">
                         <Flame className="h-3.5 w-3.5" />
                         {song.title}
                       </span>
@@ -128,19 +148,27 @@ export default function CharlieMike() {
               )}
             </div>
 
-            <div className="rounded-[1.5rem] border border-[#1a3a2a]/15 bg-[#f7faf7] p-4 text-[#18251e] shadow-sm dark:border-[#c4a84b]/25 dark:bg-[#132019] dark:text-[#f4f0df] md:rounded-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#52685b] dark:text-[#d6bd66]">Mais fortes do acervo</p>
+            <div className="rounded-2xl border border-[#1a3a2a]/10 bg-[#f7faf7] p-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1a3a2a]/55">
+                Mais fortes do acervo
+              </p>
               <div className="mt-3 space-y-2.5">
                 {featuredSongs.slice(0, 4).map((song: any) => (
-                  <Link key={song.id} href={`/charlie-mike/${song.id}`}>
-                    <div className="cursor-pointer rounded-2xl border border-[#1a3a2a]/10 bg-white px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/45 hover:shadow-sm dark:border-white/10 dark:bg-[#1b2921] dark:hover:border-[#c4a84b]/55">
+                  <Link key={song.id} href={`/hino/${song.id}`}>
+                    <div className="cursor-pointer rounded-2xl border border-[#1a3a2a]/10 bg-white px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/45 hover:shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#1a3a2a] text-[11px] font-black text-white shadow-sm">
                           {String(song.number).padStart(2, "0")}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-sm font-bold leading-tight text-[#18251e] dark:text-[#f7f3e8]">{song.title}</h3>
-                          <p className="mt-1 text-xs text-[#5f6f65] dark:text-[#c5cec8]">{song.subtitle || song.author || "Faixa destaque da Charlie Mike"}</p>
+                          <h3 className="text-sm font-bold leading-tight text-foreground">
+                            {song.title}
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {song.subtitle ||
+                              song.author ||
+                              "Faixa destaque da Charlie Mike"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -150,18 +178,23 @@ export default function CharlieMike() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-[1.5rem] border border-[#1a3a2a]/25 bg-[#e2e6da] p-4 text-[#17251d] shadow-sm dark:border-white/10 dark:bg-[#132019] dark:text-[#f4f0df] sm:flex-row sm:items-center sm:justify-between md:rounded-2xl">
+          <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-white/90 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Catálogo Charlie Mike</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-foreground">Canções Militares</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">
+                Catálogo Charlie Mike
+              </p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-foreground md:text-2xl">
+                Canções Militares
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {songs.length} faixa(s) na visualização atual, com vídeos conectados quando disponíveis.
+                {songs.length} item(ns) na visualização atual. Letras já
+                carregadas e links de mídia conectados quando disponíveis.
               </p>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-36 rounded-2xl" />
               ))}
@@ -169,30 +202,42 @@ export default function CharlieMike() {
           ) : songs.length === 0 ? (
             <div className="py-14 text-center">
               <Music className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhuma canção militar encontrada.</p>
+              <p className="text-muted-foreground">
+                Nenhuma canção militar encontrada.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {songs.map((song: any) => (
-                <Link key={song.id} href={`/charlie-mike/${song.id}`}>
-                  <Card className="hymn-card-hover group cursor-pointer overflow-hidden border-border/50 bg-card py-0 text-foreground shadow-sm hover:border-[#c4a84b]/50">
+                <Link key={song.id} href={`/hino/${song.id}`}>
+                  <Card className="hymn-card-hover group h-full cursor-pointer overflow-hidden border-border/50 bg-white hover:border-[#c4a84b]/50">
                     <CardContent className="p-0">
                       <div className="h-1 w-full bg-[#2d5a27]" />
-                      <div className="p-3 md:p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#2d5a27] text-sm font-black text-white shadow-sm">
+                      <div className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2d5a27] text-sm font-black text-white shadow-sm">
                             {String(song.number).padStart(2, "0")}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="mb-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#2d5a27]">
+                            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#2d5a27]">
                               Canção Militar
                             </p>
-                            <h3 className="text-base font-bold leading-tight text-foreground">{song.title}</h3>
-                            {song.subtitle && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{song.subtitle}</p>}
-                            {song.author && <p className="mt-1 text-xs text-muted-foreground">{song.author}</p>}
+                            <h3 className="text-base font-bold leading-tight text-foreground">
+                              {song.title}
+                            </h3>
+                            {song.subtitle && (
+                              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                                {song.subtitle}
+                              </p>
+                            )}
+                            {song.author && (
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                {song.author}
+                              </p>
+                            )}
                           </div>
                           <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
                               <Play className="h-4 w-4 fill-white text-white" />
                             </div>
                           </div>

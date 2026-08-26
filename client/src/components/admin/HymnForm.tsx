@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Music, Upload, Save, Youtube, Loader2 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
@@ -35,13 +41,71 @@ function getDefaultHymnFormState(hymn?: any) {
   };
 }
 
-export function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => void }) {
+function readFileAsBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const base64 = (evt.target?.result as string)?.split(",")[1];
+      if (!base64) {
+        reject(new Error("Arquivo de áudio inválido"));
+        return;
+      }
+      resolve(base64);
+    };
+    reader.onerror = () =>
+      reject(new Error("Não foi possível ler o arquivo de áudio"));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function HymnForm({
+  hymn,
+  onSuccess,
+}: {
+  hymn?: any;
+  onSuccess: () => void;
+}) {
   const [form, setForm] = useState(() => getDefaultHymnFormState(hymn));
   const [uploading, setUploading] = useState(false);
   const [uploadingInstrumental, setUploadingInstrumental] = useState(false);
+  const [pendingAudioFile, setPendingAudioFile] = useState<File | null>(null);
+  const [pendingInstrumentalFile, setPendingInstrumentalFile] =
+    useState<File | null>(null);
   const utils = trpc.useUtils();
   const createMut = trpc.hymns.create.useMutation({
-    onSuccess: async () => {
+    onSuccess: async data => {
+      if ((pendingAudioFile || pendingInstrumentalFile) && !data.id) {
+        toast.error(
+          "Hino criado, mas não foi possível enviar o áudio automaticamente. Reabra o hino e envie o MP3."
+        );
+        return;
+      }
+      if (data.id && (pendingAudioFile || pendingInstrumentalFile)) {
+        try {
+          if (pendingAudioFile) {
+            setUploading(true);
+            await uploadPreparedAudio(data.id, pendingAudioFile, "voice");
+          }
+          if (pendingInstrumentalFile) {
+            setUploadingInstrumental(true);
+            await uploadPreparedAudio(
+              data.id,
+              pendingInstrumentalFile,
+              "instrumental"
+            );
+          }
+          setPendingAudioFile(null);
+          setPendingInstrumentalFile(null);
+        } catch (error: any) {
+          toast.error(
+            `Hino criado, mas o áudio não foi enviado: ${error?.message || "erro desconhecido"}`
+          );
+          return;
+        } finally {
+          setUploading(false);
+          setUploadingInstrumental(false);
+        }
+      }
       toast.success("Hino criado!");
       await Promise.all([
         utils.hymns.list.invalidate(),
@@ -49,7 +113,7 @@ export function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => voi
       ]);
       onSuccess();
     },
-    onError: (e) => toast.error(e.message),
+    onError: e => toast.error(e.message),
   });
   const updateMut = trpc.hymns.update.useMutation({
     onSuccess: async (_data, variables) => {
@@ -62,57 +126,92 @@ export function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => voi
       ]);
       onSuccess();
     },
-    onError: (e) => toast.error(e.message),
+    onError: e => toast.error(e.message),
   });
   const uploadAudioMut = trpc.hymns.uploadAudio.useMutation({
     onSuccess: (data, variables) => {
-      setForm(f => variables.variant === "instrumental"
-        ? ({ ...f, instrumentalAudioUrl: data.url })
-        : ({ ...f, audioUrl: data.url }));
+      setForm(f =>
+        variables.variant === "instrumental"
+          ? { ...f, instrumentalAudioUrl: data.url }
+          : { ...f, audioUrl: data.url }
+      );
       toast.success("Áudio enviado com sucesso!");
       setUploading(false);
       setUploadingInstrumental(false);
     },
-    onError: (e) => {
+    onError: e => {
       toast.error(`Erro ao enviar áudio: ${e.message}`);
       setUploading(false);
       setUploadingInstrumental(false);
     },
   });
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>, variant: "voice" | "instrumental" = "voice") => {
+  const uploadPreparedAudio = async (
+    hymnId: number,
+    file: File,
+    variant: "voice" | "instrumental"
+  ) => {
+    const base64 = await readFileAsBase64(file);
+    const data = await uploadAudioMut.mutateAsync({
+      id: hymnId,
+      fileName: file.name,
+      fileData: base64,
+      variant,
+    });
+    setForm(f =>
+      variant === "instrumental"
+        ? { ...f, instrumentalAudioUrl: data.url }
+        : { ...f, audioUrl: data.url }
+    );
+    return data;
+  };
+  const handleAudioUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    variant: "voice" | "instrumental" = "voice"
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Arquivo muito grande (máx 50MB)");
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 100MB)");
+      e.target.value = "";
       return;
     }
     if (!hymn?.id) {
-      toast.error("Salve o hino primeiro antes de fazer upload de áudio");
+      if (variant === "instrumental") setPendingInstrumentalFile(file);
+      else setPendingAudioFile(file);
+      toast.success(
+        "Arquivo preparado. Ele será enviado automaticamente ao salvar o hino."
+      );
+      e.target.value = "";
       return;
     }
     if (variant === "instrumental") setUploadingInstrumental(true);
     else setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const base64 = (evt.target?.result as string)?.split(',')[1];
-      if (!base64) return;
-      uploadAudioMut.mutate({
-        id: hymn.id,
-        fileName: file.name,
-        fileData: base64,
-        variant,
-      });
-    };
-    reader.readAsDataURL(file);
+    try {
+      await uploadPreparedAudio(hymn.id, file, variant);
+      toast.success("Áudio enviado com sucesso!");
+    } catch (error: any) {
+      toast.error(
+        `Erro ao enviar áudio: ${error?.message || "erro desconhecido"}`
+      );
+      setUploading(false);
+      setUploadingInstrumental(false);
+    } finally {
+      e.target.value = "";
+    }
   };
 
   useEffect(() => {
     setForm(getDefaultHymnFormState(hymn));
+    setPendingAudioFile(null);
+    setPendingInstrumentalFile(null);
   }, [hymn]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.lyrics) { toast.error("Título e letra são obrigatórios"); return; }
+    if (!form.title || !form.lyrics) {
+      toast.error("Título e letra são obrigatórios");
+      return;
+    }
     const data = {
       ...form,
       subtitle: form.subtitle || undefined,
@@ -125,25 +224,60 @@ export function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => voi
       instrumentalAudioUrl: form.instrumentalAudioUrl.trim() || undefined,
       category: form.category as any,
     };
-    if (hymn) { updateMut.mutate({ id: hymn.id, ...data }); }
-    else { createMut.mutate(data); }
+    if (hymn) {
+      updateMut.mutate({ id: hymn.id, ...data });
+    } else {
+      createMut.mutate(data);
+    }
   };
 
   const saving = createMut.isPending || updateMut.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(72vh,calc(100vh-10rem))] overflow-y-auto pr-1">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-h-[min(72vh,calc(100vh-10rem))] overflow-y-auto pr-1"
+    >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div><Label>Número</Label><Input type="number" value={form.number} onChange={e => setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))} /></div>
-        <div><Label>Categoria</Label>
-          <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{categoryOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+        <div>
+          <Label>Número</Label>
+          <Input
+            type="number"
+            value={form.number}
+            onChange={e =>
+              setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))
+            }
+          />
+        </div>
+        <div>
+          <Label>Categoria</Label>
+          <Select
+            value={form.category}
+            onValueChange={v => setForm(f => ({ ...f, category: v }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map(o => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
-        <div><Label>Coleção</Label>
-          <Select value={form.collection || "hymnal"} onValueChange={v => setForm(f => ({ ...f, collection: v === "hymnal" ? null : v }))}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+        <div>
+          <Label>Coleção</Label>
+          <Select
+            value={form.collection || "hymnal"}
+            onValueChange={v =>
+              setForm(f => ({ ...f, collection: v === "hymnal" ? null : v }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="hymnal">Hinário Principal</SelectItem>
               <SelectItem value="tfm">Charlie Mike (TFM)</SelectItem>
@@ -151,42 +285,174 @@ export function HymnForm({ hymn, onSuccess }: { hymn?: any; onSuccess: () => voi
           </Select>
         </div>
       </div>
-      <div><Label>Título *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></div>
-      <div><Label>Subtítulo</Label><Input value={form.subtitle} onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))} /></div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div><Label>Autor / Letrista</Label><Input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} /></div>
-        <div><Label>Compositor</Label><Input value={form.composer} onChange={e => setForm(f => ({ ...f, composer: e.target.value }))} /></div>
+      <div>
+        <Label>Título *</Label>
+        <Input
+          value={form.title}
+          onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+          required
+        />
       </div>
-      <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
-      <div><Label>Letra *</Label><Textarea value={form.lyrics} onChange={e => setForm(f => ({ ...f, lyrics: e.target.value }))} rows={10} required className="font-mono text-sm" /></div>
-      <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube</Label>
-        <Input value={form.youtubeUrl} onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
-      <div><Label className="flex items-center gap-2"><Youtube className="h-4 w-4 text-red-500" /> URL do YouTube Instrumental</Label>
-        <Input value={form.instrumentalYoutubeUrl} onChange={e => setForm(f => ({ ...f, instrumentalYoutubeUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=..." /></div>
-      <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Áudio (MP3)</Label>
+      <div>
+        <Label>Subtítulo</Label>
+        <Input
+          value={form.subtitle}
+          onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <Label>Autor / Letrista</Label>
+          <Input
+            value={form.author}
+            onChange={e => setForm(f => ({ ...f, author: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label>Compositor</Label>
+          <Input
+            value={form.composer}
+            onChange={e => setForm(f => ({ ...f, composer: e.target.value }))}
+          />
+        </div>
+      </div>
+      <div>
+        <Label>Pertinência do hino</Label>
+        <Textarea
+          value={form.description}
+          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          rows={5}
+          placeholder="Informe o contexto, a finalidade institucional e as orientações de uso deste hino."
+        />
+      </div>
+      <div>
+        <Label>Letra *</Label>
+        <Textarea
+          value={form.lyrics}
+          onChange={e => setForm(f => ({ ...f, lyrics: e.target.value }))}
+          rows={10}
+          required
+          className="font-mono text-sm"
+        />
+      </div>
+      <div>
+        <Label className="flex items-center gap-2">
+          <Youtube className="h-4 w-4 text-red-500" /> URL do YouTube
+        </Label>
+        <Input
+          value={form.youtubeUrl}
+          onChange={e => setForm(f => ({ ...f, youtubeUrl: e.target.value }))}
+          placeholder="https://youtube.com/watch?v=..."
+        />
+      </div>
+      <div>
+        <Label className="flex items-center gap-2">
+          <Youtube className="h-4 w-4 text-red-500" /> URL do YouTube
+          Instrumental
+        </Label>
+        <Input
+          value={form.instrumentalYoutubeUrl}
+          onChange={e =>
+            setForm(f => ({ ...f, instrumentalYoutubeUrl: e.target.value }))
+          }
+          placeholder="https://youtube.com/watch?v=..."
+        />
+      </div>
+      <div>
+        <Label className="flex items-center gap-2">
+          <Music className="h-4 w-4" /> URL do Áudio (MP3)
+        </Label>
         <div className="flex gap-2">
-          <Input value={form.audioUrl} onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
-          <Button type="button" variant="outline" disabled={uploading || !hymn?.id} className="gap-2" onClick={() => document.getElementById('audio-upload')?.click()}>
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          <Input
+            value={form.audioUrl}
+            onChange={e => setForm(f => ({ ...f, audioUrl: e.target.value }))}
+            placeholder="https://..."
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={uploading}
+            className="gap-2"
+            onClick={() => document.getElementById("audio-upload")?.click()}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
             {uploading ? "Enviando..." : "Upload MP3"}
           </Button>
-          <input id="audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={handleAudioUpload} className="hidden" />
+          <input
+            id="audio-upload"
+            type="file"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/m4a,audio/aac,audio/flac,audio/webm,.mp3,.wav,.ogg,.m4a,.aac,.flac,.webm"
+            onChange={handleAudioUpload}
+            className="hidden"
+          />
         </div>
-        {form.audioUrl && <p className="text-xs text-green-600 mt-1">✓ Áudio salvo</p>}
+        {pendingAudioFile && (
+          <p className="text-xs text-[#8b6f2d] mt-1">
+            Arquivo preparado para envio: {pendingAudioFile.name}
+          </p>
+        )}
+        {form.audioUrl && (
+          <p className="text-xs text-green-600 mt-1">✓ Áudio salvo</p>
+        )}
       </div>
-      <div><Label className="flex items-center gap-2"><Music className="h-4 w-4" /> URL do Instrumental (MP3)</Label>
+      <div>
+        <Label className="flex items-center gap-2">
+          <Music className="h-4 w-4" /> URL do Instrumental (MP3)
+        </Label>
         <div className="flex gap-2">
-          <Input value={form.instrumentalAudioUrl} onChange={e => setForm(f => ({ ...f, instrumentalAudioUrl: e.target.value }))} placeholder="https://..." className="flex-1" />
-          <Button type="button" variant="outline" disabled={uploadingInstrumental || !hymn?.id} className="gap-2" onClick={() => document.getElementById('instrumental-audio-upload')?.click()}>
-            {uploadingInstrumental ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          <Input
+            value={form.instrumentalAudioUrl}
+            onChange={e =>
+              setForm(f => ({ ...f, instrumentalAudioUrl: e.target.value }))
+            }
+            placeholder="https://..."
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={uploadingInstrumental}
+            className="gap-2"
+            onClick={() =>
+              document.getElementById("instrumental-audio-upload")?.click()
+            }
+          >
+            {uploadingInstrumental ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
             {uploadingInstrumental ? "Enviando..." : "Upload Instrumental"}
           </Button>
-          <input id="instrumental-audio-upload" type="file" accept="audio/mpeg,audio/wav,audio/ogg" onChange={(event) => handleAudioUpload(event, "instrumental")} className="hidden" />
+          <input
+            id="instrumental-audio-upload"
+            type="file"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/mp4,audio/m4a,audio/aac,audio/flac,audio/webm,.mp3,.wav,.ogg,.m4a,.aac,.flac,.webm"
+            onChange={event => handleAudioUpload(event, "instrumental")}
+            className="hidden"
+          />
         </div>
-        {form.instrumentalAudioUrl && <p className="text-xs text-green-600 mt-1">Instrumental salvo</p>}
+        {pendingInstrumentalFile && (
+          <p className="text-xs text-[#8b6f2d] mt-1">
+            Arquivo preparado para envio: {pendingInstrumentalFile.name}
+          </p>
+        )}
+        {form.instrumentalAudioUrl && (
+          <p className="text-xs text-green-600 mt-1">Instrumental salvo</p>
+        )}
       </div>
-      <Button type="submit" className="w-full bg-[#1a3a2a] text-white gap-2" disabled={saving}>
-        <Save className="h-4 w-4" />{saving ? "Salvando..." : hymn ? "Atualizar Hino" : "Criar Hino"}
+      <Button
+        type="submit"
+        className="w-full bg-[#1a3a2a] text-white gap-2"
+        disabled={saving}
+      >
+        <Save className="h-4 w-4" />
+        {saving ? "Salvando..." : hymn ? "Atualizar Hino" : "Criar Hino"}
       </Button>
     </form>
   );

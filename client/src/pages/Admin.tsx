@@ -396,7 +396,7 @@ export default function Admin() {
                   <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader>
                       <DialogTitle>{editingHymn ? "Editar Hino" : "Novo Hino"}</DialogTitle>
-                      <DialogDescription>Insira as informações básicas, letra e links de mídia do hino.</DialogDescription>
+                      <DialogDescription>Insira as informações básicas, pertinência, letra e links de mídia do hino.</DialogDescription>
                     </DialogHeader>
                     <HymnForm key={editingHymn?.id ?? "new"} hymn={editingHymn} onSuccess={() => setHymnDialogOpen(false)} />
                   </DialogContent>
