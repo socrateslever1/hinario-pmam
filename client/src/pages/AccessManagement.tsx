@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Trash2, Edit2, Copy, Check, Lock, Power, PowerOff } from 'lucide-react';
@@ -65,7 +65,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
     role: 'comandante_pel',
     pelotaoId: '',
     companhiaId: '',
-  })
+  });
 
   const createAccessMutation = trpc.access.createAccess.useMutation();
   const updateAccessMutation = trpc.access.updateAccess.useMutation();
@@ -162,156 +162,165 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
 
   const content = (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Usuários e Acessos</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-black text-foreground sm:text-3xl">Usuários e Acessos</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Contas administrativas e níveis de acesso do sistema</p>
+        </div>
+
         {!canManageAccess && (
-          <div className="flex items-center gap-2 text-amber-800 bg-amber-100 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700 px-3.5 py-2 rounded-md shadow-xs">
+          <div className="flex items-center gap-2 text-amber-800 bg-amber-100 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-700 px-3.5 py-2 rounded-xl text-xs sm:text-sm">
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span className="text-sm font-medium">Você não tem permissão para gerenciar contas</span>
+            <span className="font-medium">Você não tem permissão para gerenciar contas</span>
           </div>
         )}
+
         {canManageAccess && (
           <Dialog open={isCreating} onOpenChange={setIsCreating}>
             <DialogTrigger asChild>
-              <Button>+ Criar Nova Conta</Button>
-            </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Criar Nova Conta de Comando / Admin</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Nome Completo</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: João Silva"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium">Nome de Usuário (login)</label>
-                <Input
-                  type="text"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Ex: cmt.pel1"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Função</label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(value: any) => {
-                    const updatedData = { ...formData, role: value };
-                    if (value !== 'comandante_pel') {
-                      updatedData.pelotaoId = '';
-                    }
-                    if (value !== 'comandante_cia' && value !== 'comandante_pel') {
-                      updatedData.companhiaId = '';
-                    }
-                    setFormData(updatedData);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
-                    <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
-                    <SelectItem value="subcomandante_corpo">Subcomandante do Corpo de Alunos</SelectItem>
-                    <SelectItem value="comandante_cfap">Comandante CFAP</SelectItem>
-                    <SelectItem value="subcomandante_cfap">Subcomandante CFAP</SelectItem>
-                    <SelectItem value="comandante_cia">Comandante de Companhia</SelectItem>
-                    <SelectItem value="comandante_pel">Comandante de Pelotão</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.role === 'comandante_pel' && (
-                <div>
-                  <label className="text-sm font-medium">Pelotão</label>
-                  <Select value={formData.pelotaoId} onValueChange={(value) => setFormData({ ...formData, pelotaoId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PELOTON_OPTIONS.map(p => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {(formData.role === 'comandante_cia' || formData.role === 'comandante_pel') && (
-                <div>
-                  <label className="text-sm font-medium">Companhia</label>
-                  <Select value={formData.companhiaId} onValueChange={(value) => setFormData({ ...formData, companhiaId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COMPANHIA_OPTIONS.map(c => (
-                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <Button 
-                onClick={handleCreateAccess} 
-                disabled={!formData.name || !formData.email || createAccessMutation.isPending}
-                className="w-full"
-              >
-                {createAccessMutation.isPending ? 'Criando...' : 'Criar Conta'}
+              <Button className="w-full sm:w-auto bg-[#1a3a2a] text-white hover:bg-[#234b36] font-bold gap-2 shadow-sm">
+                + Criar Nova Conta
               </Button>
-
-              {createAccessMutation.data && (
-                <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
-                  <p className="font-semibold text-green-900">Conta criada com sucesso!</p>
-                  <p className="text-green-800 mt-1">Usuário: {createAccessMutation.data.email}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="bg-card px-2 py-1 rounded text-xs flex-1 break-all">{createAccessMutation.data.tempPassword}</code>
-                    <button
-                      onClick={() => copyToClipboard(createAccessMutation.data.tempPassword)}
-                      className="p-1 hover:bg-green-100 rounded"
-                    >
-                      {copiedPassword === createAccessMutation.data.tempPassword ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
+            </DialogTrigger>
+            <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="font-serif text-lg font-bold">Criar Nova Conta de Comando / Admin</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Nome Completo</label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ex: João Silva"
+                    className="mt-1"
+                  />
                 </div>
-              )}
-            </div>
+                
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Nome de Usuário (login)</label>
+                  <Input
+                    type="text"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Ex: cmt.pel1 ou email@exemplo.com"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Função</label>
+                  <Select 
+                    value={formData.role} 
+                    onValueChange={(value: any) => {
+                      const updatedData = { ...formData, role: value };
+                      if (value !== 'comandante_pel') {
+                        updatedData.pelotaoId = '';
+                      }
+                      if (value !== 'comandante_cia' && value !== 'comandante_pel') {
+                        updatedData.companhiaId = '';
+                      }
+                      setFormData(updatedData);
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
+                      <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
+                      <SelectItem value="subcomandante_corpo">Subcomandante do Corpo de Alunos</SelectItem>
+                      <SelectItem value="comandante_cfap">Comandante CFAP</SelectItem>
+                      <SelectItem value="subcomandante_cfap">Subcomandante CFAP</SelectItem>
+                      <SelectItem value="comandante_cia">Comandante de Companhia</SelectItem>
+                      <SelectItem value="comandante_pel">Comandante de Pelotão</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.role === 'comandante_pel' && (
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Pelotão</label>
+                    <Select value={formData.pelotaoId} onValueChange={(value) => setFormData({ ...formData, pelotaoId: value })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PELOTON_OPTIONS.map(p => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {(formData.role === 'comandante_cia' || formData.role === 'comandante_pel') && (
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Companhia</label>
+                    <Select value={formData.companhiaId} onValueChange={(value) => setFormData({ ...formData, companhiaId: value })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMPANHIA_OPTIONS.map(c => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleCreateAccess} 
+                  disabled={!formData.name || !formData.email || createAccessMutation.isPending}
+                  className="w-full bg-[#1a3a2a] text-white hover:bg-[#234b36] font-bold"
+                >
+                  {createAccessMutation.isPending ? 'Criando...' : 'Criar Conta'}
+                </Button>
+
+                {createAccessMutation.data && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm dark:bg-emerald-950/40 dark:border-emerald-800">
+                    <p className="font-semibold text-emerald-900 dark:text-emerald-200">Conta criada com sucesso!</p>
+                    <p className="text-emerald-800 dark:text-emerald-300 mt-1 text-xs">Usuário: {createAccessMutation.data.email}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <code className="bg-card px-2 py-1 rounded text-xs flex-1 break-all border">{createAccessMutation.data.tempPassword}</code>
+                      <button
+                        onClick={() => copyToClipboard(createAccessMutation.data.tempPassword)}
+                        className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors"
+                      >
+                        {copiedPassword === createAccessMutation.data.tempPassword ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         )}
       </div>
 
       <Dialog open={Boolean(editingAccess)} onOpenChange={(open) => !open && setEditingAccess(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Editar acesso de comando</DialogTitle></DialogHeader>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader><DialogTitle className="font-serif text-lg font-bold">Editar acesso de comando</DialogTitle></DialogHeader>
           {editingAccess && (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               <div>
-                <label className="text-sm font-medium">Nome completo</label>
-                <Input value={editingAccess.name} onChange={(event) => setEditingAccess({ ...editingAccess, name: event.target.value })} />
+                <label className="text-xs font-bold text-muted-foreground uppercase">Nome completo</label>
+                <Input value={editingAccess.name} onChange={(event) => setEditingAccess({ ...editingAccess, name: event.target.value })} className="mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium">Função</label>
+                <label className="text-xs font-bold text-muted-foreground uppercase">Função</label>
                 <Select value={editingAccess.role} onValueChange={(role) => setEditingAccess({
                   ...editingAccess,
                   role,
                   pelotaoId: role === 'comandante_pel' ? editingAccess.pelotaoId : '',
                   companhiaId: ['comandante_cia', 'comandante_pel'].includes(role) ? editingAccess.companhiaId : '',
                 })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrador Global (Admin)</SelectItem>
                     <SelectItem value="comandante_corpo">Comandante do Corpo de Alunos (CAL)</SelectItem>
@@ -325,23 +334,23 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
               </div>
               {editingAccess.role === 'comandante_pel' && (
                 <div>
-                  <label className="text-sm font-medium">Pelotão</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Pelotão</label>
                   <Select value={editingAccess.pelotaoId} onValueChange={(pelotaoId) => setEditingAccess({ ...editingAccess, pelotaoId })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>{PELOTON_OPTIONS.map((pelotao) => <SelectItem key={pelotao.value} value={pelotao.value}>{pelotao.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
               {['comandante_cia', 'comandante_pel'].includes(editingAccess.role) && (
                 <div>
-                  <label className="text-sm font-medium">Companhia</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Companhia</label>
                   <Select value={editingAccess.companhiaId} onValueChange={(companhiaId) => setEditingAccess({ ...editingAccess, companhiaId })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>{COMPANHIA_OPTIONS.map((companhia) => <SelectItem key={companhia.value} value={companhia.value}>{companhia.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
-              <Button className="w-full" onClick={handleUpdateAccess} disabled={updateAccessMutation.isPending || !editingAccess.name}>
+              <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#234b36] font-bold" onClick={handleUpdateAccess} disabled={updateAccessMutation.isPending || !editingAccess.name}>
                 {updateAccessMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
               </Button>
             </div>
@@ -350,61 +359,61 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
       </Dialog>
 
       {listAccessesQuery.isLoading ? (
-        <div className="text-center py-8">Carregando contas...</div>
+        <div className="text-center py-12 text-sm text-muted-foreground">Carregando contas...</div>
       ) : listAccessesQuery.data?.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-gray-500">
+        <Card className="border-border/60">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Nenhuma conta de comando criada ainda
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {listAccessesQuery.data?.map((access) => (
-            <Card key={access.id}>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Nome</p>
-                    <p className="font-semibold">{access.name}</p>
+            <Card key={access.id} className="overflow-hidden border border-border/70 shadow-sm bg-card rounded-2xl">
+              <CardContent className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 mb-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nome</p>
+                    <p className="mt-0.5 font-bold text-foreground text-sm sm:text-base truncate" title={access.name}>{access.name}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Usuário</p>
-                    <p className="font-semibold">{access.email}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Usuário</p>
+                    <p className="mt-0.5 font-bold text-foreground text-sm sm:text-base break-all" title={access.email}>{access.email}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Função</p>
-                    <p className="font-semibold">{getRoleLabel(access.role)}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Função</p>
+                    <p className="mt-0.5 font-bold text-foreground text-sm sm:text-base">{getRoleLabel(access.role)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Status</p>
-                    <p className="font-semibold">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</p>
+                    <p className="mt-0.5 font-bold text-sm sm:text-base">
                       {access.isActive === false ? (
-                        <span className="text-red-600">Desativado</span>
+                        <span className="text-red-600 dark:text-red-400">Desativado</span>
                       ) : access.forcePasswordChange ? (
-                        <span className="text-orange-600">Aguardando primeira senha</span>
+                        <span className="text-amber-600 dark:text-amber-400">Aguardando primeira senha</span>
                       ) : (
-                        <span className="text-green-600">Ativo</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">Ativo</span>
                       )}
                     </p>
                   </div>
                   {access.pelotaoId && (
-                    <div>
-                      <p className="text-sm text-gray-600">Pelotão</p>
-                      <p className="font-semibold">{getPelotonLabel(access.pelotaoId)}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pelotão</p>
+                      <p className="mt-0.5 font-bold text-foreground text-sm">{getPelotonLabel(access.pelotaoId)}</p>
                     </div>
                   )}
                   {access.companhiaId && (
-                    <div>
-                      <p className="text-sm text-gray-600">Companhia</p>
-                      <p className="font-semibold">{getCompanhiaLabel(access.companhiaId)}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Companhia</p>
+                      <p className="mt-0.5 font-bold text-foreground text-sm">{getCompanhiaLabel(access.companhiaId)}</p>
                     </div>
                   )}
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/40">
                   {canEditAccess(access) && (
-                    <Button variant="outline" size="sm" onClick={() => openEditAccess(access)}>
-                      <Edit2 className="w-4 h-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={() => openEditAccess(access)} className="h-9 text-xs sm:text-sm font-semibold">
+                      <Edit2 className="w-3.5 h-3.5 mr-1.5" />
                       Editar
                     </Button>
                   )}
@@ -414,8 +423,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       size="sm"
                       disabled={setActiveMutation.isPending}
                       onClick={() => handleSetActive(access.id, access.isActive === false)}
+                      className="h-9 text-xs sm:text-sm font-semibold"
                     >
-                      {access.isActive === false ? <Power className="mr-2 h-4 w-4" /> : <PowerOff className="mr-2 h-4 w-4" />}
+                      {access.isActive === false ? <Power className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> : <PowerOff className="mr-1.5 h-3.5 w-3.5 text-amber-600" />}
                       {access.isActive === false ? 'Reativar' : 'Desativar'}
                     </Button>
                   )}
@@ -424,8 +434,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteAccess(access.id)}
+                      className="h-9 text-xs sm:text-sm font-semibold"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       Deletar
                     </Button>
                   ) : (
@@ -433,9 +444,10 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       variant="outline"
                       size="sm"
                       disabled
-                      title="Voce nao tem permissao para deletar acessos"
+                      title="Você não tem permissão para deletar acessos"
+                      className="h-9 text-xs sm:text-sm font-semibold opacity-60"
                     >
-                      <Lock className="w-4 h-4 mr-2" />
+                      <Lock className="w-3.5 h-3.5 mr-1.5" />
                       Deletar (Bloqueado)
                     </Button>
                   )}
@@ -453,7 +465,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#0c0c0e]">
       <Navbar />
-      <main className="container mx-auto px-4 py-6 md:py-10 max-w-6xl">
+      <main className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:py-10 max-w-6xl">
         {content}
       </main>
       <Footer />
