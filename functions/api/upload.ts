@@ -53,7 +53,19 @@ export const onRequestPost: PagesFunction = async (context) => {
         return { url, key, uploadId: Number((insert as any).insertId), folder };
       },
     );
-    
+
+    const publicUrl = new URL(result.url, context.request.url).toString();
+    const edgeCache = (caches as unknown as { default: Cache }).default;
+    const cachedResponse = new Response(buffer.slice(), {
+      headers: {
+        "content-type": validation.mimeType,
+        "content-length": String(file.size),
+        "cache-control": "public, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+      },
+    });
+    context.waitUntil(edgeCache.put(new Request(publicUrl), cachedResponse));
+
     return new Response(JSON.stringify(result), {
       status: 200, headers: { "Content-Type": "application/json" } 
     });
