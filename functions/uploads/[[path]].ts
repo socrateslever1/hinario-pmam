@@ -15,6 +15,13 @@ async function serve(
   }
 
   if (!context.env.UPLOADS_BUCKET) {
+    const rangeHeader = context.request.headers.get("range");
+    const edgeCache = (caches as unknown as { default: Cache }).default;
+    const cacheRequest = new Request(context.request.url, { method: "GET" });
+    if (!headOnly && !rangeHeader) {
+      const cached = await edgeCache.match(cacheRequest);
+      if (cached) return cached;
+    }
     const metadata = await getDatabaseObjectMetadata(key);
     if (!metadata) return context.next();
     const headers = new Headers({
@@ -28,7 +35,6 @@ async function serve(
       return new Response(null, { status: 200, headers });
     }
 
-    const rangeHeader = context.request.headers.get("range");
     const match = rangeHeader?.match(/^bytes=(\d*)-(\d*)$/);
     let start = 0;
     let end = metadata.fileSize - 1;
@@ -62,7 +68,9 @@ async function serve(
         }
       },
     });
-    return new Response(stream, { status, headers });
+    const response = new Response(stream, { status, headers });
+    if (status === 200) context.waitUntil(edgeCache.put(cacheRequest, response.clone()));
+    return response;
   }
 
   const object = headOnly
