@@ -33,7 +33,12 @@ function MilitaryCorner({ position }: { position: "top-left" | "top-right" | "bo
 export default function CfapHistory() {
   const [query, setQuery] = useState("");
   const historyQuery = trpc.cfapHistory.list.useQuery(undefined, { retry: false });
+  const { data: settings } = trpc.settings.getAll.useQuery();
   const commanders = useMemo(() => mergeCfapCommanders(historyQuery.data ?? []), [historyQuery.data]);
+
+  const flanksEnabled = settings?.cfap_current_commander_flanks_enabled === "true";
+  const leftPhoto = settings?.cfap_current_commander_left_photo || "";
+  const rightPhoto = settings?.cfap_current_commander_right_photo || "";
 
   const filteredCommanders = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
@@ -147,8 +152,33 @@ export default function CfapHistory() {
               {/* DESTAQUE: COMANDANTE ATUAL DO CFAP */}
               {currentCommander && (
                 <div className="relative mb-8 overflow-hidden rounded-2xl border-2 border-[#f0bd3a]/40 bg-gradient-to-br from-[#143725]/90 via-[#0a2318]/95 to-[#040e0a] p-4 sm:p-6 shadow-[0_12px_45px_rgba(0,0,0,0.6)]">
+                  
+                  {/* Fotos de Fundo Laterais (Fumê / Fundidas com a página) */}
+                  {flanksEnabled && (
+                    <>
+                      {leftPhoto && (
+                        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-1/2 sm:w-2/5 overflow-hidden z-0 opacity-25 dark:opacity-30 [mask-image:linear-gradient(to_right,rgba(0,0,0,1)_0%,transparent_100%)]">
+                          <img
+                            src={leftPhoto}
+                            alt="Foto lateral esquerda"
+                            className="h-full w-full object-cover object-left-top mix-blend-luminosity filter contrast-125 brightness-90"
+                          />
+                        </div>
+                      )}
+                      {rightPhoto && (
+                        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-1/2 sm:w-2/5 overflow-hidden z-0 opacity-25 dark:opacity-30 [mask-image:linear-gradient(to_left,rgba(0,0,0,1)_0%,transparent_100%)]">
+                          <img
+                            src={rightPhoto}
+                            alt="Foto lateral direita"
+                            className="h-full w-full object-cover object-right-top mix-blend-luminosity filter contrast-125 brightness-90"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
                   {/* Badge de Honra Superior */}
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#f0bd3a]/25 pb-3">
+                  <div className="relative z-10 mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#f0bd3a]/25 pb-3">
                     <div className="flex items-center gap-2">
                       <span className="flex h-2.5 w-2.5 relative">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -164,7 +194,7 @@ export default function CfapHistory() {
                     </span>
                   </div>
 
-                  <div className="flex flex-col md:flex-row items-center md:items-stretch gap-5 sm:gap-7">
+                  <div className="relative z-10 flex flex-col md:flex-row items-center md:items-stretch gap-5 sm:gap-7">
                     {/* Retrato Maior com Moldura e Detalhes Militares */}
                     <div className="shrink-0 flex justify-center">
                       <Link
