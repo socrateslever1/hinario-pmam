@@ -418,40 +418,40 @@ export default function Cfap2026() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container text-center">
-          <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+          <Shield className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
           <h1
-            className="text-3xl font-bold text-[#1a3a2a] md:text-4xl dark:text-[#c4a84b]"
+            className="text-[22px] font-bold leading-tight text-[#1a3a2a] md:text-4xl dark:text-[#c4a84b]"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             CFAP 2026
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Centro de Formação e Aperfeiçoamento de Praças — Missões, comunicados e orientações
-            para os alunos do curso de formação da Polícia Militar do Amazonas.
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
+            Centro de Formação e Aperfeiçoamento de Praças
+            <span className="hidden md:inline"> — Missões, comunicados e orientações para os alunos do curso de formação da Polícia Militar do Amazonas.</span>
           </p>
         </div>
         <div className="checkerboard-pattern w-full mt-5 hidden md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">
+      <section className="bg-transparent px-4 py-3 md:bg-background md:px-0 md:py-10">
         <div className="container max-w-6xl">
-          <Card className="mb-8 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-foreground md:bg-[#c4a84b]/5">
-            <CardContent className="flex items-start gap-4 p-6">
-              <Shield className="mt-1 h-8 w-8 flex-shrink-0 text-[#c4a84b]" />
-              <div className="space-y-2">
-                <h3 className="font-bold text-foreground">Informativo CFAP</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use esta aba para ver comunicados gerais e aditamentos oficiais do seu pelotão.
-                  Marque <strong>Ciente</strong> nas missões para avisar o xerife que você leu.
+          <Card className="mb-3 border-[#c4a84b]/30 bg-[#c4a84b]/10 text-foreground md:mb-8 md:bg-[#c4a84b]/5">
+            <CardContent className="flex items-center gap-2.5 p-3 md:items-start md:gap-4 md:p-6">
+              <Shield className="h-5 w-5 flex-shrink-0 text-[#c4a84b] md:mt-1 md:h-8 md:w-8" />
+              <div className="min-w-0 md:space-y-2">
+                <h3 className="text-sm font-bold leading-tight text-foreground md:text-base">Informativo CFAP</h3>
+                <p className="text-xs leading-snug text-muted-foreground md:text-sm md:leading-normal">
+                  Comunicados e aditamentos oficiais do seu pelotão.
+                  <span className="hidden md:inline"> Marque <strong>Ciente</strong> nas missões para avisar o xerife que você leu.</span>
                 </p>
               </div>
             </CardContent>
           </Card>
 
           <Tabs defaultValue="comunicados" className="w-full">
-            <TabsList className="mb-6 grid w-full grid-cols-2 max-w-md bg-zinc-200/50 dark:bg-zinc-800 p-1 rounded-xl">
+            <TabsList className="mb-4 grid w-full max-w-md grid-cols-2 rounded-xl bg-zinc-200/50 p-1 dark:bg-zinc-800 md:mb-6">
               <TabsTrigger value="comunicados">Comunicados</TabsTrigger>
               <TabsTrigger value="aditamentos">Aditamentos Oficiais</TabsTrigger>
             </TabsList>
