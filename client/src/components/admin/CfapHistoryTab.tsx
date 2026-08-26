@@ -151,6 +151,25 @@ export function CfapHistoryTab() {
     onError: (error) => toast.error(error.message),
   });
 
+  const commanderPayload = (currentEditor: EditorState) => {
+    const slug = draftSlug ?? selected?.slug;
+    if (!slug) return null;
+    return {
+      slug,
+      rank: currentEditor.rank,
+      name: currentEditor.name,
+      periods: currentEditor.periods.split("\n").map((item) => item.trim()).filter(Boolean),
+      portraitUrl: currentEditor.portraitUrl.trim() || null,
+      biography: currentEditor.biography.trim() || null,
+      highlights: currentEditor.highlights.split("\n").map((item) => item.trim()).filter(Boolean),
+      videos: textToLinks(currentEditor.videos),
+      sources: textToLinks(currentEditor.sources),
+      inMemoriam: currentEditor.inMemoriam,
+      isVisible: currentEditor.isVisible,
+      sortOrder: currentEditor.sortOrder,
+    };
+  };
+
   const handlePortraitUpload = async (file: File) => {
     setUploadingPortrait(true);
     try {
@@ -166,8 +185,16 @@ export function CfapHistoryTab() {
         throw new Error(errorData?.error || "Erro ao fazer upload da imagem");
       }
       const result = await response.json();
-      setEditor((prev) => (prev ? { ...prev, portraitUrl: result.url } : prev));
-      toast.success("Foto salva na pasta 'commanders'!");
+      if (!editor) throw new Error("Selecione um comandante antes de enviar a foto.");
+      const nextEditor = { ...editor, portraitUrl: result.url };
+      setEditor(nextEditor);
+      const payload = commanderPayload(nextEditor);
+      if (payload && !draftSlug) {
+        await save.mutateAsync(payload);
+        toast.success("Foto aplicada ao comandante e publicada no mural.");
+      } else {
+        toast.success("Foto carregada. Conclua os dados e publique o novo comandante.");
+      }
     } catch (err: any) {
       toast.error(err.message || "Falha no upload");
     } finally {
@@ -212,30 +239,11 @@ export function CfapHistoryTab() {
 
   const handleSave = () => {
     if (!editor) return;
-    const slug = draftSlug ?? selected?.slug;
-    if (!slug) return;
+    const payload = commanderPayload(editor);
+    if (!payload) return;
 
     // Salva o comandante no BD
-    save.mutate({
-      slug,
-      rank: editor.rank,
-      name: editor.name,
-      periods: editor.periods
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
-      portraitUrl: editor.portraitUrl.trim() || null,
-      biography: editor.biography.trim() || null,
-      highlights: editor.highlights
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
-      videos: textToLinks(editor.videos),
-      sources: textToLinks(editor.sources),
-      inMemoriam: editor.inMemoriam,
-      isVisible: editor.isVisible,
-      sortOrder: editor.sortOrder,
-    });
+    save.mutate(payload);
 
     // Salva as fotos de fundo se for o comandante atual
     const isCurrent = editor.periods.toLocaleLowerCase("pt-BR").includes("atual");
