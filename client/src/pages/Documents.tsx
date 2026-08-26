@@ -881,13 +881,13 @@ window.print();
       <Navbar />
 
       {/* Hero Section */}
-      <section className="military-page-hero border-b px-4 py-5 print:hidden md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 print:hidden md:px-0 md:py-6">
         <div className="container text-center">
-          <FileText className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a] dark:text-[#e2ca76]" style={{ fontFamily: "Merriweather, serif" }}>
+          <FileText className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
+          <h1 className="text-xl font-bold text-[#1a3a2a] dark:text-[#e2ca76] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Gerador de Documentos Militares
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>

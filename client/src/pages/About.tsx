@@ -10,20 +10,20 @@ export default function About() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] text-foreground dark:bg-[#020a0f] dark:text-[#f8f7f0] md:bg-background dark:md:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container text-center">
-          <Shield className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-3xl md:text-4xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <Shield className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
+          <h1 className="text-[22px] font-bold text-[#1a3a2a] md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Sobre o QG Digital
           </h1>
-          <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
             Plataforma Militar para gestão, formação, comunicação, documentos, disciplina e rotina institucional.
           </p>
         </div>
         <div className="checkerboard-pattern w-full mt-5 hidden md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-12">
+      <section className="bg-transparent px-4 py-3 md:bg-background md:px-0 md:py-12">
         <div className="container max-w-6xl">
           <div className="flex flex-col gap-6 p-5 text-foreground md:mb-12 md:flex-row md:items-start md:gap-8 md:p-0">
             <div className="flex-shrink-0 mx-auto md:mx-0">

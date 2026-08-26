@@ -357,28 +357,28 @@ export default function Grades() {
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container text-center flex flex-col items-center">
           {studentPhotoUrl ? (
             <img
               src={studentPhotoUrl}
               alt="Foto do Aluno"
-              className="mx-auto mb-3 h-20 w-20 rounded-full object-cover border-2 border-[#c4a84b] shadow-md"
+              className="mx-auto mb-1.5 h-12 w-12 rounded-full border-2 border-[#c4a84b] object-cover shadow-md md:mb-3 md:h-20 md:w-20"
             />
           ) : (
-            <Trophy className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
+            <Trophy className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
           )}
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Notas do Curso
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
             {studentName} (Nº {studentNumber}) — Acompanhe seu desempenho acadêmico, média geral e classificação.
           </p>
         </div>
         <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
-      <main className="container flex-1 px-4 py-6 md:py-8">
+      <main className="container flex-1 px-4 py-3 md:py-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap gap-2 justify-end">
             <Button onClick={() => setLocation('/lançar-notas')} className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620] text-white">
@@ -415,8 +415,8 @@ export default function Grades() {
 
 
         {disciplines.length === 0 && (
-          <Card className="mb-6 border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-            <CardContent className="flex gap-3 pt-6 text-sm font-medium">
+          <Card className="mb-3 border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100 md:mb-6">
+            <CardContent className="flex gap-2.5 p-3 text-xs font-medium md:gap-3 md:p-6 md:text-sm">
               <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
               <p>Nenhuma disciplina foi criada pelo xerife ainda.</p>
             </CardContent>

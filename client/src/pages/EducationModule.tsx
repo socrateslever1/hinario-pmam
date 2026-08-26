@@ -99,22 +99,22 @@ export default function EducationModule({ params }: EducationModuleProps) {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
         <Navbar />
 
-      <section className="military-page-hero relative overflow-hidden border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero relative overflow-hidden border-b px-4 py-3 md:px-0 md:py-6">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#c4a84b] blur-[120px]" />
           <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[#2d5a27] blur-[140px]" />
         </div>
-        <div className="container relative space-y-6">
+        <div className="container relative space-y-3 md:space-y-6">
           <Link href="/estudos">
-            <Button variant="outline" className="border-border text-foreground hover:bg-[#1a3a2a]/5">
+            <Button size="sm" variant="outline" className="h-8 border-border text-xs text-foreground hover:bg-[#1a3a2a]/5 md:h-10 md:text-sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para a biblioteca
             </Button>
           </Link>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="grid gap-3 md:gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
+            <div className="space-y-2 md:space-y-4">
+              <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
                 <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{libraryItem.shortTitle}</Badge>
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   {categoryLabel(libraryItem.category)}
@@ -129,21 +129,21 @@ export default function EducationModule({ params }: EducationModuleProps) {
 
               <div>
                 <h1
-                  className="text-3xl font-bold text-[#1a3a2a] md:text-4xl"
+                  className="text-xl font-bold leading-tight text-[#1a3a2a] md:text-4xl"
                   style={{ fontFamily: "Merriweather, serif" }}
                 >
                   {libraryItem.title}
                 </h1>
-                <p className="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+                <p className="mt-1.5 max-w-3xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-lg md:leading-relaxed">
                   {libraryItem.description}
                 </p>
-                <p className="mt-3 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-[11px] text-muted-foreground md:mt-3 md:text-sm">
                   Fonte: {libraryItem.sourceTitle} | arquivo {libraryItem.sourceFileName}
                 </p>
               </div>
             </div>
 
-            <Card className="border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm">
+            <Card className="hidden border-border/50 bg-[#1a3a2a]/5 text-foreground shadow-sm md:block">
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-center gap-3">
                   <Library className="h-9 w-9 text-[#c4a84b]" />
@@ -167,7 +167,7 @@ export default function EducationModule({ params }: EducationModuleProps) {
         <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-3 md:bg-background md:px-0 md:py-8">
         <div className="container">
           <div className="flex justify-center mb-8">
             <div className="inline-flex p-1 bg-muted rounded-xl border border-border/40 shadow-sm">
@@ -234,8 +234,8 @@ export default function EducationModule({ params }: EducationModuleProps) {
               </div>
 
               <Card className="border-[#c4a84b]/40 bg-[#c4a84b]/5">
-                <CardContent className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
-                  <div className="rounded-2xl border bg-card px-4 py-3 text-sm text-muted-foreground">
+                <CardContent className="grid gap-2.5 p-3 md:gap-4 md:p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
+                  <div className="hidden rounded-2xl border bg-card px-4 py-3 text-sm text-muted-foreground md:block">
                     Esta área agora serve como acervo. Em vez de aula, o foco é abrir o material oficial, consultar o texto
                     limpo e usar a página como biblioteca de referência.
                   </div>

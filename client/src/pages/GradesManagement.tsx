@@ -331,20 +331,20 @@ export default function GradesManagement() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container text-center">
-          <Edit2 className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <Edit2 className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
+          <h1 className="text-xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Lançar Notas
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
             {studentName} — Registrar e gerenciar notas de disciplinas do curso.
           </p>
         </div>
         <div className="checkerboard-pattern mt-5 hidden w-full md:block" />
       </section>
 
-      <main className="px-4 py-6 md:p-8 md:pb-8">
+      <main className="px-4 py-3 md:p-8 md:pb-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex justify-end">
             <Button variant="outline" onClick={handleLogout} className="gap-2">

@@ -39,20 +39,20 @@ export default function EducationCenter() {
       <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
         <Navbar />
 
-      <section className="military-page-hero border-b px-4 pb-7 pt-6 md:px-0 md:py-8">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-8">
         <div className="container text-center">
-          <BookOpenCheck className="mx-auto mb-3 h-10 w-10 text-[#c4a84b]" />
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <BookOpenCheck className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
+          <h1 className="text-xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Estudos
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground text-sm md:text-base">
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
             Biblioteca jurídica e de consulta. Aqui ficam os PDFs oficiais para abrir, visualizar e consultar, sem formato de aula.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 w-full" />
+        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-3 md:bg-background md:px-0 md:py-8">
         <div className="container space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="border-border/50 bg-card text-foreground shadow-sm">

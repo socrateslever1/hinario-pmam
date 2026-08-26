@@ -102,9 +102,9 @@ export default function DrillDetail() {
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f]">
       <Navbar />
 
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container text-center">
-          <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5 md:mb-4 md:gap-2">
             {drill.category && <Badge className="bg-[#c4a84b] text-[#1a1a1a]">{drill.category}</Badge>}
             {drill.difficulty && (
               <Badge className={difficultyClasses[drill.difficulty] ?? "bg-slate-100 text-slate-900"}>
@@ -117,20 +117,20 @@ export default function DrillDetail() {
               </Badge>
             )}
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             {drill.title}
           </h1>
           {drill.subtitle && (
-            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
+            <p className="mx-auto mt-1.5 max-w-2xl text-sm text-muted-foreground md:mt-3 md:text-lg">
               {drill.subtitle}
             </p>
           )}
           {drill.description && (
-            <p className="mx-auto mt-3 max-w-3xl text-sm text-muted-foreground">
+            <p className="mx-auto mt-1.5 max-w-3xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-sm md:leading-normal">
               {drill.description}
             </p>
           )}
-          <div className="mt-6 flex justify-center gap-4">
+          <div className="mt-2.5 flex justify-center gap-2 md:mt-6 md:gap-4">
             <Link href="/drill">
               <Button variant="outline" className="border-border text-foreground hover:bg-[#1a3a2a]/5">
                 <ArrowLeft className="mr-2 h-4 w-4" />

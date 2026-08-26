@@ -255,13 +255,13 @@ export default function Admin() {
         </div>
       )}
 
-      <section className="military-page-hero border-b px-4 py-5 md:px-0 md:py-6">
+      <section className="military-page-hero border-b px-4 py-3 md:px-0 md:py-6">
         <div className="container">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between md:gap-4">
             <div className="flex items-center gap-3">
-              <Star className="h-8 w-8 text-[#c4a84b]" />
+              <Star className="h-6 w-6 text-[#c4a84b] md:h-8 md:w-8" />
               <div>
-                <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
+                <h1 className="text-xl font-bold text-[#1a3a2a] md:text-2xl" style={{ fontFamily: 'Merriweather, serif' }}>
                   Posto de Comando
                 </h1>
                 <p className="text-muted-foreground text-sm">Bem-vindo, {user?.name || "Comandante"} {isXerifeGeral && <Badge className="bg-[#c4a84b] text-[#1a1a1a] ml-2 text-xs">Xerife Geral</Badge>}</p>
@@ -283,7 +283,7 @@ export default function Admin() {
         <div className="checkerboard-pattern w-full mt-5 hidden md:block" />
       </section>
 
-      <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">
+      <section className="bg-transparent px-4 py-3 md:bg-background md:px-0 md:py-8">
         <div className="container">
           {/* Widget de Pendências do Comando */}
           {isComandante && <CommandDashboardWidget />}
