@@ -432,7 +432,7 @@ export default function Cfap2026() {
             para os alunos do curso de formação da Polícia Militar do Amazonas.
           </p>
         </div>
-        <div className="checkerboard-pattern w-full mt-8 hidden md:block" />
+        <div className="checkerboard-pattern w-full mt-8" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">

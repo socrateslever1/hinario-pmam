@@ -139,7 +139,7 @@ export default function DrillDetail() {
             </Link>
           </div>
         </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-10">

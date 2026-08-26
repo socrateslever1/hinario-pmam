@@ -375,7 +375,7 @@ export default function Grades() {
             {studentName} (Nº {studentNumber}) — Acompanhe seu desempenho acadêmico, média geral e classificação.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
       <main className="container flex-1 px-4 py-6 md:py-8">

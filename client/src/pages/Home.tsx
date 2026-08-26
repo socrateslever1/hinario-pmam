@@ -627,6 +627,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
+        <div className="checkerboard-pattern mt-5 w-full md:mt-8" />
       </section>
 
       <div>

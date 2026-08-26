@@ -341,7 +341,7 @@ export default function GradesManagement() {
             {studentName} — Registrar e gerenciar notas de disciplinas do curso.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
       <main className="px-4 py-6 md:p-8 md:pb-8">

@@ -280,7 +280,7 @@ export default function Admin() {
             </div>
           </div>
         </div>
-        <div className="checkerboard-pattern w-full mt-6 hidden md:block" />
+        <div className="checkerboard-pattern w-full mt-6" />
       </section>
 
       <section className="bg-transparent px-4 py-6 md:bg-background md:px-0 md:py-8">

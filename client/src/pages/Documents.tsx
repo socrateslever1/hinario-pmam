@@ -891,7 +891,7 @@ window.print();
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
-        <div className="checkerboard-pattern mt-8 hidden w-full md:block" />
+        <div className="checkerboard-pattern mt-8 w-full" />
       </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col print:block">
