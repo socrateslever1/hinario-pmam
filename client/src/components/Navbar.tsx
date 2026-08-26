@@ -353,6 +353,7 @@ export default function Navbar() {
                   variant="ghost"
                   className="rounded-full"
                   aria-label="Abrir menu"
+                  onClick={() => window.dispatchEvent(new Event("open-menu-and-acessos"))}
                 >
                   <Menu className="h-4 w-4" />
                 </Button>

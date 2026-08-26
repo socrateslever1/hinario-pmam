@@ -60,11 +60,15 @@ export default function BottomNavigation() {
       setStudentSession(session);
     };
 
+    const handleOpenMenu = () => setMoreOpen(true);
+
     window.addEventListener(STUDENT_SESSION_CHANGED, handleSessionChange);
     window.addEventListener("storage", handleSessionChange);
+    window.addEventListener("open-menu-and-acessos", handleOpenMenu);
     return () => {
       window.removeEventListener(STUDENT_SESSION_CHANGED, handleSessionChange);
       window.removeEventListener("storage", handleSessionChange);
+      window.removeEventListener("open-menu-and-acessos", handleOpenMenu);
     };
   }, []);
 
@@ -102,20 +106,45 @@ export default function BottomNavigation() {
 
   const gridItems = isComandante
     ? [
-        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
+        { icon: Home, label: "Início", path: "/" },
+        { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
+        { icon: ClipboardList, label: "Pecúlio", path: "/sala-de-aula/peculio" },
+        { icon: Users, label: "Efetivo", path: "/sala-de-aula/efetivo" },
+        { icon: ClipboardList, label: "Administrar", path: "/sala-administrativa" },
+        { icon: Music, label: "Hinos", path: "/hinos" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
+        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
+        { icon: Star, label: "Posto Comando", path: "/xerife" },
+        { icon: Info, label: "Sobre o QG", path: "/sobre" },
+      ]
+    : isStudent
+    ? [
+        { icon: Home, label: "Início", path: "/" },
+        { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
+        { icon: Music, label: "Hinos", path: "/hinos" },
+        { icon: GraduationCap, label: "Notas do Curso", path: "/notas-do-curso" },
+        { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
+        { icon: Target, label: "Ordem Unida", path: "/drill" },
+        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
+        { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
+        { icon: FileText, label: "Meus Documentos", path: "/documentos" },
+        { icon: Star, label: "Posto Comando", path: "/xerife" },
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ]
     : [
-        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
+        { icon: Home, label: "Início", path: "/" },
         { icon: LayoutGrid, label: "Sala de Aula", path: "/sala-de-aula" },
+        { icon: Music, label: "Hinos", path: "/hinos" },
+        { icon: GraduationCap, label: "Acesso Aluno", path: "/entrar" },
         { icon: ListMusic, label: "Charlie Mike", path: "/charlie-mike" },
         { icon: Target, label: "Ordem Unida", path: "/drill" },
+        { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
+        { icon: Star, label: "Posto Comando", path: "/xerife" },
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ];
 
