@@ -11,7 +11,8 @@ import {
   validateBugleUpload,
   type BugleUploadKind,
 } from "../../server/bugleUpload";
-import { normalizeStorageKey, publicStorageUrl } from "../../server/storagePath";
+import { normalizeStorageKey } from "../../server/storagePath";
+import { storageDelete, storagePutWithRollback } from "../../server/storage";
 
 type UploadEnv = { UPLOADS_BUCKET?: R2Bucket };
 
@@ -83,10 +84,6 @@ export const onRequestPost: PagesFunction<UploadEnv> = async (context) => {
     const user = await authenticate(context.request);
     if (!user) return json({ error: "Sessão expirada. Entre novamente." }, 401);
     if (!await canManageBugleUploads(user)) return json({ error: "Acesso restrito ao comando ou Xerife Geral." }, 403);
-    if (!context.env.UPLOADS_BUCKET) {
-      return json({ error: "Armazenamento de áudio não configurado no Cloudflare." }, 503);
-    }
-
     const form = await context.request.formData();
     const kind = form.get("kind");
     const id = Number(form.get("id"));
@@ -104,26 +101,15 @@ export const onRequestPost: PagesFunction<UploadEnv> = async (context) => {
 
     const folder = kind === "call" ? "calls" : "marches";
     createdKey = normalizeStorageKey(`bugle/${folder}/${id}-${nanoid(10)}.${validation.extension}`);
-    await context.env.UPLOADS_BUCKET.put(createdKey, file.stream(), {
-      httpMetadata: {
-        contentType: validation.mimeType,
-        cacheControl: "public, max-age=31536000, immutable",
-      },
-      customMetadata: { uploadedBy: String(user.id), originalName: file.name.slice(0, 180) },
-    });
-
-    const url = publicStorageUrl(createdKey);
-    try {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const { url } = await storagePutWithRollback(createdKey, data, validation.mimeType, async ({ url }) => {
       await setBugleAudioUrl(kind as BugleUploadKind, id, url);
-    } catch (error) {
-      await context.env.UPLOADS_BUCKET.delete(createdKey);
-      createdKey = null;
-      throw error;
-    }
+      return { url };
+    });
 
     const previousKey = r2KeyFromPublicUrl(previousUrl);
     if (previousKey && previousKey !== createdKey) {
-      context.waitUntil(context.env.UPLOADS_BUCKET.delete(previousKey).catch(() => undefined));
+      context.waitUntil(storageDelete(previousKey).catch(() => false));
     }
     return json({ success: true, url });
   } catch (error) {

@@ -11,9 +11,6 @@ export const onRequestPost: PagesFunction = async (context) => {
     if (!await canUseGenericUpload(user)) {
       return Response.json({ error: "Você não possui permissão para enviar arquivos." }, { status: 403 });
     }
-    if (!(context.env as any).UPLOADS_BUCKET) {
-      return Response.json({ error: "Armazenamento persistente não configurado no Cloudflare." }, { status: 503 });
-    }
     const formData = await context.request.formData();
     const file = formData.get("file");
     

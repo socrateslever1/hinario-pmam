@@ -206,9 +206,9 @@ export async function storagePut(
   }
 
   if (isCloudflareRuntime()) {
-    throw new Error(
-      "Armazenamento de áudio não configurado. Vincule o bucket R2 UPLOADS_BUCKET ao projeto Cloudflare.",
-    );
+    const { putDatabaseObject } = await import("./databaseObjectStorage");
+    await putDatabaseObject(key, buffer, contentType);
+    return { key, url: publicStorageUrl(key) };
   }
 
   // 3. Try to save to the local filesystem (works in Node.js / Express dev server).
@@ -230,9 +230,7 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 
   if (config.isLocalFallback) {
     if (isCloudflareRuntime()) {
-      throw new Error(
-        "Armazenamento de áudio não configurado. Vincule o bucket R2 UPLOADS_BUCKET ao projeto Cloudflare.",
-      );
+      return { key, url: publicStorageUrl(key) };
     }
     // Reconstruct the same path used by storagePut
     const safeFileName = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
@@ -263,6 +261,12 @@ export async function storageDelete(relKey: string): Promise<boolean> {
     } catch (error) {
       console.warn("[Storage rollback] Falha no Supabase", error);
     }
+  }
+
+  if (isCloudflareRuntime()) {
+    const { deleteDatabaseObject } = await import("./databaseObjectStorage");
+    await deleteDatabaseObject(key);
+    return true;
   }
 
   if (!isCloudflareRuntime()) {

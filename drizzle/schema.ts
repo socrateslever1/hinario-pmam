@@ -562,6 +562,31 @@ export const pmamStudentBaixadoDocuments = mysqlTable(
   ],
 );
 
+export const pmamFileObjects = mysqlTable(
+  "pmam_file_objects",
+  {
+    fileKey: varchar("file_key", { length: 700 }).primaryKey(),
+    mimeType: varchar("mime_type", { length: 120 }).notNull(),
+    fileSize: int("file_size").notNull(),
+    chunkSize: int("chunk_size").notNull(),
+    totalChunks: int("total_chunks").notNull(),
+    status: mysqlEnum("status", ["uploading", "ready", "failed"]).notNull().default("uploading"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [index("idx_pmam_file_objects_status").on(t.status, t.updatedAt)],
+);
+
+export const pmamFileObjectChunks = mysqlTable(
+  "pmam_file_object_chunks",
+  {
+    fileKey: varchar("file_key", { length: 700 }).notNull(),
+    chunkIndex: int("chunk_index").notNull(),
+    dataBase64: longtext("data_base64").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.fileKey, t.chunkIndex] })],
+);
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -590,6 +615,8 @@ export const runtimeTables = {
   pmamUploadRegistry,
   pmamAditamentos,
   pmamStudentBaixadoDocuments,
+  pmamFileObjects,
+  pmamFileObjectChunks,
 };
 
 
