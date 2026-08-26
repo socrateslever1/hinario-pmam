@@ -500,6 +500,68 @@ export const pmamAdministrativeWeeklyConfig = mysqlTable(
 export type PmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferSelect;
 export type InsertPmamAdministrativeWeeklyConfig = typeof pmamAdministrativeWeeklyConfig.$inferInsert;
 
+export const pmamUploadRegistry = mysqlTable(
+  "pmam_upload_registry",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    fileKey: varchar("file_key", { length: 700 }).notNull(),
+    fileUrl: longtext("file_url").notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 120 }).notNull(),
+    fileSize: int("file_size").notNull(),
+    folder: varchar("folder", { length: 160 }).notNull(),
+    status: mysqlEnum("status", ["stored", "linked", "deleted", "failed"]).notNull().default("stored"),
+    uploadedBy: int("uploaded_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_pmam_upload_registry_key").on(t.fileKey),
+    index("idx_pmam_upload_registry_status").on(t.status, t.createdAt),
+    index("idx_pmam_upload_registry_user").on(t.uploadedBy, t.createdAt),
+  ],
+);
+
+export const pmamAditamentos = mysqlTable(
+  "pmam_aditamentos",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    titulo: varchar("titulo", { length: 255 }).notNull(),
+    conteudo: text("conteudo"),
+    data: date("data").notNull(),
+    pdfUrl: varchar("pdf_url", { length: 512 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => [index("idx_pmam_aditamentos_scope").on(t.companhia, t.peloton, t.data)],
+);
+
+export const pmamStudentBaixadoDocuments = mysqlTable(
+  "pmam_student_baixado_documents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    studentId: int("student_id").notNull(),
+    companhia: int("companhia").notNull(),
+    peloton: int("peloton").notNull(),
+    fileUrl: longtext("file_url").notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 120 }).notNull(),
+    fileSize: int("file_size"),
+    note: varchar("note", { length: 1000 }),
+    baixadoKind: varchar("baixado_kind", { length: 40 }).notNull().default("informativo"),
+    hpmHomologated: boolean("hpm_homologated").notNull().default(false),
+    uploadedBy: int("uploaded_by"),
+    uploadedByStudentId: int("uploaded_by_student_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("idx_pmam_baixado_docs_student").on(t.studentId, t.createdAt),
+    index("idx_pmam_baixado_docs_scope").on(t.companhia, t.peloton, t.createdAt),
+  ],
+);
+
 export const runtimeTables = {
   pmamUsers,
   pmamHymns,
@@ -525,6 +587,9 @@ export const runtimeTables = {
   pmamOrdemUnidaAudios,
   pmamAdministrativeDaily,
   pmamAdministrativeWeeklyConfig,
+  pmamUploadRegistry,
+  pmamAditamentos,
+  pmamStudentBaixadoDocuments,
 };
 
 

@@ -8,7 +8,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import multer from "multer";
-import { storagePut } from "../storage";
+import { storagePut, storagePutWithRollback } from "../storage";
+import { query } from "../mysql";
+import { canUseGenericUpload, MAX_GENERIC_UPLOAD_SIZE, validateGenericUpload } from "../genericUpload";
 import crypto from "crypto";
 import { getVersionInfo } from "./version";
 import cors from "cors";
@@ -75,36 +77,80 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
   // File upload endpoint with folder organization
   const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+    limits: { fileSize: MAX_GENERIC_UPLOAD_SIZE }
   });
   
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file provided" });
+  app.post(
+    "/api/upload",
+    async (req, res, next) => {
+      try {
+        const ctx = await createContext({ req, res } as any);
+        if (!ctx.user) return res.status(401).json({ error: "Sessão expirada. Entre novamente." });
+        if (!await canUseGenericUpload(ctx.user)) {
+          return res.status(403).json({ error: "Você não possui permissão para enviar arquivos." });
+        }
+        (req as any).uploadUser = ctx.user;
+        return next();
+      } catch (error) {
+        console.error("[Generic upload auth]", error);
+        return res.status(503).json({ error: "Não foi possível validar sua sessão agora." });
       }
-      
-      // Determine folder category (commanders, cfap-backgrounds, blog, documents, etc.)
-      const rawFolder = (req.body?.folder || req.query?.folder || "uploads").toString().trim();
-      const safeFolder = rawFolder.replace(/[^a-zA-Z0-9_/-]/g, "").replace(/^\/+|\/+$/g, "") || "uploads";
-      
-      const ext = (req.file.originalname.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const cleanPrefix = safeFolder.replace(/[/_]/g, "-");
-      const filename = `${cleanPrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
-      const fileKey = `${safeFolder}/${filename}`;
-      
-      const { url, key } = await storagePut(
-        fileKey,
-        req.file.buffer,
-        req.file.mimetype
-      );
-      
-      res.json({ url, key, folder: safeFolder });
-    } catch (error) {
-      console.error("Upload error:", error);
-      res.status(500).json({ error: "Upload failed" });
+    },
+    (req, res, next) => {
+      upload.single("file")(req, res, (error) => {
+        if (!error) return next();
+        if (error instanceof multer.MulterError) {
+          if (error.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ error: "O arquivo deve ter no máximo 20 MB." });
+          }
+          return res.status(400).json({ error: `Erro no envio da imagem: ${error.message}` });
+        }
+        return res.status(400).json({ error: "Não foi possível processar a imagem enviada." });
+      });
+    },
+    async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "Nenhum arquivo enviado." });
+        }
+        const validation = validateGenericUpload({
+          name: req.file.originalname,
+          type: req.file.mimetype,
+          size: req.file.size,
+        });
+        if ("error" in validation) return res.status(400).json({ error: validation.error });
+
+        // Determine folder category (commanders, cfap-backgrounds, blog, documents, etc.)
+        const rawFolder = (req.body?.folder || req.query?.folder || "uploads").toString().trim();
+        const safeFolder = rawFolder.replace(/[^a-zA-Z0-9_/-]/g, "").replace(/^\/+|\/+$/g, "") || "uploads";
+
+        const ext = validation.extension;
+        const cleanPrefix = safeFolder.replace(/[/_]/g, "-");
+        const filename = `${cleanPrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+        const fileKey = `${safeFolder}/${filename}`;
+
+        const result = await storagePutWithRollback(
+          fileKey,
+          req.file.buffer,
+          validation.mimeType,
+          async ({ url, key }) => {
+            const insert = await query<any>(
+              `INSERT INTO pmam_upload_registry
+                (file_key, file_url, file_name, mime_type, file_size, folder, status, uploaded_by)
+               VALUES (?, ?, ?, ?, ?, ?, 'stored', ?)`,
+              [key, url, req.file!.originalname, validation.mimeType, req.file!.size, safeFolder, (req as any).uploadUser.id],
+            );
+            return { url, key, folder: safeFolder, uploadId: Number((insert as any).insertId) };
+          },
+        );
+
+        return res.json(result);
+      } catch (error: any) {
+        console.error("Upload error:", error);
+        return res.status(500).json({ error: error?.message || "Falha no envio da imagem" });
+      }
     }
-  });
+  );
 
   const bugleAudioUpload = multer({
     storage: multer.memoryStorage(),
@@ -145,8 +191,10 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
 
         const folder = kind === "call" ? "calls" : "marches";
         const fileKey = `bugle/${folder}/${id}-${crypto.randomBytes(5).toString("hex")}.${validation.extension}`;
-        const { url } = await storagePut(fileKey, req.file.buffer, validation.mimeType);
-        await setBugleAudioUrl(kind, id, url);
+        const { url } = await storagePutWithRollback(fileKey, req.file.buffer, validation.mimeType, async ({ url }) => {
+          await setBugleAudioUrl(kind, id, url);
+          return { url };
+        });
         return res.json({ success: true, url });
       } catch (error) {
         console.error("[Bugle upload]", error);

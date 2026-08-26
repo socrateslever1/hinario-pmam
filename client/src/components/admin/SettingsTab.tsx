@@ -70,6 +70,7 @@ export function SettingsTab() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", "settings");
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,

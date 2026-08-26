@@ -14,6 +14,7 @@ type R2BucketLike = {
     value: Uint8Array,
     options?: { httpMetadata?: { contentType?: string; cacheControl?: string } },
   ) => Promise<unknown>;
+  delete: (key: string) => Promise<unknown>;
 };
 
 function getStorageConfig(): StorageConfig & { isLocalFallback?: boolean } {
@@ -104,19 +105,20 @@ async function trySaveToLocalFs(key: string, buffer: Buffer): Promise<string | n
     const rootUploadsDir = path.resolve(process.cwd(), "uploads");
     const clientUploadsDir = path.resolve(process.cwd(), "client", "public", "uploads");
 
-    const safeFileName = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
+    const safeKey = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
 
     for (const dir of [rootUploadsDir, clientUploadsDir]) {
-      const subDir = path.join(dir, path.dirname(key));
+      const targetFilePath = path.join(dir, safeKey);
+      const subDir = path.dirname(targetFilePath);
       if (!fs.existsSync(subDir)) {
         fs.mkdirSync(subDir, { recursive: true });
       }
-      fs.writeFileSync(path.join(dir, safeFileName), buffer);
+      fs.writeFileSync(targetFilePath, buffer);
     }
 
-    return `/uploads/${safeFileName}`;
-  } catch {
-    // Workers runtime or any other environment where fs is unavailable
+    return `/uploads/${safeKey}`;
+  } catch (err) {
+    console.error("[Local Storage Put Error]", err);
     return null;
   }
 }
@@ -242,4 +244,59 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),
   };
+}
+
+export async function storageDelete(relKey: string): Promise<boolean> {
+  const key = normalizeKey(relKey);
+  const bucket = getCloudflareBucket();
+  if (bucket) {
+    await bucket.delete(key);
+    return true;
+  }
+
+  if (ENV.supabaseUrl && ENV.supabaseServiceKey) {
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(ENV.supabaseUrl, ENV.supabaseServiceKey);
+      const { error } = await supabase.storage.from("uploads").remove([key]);
+      if (!error) return true;
+    } catch (error) {
+      console.warn("[Storage rollback] Falha no Supabase", error);
+    }
+  }
+
+  if (!isCloudflareRuntime()) {
+    try {
+      const [{ default: fs }, { default: path }] = await Promise.all([
+        import("node:fs") as Promise<{ default: typeof import("fs") }>,
+        import("node:path") as Promise<{ default: typeof import("path") }>,
+      ]);
+      const safeKey = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
+      for (const root of [path.resolve(process.cwd(), "uploads"), path.resolve(process.cwd(), "client", "public", "uploads")]) {
+        const target = path.resolve(root, safeKey);
+        if (target.startsWith(`${root}${path.sep}`) && fs.existsSync(target)) fs.unlinkSync(target);
+      }
+      return true;
+    } catch (error) {
+      console.warn("[Storage rollback] Falha no disco local", error);
+    }
+  }
+  return false;
+}
+
+export async function storagePutWithRollback<T>(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string,
+  persist: (stored: { key: string; url: string }) => Promise<T>,
+): Promise<T> {
+  const stored = await storagePut(relKey, data, contentType);
+  try {
+    return await persist(stored);
+  } catch (error) {
+    await storageDelete(stored.key).catch((rollbackError) => {
+      console.error("[Storage rollback] Não foi possível remover o arquivo órfão", rollbackError);
+    });
+    throw error;
+  }
 }

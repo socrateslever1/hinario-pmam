@@ -92,6 +92,7 @@ export function UserProfileTab({ showDirectory = true }: UserProfileTabProps) {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", "profiles");
 
       const response = await fetch("/api/upload", {
         method: "POST",

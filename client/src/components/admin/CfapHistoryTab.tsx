@@ -161,7 +161,10 @@ export function CfapHistoryTab() {
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Erro ao fazer upload da imagem");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Erro ao fazer upload da imagem");
+      }
       const result = await response.json();
       setEditor((prev) => (prev ? { ...prev, portraitUrl: result.url } : prev));
       toast.success("Foto salva na pasta 'commanders'!");
@@ -183,7 +186,10 @@ export function CfapHistoryTab() {
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Erro ao fazer upload da imagem");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Erro ao fazer upload da imagem");
+      }
       const result = await response.json();
       if (side === "left") {
         setFlanksForm((f) => ({ ...f, cfap_current_commander_left_photo: result.url }));

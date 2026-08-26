@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
-import { storagePut } from "./storage";
+import { storageDelete, storagePut, storagePutWithRollback } from "./storage";
 import { nanoid } from "nanoid";
 import { notifyOwner } from "./_core/notification";
 import { sdk } from "./_core/sdk";
@@ -110,8 +110,13 @@ const OFFICIAL_DOCUMENT_EXTENSIONS = new Set([
 ]);
 const MAX_OFFICIAL_DOCUMENT_SIZE = 15 * 1024 * 1024;
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
-const MAX_ORDEM_UNIDA_AUDIO_SIZE = 100 * 1024 * 1024;
+const MAX_ORDEM_UNIDA_AUDIO_SIZE = 50 * 1024 * 1024;
 const MAX_VOICE_AUTHOR_PHOTO_SIZE = 8 * 1024 * 1024;
+const MAX_STANDARD_MEDIA_SIZE = 50 * 1024 * 1024;
+const MAX_BLOG_IMAGE_SIZE = 15 * 1024 * 1024;
+const MAX_ADITAMENTO_SIZE = 15 * 1024 * 1024;
+const BLOG_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const ADITAMENTO_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 const ORDEM_UNIDA_AUDIO_MIME_TYPES = new Set([
   "audio/mpeg", "audio/mp3", "audio/x-mp3", "audio/wav", "audio/x-wav", "audio/wave",
   "audio/ogg", "audio/webm", "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/aac",
@@ -453,7 +458,7 @@ export const appRouter = router({
     updateProfile: protectedProcedure.input(
       z.object({
         name: z.string().trim().min(2).max(255).optional(),
-        fotoUrl: z.string().trim().nullable().optional(),
+        fotoUrl: z.string().trim().max(2 * 1024 * 1024).nullable().optional(),
       })
     ).mutation(async ({ ctx, input }) => {
       await db.updateUserProfile(ctx.user.id, input);
@@ -761,8 +766,8 @@ export const appRouter = router({
     }),
     uploadAudio: masterProcedure.input(z.object({
       id: z.number(),
-      fileData: z.string(),
-      fileName: z.string(),
+      fileData: z.string().min(1).max(70 * 1024 * 1024),
+      fileName: z.string().trim().min(1).max(255),
       variant: z.enum(["voice", "instrumental"]).default("voice"),
     })).mutation(async ({ ctx, input }) => {
       const canManageHymns = ctx.user.role === "master" || ctx.user.role === "admin";
@@ -778,20 +783,20 @@ export const appRouter = router({
         });
       }
       const buffer = Buffer.from(input.fileData, 'base64');
-      const maxSize = 100 * 1024 * 1024;
-      if (buffer.length > maxSize) {
+      const maxSize = 50 * 1024 * 1024;
+      if (!buffer.length || buffer.length > maxSize) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Arquivo muito grande. Maximo: 100MB`
+          message: `Arquivo invÃ¡lido ou maior que 50 MB`
         });
       }
       const fileKey = `hymns/${input.id}-${nanoid()}.${ext}`;
       const mimeType = `audio/${ext === 'mp3' ? 'mpeg' : ext}`;
-      const { url } = await storagePut(fileKey, buffer, mimeType);
-      await db.updateHymn(
-        input.id,
-        input.variant === "instrumental" ? { instrumentalAudioUrl: url } : { audioUrl: url },
-      );
+      if (!(await db.getHymnById(input.id))) throw new TRPCError({ code: "NOT_FOUND", message: "Hino nÃ£o encontrado" });
+      const { url } = await storagePutWithRollback(fileKey, buffer, mimeType, async ({ url }) => {
+        await db.updateHymn(input.id, input.variant === "instrumental" ? { instrumentalAudioUrl: url } : { audioUrl: url });
+        return { url };
+      });
       return { success: true, url };
     }),
   }),
@@ -931,9 +936,9 @@ export const appRouter = router({
     uploadMedia: scaleManagerProcedure.input(z.object({
       missionId: z.number(),
       type: z.enum(["image", "video", "audio", "pdf", "document"]),
-      fileName: z.string(),
-      mimeType: z.string(),
-      base64Data: z.string(),
+      fileName: z.string().trim().min(1).max(255),
+      mimeType: z.string().trim().min(1).max(120),
+      base64Data: z.string().min(1).max(70 * 1024 * 1024),
       title: z.string().optional(),
       description: z.string().optional(),
       duration: z.number().optional(),
@@ -953,20 +958,18 @@ export const appRouter = router({
       const ext = input.fileName.split('.').pop() || 'bin';
       const fileKey = `mission-media/${input.missionId}-${input.type}-${suffix}.${ext}`;
       const buffer = Buffer.from(input.base64Data, 'base64');
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
-      
-      const mediaId = await db.createMissionMedia(input.missionId, {
-        type: input.type,
-        title: input.title,
-        description: input.description,
+      const expectedMimePrefix = input.type === "image" ? "image/" : input.type === "video" ? "video/" : input.type === "audio" ? "audio/" : null;
+      if (!buffer.length || buffer.length > MAX_STANDARD_MEDIA_SIZE || (expectedMimePrefix && !input.mimeType.startsWith(expectedMimePrefix))) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "MÃ­dia invÃ¡lida, incompatÃ­vel ou maior que 50 MB" });
+      }
+      const result = await storagePutWithRollback(fileKey, buffer, input.mimeType, async ({ url }) => ({
+        mediaId: await db.createMissionMedia(input.missionId, {
+          type: input.type, title: input.title, description: input.description, url,
+          fileSize: buffer.length, mimeType: input.mimeType, duration: input.duration, uploadedBy: ctx.user.id,
+        }),
         url,
-        fileSize: buffer.length,
-        mimeType: input.mimeType,
-        duration: input.duration,
-        uploadedBy: ctx.user.id,
-      });
-      
-      return { mediaId, url, fileKey };
+      }));
+      return { ...result, fileKey };
     }),
     getMedia: publicProcedure.input(z.object({
       missionId: z.number(),
@@ -1046,18 +1049,22 @@ export const appRouter = router({
     }),
     uploadAudio: masterProcedure.input(z.object({
       hymnId: z.number(),
-      fileName: z.string(),
-      fileBase64: z.string(),
-      contentType: z.string(),
+      fileName: z.string().trim().min(1).max(255),
+      fileBase64: z.string().min(1).max(70 * 1024 * 1024),
+      contentType: z.string().trim().regex(/^audio\//),
     })).mutation(async ({ ctx, input }) => {
       const general = await isXerifeGeral(ctx.user);
       if (!general) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito" });
       }
       const buffer = Buffer.from(input.fileBase64, "base64");
+      if (!buffer.length || buffer.length > MAX_STANDARD_MEDIA_SIZE) throw new TRPCError({ code: "BAD_REQUEST", message: "Ãudio invÃ¡lido ou maior que 50 MB" });
+      if (!(await db.getHymnById(input.hymnId))) throw new TRPCError({ code: "NOT_FOUND", message: "Hino nÃ£o encontrado" });
       const fileKey = `hymns/audio/${input.hymnId}-${nanoid(8)}-${input.fileName}`;
-      const { url } = await storagePut(fileKey, buffer, input.contentType);
-      await db.updateHymn(input.hymnId, { audioUrl: url });
+      const { url } = await storagePutWithRollback(fileKey, buffer, input.contentType, async ({ url }) => {
+        await db.updateHymn(input.hymnId, { audioUrl: url });
+        return { url };
+      });
       return { success: true, url };
     }),
   }),
@@ -1146,7 +1153,7 @@ export const appRouter = router({
       photoFileName: z.string().trim().max(255).nullable().optional(),
       photoMimeType: z.string().trim().max(100).nullable().optional(),
       photoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
-      photoFileData: z.string().nullable().optional(),
+      photoFileData: z.string().max(12 * 1024 * 1024).nullable().optional(),
     })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de voz restrito ao comando geral" });
@@ -1164,7 +1171,9 @@ export const appRouter = router({
         }
         const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
         const photoKey = `ordem-unida/vozes/militares/${profileKey}-${Date.now()}-${nanoid(8)}.${extension}`;
-        photoUrl = (await storagePut(photoKey, photoBuffer, mimeType)).url;
+        return storagePutWithRollback(photoKey, photoBuffer, mimeType, ({ url }) =>
+          ordemUnidaAudioDb.upsertVoiceProfile({ profileKey, name: input.name, photoUrl: url }),
+        );
       }
       return ordemUnidaAudioDb.upsertVoiceProfile({ profileKey, name: input.name, photoUrl });
     }),
@@ -1184,13 +1193,13 @@ export const appRouter = router({
       fileName: z.string().trim().min(1).max(255),
       fileSize: z.number().int().positive().max(MAX_ORDEM_UNIDA_AUDIO_SIZE),
       mimeType: z.string().trim().min(1).max(100),
-      fileData: z.string().min(1),
+      fileData: z.string().min(1).max(70 * 1024 * 1024),
       duration: z.number().int().nonnegative().max(60 * 60 * 8).nullable().optional(),
       voiceAuthorName: z.string().trim().max(255).nullable().optional(),
       voiceAuthorPhotoFileName: z.string().trim().max(255).nullable().optional(),
       voiceAuthorPhotoMimeType: z.string().trim().max(100).nullable().optional(),
       voiceAuthorPhotoFileSize: z.number().int().positive().max(MAX_VOICE_AUTHOR_PHOTO_SIZE).nullable().optional(),
-      voiceAuthorPhotoFileData: z.string().nullable().optional(),
+      voiceAuthorPhotoFileData: z.string().max(12 * 1024 * 1024).nullable().optional(),
     })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Cadastro de áudio restrito ao comando geral" });
@@ -1210,7 +1219,9 @@ export const appRouter = router({
       const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "audio";
       const fileKey = `ordem-unida/${input.itemType}/${input.itemId}-${Date.now()}-${nanoid(10)}-${safeFileName}`;
       const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
+      let photoFileKey: string | null = null;
       let voiceAuthorPhotoUrl: string | null = null;
+      try {
       if (input.itemType === "voz" && input.voiceAuthorPhotoFileData) {
         const photoMimeType = input.voiceAuthorPhotoMimeType?.toLowerCase() || "";
         if (!VOICE_AUTHOR_PHOTO_MIME_TYPES.has(photoMimeType)) {
@@ -1222,7 +1233,9 @@ export const appRouter = router({
         }
         const extension = photoMimeType === "image/png" ? "png" : photoMimeType === "image/webp" ? "webp" : "jpg";
         const photoKey = `ordem-unida/vozes/militares/${voiceProfileKey(input.voiceAuthorName || "default")}-${Date.now()}-${nanoid(8)}.${extension}`;
-        voiceAuthorPhotoUrl = (await storagePut(photoKey, photoBuffer, photoMimeType)).url;
+        const storedPhoto = await storagePut(photoKey, photoBuffer, photoMimeType);
+        photoFileKey = storedPhoto.key;
+        voiceAuthorPhotoUrl = storedPhoto.url;
       }
       const audio = await ordemUnidaAudioDb.upsertOrdemUnidaAudio({
         itemId: input.itemId,
@@ -1247,6 +1260,10 @@ export const appRouter = router({
         });
       }
       return { success: true, audio };
+      } catch (error) {
+        await Promise.allSettled([storageDelete(key), ...(photoFileKey ? [storageDelete(photoFileKey)] : [])]);
+        throw error;
+      }
     }),
     deactivate: masterProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       if (!(await isXerifeGeral(ctx.user))) {
@@ -1321,21 +1338,24 @@ export const appRouter = router({
     }),
     uploadFile: masterProcedure.input(z.object({
       drillId: z.number(),
-      fileName: z.string(),
-      fileBase64: z.string(),
-      contentType: z.string(),
+      fileName: z.string().trim().min(1).max(255),
+      fileBase64: z.string().min(1).max(70 * 1024 * 1024),
+      contentType: z.string().trim().min(1).max(120),
       fileType: z.enum(["video", "pdf", "image"]),
     })).mutation(async ({ input }) => {
       const buffer = Buffer.from(input.fileBase64, "base64");
+      const allowed = input.fileType === "video" ? input.contentType.startsWith("video/") : input.fileType === "image" ? input.contentType.startsWith("image/") : input.contentType === "application/pdf";
+      if (!allowed || !buffer.length || buffer.length > MAX_STANDARD_MEDIA_SIZE) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo invÃ¡lido, incompatÃ­vel ou maior que 50 MB" });
+      if (!(await db.getDrillById(input.drillId))) throw new TRPCError({ code: "NOT_FOUND", message: "Ordem unida nÃ£o encontrada" });
       const fileKey = `drill/${input.fileType}/${input.drillId}-${nanoid(8)}-${input.fileName}`;
-      const { url } = await storagePut(fileKey, buffer, input.contentType);
-      
       const updateData: any = {};
-      if (input.fileType === "video") updateData.videoUrl = url;
-      if (input.fileType === "pdf") updateData.pdfUrl = url;
-      if (input.fileType === "image") updateData.imageUrl = url;
-      
-      await db.updateDrill(input.drillId, updateData);
+      const { url } = await storagePutWithRollback(fileKey, buffer, input.contentType, async ({ url }) => {
+        if (input.fileType === "video") updateData.videoUrl = url;
+        if (input.fileType === "pdf") updateData.pdfUrl = url;
+        if (input.fileType === "image") updateData.imageUrl = url;
+        await db.updateDrill(input.drillId, updateData);
+        return { url };
+      });
       return { success: true, url };
     }),
   }),
@@ -1421,9 +1441,11 @@ export const appRouter = router({
         }
         const mimeType = `audio/${ext === "mp3" ? "mpeg" : ext}`;
         const folder = input.kind === "call" ? "calls" : "marches";
-        const { url } = await storagePut(`bugle/${folder}/${input.id}-${nanoid(8)}.${ext}`, buffer, mimeType);
-        if (input.kind === "call") await bugleDb.updateBugleCall(input.id, { audioUrl: url });
-        else await bugleDb.updateMarch(input.id, { audioUrl: url });
+        const { url } = await storagePutWithRollback(`bugle/${folder}/${input.id}-${nanoid(8)}.${ext}`, buffer, mimeType, async ({ url }) => {
+          if (input.kind === "call") await bugleDb.updateBugleCall(input.id, { audioUrl: url });
+          else await bugleDb.updateMarch(input.id, { audioUrl: url });
+          return { url };
+        });
         return { success: true, url };
       }),
   }),
@@ -1584,9 +1606,9 @@ export const appRouter = router({
       return { success: true };
     }),
     uploadImage: scaleManagerProcedure.input(z.object({
-      fileName: z.string(),
-      mimeType: z.string(),
-      base64Data: z.string(),
+      fileName: z.string().trim().min(1).max(255),
+      mimeType: z.string().trim().min(1).max(120),
+      base64Data: z.string().min(1).max(21 * 1024 * 1024),
       postId: z.number().optional(),
       altText: z.string().optional(),
       width: z.number().optional(),
@@ -1598,8 +1620,8 @@ export const appRouter = router({
       const ext = input.fileName.split('.').pop() || 'jpg';
       const fileKey = `blog-images/post-img-${suffix}.${ext}`;
       const buffer = Buffer.from(input.base64Data, 'base64');
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
-      // Salvar metadados na tabela pmam_post_images
+      if (!BLOG_IMAGE_MIME_TYPES.has(input.mimeType) || !buffer.length || buffer.length > MAX_BLOG_IMAGE_SIZE) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem JPG, PNG, WEBP ou GIF de atÃ© 15 MB" });
+      const { url } = await storagePutWithRollback(fileKey, buffer, input.mimeType, async ({ url }) => {
       await db.savePostImage({
         postId: input.postId,
         url,
@@ -1612,6 +1634,8 @@ export const appRouter = router({
         mimeType: input.mimeType,
         fileSize: buffer.length,
         uploadedBy: ctx.user.id,
+      });
+      return { url };
       });
       return { url, fileKey };
     }),
@@ -1938,8 +1962,7 @@ export const appRouter = router({
         .replace(/[^a-zA-Z0-9._-]+/g, "-")
         .replace(/^-+|-+$/g, "") || `documento.${extension}`;
       const fileKey = `official-documents/${Date.now()}-${nanoid(8)}-${safeFileName}`;
-      const { key, url } = await storagePut(fileKey, buffer, input.mimeType);
-      const id = await officialDocumentsDb.createOfficialDocument({
+      const { id } = await storagePutWithRollback(fileKey, buffer, input.mimeType, async ({ key, url }) => ({ id: await officialDocumentsDb.createOfficialDocument({
         title: input.title,
         description: input.description || null,
         fileName: input.fileName,
@@ -1948,7 +1971,7 @@ export const appRouter = router({
         mimeType: input.mimeType,
         fileSize: buffer.length,
         uploadedBy: ctx.user.id,
-      });
+      }) }));
 
       return { success: true, id };
     }),
@@ -2270,11 +2293,14 @@ export const appRouter = router({
       peloton: z.number().int().min(1).max(2),
       fileName: z.string().trim().min(1).max(180),
       mimeType: z.string().trim().min(3).max(120),
-      base64Data: z.string().min(1),
+      base64Data: z.string().min(1).max(21 * 1024 * 1024),
     })).mutation(async ({ ctx, input }) => {
       await requireServiceScaleAccess(ctx.user, input.companhia, input.peloton);
       const ext = input.fileName.split(".").pop() || "pdf";
       const buffer = Buffer.from(input.base64Data, "base64");
+      if (!ADITAMENTO_MIME_TYPES.has(input.mimeType) || !buffer.length || buffer.length > MAX_ADITAMENTO_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem de atÃ© 15 MB" });
+      }
       const fileKey = `aditamentos/${input.companhia}-${input.peloton}/${Date.now()}-${nanoid(8)}.${ext}`;
       const { url } = await storagePut(fileKey, buffer, input.mimeType);
       return { url };
@@ -2386,7 +2412,7 @@ export const appRouter = router({
         studentId: z.number().int().positive(),
         fileName: z.string().trim().min(1).max(180),
         mimeType: z.string().trim().min(3).max(120),
-        base64Data: z.string().min(1),
+        base64Data: z.string().min(1).max(21 * 1024 * 1024),
         note: z.string().trim().max(1000).nullable().optional(),
         baixadoKind: z.enum(["informativo", "ausente_com_atestado", "ausente_sem_atestado", "presente_sem_atestado"]).optional(),
         hpmHomologated: z.boolean().optional(),
@@ -2402,13 +2428,12 @@ export const appRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem do atestado/documento" });
       }
       const buffer = Buffer.from(input.base64Data, "base64");
-      if (buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
+      if (!buffer.length || buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 15MB" });
       }
       const ext = input.fileName.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pdf";
       const fileKey = `baixados/${student.companhia}-${student.peloton}/${student.id}/${Date.now()}-${nanoid(8)}.${ext}`;
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
-      const id = await serviceScaleDb.createBaixadoDocument({
+      const { id, url } = await storagePutWithRollback(fileKey, buffer, input.mimeType, async ({ url }) => ({ id: await serviceScaleDb.createBaixadoDocument({
         studentId: student.id,
         companhia: student.companhia,
         peloton: student.peloton,
@@ -2420,7 +2445,7 @@ export const appRouter = router({
         baixadoKind: input.baixadoKind ?? "informativo",
         hpmHomologated: input.hpmHomologated ?? false,
         uploadedBy: ctx.user.id,
-      });
+      }), url }));
       return { id, url };
     }),
 
@@ -3763,7 +3788,7 @@ export const appRouter = router({
         fileName: z.string().trim().min(1).max(255),
         fileSize: z.number().int().min(1),
         mimeType: z.string().trim().max(100).default(""),
-        fileData: z.string(), // Base64 encoded file data
+        fileData: z.string().min(1).max(70 * 1024 * 1024), // Base64 encoded file data
       })
     ).mutation(async ({ ctx, input }) => {
       await foDb.ensureFoProofSchema();
@@ -3817,10 +3842,7 @@ export const appRouter = router({
         .replace(/[^a-zA-Z0-9._-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "prova";
       const fileKey = `fo-provas/${ctx.user.id}/${Date.now()}-${nanoid()}-${safeFileName}`;
-      const { url } = await storagePut(fileKey, buffer, inferredMimeType);
-
-      // Salvar no banco de dados
-      const provaId = await foDb.createFatoObservadoProva({
+      const { provaId, url } = await storagePutWithRollback(fileKey, buffer, inferredMimeType, async ({ url }) => ({ provaId: await foDb.createFatoObservadoProva({
         studentObservationId: input.studentObservationId,
         arquivoUrl: url,
         tipo: proofType,
@@ -3828,7 +3850,7 @@ export const appRouter = router({
         tamanho: input.fileSize,
         mimeType: inferredMimeType,
         criadoPor: ctx.user.id,
-      });
+      }), url }));
 
       return { id: provaId, url };
     }),

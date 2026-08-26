@@ -83,6 +83,7 @@ export function GradeAdminTab() {
     try {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
+      formDataUpload.append("folder", "discipline-materials");
 
       const response = await fetch("/api/upload", {
         method: "POST",

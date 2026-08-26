@@ -125,6 +125,7 @@ export default function UserProfilePage() {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", "profiles");
       const response = await fetch("/api/upload", { method: "POST", body: formData });
       if (!response.ok) throw new Error("Falha no upload da foto.");
       const result = await response.json();

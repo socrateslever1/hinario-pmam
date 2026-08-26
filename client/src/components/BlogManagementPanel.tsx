@@ -174,6 +174,7 @@ export function BlogManagementPanel() {
     try {
       const formDataUpload = new FormData();
       formDataUpload.append("file", file);
+      formDataUpload.append("folder", "blog");
 
       const response = await fetch("/api/upload", {
         method: "POST",

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import * as studentDb from "./studentDb";
 import * as serviceScaleDb from "./serviceScaleDb";
-import { storagePut } from "./storage";
+import { storagePutWithRollback } from "./storage";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
 
 const MAX_BAIXADO_DOCUMENT_SIZE = 15 * 1024 * 1024;
@@ -337,7 +337,7 @@ export const studentRouter = router({
         sessionToken: z.string(),
         fileName: z.string().trim().min(1).max(180),
         mimeType: z.string().trim().min(3).max(120),
-        base64Data: z.string().min(1),
+        base64Data: z.string().min(1).max(21 * 1024 * 1024),
         note: z.string().trim().max(1000).nullable().optional(),
         baixadoKind: z.enum(["informativo", "ausente_com_atestado", "ausente_sem_atestado", "presente_sem_atestado"]).optional(),
         hpmHomologated: z.boolean().optional(),
@@ -359,13 +359,12 @@ export const studentRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Envie PDF ou imagem do atestado/documento" });
       }
       const buffer = Buffer.from(input.base64Data, "base64");
-      if (buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
+      if (!buffer.length || buffer.length > MAX_BAIXADO_DOCUMENT_SIZE) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo maior que 15MB" });
       }
       const ext = input.fileName.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pdf";
       const fileKey = `baixados/${student.companhia}-${student.peloton}/${student.id}/${Date.now()}-${nanoid(8)}.${ext}`;
-      const { url } = await storagePut(fileKey, buffer, input.mimeType);
-      const documentId = await serviceScaleDb.createBaixadoDocument({
+      const { documentId, url } = await storagePutWithRollback(fileKey, buffer, input.mimeType, async ({ url }) => ({ documentId: await serviceScaleDb.createBaixadoDocument({
         studentId: student.id,
         companhia: student.companhia,
         peloton: student.peloton,
@@ -377,7 +376,7 @@ export const studentRouter = router({
         baixadoKind: input.baixadoKind ?? "ausente_com_atestado",
         hpmHomologated: input.hpmHomologated ?? false,
         uploadedByStudentId: student.id,
-      });
+      }), url }));
       return { id: documentId, url };
     }),
 
@@ -390,7 +389,7 @@ export const studentRouter = router({
         nomeCompleto: z.string().trim().optional(),
         rg: z.string().trim().optional(),
         email: z.string().trim().email().or(z.literal("")).optional(),
-        fotoUrl: z.string().nullable().optional(),
+        fotoUrl: z.string().max(2 * 1024 * 1024).nullable().optional(),
         cpf: z.string().trim().optional(),
         phone: z.string().trim().optional(),
         address: z.string().trim().optional(),
