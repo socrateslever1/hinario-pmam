@@ -72,10 +72,10 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
     res.json(versionInfo);
   });
   
-  // File upload endpoint
+  // File upload endpoint with folder organization
   const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
   });
   
   app.post("/api/upload", upload.single("file"), async (req, res) => {
@@ -84,18 +84,22 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
         return res.status(400).json({ error: "No file provided" });
       }
       
-      // Generate unique filename
-      const ext = req.file.originalname.split(".").pop();
-      const filename = `blog-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+      // Determine folder category (commanders, cfap-backgrounds, blog, documents, etc.)
+      const rawFolder = (req.body?.folder || req.query?.folder || "uploads").toString().trim();
+      const safeFolder = rawFolder.replace(/[^a-zA-Z0-9_/-]/g, "").replace(/^\/+|\/+$/g, "") || "uploads";
       
-      // Upload to S3
-      const { url } = await storagePut(
-        `blog-images/${filename}`,
+      const ext = (req.file.originalname.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const cleanPrefix = safeFolder.replace(/[/_]/g, "-");
+      const filename = `${cleanPrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+      const fileKey = `${safeFolder}/${filename}`;
+      
+      const { url, key } = await storagePut(
+        fileKey,
         req.file.buffer,
         req.file.mimetype
       );
       
-      res.json({ url });
+      res.json({ url, key, folder: safeFolder });
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({ error: "Upload failed" });

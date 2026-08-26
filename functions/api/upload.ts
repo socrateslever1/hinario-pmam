@@ -16,19 +16,23 @@ export const onRequestPost: PagesFunction = async (context) => {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
     
-    // Generate unique filename
-    const ext = file.name.split(".").pop();
-    // crypto.randomUUID() is natively available in Cloudflare Workers
-    const filename = `blog-${Date.now()}-${crypto.randomUUID().substring(0, 8)}.${ext}`;
+    // Read folder parameter
+    const folder = (formData.get("folder") as string || "uploads").replace(/[^a-zA-Z0-9_/-]/g, "").replace(/^\/+|\/+$/g, "") || "uploads";
     
-    // Upload to S3 (or Forge API)
-    const { url } = await storagePut(
-      `blog-images/${filename}`,
+    // Generate unique filename
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const cleanPrefix = folder.replace(/[/_]/g, "-");
+    const filename = `${cleanPrefix}-${Date.now()}-${crypto.randomUUID().substring(0, 8)}.${ext}`;
+    const fileKey = `${folder}/${filename}`;
+    
+    // Upload to Storage
+    const { url, key } = await storagePut(
+      fileKey,
       buffer,
       file.type
     );
     
-    return new Response(JSON.stringify({ url }), { 
+    return new Response(JSON.stringify({ url, key, folder }), { 
       status: 200, headers: { "Content-Type": "application/json" } 
     });
   } catch (error) {
