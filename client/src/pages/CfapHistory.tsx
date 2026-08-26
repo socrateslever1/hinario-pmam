@@ -210,10 +210,6 @@ export default function CfapHistory() {
                             <MilitaryCorner position="bottom-left" />
                             <MilitaryCorner position="bottom-right" />
 
-                            {/* Padrão xadrez militar superior e inferior */}
-                            <div className="checkerboard-pattern absolute inset-x-0 top-0 h-1.5 opacity-70 z-10" />
-                            <div className="checkerboard-pattern absolute inset-x-0 bottom-0 h-1.5 opacity-70 z-10" />
-
                             <div className="w-48 h-56 sm:w-56 sm:h-64 md:w-64 md:h-72 overflow-hidden flex items-center justify-center bg-white">
                               <CommanderPortrait
                                 portraitIndex={currentCommander.portraitIndex}
