@@ -37,16 +37,16 @@ export default function ServiceBoard() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#020a0f]">
       <Navbar />
-      <main className="container px-4 py-6 md:py-10">
+      <main className="container px-4 py-5 md:py-10">
         <section className="mb-6 rounded-2xl border border-white/10 bg-[#092719] p-5 text-[#f8f7f0] shadow-[0_18px_50px_rgba(0,0,0,.25)] md:p-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
-            <CalendarDays className="h-3.5 w-3.5 text-[#f0bd3a]" />
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/5 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-white/75">
+            <CalendarDays className="h-4 w-4 text-[#f0bd3a]" />
             Quadro de Serviço
           </div>
-          <h1 className="text-2xl font-black md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-[28px] font-black leading-tight md:text-4xl" style={{ fontFamily: "Merriweather, serif" }}>
             Escalas Publicadas
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base">
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/75 md:text-base">
             Consulta global das funções do Pelotão, xerife da semana, sub-xerife e faxina de segunda a sexta.
           </p>
         </section>
@@ -66,11 +66,11 @@ export default function ServiceBoard() {
             {board.map((item: any) => (
               <Card key={`${item.companhia}-${item.peloton}-${item.week?.weekStart}`} className="overflow-hidden border-border/50 bg-card shadow-sm">
                 <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-                <CardContent className="p-5">
+                <CardContent className="p-4 md:p-5">
                   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-[#c4a84b]" />
-                      <h2 className="text-lg font-black text-[#1a3a2a]">
+                    <div className="flex items-start gap-2">
+                      <Shield className="mt-0.5 h-5 w-5 shrink-0 text-[#c4a84b]" />
+                      <h2 className="text-lg font-black leading-snug text-[#1a3a2a] dark:text-[#c4a84b]">
                         {item.companhia}ª Companhia / {item.peloton}º Pelotão
                       </h2>
                     </div>
@@ -82,8 +82,8 @@ export default function ServiceBoard() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {item.week?.dutyDate && (
                       <div className="col-span-full rounded-lg border border-green-200 bg-green-50/50 p-3 dark:border-green-900/50 dark:bg-green-950/20">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-green-700 dark:text-green-400">Serviço de Dia</p>
-                        <p className="mt-1 text-sm font-black text-green-800 dark:text-green-300">
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-green-700 dark:text-green-400">Serviço de Dia</p>
+                        <p className="mt-1 text-base font-black text-green-800 dark:text-green-300">
                           {formatDate(item.week.dutyDate)}
                         </p>
                       </div>
@@ -95,8 +95,8 @@ export default function ServiceBoard() {
                   </div>
 
                   {item.week?.aditamento && (
-                    <div className="mt-4 rounded-lg bg-[#f5f2e8] p-3 text-sm">
-                      <span className="font-bold text-[#1a3a2a]">Aditamento: </span>
+                    <div className="mt-4 rounded-lg bg-[#f5f2e8] p-3 text-sm leading-relaxed dark:bg-white/5">
+                      <span className="font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Aditamento: </span>
                       {item.week.aditamento}
                     </div>
                   )}
@@ -104,18 +104,18 @@ export default function ServiceBoard() {
                   <div className="mt-5">
                     <div className="mb-3 flex items-center gap-2">
                       <Users className="h-4 w-4 text-[#c4a84b]" />
-                      <h3 className="text-sm font-black uppercase tracking-widest text-[#1a3a2a]">Faxina</h3>
+                      <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#1a3a2a] dark:text-[#c4a84b]">Faxina</h3>
                     </div>
                     <div className="space-y-2">
                       {(item.week?.cleaning ?? []).map((day: any) => (
-                        <div key={day.weekday} className="flex flex-col gap-1 rounded-lg border border-border/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div key={day.weekday} className="flex flex-col gap-2 rounded-lg border border-border/60 p-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-bold text-foreground">{dayLabels[day.weekday] || "Dia"}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="mt-0.5 text-xs text-muted-foreground">
                               {day.serviceDate ? new Date(`${day.serviceDate}T00:00:00`).toLocaleDateString("pt-BR") : ""}
                             </p>
                           </div>
-                          <p className="text-sm font-semibold text-[#1a3a2a]">
+                          <p className="text-sm font-semibold leading-relaxed text-[#1a3a2a] dark:text-[#c4a84b] sm:text-right">
                             {day.studentNames?.length ? day.studentNames.join(", ") : "Sem escala"}
                           </p>
                         </div>
@@ -135,9 +135,9 @@ export default function ServiceBoard() {
 
 function Info({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-[#f5f2e8] p-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-black text-[#1a3a2a]">{value || "Não definido"}</p>
+    <div className="rounded-lg border border-border/60 bg-[#f5f2e8] p-3 dark:bg-white/5">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-black leading-relaxed text-[#1a3a2a] dark:text-[#c4a84b]">{value || "Não definido"}</p>
     </div>
   );
 }
