@@ -78,19 +78,19 @@ interface DocumentData {
   guiaTransporte: string;
 }
 
-const PARTE_DEFAULT_RELATO = "Considerando que a data natalícia deste Aluno Soldado PM é 18 de abril de 1985, conforme cópia da identidade em anexo.\nSolicito a possibilidade de que seja concedida a dispensa deste Aluno Soldado das escalas de serviço desta Unidade da PMAM no dia 18 de abril de 2026, fins de congraçamento junto aos familiares e amigos.";
+const PARTE_DEFAULT_RELATO = "";
 
 const defaultValues: Record<DocType, DocumentData> = {
   parte: {
     type: "parte",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Comandante da Companhia de Alunos do CFAP",
     assunto: "Solicitação (FAZ)",
     anexo: "___ (Se houver)",
     localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
     parteFatoData: new Date().toLocaleDateString("pt-BR"),
-    parteFatoHora: "08:30",
-    parteFatoLocal: "Sala de Instrução 03",
+    parteFatoHora: "",
+    parteFatoLocal: "",
     parteRelato: PARTE_DEFAULT_RELATO,
     parteFecho: "Respeitosamente,",
     reqNomeCompleto: "",
@@ -109,7 +109,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   requerimento: {
     type: "requerimento",
-    remetente: "ALUNO SOLDADO PM SILVA",
+    remetente: "",
     destinatario: "ILUSTRÍSSIMO SENHOR DIRETOR DO CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS",
     assunto: "Requerimento Administrativo",
     anexo: "",
@@ -119,11 +119,11 @@ const defaultValues: Record<DocType, DocumentData> = {
     parteFatoLocal: "",
     parteRelato: "",
     parteFecho: "",
-    reqNomeCompleto: "Felipe da Silva Santos",
-    reqMatricula: "123.456-7 A",
-    reqPelotao: "3º Pelotão - 1ª Companhia",
-    reqSolicitacao: "Realização de Segunda Chamada de Avaliação Pedagógica",
-    reqJustificativa: "Requer a V.S.ª a autorização para a realização da prova de segunda chamada da disciplina de 'Regulamento Disciplinar da PMAM (RDPMAM)', realizada no dia 04 de junho de 2026, tendo em vista que este requerente encontrava-se impossibilitado de comparecer na data prevista devido a dispensa médica devidamente homologada pela Policlínica da PMAM, conforme atestado em anexo.",
+    reqNomeCompleto: "",
+    reqMatricula: "",
+    reqPelotao: "",
+    reqSolicitacao: "",
+    reqJustificativa: "",
     defesaFatoRef: "",
     defesaTexto: "",
     guiaDestino: "",
@@ -135,7 +135,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   defesa: {
     type: "defesa",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Chefe da Seção de Justiça e Disciplina do CFAP",
     assunto: "Apresentação de Justificativa de Fato Apontado",
     anexo: "",
@@ -150,8 +150,8 @@ const defaultValues: Record<DocType, DocumentData> = {
     reqPelotao: "",
     reqSolicitacao: "",
     reqJustificativa: "",
-    defesaFatoRef: "FAT-048/2026",
-    defesaTexto: "Em atenção ao fato apontado sob registro FAT-048/2026, referente ao suposto atraso de 10 minutos para a formatura matinal do dia 03 de junho de 2026, venho expor e justificar que o atraso ocorreu devido a uma pane mecânica no veículo particular deste discente a caminho do quartel. Salienta-se que, tão logo resolvido o imprevisto, o discente apresentou-se imediatamente ao oficial de dia, justificando o ocorrido e solicitando sua inclusão no dispositivo formado. Solicito a atenuação do fato sob os preceitos do Art. 22 do Manual do Aluno.",
+    defesaFatoRef: "",
+    defesaTexto: "",
     guiaDestino: "",
     guiaIda: "",
     guiaVolta: "",
@@ -161,7 +161,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   guia: {
     type: "guia",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Comandante do Corpo de Alunos do CFAP",
     assunto: "Solicitação de Guia de Trânsito",
     anexo: "",
@@ -178,11 +178,11 @@ const defaultValues: Record<DocType, DocumentData> = {
     reqJustificativa: "",
     defesaFatoRef: "",
     defesaTexto: "",
-    guiaDestino: "Parintins - AM",
-    guiaIda: "12/06/2026",
-    guiaVolta: "15/06/2026",
-    guiaMotivo: "Visita familiar durante o período de folga regulamentar de fim de semana prolongado.",
-    guiaTransporte: "Transporte hidroviário de linha regular",
+    guiaDestino: "",
+    guiaIda: "",
+    guiaVolta: "",
+    guiaMotivo: "",
+    guiaTransporte: "",
     anexosBase64: []
   }
 };
@@ -884,10 +884,10 @@ window.print();
       <section className="military-page-hero border-b px-4 py-3 print:hidden md:px-0 md:py-6">
         <div className="container text-center">
           <FileText className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
-          <h1 className="text-xl font-bold text-[#1a3a2a] dark:text-[#e2ca76] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl font-bold text-[#1a3a2a] dark:text-[#e2ca76] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Gerador de Documentos Militares
           </h1>
-          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-3 md:text-base">
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
@@ -919,7 +919,7 @@ window.print();
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
             <Card className="border-border/50 bg-card text-card-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tipo de Documento</label>
                     <Select
@@ -992,16 +992,16 @@ window.print();
                       const extension = item.fileName.split(".").pop()?.toUpperCase() || "DOC";
                       return (
                         <div key={item.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a] dark:text-[#e2ca76]">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-xs font-bold text-[#1a3a2a] dark:text-[#e2ca76]">
                             {extension.slice(0, 4)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                            <p className="truncate text-[11px] text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground">
                               {item.description || item.fileName}
                             </p>
                           </div>
-                          <Button asChild size="sm" variant="outline" className="h-8 shrink-0 gap-1 bg-white text-foreground">
+                          <Button asChild size="sm" variant="outline" className="h-10 shrink-0 gap-1 bg-white text-foreground sm:h-9">
                             <a href={item.fileUrl} target="_blank" rel="noreferrer" download={item.fileName}>
                               <Download className="h-3.5 w-3.5" />
                               Baixar
