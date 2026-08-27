@@ -190,32 +190,35 @@ export default function BottomNavigation() {
   return (
     <>
       {/* Bottom Bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] md:hidden">
-        <div className="bottom-nav-glass mx-auto flex max-w-md items-center justify-around gap-1 rounded-2xl px-2 py-1.5">
+      <nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] md:hidden" aria-label="Navegação principal">
+        <div className="bottom-nav-glass mx-auto flex max-w-md items-stretch justify-around gap-1 rounded-2xl px-1.5 py-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
               <button
                 key={`${item.label}-${item.path}`}
+                type="button"
                 onClick={() => (item.path === "__more" ? setMoreOpen(true) : goTo(item.path))}
-                className={`relative flex min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-[8.5px] font-black transition-all duration-300 ${
-                  active ? "text-[#f0bd3a]" : "text-white/60 hover:text-white"
+                className={`relative flex min-h-12 min-w-[3.65rem] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[11px] font-extrabold leading-none transition-all duration-300 ${
+                  active ? "text-[#f0bd3a]" : "text-white/70 hover:text-white"
                 }`}
                 title={item.label}
+                aria-current={active ? "page" : undefined}
+                aria-label={item.path === "__more" ? "Abrir mais opções" : item.label}
               >
                 <span
-                  className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ${
                     active
                       ? "bg-[#1a3a2a] text-[#f0bd3a] shadow-[0_0_0_1px_rgba(240,189,58,.22)]"
                       : "bg-transparent"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[2.25]" />
+                  <Icon className="h-5 w-5 shrink-0 stroke-[2.25]" />
                 </span>
-                <span className="leading-none">{item.label}</span>
+                <span className="max-w-full truncate">{item.label}</span>
                 {active && (
-                  <span className="absolute -bottom-0.5 h-1 w-4 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
+                  <span className="absolute -bottom-0.5 h-1 w-5 rounded-full bg-[#f0bd3a] shadow-[0_0_8px_#f0bd3a]" />
                 )}
               </button>
             );
@@ -229,83 +232,87 @@ export default function BottomNavigation() {
           side="bottom"
           className="mx-auto max-w-md rounded-t-2xl border-white/10 bg-[#062417]/95 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 text-white backdrop-blur-xl md:hidden animate-in fade-in-50 slide-in-from-bottom-10 duration-300"
         >
-          <SheetHeader className="px-1 pb-2 pt-1 text-left border-b border-white/10 flex flex-row items-center justify-between">
-            <SheetTitle className="text-white font-bold text-base">Menu & Acessos</SheetTitle>
+          <SheetHeader className="flex flex-row items-center justify-between border-b border-white/10 px-1 pb-3 pt-1 text-left">
+            <SheetTitle className="text-base font-bold text-white">Menu & Acessos</SheetTitle>
           </SheetHeader>
 
-          <div className="max-h-[68vh] overflow-y-auto pr-0.5 py-3 space-y-3">
-            
-            {/* SEÇÃO SUPERIOR: BOTÕES DE LOGIN / PERFIL DO USUÁRIO */}
+          <div className="max-h-[68vh] space-y-4 overflow-y-auto py-3 pr-0.5">
             {isStudent ? (
-              <div className="rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-2.5 flex items-center justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-3">
                 <button
+                  type="button"
                   onClick={() => goTo("/perfil-aluno")}
-                  className="flex items-center gap-2.5 min-w-0 text-left flex-1"
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
+                  <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
                     {studentPhoto ? (
                       <img src={studentPhoto} alt="Foto" className="h-full w-full object-cover" />
                     ) : (
                       <span className="flex h-full w-full items-center justify-center">
-                        <User className="h-4 w-4 text-[#c4a84b]" />
+                        <User className="h-5 w-5 text-[#c4a84b]" />
                       </span>
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-[#f0bd3a] truncate">{studentName}</p>
-                    <p className="text-[10px] text-white/60">Ver Meu Perfil</p>
+                    <p className="truncate text-sm font-black text-[#f0bd3a]">{studentName}</p>
+                    <p className="text-xs text-white/65">Ver meu perfil</p>
                   </div>
                 </button>
                 <button
+                  type="button"
                   onClick={handleStudentLogout}
-                  className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/15 px-2.5 py-1.5 text-[11px] font-bold text-red-200 hover:bg-red-500/25 transition-colors"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/15 px-3 text-xs font-bold text-red-200 transition-colors hover:bg-red-500/25"
                   title="Sair da sessão"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
+                  <LogOut className="h-4 w-4" />
                   Sair
                 </button>
               </div>
             ) : user ? (
-              <div className="rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-2.5 flex items-center justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-3">
                 <button
+                  type="button"
                   onClick={() => goTo("/perfil")}
-                  className="flex items-center gap-2.5 min-w-0 text-left flex-1"
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
+                  <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
                     {userPhoto ? (
                       <img src={userPhoto} alt="Foto" className="h-full w-full object-cover" />
                     ) : (
                       <span className="flex h-full w-full items-center justify-center">
-                        <User className="h-4 w-4 text-[#c4a84b]" />
+                        <User className="h-5 w-5 text-[#c4a84b]" />
                       </span>
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-[#f0bd3a] truncate">{userName}</p>
-                    <p className="text-[10px] text-white/60">Ver Meu Perfil</p>
+                    <p className="truncate text-sm font-black text-[#f0bd3a]">{userName}</p>
+                    <p className="text-xs text-white/65">Ver meu perfil</p>
                   </div>
                 </button>
                 <button
+                  type="button"
                   onClick={handleUserLogout}
-                  className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/15 px-2.5 py-1.5 text-[11px] font-bold text-red-200 hover:bg-red-500/25 transition-colors"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/15 px-3 text-xs font-bold text-red-200 transition-colors hover:bg-red-500/25"
                   title="Sair da sessão"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
+                  <LogOut className="h-4 w-4" />
                   Sair
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <button
+                  type="button"
                   onClick={() => goTo("/entrar")}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/40 bg-[#1a3a2a] px-3 py-2.5 text-center text-xs font-bold text-[#f0bd3a] shadow-sm hover:bg-[#234b36] transition-all"
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/40 bg-[#1a3a2a] px-3 text-center text-sm font-bold text-[#f0bd3a] shadow-sm transition-all hover:bg-[#234b36]"
                 >
                   <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
                   <span>Acesso Aluno</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => goTo("/xerife")}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/20 bg-white/5 px-3 py-2.5 text-center text-xs font-bold text-white/90 hover:bg-white/10 hover:border-[#c4a84b]/40 transition-all"
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/20 bg-white/5 px-3 text-center text-sm font-bold text-white/90 transition-all hover:border-[#c4a84b]/40 hover:bg-white/10"
                 >
                   <Star className="h-4 w-4 text-[#c4a84b]" />
                   <span>Posto Comando</span>
@@ -313,7 +320,6 @@ export default function BottomNavigation() {
               </div>
             )}
 
-            {/* SEÇÃO INFERIOR: GRADE DE ITENS COMPACTA (3 COLUNAS) */}
             <div className="grid grid-cols-3 gap-2 pt-1">
               {gridItems.map((item) => {
                 const Icon = item.icon;
@@ -321,28 +327,29 @@ export default function BottomNavigation() {
                 return (
                   <button
                     key={item.path}
+                    type="button"
                     onClick={() => goTo(item.path)}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2 text-center transition-all duration-200 ${
+                    className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-xl border p-2.5 text-center transition-all duration-200 ${
                       active
                         ? "border-[#f0bd3a]/40 bg-[#145c3a]/50 text-[#f0bd3a] shadow-md shadow-[#145c3a]/20"
-                        : "border-white/5 bg-white/5 text-white/80 hover:bg-white/10 hover:border-[#c4a84b]/20"
+                        : "border-white/5 bg-white/5 text-white/85 hover:border-[#c4a84b]/20 hover:bg-white/10"
                     }`}
+                    aria-current={active ? "page" : undefined}
                   >
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
                         active
-                          ? "bg-[#0b3323] text-[#f0bd3a] border border-[#f0bd3a]/30"
-                          : "bg-[#c4a84b]/10 text-[#c4a84b] border border-[#c4a84b]/20"
+                          ? "border-[#f0bd3a]/30 bg-[#0b3323] text-[#f0bd3a]"
+                          : "border-[#c4a84b]/20 bg-[#c4a84b]/10 text-[#c4a84b]"
                       }`}
                     >
-                      <Icon className="h-3.5 w-3.5 stroke-[2]" />
+                      <Icon className="h-4 w-4 stroke-[2]" />
                     </span>
-                    <span className="text-[10px] font-bold leading-tight line-clamp-2">{item.label}</span>
+                    <span className="line-clamp-2 text-xs font-bold leading-tight">{item.label}</span>
                   </button>
                 );
               })}
             </div>
-
           </div>
         </SheetContent>
       </Sheet>

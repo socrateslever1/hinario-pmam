@@ -78,19 +78,19 @@ interface DocumentData {
   guiaTransporte: string;
 }
 
-const PARTE_DEFAULT_RELATO = "Considerando que a data natalícia deste Aluno Soldado PM é 18 de abril de 1985, conforme cópia da identidade em anexo.\nSolicito a possibilidade de que seja concedida a dispensa deste Aluno Soldado das escalas de serviço desta Unidade da PMAM no dia 18 de abril de 2026, fins de congraçamento junto aos familiares e amigos.";
+const PARTE_DEFAULT_RELATO = "";
 
 const defaultValues: Record<DocType, DocumentData> = {
   parte: {
     type: "parte",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Comandante da Companhia de Alunos do CFAP",
     assunto: "Solicitação (FAZ)",
     anexo: "___ (Se houver)",
     localData: "Manaus - AM, " + new Date().toLocaleDateString("pt-BR"),
     parteFatoData: new Date().toLocaleDateString("pt-BR"),
-    parteFatoHora: "08:30",
-    parteFatoLocal: "Sala de Instrução 03",
+    parteFatoHora: "",
+    parteFatoLocal: "",
     parteRelato: PARTE_DEFAULT_RELATO,
     parteFecho: "Respeitosamente,",
     reqNomeCompleto: "",
@@ -109,7 +109,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   requerimento: {
     type: "requerimento",
-    remetente: "ALUNO SOLDADO PM SILVA",
+    remetente: "",
     destinatario: "ILUSTRÍSSIMO SENHOR DIRETOR DO CENTRO DE FORMAÇÃO E APERFEIÇOAMENTO DE PRAÇAS",
     assunto: "Requerimento Administrativo",
     anexo: "",
@@ -119,11 +119,11 @@ const defaultValues: Record<DocType, DocumentData> = {
     parteFatoLocal: "",
     parteRelato: "",
     parteFecho: "",
-    reqNomeCompleto: "Felipe da Silva Santos",
-    reqMatricula: "123.456-7 A",
-    reqPelotao: "3º Pelotão - 1ª Companhia",
-    reqSolicitacao: "Realização de Segunda Chamada de Avaliação Pedagógica",
-    reqJustificativa: "Requer a V.S.ª a autorização para a realização da prova de segunda chamada da disciplina de 'Regulamento Disciplinar da PMAM (RDPMAM)', realizada no dia 04 de junho de 2026, tendo em vista que este requerente encontrava-se impossibilitado de comparecer na data prevista devido a dispensa médica devidamente homologada pela Policlínica da PMAM, conforme atestado em anexo.",
+    reqNomeCompleto: "",
+    reqMatricula: "",
+    reqPelotao: "",
+    reqSolicitacao: "",
+    reqJustificativa: "",
     defesaFatoRef: "",
     defesaTexto: "",
     guiaDestino: "",
@@ -135,7 +135,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   defesa: {
     type: "defesa",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Chefe da Seção de Justiça e Disciplina do CFAP",
     assunto: "Apresentação de Justificativa de Fato Apontado",
     anexo: "",
@@ -150,8 +150,8 @@ const defaultValues: Record<DocType, DocumentData> = {
     reqPelotao: "",
     reqSolicitacao: "",
     reqJustificativa: "",
-    defesaFatoRef: "FAT-048/2026",
-    defesaTexto: "Em atenção ao fato apontado sob registro FAT-048/2026, referente ao suposto atraso de 10 minutos para a formatura matinal do dia 03 de junho de 2026, venho expor e justificar que o atraso ocorreu devido a uma pane mecânica no veículo particular deste discente a caminho do quartel. Salienta-se que, tão logo resolvido o imprevisto, o discente apresentou-se imediatamente ao oficial de dia, justificando o ocorrido e solicitando sua inclusão no dispositivo formado. Solicito a atenuação do fato sob os preceitos do Art. 22 do Manual do Aluno.",
+    defesaFatoRef: "",
+    defesaTexto: "",
     guiaDestino: "",
     guiaIda: "",
     guiaVolta: "",
@@ -161,7 +161,7 @@ const defaultValues: Record<DocType, DocumentData> = {
   },
   guia: {
     type: "guia",
-    remetente: "Al. Sd. PM Nº 1234 Silva",
+    remetente: "",
     destinatario: "Ao Sr. Comandante do Corpo de Alunos do CFAP",
     assunto: "Solicitação de Guia de Trânsito",
     anexo: "",
@@ -178,11 +178,11 @@ const defaultValues: Record<DocType, DocumentData> = {
     reqJustificativa: "",
     defesaFatoRef: "",
     defesaTexto: "",
-    guiaDestino: "Parintins - AM",
-    guiaIda: "12/06/2026",
-    guiaVolta: "15/06/2026",
-    guiaMotivo: "Visita familiar durante o período de folga regulamentar de fim de semana prolongado.",
-    guiaTransporte: "Transporte hidroviário de linha regular",
+    guiaDestino: "",
+    guiaIda: "",
+    guiaVolta: "",
+    guiaMotivo: "",
+    guiaTransporte: "",
     anexosBase64: []
   }
 };
@@ -884,10 +884,10 @@ window.print();
       <section className="military-page-hero border-b px-4 py-3 print:hidden md:px-0 md:py-6">
         <div className="container text-center">
           <FileText className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
-          <h1 className="text-xl font-bold text-[#1a3a2a] dark:text-[#e2ca76] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl font-bold text-[#1a3a2a] dark:text-[#e2ca76] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Gerador de Documentos Militares
           </h1>
-          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-3 md:text-base">
             Crie, formate e exporte documentos oficiais de acordo com os padrões regulamentares do RISG e do CFAP da Polícia Militar do Amazonas.
           </p>
         </div>
@@ -919,7 +919,7 @@ window.print();
           <div className="lg:col-span-5 flex flex-col gap-6 print:hidden">
             <Card className="border-border/50 bg-card text-card-foreground shadow-md">
               <CardContent className="p-6 flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Tipo de Documento</label>
                     <Select
@@ -992,16 +992,16 @@ window.print();
                       const extension = item.fileName.split(".").pop()?.toUpperCase() || "DOC";
                       return (
                         <div key={item.id} className="flex items-center gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a] dark:text-[#e2ca76]">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#1a3a2a]/10 text-xs font-bold text-[#1a3a2a] dark:text-[#e2ca76]">
                             {extension.slice(0, 4)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
-                            <p className="truncate text-[11px] text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground">
                               {item.description || item.fileName}
                             </p>
                           </div>
-                          <Button asChild size="sm" variant="outline" className="h-8 shrink-0 gap-1 bg-white text-foreground">
+                          <Button asChild size="sm" variant="outline" className="h-10 shrink-0 gap-1 bg-white text-foreground sm:h-9">
                             <a href={item.fileUrl} target="_blank" rel="noreferrer" download={item.fileName}>
                               <Download className="h-3.5 w-3.5" />
                               Baixar
@@ -1022,7 +1022,7 @@ window.print();
                   <h3 className="font-bold text-[#1a3a2a] dark:text-[#e2ca76] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
                     Preencher Dados
                   </h3>
-                  <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8">
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="h-10 gap-1 px-3 text-muted-foreground hover:text-destructive sm:h-9">
                     <RotateCcw className="h-3.5 w-3.5" />
                     Limpar
                   </Button>
@@ -1030,15 +1030,15 @@ window.print();
 
                 {/* Busca e Importação Rápida */}
                 <div className="flex flex-col gap-3 rounded-lg border border-[#c4a84b]/20 bg-[#c4a84b]/5 p-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Busca e Importação Rápida</span>
-                  <div className="grid grid-cols-2 gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Busca e Importação Rápida</span>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-foreground/70">Numérica (4 dígitos)</label>
+                      <label className="text-xs font-semibold text-foreground/70">Numérica (4 dígitos)</label>
                       <Input
                         placeholder="Ex: 4122"
                         value={searchNumerica}
                         maxLength={4}
-                        className="h-8 text-xs bg-white text-black"
+                        className="h-11 bg-white text-sm text-black sm:h-9"
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
                           setSearchNumerica(val);
@@ -1046,11 +1046,11 @@ window.print();
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-foreground/70">CI / RG</label>
+                      <label className="text-xs font-semibold text-foreground/70">CI / RG</label>
                       <Input
                         placeholder="Ex: 27666"
                         value={searchRgInput}
-                        className="h-8 text-xs bg-white text-black"
+                        className="h-11 bg-white text-sm text-black sm:h-9"
                         onChange={(e) => setSearchRgInput(e.target.value)}
                         onBlur={() => {
                           if (searchRgInput.trim().length >= 3) {
@@ -1068,7 +1068,7 @@ window.print();
                       />
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     * Ao preencher a numérica ou RG/CI, os campos da Parte e Requerimento serão atualizados automaticamente.
                   </p>
                 </div>
@@ -1151,7 +1151,7 @@ window.print();
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-6 text-[10px] px-2 bg-white"
+                              className="h-10 bg-white px-3 text-xs sm:h-9"
                               onClick={() => {
                                 const current = docData.parteRelato || "";
                                 const prefix = current.length > 0 ? (current.endsWith("\n") ? "" : "\n") : "";
@@ -1163,7 +1163,7 @@ window.print();
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-6 text-[10px] px-2 bg-white"
+                              className="h-10 bg-white px-3 text-xs sm:h-9"
                               onClick={() => handleFieldChange("parteRelato", docData.parteRelato + (docData.parteRelato ? "\n" : "") + "Solicito a V.S.ª a possibilidade de ")}
                             >
                               + Solicitação
@@ -1197,7 +1197,7 @@ window.print();
                   {/* Campos específicos do REQUERIMENTO */}
                   {docType === "requerimento" && (
                     <>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-foreground/70">Nome Completo do Aluno</label>
                           <Input 
@@ -1284,7 +1284,7 @@ window.print();
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-foreground/70">Data de Ida</label>
                           <Input 
@@ -1365,13 +1365,13 @@ window.print();
                     Brasões Personalizados (Opcional)
                   </span>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Esquerdo (PMAM)</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Brasão Esquerdo (PMAM)</label>
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 dark:text-[#e2ca76] sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1386,11 +1386,11 @@ window.print();
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Direito (CFAP)</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Brasão Direito (CFAP)</label>
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 dark:text-[#e2ca76] sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1409,7 +1409,7 @@ window.print();
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-8 font-semibold"
+                      className="h-10 w-full text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
                       onClick={() => {
                         const updated = { ...docData };
                         delete updated.imagemCabecalhoEsq;
@@ -1438,7 +1438,7 @@ window.print();
                           <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
-                            className="absolute top-0 right-0 p-0.5 bg-red-600 text-white rounded-bl hover:bg-red-700"
+                            className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-bl bg-red-600 text-white hover:bg-red-700"
                             onClick={() => {
                               const updatedAnexos = [...(docData.anexosBase64 || [])];
                               updatedAnexos.splice(idx, 1);
@@ -1458,7 +1458,7 @@ window.print();
                         type="file"
                         accept="image/*"
                         id="document-attachment-file"
-                        className="text-xs h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1482,7 +1482,7 @@ window.print();
                       />
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     * O Xerife Geral poderá visualizar e rolar as folhas adicionais com os anexos.
                   </p>
                 </div>
@@ -1497,10 +1497,10 @@ window.print();
 
                   {docData.assinaturaDigital ? (
                     <div className="rounded border border-green-200 bg-green-50/50 p-3 space-y-2">
-                      <p className="text-[10px] text-green-800 font-mono font-bold uppercase tracking-wider text-center">
+                      <p className="text-center font-mono text-xs font-bold uppercase tracking-wider text-green-800">
                         ✓ Documento Assinado Digitalmente
                       </p>
-                      <div className="text-[9px] text-green-700 font-mono break-words text-left space-y-0.5">
+                      <div className="space-y-1 break-words text-left font-mono text-xs leading-relaxed text-green-700">
                         {docData.assinaturaDigital.split(" | ").map((line, i) => (
                           <p key={i} className="leading-tight">{line}</p>
                         ))}
@@ -1508,7 +1508,7 @@ window.print();
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 h-7"
+                        className="h-10 w-full text-xs text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
                         onClick={() => {
                           const updated = { ...docData };
                           delete updated.assinaturaDigital;
@@ -1552,8 +1552,7 @@ window.print();
                           const signedAt = new Date().toISOString();
                           const deviceDesc = getShortDeviceDesc(navigator.userAgent);
                           const screenRes = `${window.screen.width}x${window.screen.height}`;
-                          const sessionTokenTrunc = session.sessionToken ? session.sessionToken.slice(0, 8) + "..." : "N/A";
-                          
+                                                    
                           const locStr = (lat != null && lon != null) 
                             ? `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}` 
                             : "Não autorizada/indisponível";
@@ -1562,7 +1561,6 @@ window.print();
                             `Signatário: ${nomeCompleto.toUpperCase()}`,
                             `CPF: ${cpfVal || "Não informado"}`,
                             `CI: ${rgVal || "Não informado"}`,
-                            `Sessão: ${sessionTokenTrunc}`,
                             `GPS: ${locStr}`,
                             `Dispositivo: ${deviceDesc} (${screenRes})`,
                             `Chave: ${hash}`
@@ -1628,7 +1626,7 @@ window.print();
                   {enviarParteMutation.isPending ? "Enviando..." : "Enviar via Sistema"}
                 </Button>
                 {!docData.assinaturaDigital && (
-                  <p className="text-[10px] text-muted-foreground text-center">
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
                     * Assine digitalmente antes de enviar via sistema.
                   </p>
                 )}

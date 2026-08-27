@@ -368,10 +368,10 @@ export default function Grades() {
           ) : (
             <Trophy className="mx-auto mb-1.5 h-6 w-6 text-[#c4a84b] md:mb-3 md:h-10 md:w-10" />
           )}
-          <h1 className="text-xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+          <h1 className="text-2xl font-bold text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Notas do Curso
           </h1>
-          <p className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-3 md:text-base">
             {studentName} (Nº {studentNumber}) — Acompanhe seu desempenho acadêmico, média geral e classificação.
           </p>
         </div>
@@ -380,33 +380,33 @@ export default function Grades() {
 
       <main className="container flex-1 px-4 py-3 md:py-8">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex flex-wrap gap-2 justify-end">
-            <Button onClick={() => setLocation('/lançar-notas')} className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620] text-white">
+          <div className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            <Button onClick={() => setLocation('/lançar-notas')} className="w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#0f2620] sm:w-auto">
               <Plus className="h-4 w-4" />
               Lançar Notas
             </Button>
-            <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <Button variant="outline" onClick={handleLogout} className="w-full gap-2 sm:w-auto">
               <LogOut className="h-4 w-4" />
               Sair
             </Button>
           </div>
 
-          <div className="mb-5 grid grid-cols-3 gap-2 sm:mb-8 sm:gap-4">
+          <div className="mb-5 grid grid-cols-1 gap-2 sm:mb-8 sm:grid-cols-3 sm:gap-4">
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
               <CardContent className="p-2.5 sm:p-4">
-                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Média geral</p>
+                <p className="text-sm leading-tight text-muted-foreground">Média geral</p>
                 <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{average.toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
               <CardContent className="p-2.5 sm:p-4">
-                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Notas lançadas</p>
+                <p className="text-sm leading-tight text-muted-foreground">Notas lançadas</p>
                 <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{grades.length}</p>
               </CardContent>
             </Card>
             <Card className="border-border/50 bg-white dark:bg-zinc-900/60 dark:border-white/10 text-foreground dark:text-foreground shadow-sm">
               <CardContent className="p-2.5 sm:p-4">
-                <p className="text-[11px] leading-tight text-muted-foreground sm:text-sm">Disciplinas disponíveis</p>
+                <p className="text-sm leading-tight text-muted-foreground">Disciplinas disponíveis</p>
                 <p className="text-xl font-bold leading-none text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">{disciplines.length}</p>
               </CardContent>
             </Card>
@@ -416,7 +416,7 @@ export default function Grades() {
 
         {disciplines.length === 0 && (
           <Card className="mb-3 border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100 md:mb-6">
-            <CardContent className="flex gap-2.5 p-3 text-xs font-medium md:gap-3 md:p-6 md:text-sm">
+            <CardContent className="flex gap-2.5 p-3 text-sm font-medium leading-relaxed md:gap-3 md:p-6">
               <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
               <p>Nenhuma disciplina foi criada pelo xerife ainda.</p>
             </CardContent>
@@ -474,11 +474,11 @@ export default function Grades() {
                             const hasGrade = entry.grade !== null && entry.grade !== undefined;
                             const status = hasGrade ? "finalizado" : (disciplineInfo?.status || "em_breve");
                             if (status === "em_andamento") {
-                              return <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-[10px]">Em Andamento</Badge>;
+                              return <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-xs">Em Andamento</Badge>;
                             } else if (status === "finalizado") {
-                              return <Badge variant="secondary" className="text-[10px]">Finalizado</Badge>;
+                              return <Badge variant="secondary" className="text-xs">Finalizado</Badge>;
                             } else {
-                              return <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-[10px]">Em Breve</Badge>;
+                              return <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-xs">Em Breve</Badge>;
                             }
                           })()}
                         </div>

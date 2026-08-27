@@ -540,13 +540,13 @@ export default function AdministrativeRoom() {
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Link href="/xerife">
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border bg-white dark:bg-zinc-900">
+              <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full border bg-white dark:bg-zinc-900 sm:h-9 sm:w-9">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-black text-[#1a3a2a] dark:text-[#c4a84b]">Sala Administrativa</h1>
-              <p className="text-xs text-muted-foreground">Área administrativa do comando para validar Fatos Observados, formalizar Licença Caçada e acompanhar baixados.</p>
+              <h1 className="text-2xl font-black text-[#1a3a2a] dark:text-[#c4a84b] sm:text-3xl">Sala Administrativa</h1>
+              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Área administrativa do comando para validar Fatos Observados, formalizar Licença Cassada (LC) e acompanhar baixados.</p>
             </div>
           </div>
         </div>
@@ -597,18 +597,18 @@ export default function AdministrativeRoom() {
           </CardContent>
         </Card>
 
-        <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
           <div className="flex min-h-16 items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-2.5 shadow-sm">
             <span className="h-8 w-1 shrink-0 rounded-full bg-amber-500" />
-            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-amber-800 dark:text-amber-200">FO pendente</p><p className="mt-0.5 text-xl font-black leading-none">{pendingFoItems.length}</p></div>
+            <div className="min-w-0"><p className="text-xs font-black uppercase leading-tight text-amber-800 dark:text-amber-200">FO pendente</p><p className="mt-0.5 text-xl font-black leading-none">{pendingFoItems.length}</p></div>
           </div>
           <div className="flex min-h-16 items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-2.5 shadow-sm">
             <span className="h-8 w-1 shrink-0 rounded-full bg-red-500" />
-            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-red-800 dark:text-red-200">LC a decidir</p><p className="mt-0.5 text-xl font-black leading-none">{lcItems.length}</p></div>
+            <div className="min-w-0"><p className="text-xs font-black uppercase leading-tight text-red-800 dark:text-red-200">LC a decidir</p><p className="mt-0.5 text-xl font-black leading-none">{lcItems.length}</p></div>
           </div>
           <div className="flex min-h-16 items-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 p-2.5 shadow-sm">
             <span className="h-8 w-1 shrink-0 rounded-full bg-blue-500" />
-            <div className="min-w-0"><p className="text-[9px] font-black uppercase leading-tight text-blue-800 dark:text-blue-200">Baixados</p><p className="mt-0.5 text-xl font-black leading-none">{baixadoItems.length}</p></div>
+            <div className="min-w-0"><p className="text-xs font-black uppercase leading-tight text-blue-800 dark:text-blue-200">Baixados</p><p className="mt-0.5 text-xl font-black leading-none">{baixadoItems.length}</p></div>
           </div>
         </div>
 

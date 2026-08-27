@@ -226,11 +226,11 @@ export default function HymnDetail({ catalog = "hymns" }: HymnDetailProps) {
               {String(hymn.number).padStart(2, "0")}
             </div>
             <div className="min-w-0">
-              <p className="mb-0.5 text-[11px] font-black uppercase tracking-[0.2em] text-[#f0bd3a] md:text-xs">
+              <p className="mb-1 text-xs font-black uppercase tracking-[0.16em] text-[#f0bd3a]">
                 {categoryLabels[hymn.category] || hymn.category}
               </p>
               <h1
-                className="truncate text-xl font-black leading-tight text-white md:text-3xl font-serif drop-shadow-sm"
+                className="line-clamp-2 text-2xl font-black leading-tight text-white font-serif drop-shadow-sm md:text-3xl"
               >
                 {hymn.title}
               </h1>

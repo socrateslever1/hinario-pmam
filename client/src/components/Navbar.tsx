@@ -48,12 +48,12 @@ const COMMAND_ROLES = new Set([
 const studentLinks = [
   { href: "/", label: "Início", icon: Shield },
   { href: "/sala-de-aula", label: "Sala de Aula", icon: LayoutGrid },
+  { href: "/documentos", label: "Meus Documentos", icon: FileText },
   { href: "/hinos", label: "Hinos", icon: Music },
   { href: "/charlie-mike", label: "Charlie Mike", icon: ListMusic },
   { href: "/drill", label: "Ordem Unida", icon: Target },
   { href: "/historia-cfap", label: "Memória do CFAP", icon: Medal },
   { href: "/cfap-2026", label: "CFAP 2026", icon: Shield },
-  { href: "/documentos", label: "Meus Documentos", icon: FileText },
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
@@ -83,8 +83,8 @@ const commandLinks = [
 
 function ProfileAvatar({ src, alt }: { src?: string | null; alt: string }) {
   return (
-    <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/40 bg-[#1a3a2a]/10 dark:bg-zinc-800 shadow-sm">
-      <span className="absolute inset-0 flex h-full w-full items-center justify-center">
+    <span className="relative flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/40 bg-[#1a3a2a]/10 shadow-sm dark:bg-zinc-800">
+      <span className="absolute inset-0 flex items-center justify-center">
         <User className="h-4 w-4 text-[#c4a84b]" />
       </span>
       {src ? (
@@ -108,7 +108,6 @@ function ProfileIdentityLink({
   photoUrl,
   photoAlt,
   onClick,
-  tone = "student",
   compact = false,
 }: {
   href: string;
@@ -116,45 +115,39 @@ function ProfileIdentityLink({
   photoUrl?: string | null;
   photoAlt: string;
   onClick?: () => void;
-  tone?: "student" | "command";
   compact?: boolean;
 }) {
-  const colorClass =
-    tone === "student"
-      ? "text-[#1a3a2a] dark:text-[#f0bd3a]"
-      : "text-[#1a3a2a] dark:text-[#c4a84b]";
-
   return (
     <Link
       href={href}
       onClick={onClick}
-      className={`inline-flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-bold leading-tight transition-all duration-200 hover:bg-[#1a3a2a]/10 dark:hover:bg-white/10 ${colorClass} ${
-        compact ? "w-full max-w-full justify-start" : "max-w-[18rem]"
+      className={`inline-flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-bold leading-tight text-[#1a3a2a] transition-colors hover:bg-[#1a3a2a]/10 dark:text-[#c4a84b] dark:hover:bg-white/10 ${
+        compact ? "w-full justify-start" : "max-w-[18rem]"
       }`}
       title={label}
     >
       <ProfileAvatar src={photoUrl} alt={photoAlt} />
-      <span className="min-w-0 truncate font-bold text-xs">{label}</span>
+      <span className="min-w-0 truncate">{label}</span>
     </Link>
   );
 }
 
 function Brand() {
   return (
-    <Link href="/" className="flex min-w-0 items-center gap-2 no-underline">
+    <Link href="/" className="flex min-w-0 items-center gap-2.5 no-underline">
       <img
         src={LOGO_URL}
         alt="Brasão PMAM"
-        className="h-9 w-9 shrink-0 object-contain md:h-10 md:w-10"
+        className="h-10 w-10 shrink-0 object-contain md:h-11 md:w-11"
       />
       <div className="min-w-0">
         <p
-          className="truncate text-xs font-black uppercase leading-tight tracking-[0.08em] text-[#1a3a2a] dark:text-[#c4a84b] md:text-sm"
+          className="truncate text-sm font-black uppercase leading-tight tracking-[0.08em] text-[#1a3a2a] dark:text-[#c4a84b] md:text-base"
           style={{ fontFamily: "Merriweather, serif" }}
         >
           QG DIGITAL
         </p>
-        <p className="truncate text-[8px] font-semibold uppercase leading-tight tracking-[0.08em] text-muted-foreground md:text-xs">
+        <p className="truncate text-[11px] font-semibold uppercase leading-tight tracking-[0.08em] text-muted-foreground md:text-xs">
           Plataforma Militar
         </p>
       </div>
@@ -187,13 +180,9 @@ export default function Navbar() {
 
   const isCommand = Boolean(!student && user?.role && COMMAND_ROLES.has(user.role));
   const links = isCommand ? commandLinks : student ? studentLinks : publicLinks;
-  const active = (href: string) =>
-    location === href || (href !== "/" && location.startsWith(href));
+  const active = (href: string) => location === href || (href !== "/" && location.startsWith(href));
 
-  const toggleTheme =
-    typeof themeContext?.toggleTheme === "function"
-      ? themeContext.toggleTheme
-      : undefined;
+  const toggleTheme = typeof themeContext?.toggleTheme === "function" ? themeContext.toggleTheme : undefined;
   const theme = themeContext?.theme;
 
   const handleStudentLogout = () => {
@@ -214,12 +203,12 @@ export default function Navbar() {
   const userName = user?.name || "Comandante";
 
   const menu = (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {links.map((item) => (
         <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
           <Button
             variant={active(item.href) ? "default" : "ghost"}
-            className={`w-full justify-start gap-3 ${
+            className={`w-full justify-start gap-3 text-sm ${
               active(item.href)
                 ? "bg-[#1a3a2a] text-white hover:bg-[#234b36] hover:text-white"
                 : "text-[#26332b] hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a] dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white"
@@ -230,29 +219,47 @@ export default function Navbar() {
           </Button>
         </Link>
       ))}
+
       {isCommand && (
         <Link href="/documentos" onClick={() => setOpen(false)}>
-          <Button variant="ghost" className="w-full justify-start gap-3">
+          <Button variant="ghost" className="w-full justify-start gap-3 text-sm">
             <FileText className="h-4 w-4" />
             Documentos Recebidos
           </Button>
         </Link>
       )}
-      <Link href="/xerife" onClick={() => setOpen(false)}>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
-        >
-          <Star className="h-4 w-4" />
-          Posto de Comando
+
+      <Link href="/hinos" onClick={() => setOpen(false)}>
+        <Button variant="ghost" className="w-full justify-start gap-3 text-sm md:hidden">
+          <Search className="h-4 w-4 text-[#c4a84b]" />
+          Buscar no acervo
         </Button>
       </Link>
 
+      {toggleTheme && (
+        <Button variant="ghost" className="w-full justify-start gap-3 text-sm md:hidden" onClick={toggleTheme}>
+          {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
+          {theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}
+        </Button>
+      )}
+
+      {!student && (
+        <Link href="/xerife" onClick={() => setOpen(false)}>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-sm text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
+          >
+            <Star className="h-4 w-4" />
+            Posto de Comando
+          </Button>
+        </Link>
+      )}
+
       <div className="my-2 border-t border-border/40 pt-2">
         {student ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             <Link href="/notas-do-curso" onClick={() => setOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start gap-3">
+              <Button variant="ghost" className="w-full justify-start gap-3 text-sm">
                 <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
                 Notas do Curso
               </Button>
@@ -262,32 +269,30 @@ export default function Navbar() {
               label={studentName}
               photoUrl={studentPhoto}
               photoAlt="Foto do Aluno"
-              tone="student"
               compact
               onClick={() => setOpen(false)}
             />
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+              className="w-full justify-start gap-3 text-sm text-red-600 hover:bg-red-500/10 dark:text-red-400"
               onClick={handleStudentLogout}
             >
               Sair da sessão do aluno
             </Button>
           </div>
         ) : user ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             <ProfileIdentityLink
               href="/perfil"
               label={userName}
               photoUrl={userPhoto}
-              photoAlt="Foto do Comandante"
-              tone="command"
+              photoAlt="Foto do Comando"
               compact
               onClick={() => setOpen(false)}
             />
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+              className="w-full justify-start gap-3 text-sm text-red-600 hover:bg-red-500/10 dark:text-red-400"
               onClick={handleLogout}
             >
               Sair
@@ -295,7 +300,7 @@ export default function Navbar() {
           </div>
         ) : (
           <Link href="/entrar" onClick={() => setOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start gap-3">
+            <Button variant="ghost" className="w-full justify-start gap-3 text-sm">
               <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
               Acesso do Aluno
             </Button>
@@ -307,67 +312,45 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Header Mobile */}
-      <header className="sticky top-0 z-40 border-b border-[#1a3a2a]/20 bg-[#f8f4e8]/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.45rem)] backdrop-blur-xl dark:border-border/40 dark:bg-[#0c0c0e]/95 md:hidden">
-        <div className="flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-40 border-b border-[#1a3a2a]/20 bg-[#f8f4e8]/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] backdrop-blur-xl dark:border-border/40 dark:bg-[#0c0c0e]/95 md:hidden">
+        <div className="flex min-h-12 items-center justify-between gap-2">
           <Brand />
-          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/20 bg-muted/60 px-1.5 py-0.5">
+          <div className="flex shrink-0 items-center gap-1">
             {student ? (
-              <Link href="/perfil-aluno" title={studentName}>
+              <Link href="/perfil-aluno" title={studentName} className="rounded-full p-0.5">
                 <ProfileAvatar src={studentPhoto} alt="Foto do Aluno" />
               </Link>
             ) : user ? (
-              <Link href="/perfil" title={userName}>
-                <ProfileAvatar src={userPhoto} alt="Foto do Comandante" />
+              <Link href="/perfil" title={userName} className="rounded-full p-0.5">
+                <ProfileAvatar src={userPhoto} alt="Foto do Comando" />
               </Link>
             ) : null}
 
-            {toggleTheme && (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="rounded-full"
-                onClick={toggleTheme}
-                aria-label="Alternar tema"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-3.5 w-3.5 text-[#c4a84b]" />
-                ) : (
-                  <Moon className="h-3.5 w-3.5 text-[#c4a84b]" />
-                )}
-              </Button>
-            )}
-            <Link href="/hinos">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="rounded-full"
-                aria-label="Buscar hinos"
-              >
-                <Search className="h-3.5 w-3.5 text-[#c4a84b]" />
-              </Button>
-            </Link>
             <NotificationBell />
+
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button
-                  size="icon-sm"
+                  size="icon"
                   variant="ghost"
                   className="rounded-full"
                   aria-label="Abrir menu"
                   onClick={() => window.dispatchEvent(new Event("open-menu-and-acessos"))}
                 >
-                  <Menu className="h-4 w-4" />
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="right"
-                className="w-72 bg-[#f8f4e8] text-[#17251d] dark:bg-[#15151a] dark:text-foreground"
+                className="w-[min(21rem,88vw)] bg-[#f8f4e8] px-4 text-[#17251d] dark:bg-[#15151a] dark:text-foreground"
               >
                 <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
-                <div className="mt-8">
+                <div className="mt-7">
                   <Brand />
-                  <div className="mt-6">{menu}</div>
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    Formação, rotina, gestão e memória institucional em um só ambiente.
+                  </p>
+                  <div className="mt-5">{menu}</div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -375,7 +358,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Header Desktop */}
       <header className="sticky top-0 z-50 hidden w-full border-b border-[#1a3a2a]/20 bg-[#f8f4e8]/95 backdrop-blur dark:border-border/40 dark:bg-[#0c0c0e]/95 md:block">
         <div className="checkerboard-pattern w-full" />
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
@@ -387,70 +369,35 @@ export default function Navbar() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 text-xs border-[#1a3a2a]/30 text-[#1a3a2a] hover:bg-[#1a3a2a]/10 dark:border-white/20 dark:text-white"
+                    className="gap-1.5 border-[#1a3a2a]/30 text-xs text-[#1a3a2a] hover:bg-[#1a3a2a]/10 dark:border-white/20 dark:text-white"
                   >
                     <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
                     Notas do Curso
                   </Button>
                 </Link>
-                <ProfileIdentityLink
-                  href="/perfil-aluno"
-                  label={studentName}
-                  photoUrl={studentPhoto}
-                  photoAlt="Foto do Aluno"
-                  tone="student"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
-                  onClick={handleStudentLogout}
-                >
+                <ProfileIdentityLink href="/perfil-aluno" label={studentName} photoUrl={studentPhoto} photoAlt="Foto do Aluno" />
+                <Button variant="ghost" size="sm" className="text-xs text-red-600 dark:text-red-400" onClick={handleStudentLogout}>
                   Sair
                 </Button>
               </div>
             ) : user ? (
               <div className="flex items-center gap-2">
-                <ProfileIdentityLink
-                  href="/perfil"
-                  label={userName}
-                  photoUrl={userPhoto}
-                  photoAlt="Foto do Comandante"
-                  tone="command"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
-                  onClick={handleLogout}
-                >
+                <ProfileIdentityLink href="/perfil" label={userName} photoUrl={userPhoto} photoAlt="Foto do Comando" />
+                <Button variant="ghost" size="sm" className="text-xs text-red-600 dark:text-red-400" onClick={handleLogout}>
                   Sair
                 </Button>
               </div>
             ) : (
               <Link href="/entrar">
-                <Button
-                  size="sm"
-                  className="gap-1.5 text-xs bg-[#1a3a2a] text-[#f0bd3a] hover:bg-[#234b36] font-bold border border-[#c4a84b]/40 shadow-sm"
-                >
+                <Button size="sm" className="gap-1.5 border border-[#c4a84b]/40 bg-[#1a3a2a] text-xs font-bold text-[#f0bd3a] shadow-sm hover:bg-[#234b36]">
                   <GraduationCap className="h-4 w-4" />
                   Acesso do Aluno
                 </Button>
               </Link>
             )}
             {toggleTheme && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-9 w-9 rounded-full"
-                onClick={toggleTheme}
-                aria-label="Alternar tema"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4 text-[#c4a84b]" />
-                ) : (
-                  <Moon className="h-4 w-4 text-[#c4a84b]" />
-                )}
+              <Button size="icon" variant="ghost" className="rounded-full" onClick={toggleTheme} aria-label="Alternar tema">
+                {theme === "dark" ? <Sun className="h-4 w-4 text-[#c4a84b]" /> : <Moon className="h-4 w-4 text-[#c4a84b]" />}
               </Button>
             )}
             <NotificationBell />
@@ -474,16 +421,18 @@ export default function Navbar() {
                 </Button>
               </Link>
             ))}
-            <Link href="/xerife">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
-              >
-                <Star className="h-3.5 w-3.5" />
-                Posto de Comando
-              </Button>
-            </Link>
+            {!student && (
+              <Link href="/xerife">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  Posto de Comando
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
       </header>

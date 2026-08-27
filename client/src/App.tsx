@@ -38,7 +38,6 @@ const GradesManagement = lazyWithRetry(() => import("./pages/GradesManagement"))
 const Documents = lazyWithRetry(() => import("./pages/Documents"));
 const StudentProfilePage = lazyWithRetry(() => import("./pages/StudentProfile"));
 const UserProfilePage = lazyWithRetry(() => import("./pages/UserProfile"));
-const XerifeSystemDocs = lazyWithRetry(() => import("./pages/XerifeSystemDocs"));
 const ServiceBoard = lazyWithRetry(() => import("./pages/ServiceBoard"));
 const ClassroomMap = lazyWithRetry(() => import("./pages/ClassroomMap"));
 const AdministrativeRoom = lazyWithRetry(() => import("./pages/AdministrativeRoom"));
@@ -78,7 +77,6 @@ function Router() {
       <Route path="/sala-de-aula/:subview" component={ClassroomMap} />
       <Route path="/sala-administrativa" component={AdministrativeRoom} />
       <Route path="/documentos" component={Documents} />
-      <Route path="/xerife-system-docs" component={XerifeSystemDocs} />
       <Route path="/alterar-senha" component={ChangePassword} />
       <Route path="/gerenciar-acessos">
         <AccessManagement />

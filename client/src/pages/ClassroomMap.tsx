@@ -1294,7 +1294,7 @@ export default function ClassroomMap() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-2.5">
                 <Link href={studentSession ? "/notas-do-curso" : "/"}>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full border border-border bg-white dark:bg-zinc-900">
+                  <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-full border border-border bg-white dark:bg-zinc-900 sm:h-9 sm:w-9">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -1313,7 +1313,7 @@ export default function ClassroomMap() {
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <Select value={companhia} onValueChange={setCompanhia} disabled={!canChangeCompanhia}>
-                  <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[150px] border-border/50">
+                  <SelectTrigger className="h-11 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:h-9 sm:w-[150px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1322,7 +1322,7 @@ export default function ClassroomMap() {
                 </Select>
 
                 <Select value={peloton} onValueChange={setPeloton} disabled={!canChangePelotao}>
-                  <SelectTrigger className="h-9 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:w-[128px] border-border/50">
+                  <SelectTrigger className="h-11 w-full min-w-0 bg-white text-sm font-semibold dark:bg-zinc-900 sm:h-9 sm:w-[128px] border-border/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1359,15 +1359,15 @@ export default function ClassroomMap() {
                 const Icon = opt.icon;
                 return (
                   <Link href={opt.path} key={opt.path}>
-                    <Card className="h-[54px] overflow-hidden border-border/50 bg-white py-0 shadow-sm transition-all duration-300 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 dark:bg-zinc-900 md:h-[56px]">
-                      <CardContent className="flex h-full items-center gap-2 px-2 py-1.5 md:px-2.5">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 text-[#c4a84b]">
+                    <Card className="min-h-16 overflow-hidden border-border/50 bg-white py-0 shadow-sm transition-all duration-300 hover:border-[#c4a84b]/50 hover:bg-[#c4a84b]/5 dark:bg-zinc-900 md:h-[60px] md:min-h-0">
+                      <CardContent className="flex h-full items-center gap-2.5 px-3 py-2.5 md:px-2.5 md:py-1.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#c4a84b]/10 text-[#c4a84b] md:h-7 md:w-7">
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[11px] font-black leading-tight text-foreground md:hidden">{opt.mobileTitle}</p>
+                          <p className="truncate text-xs font-black leading-tight text-foreground md:hidden">{opt.mobileTitle}</p>
                           <p className="hidden truncate text-xs font-bold leading-tight text-foreground md:block">{opt.title}</p>
-                          <p className="mt-0.5 truncate text-[9.5px] leading-tight text-muted-foreground md:hidden">{opt.mobileDesc}</p>
+                          <p className="mt-0.5 truncate text-xs leading-tight text-muted-foreground md:hidden">{opt.mobileDesc}</p>
                           <p className="mt-0.5 hidden truncate text-[10px] leading-tight text-muted-foreground md:block">{opt.desc}</p>
                         </div>
                       </CardContent>
@@ -1387,7 +1387,7 @@ export default function ClassroomMap() {
                   <div className="flex flex-col items-center justify-center border-b pb-5 dark:border-zinc-800">
                     <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-6 py-2 dark:bg-zinc-800 border border-border/50 shadow-inner w-full max-w-sm justify-center">
                       <Laptop className="h-4 w-4 text-[#c4a84b]" />
-                      <span className="text-[9px] font-black uppercase tracking-[0.25em] text-muted-foreground">
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
                         MESA DO INSTRUTOR / QUADRO (FRENTE)
                       </span>
                     </div>
@@ -1402,7 +1402,7 @@ export default function ClassroomMap() {
                         placeholder="Pesquisar por nome, número ou pelotão..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-9 border-border/50 bg-white pl-9 text-sm dark:bg-zinc-800"
+                        className="h-11 border-border/50 bg-white pl-9 text-sm dark:bg-zinc-800 sm:h-9"
                       />
                     </div>
                     {searchQuery && (
@@ -1415,7 +1415,7 @@ export default function ClassroomMap() {
                             <button
                               key={student.id}
                               type="button"
-                              className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-left transition-colors hover:border-[#c4a84b]/60 hover:bg-[#c4a84b]/5"
+                              className="flex min-h-11 min-w-0 items-center gap-2 rounded-md border bg-background px-2 py-2 text-left transition-colors hover:border-[#c4a84b]/60 hover:bg-[#c4a84b]/5"
                               onClick={() => {
                                 if (canOpenStudentRecord) {
                                   setOperationalStudent(student);
@@ -1427,13 +1427,13 @@ export default function ClassroomMap() {
                               {student.fotoUrl ? (
                                 <img src={student.fotoUrl} alt="" className="h-8 w-8 shrink-0 rounded-full border object-cover" />
                               ) : (
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a]/10 text-[10px] font-bold text-[#1a3a2a] dark:text-green-300">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a]/10 text-xs font-bold text-[#1a3a2a] dark:text-green-300">
                                   {student.nomeGuerra.slice(0, 2).toUpperCase()}
                                 </span>
                               )}
                               <span className="min-w-0">
                                 <span className="block truncate text-xs font-bold text-foreground">{student.nomeGuerra}</span>
-                                <span className="block text-[10px] text-muted-foreground">{student.numerica} · {student.deskNumber ? `Carteira ${student.deskNumber}` : "Sem carteira"}</span>
+                                <span className="block text-xs text-muted-foreground">{student.numerica} · {student.deskNumber ? `Carteira ${student.deskNumber}` : "Sem carteira"}</span>
                               </span>
                             </button>
                           ))}

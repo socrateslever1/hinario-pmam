@@ -905,9 +905,9 @@ export default function Drill() {
                     max="30"
                     value={bumboOverlap}
                     onChange={(e) => setBumboOverlap(Number(e.target.value))}
-                    className="w-12 bg-transparent text-center text-xs font-bold focus:outline-none dark:text-white"
+                    className="w-14 bg-transparent text-center text-sm font-bold focus:outline-none dark:text-white"
                   />
-                  <span className="text-[10px] text-muted-foreground">s</span>
+                  <span className="text-xs text-muted-foreground">s</span>
                 </div>
               </div>
               <div className="flex shrink-0 gap-1 sm:gap-2">
@@ -919,11 +919,11 @@ export default function Drill() {
                       size="sm"
                       onClick={() => setIsDeletingFavorites((current) => !current)}
                       aria-pressed={isDeletingFavorites}
-                      className={`h-8 px-2 text-xs ${isDeletingFavorites ? "border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white" : ""}`}
+                      className={`h-10 px-3 text-xs sm:h-9 ${isDeletingFavorites ? "border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white" : ""}`}
                     >
                       <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {isDeletingFavorites ? "Concluir" : "Excluir"}
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={clearFavorites} className="h-8 px-2 text-xs">Limpar</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearFavorites} className="h-10 px-3 text-xs sm:h-9">Limpar</Button>
                   </>
                 )}
               </div>
@@ -937,7 +937,7 @@ export default function Drill() {
               </div>
             ) : (
               <div>
-                <div className="grid grid-cols-5 gap-x-1.5 gap-y-4 pb-2 pt-1 sm:gap-x-3 md:grid-cols-6 lg:grid-cols-8">
+                <div className="grid grid-cols-4 gap-x-2 gap-y-5 pb-2 pt-1 sm:grid-cols-5 sm:gap-x-3 md:grid-cols-6 lg:grid-cols-8">
                   {preparedWorkItems.map((item, index) => {
                     const isCall = item.type === "call";
                     const isVoice = item.type === "voice";
@@ -960,7 +960,7 @@ export default function Drill() {
                                 type="button"
                                 onClick={() => removeSequenceItem(item as SequenceItem)}
                                 aria-label={`Remover ${itemLabel} dos favoritos`}
-                                className="absolute right-0 top-0 z-10 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-6 sm:w-6"
+                                className="absolute right-0 top-0 z-10 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-red-700 text-white shadow-md sm:h-7 sm:w-7"
                               >
                                 <Minus className="h-3 w-3" strokeWidth={3} />
                               </button>
@@ -968,8 +968,8 @@ export default function Drill() {
                           />
                         </div>
                         <div className="mx-auto mt-1 flex w-full max-w-[4.25rem] justify-between gap-1">
-                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
-                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-6 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20" aria-label="Mover para a direita" title="Mover para a direita"><ArrowRight className="h-3.5 w-3.5" /></button>
+                          <button type="button" disabled={index === 0} onClick={() => moveSequenceItem(item.key, -1)} className="grid h-8 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20 sm:h-7" aria-label="Mover para a esquerda" title="Mover para a esquerda"><ArrowLeft className="h-3.5 w-3.5" /></button>
+                          <button type="button" disabled={index === preparedWorkItems.length - 1} onClick={() => moveSequenceItem(item.key, 1)} className="grid h-8 flex-1 place-items-center rounded-full border border-[#1a3a2a]/25 bg-background disabled:opacity-20 sm:h-7" aria-label="Mover para a direita" title="Mover para a direita"><ArrowRight className="h-3.5 w-3.5" /></button>
                         </div>
                       </div>
                     );
@@ -1013,7 +1013,7 @@ export default function Drill() {
           ) : filteredCalls.length === 0 ? (
             <div className="rounded-2xl border bg-white p-10 text-center text-muted-foreground">{calls.length === 0 ? "Nenhum toque ativo cadastrado." : "Nenhum toque encontrado para esta busca."}</div>
           ) : (
-            <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
+            <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
               {filteredCalls.map((call) => {
                 const isPlaying = playingKey === `call-${call.id}`;
                 const isAllowed = isDrillCommandAllowed(call.name, drillState);
@@ -1025,7 +1025,7 @@ export default function Drill() {
                     isPlaying={isPlaying}
                     isAllowed={isAllowed}
                     onClick={() => playCall(call)}
-                    action={<button type="button" onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} ao final dos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
+                    action={<button type="button" onClick={() => addPrepared(call.id)} aria-label={`Adicionar ${call.name} ao final dos favoritos`} className="absolute right-0 top-0 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md sm:h-7 sm:w-7"><Plus className="h-3.5 w-3.5" /></button>}
                   />
                 );
               })}
@@ -1060,7 +1060,7 @@ export default function Drill() {
                   <p className="mt-1 truncate text-xs text-muted-foreground">{selectedVoiceProfile?.name || "Voz padrão"}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+              <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
                 {selectedVoiceCommands.map((voice) => (
                   <CommandSoundButton
                     key={voice.id}
@@ -1070,7 +1070,7 @@ export default function Drill() {
                     isPlaying={playingKey === `voice-${voice.id}`}
                     isAllowed={isDrillCommandAllowed(voice.itemTitle, drillState)}
                     onClick={() => playVoiceCommand(voice)}
-                    action={<button type="button" onClick={() => addVoiceToFavorites(voice)} aria-label={`Adicionar ${voice.itemTitle} na voz de ${voice.voiceAuthorName || "militar"} aos favoritos`} className="absolute right-0 top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md"><Plus className="h-3.5 w-3.5" /></button>}
+                    action={<button type="button" onClick={() => addVoiceToFavorites(voice)} aria-label={`Adicionar ${voice.itemTitle} na voz de ${voice.voiceAuthorName || "militar"} aos favoritos`} className="absolute right-0 top-0 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-[#142d21] text-white shadow-md sm:h-7 sm:w-7"><Plus className="h-3.5 w-3.5" /></button>}
                   />
                 ))}
               </div>
@@ -1083,9 +1083,9 @@ export default function Drill() {
           <div className="mt-3 space-y-2 border-t pt-3">
             {(hymnsQuery.data ?? []).filter((hymn: any) => hymn.audioUrl || hymn.instrumentalAudioUrl).map((hymn: any) => {
               return (
-                <div key={hymn.id} className="rounded-lg border bg-background p-2"><p className="mb-2 text-xs font-black">{hymn.title}</p><div className="space-y-1.5">
-                  {hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-xs font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}
-                  {hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental", hymnId: hymn.id })} className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}
+                <div key={hymn.id} className="rounded-lg border bg-background p-3"><p className="mb-2 text-sm font-black leading-snug">{hymn.title}</p><div className="space-y-1.5">
+                  {hymn.audioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `hymn-${hymn.id}`, label: hymn.title, audioUrl: hymn.audioUrl, kind: "hino", hymnId: hymn.id })} className="flex min-h-11 w-full items-center justify-between rounded-md bg-[#1a3a2a] px-3 py-2 text-sm font-bold text-white"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Hino cantado</span><Plus className="h-4 w-4" /></button>}
+                  {hymn.instrumentalAudioUrl && <button type="button" onClick={() => addSequenceMedia({ key: `instrumental-${hymn.id}`, label: `${hymn.title} (instrumental)`, audioUrl: hymn.instrumentalAudioUrl, kind: "instrumental", hymnId: hymn.id })} className="flex min-h-11 w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-bold"><span className="flex items-center gap-2"><Music2 className="h-4 w-4" />Somente instrumental</span><Plus className="h-4 w-4" /></button>}
                 </div></div>
               );
             })}
@@ -1141,7 +1141,7 @@ export default function Drill() {
               Espaço pronto. Cadastre os dobrados no dashboard para exibi-los aqui.
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+            <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
               {marches.map((march) => {
                 const isPlaying = playingKey === `march-${march.id}`;
                 return (
