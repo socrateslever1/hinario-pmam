@@ -1022,7 +1022,7 @@ window.print();
                   <h3 className="font-bold text-[#1a3a2a] dark:text-[#e2ca76] text-base" style={{ fontFamily: "Inter, sans-serif" }}>
                     Preencher Dados
                   </h3>
-                  <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8">
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="h-10 gap-1 px-3 text-muted-foreground hover:text-destructive sm:h-9">
                     <RotateCcw className="h-3.5 w-3.5" />
                     Limpar
                   </Button>
@@ -1030,15 +1030,15 @@ window.print();
 
                 {/* Busca e Importação Rápida */}
                 <div className="flex flex-col gap-3 rounded-lg border border-[#c4a84b]/20 bg-[#c4a84b]/5 p-3">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Busca e Importação Rápida</span>
-                  <div className="grid grid-cols-2 gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#e2ca76]">Busca e Importação Rápida</span>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-foreground/70">Numérica (4 dígitos)</label>
+                      <label className="text-xs font-semibold text-foreground/70">Numérica (4 dígitos)</label>
                       <Input
                         placeholder="Ex: 4122"
                         value={searchNumerica}
                         maxLength={4}
-                        className="h-8 text-xs bg-white text-black"
+                        className="h-11 bg-white text-sm text-black sm:h-9"
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
                           setSearchNumerica(val);
@@ -1046,11 +1046,11 @@ window.print();
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-foreground/70">CI / RG</label>
+                      <label className="text-xs font-semibold text-foreground/70">CI / RG</label>
                       <Input
                         placeholder="Ex: 27666"
                         value={searchRgInput}
-                        className="h-8 text-xs bg-white text-black"
+                        className="h-11 bg-white text-sm text-black sm:h-9"
                         onChange={(e) => setSearchRgInput(e.target.value)}
                         onBlur={() => {
                           if (searchRgInput.trim().length >= 3) {
@@ -1068,7 +1068,7 @@ window.print();
                       />
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     * Ao preencher a numérica ou RG/CI, os campos da Parte e Requerimento serão atualizados automaticamente.
                   </p>
                 </div>
@@ -1151,7 +1151,7 @@ window.print();
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-6 text-[10px] px-2 bg-white"
+                              className="h-10 bg-white px-3 text-xs sm:h-9"
                               onClick={() => {
                                 const current = docData.parteRelato || "";
                                 const prefix = current.length > 0 ? (current.endsWith("\n") ? "" : "\n") : "";
@@ -1163,7 +1163,7 @@ window.print();
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-6 text-[10px] px-2 bg-white"
+                              className="h-10 bg-white px-3 text-xs sm:h-9"
                               onClick={() => handleFieldChange("parteRelato", docData.parteRelato + (docData.parteRelato ? "\n" : "") + "Solicito a V.S.ª a possibilidade de ")}
                             >
                               + Solicitação
@@ -1197,7 +1197,7 @@ window.print();
                   {/* Campos específicos do REQUERIMENTO */}
                   {docType === "requerimento" && (
                     <>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-foreground/70">Nome Completo do Aluno</label>
                           <Input 
@@ -1284,7 +1284,7 @@ window.print();
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-foreground/70">Data de Ida</label>
                           <Input 
@@ -1365,13 +1365,13 @@ window.print();
                     Brasões Personalizados (Opcional)
                   </span>
                   
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Esquerdo (PMAM)</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Brasão Esquerdo (PMAM)</label>
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 dark:text-[#e2ca76] sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1386,11 +1386,11 @@ window.print();
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-muted-foreground font-semibold">Brasão Direito (CFAP)</label>
+                      <label className="text-xs font-semibold text-muted-foreground">Brasão Direito (CFAP)</label>
                       <Input
                         type="file"
                         accept="image/*"
-                        className="text-[10px] h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] dark:text-[#e2ca76] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 dark:text-[#e2ca76] sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1409,7 +1409,7 @@ window.print();
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-8 font-semibold"
+                      className="h-10 w-full text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
                       onClick={() => {
                         const updated = { ...docData };
                         delete updated.imagemCabecalhoEsq;
@@ -1438,7 +1438,7 @@ window.print();
                           <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
-                            className="absolute top-0 right-0 p-0.5 bg-red-600 text-white rounded-bl hover:bg-red-700"
+                            className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-bl bg-red-600 text-white hover:bg-red-700"
                             onClick={() => {
                               const updatedAnexos = [...(docData.anexosBase64 || [])];
                               updatedAnexos.splice(idx, 1);
@@ -1458,7 +1458,7 @@ window.print();
                         type="file"
                         accept="image/*"
                         id="document-attachment-file"
-                        className="text-xs h-9 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-[#1a3a2a]/10 file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20"
+                        className="h-11 text-sm file:mr-2 file:rounded file:border-0 file:bg-[#1a3a2a]/10 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-[#1a3a2a] hover:file:bg-[#1a3a2a]/20 sm:h-9"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -1482,7 +1482,7 @@ window.print();
                       />
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     * O Xerife Geral poderá visualizar e rolar as folhas adicionais com os anexos.
                   </p>
                 </div>
@@ -1497,10 +1497,10 @@ window.print();
 
                   {docData.assinaturaDigital ? (
                     <div className="rounded border border-green-200 bg-green-50/50 p-3 space-y-2">
-                      <p className="text-[10px] text-green-800 font-mono font-bold uppercase tracking-wider text-center">
+                      <p className="text-center font-mono text-xs font-bold uppercase tracking-wider text-green-800">
                         ✓ Documento Assinado Digitalmente
                       </p>
-                      <div className="text-[9px] text-green-700 font-mono break-words text-left space-y-0.5">
+                      <div className="space-y-1 break-words text-left font-mono text-xs leading-relaxed text-green-700">
                         {docData.assinaturaDigital.split(" | ").map((line, i) => (
                           <p key={i} className="leading-tight">{line}</p>
                         ))}
@@ -1508,7 +1508,7 @@ window.print();
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 h-7"
+                        className="h-10 w-full text-xs text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
                         onClick={() => {
                           const updated = { ...docData };
                           delete updated.assinaturaDigital;
@@ -1552,8 +1552,7 @@ window.print();
                           const signedAt = new Date().toISOString();
                           const deviceDesc = getShortDeviceDesc(navigator.userAgent);
                           const screenRes = `${window.screen.width}x${window.screen.height}`;
-                          const sessionTokenTrunc = session.sessionToken ? session.sessionToken.slice(0, 8) + "..." : "N/A";
-                          
+                                                    
                           const locStr = (lat != null && lon != null) 
                             ? `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}` 
                             : "Não autorizada/indisponível";
@@ -1562,7 +1561,6 @@ window.print();
                             `Signatário: ${nomeCompleto.toUpperCase()}`,
                             `CPF: ${cpfVal || "Não informado"}`,
                             `CI: ${rgVal || "Não informado"}`,
-                            `Sessão: ${sessionTokenTrunc}`,
                             `GPS: ${locStr}`,
                             `Dispositivo: ${deviceDesc} (${screenRes})`,
                             `Chave: ${hash}`
@@ -1628,7 +1626,7 @@ window.print();
                   {enviarParteMutation.isPending ? "Enviando..." : "Enviar via Sistema"}
                 </Button>
                 {!docData.assinaturaDigital && (
-                  <p className="text-[10px] text-muted-foreground text-center">
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
                     * Assine digitalmente antes de enviar via sistema.
                   </p>
                 )}
