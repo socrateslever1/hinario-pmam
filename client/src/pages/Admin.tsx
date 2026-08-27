@@ -15,18 +15,15 @@ import Footer from "@/components/Footer";
 import {
   Star, Music, Target, Plus, Pencil, Trash2,
   LogIn, ArrowLeft, Youtube, FileText, Shield, LogOut,
-  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, AlertCircle, Loader2, Volume2, History
+  Clock, Search, Users, GraduationCap, Settings, ClipboardList, Building2, User, Loader2, History
 } from "lucide-react";
 import { buildLyricsSyncLines, hasLyricsSyncData } from "@/lib/lyricsSync";
-import { useIsMobile } from "@/hooks/useMobile";
 import { BlogManagementPanel } from "@/components/BlogManagementPanel";
 
-// Importando os subcomponentes modulares
 import { BuglePanelAdmin } from "@/components/admin/BuglePanelAdmin";
 import { HymnForm } from "@/components/admin/HymnForm";
 import { MissionForm } from "@/components/admin/MissionForm";
 import { SettingsTab } from "@/components/admin/SettingsTab";
-import { UsersTab } from "@/components/admin/UsersTab";
 import { GradeAdminTab } from "@/components/admin/GradeAdminTab";
 import { ServiceScaleTab } from "@/components/admin/ServiceScaleTab";
 import { CfapPersonnelTab } from "@/components/admin/CfapPersonnelTab";
@@ -34,7 +31,6 @@ import { OfficialDocumentsTab } from "@/components/admin/OfficialDocumentsTab";
 import { AccessManagement } from "./AccessManagement";
 import { PeculioOverview } from "@/components/admin/PeculioOverview";
 import { UserProfileTab } from "@/components/admin/UserProfileTab";
-import { OrdemUnidaAudioManager } from "@/components/admin/OrdemUnidaAudioManager";
 import { CfapHistoryTab } from "@/components/admin/CfapHistoryTab";
 
 function CommandDashboardWidget() {
@@ -81,7 +77,6 @@ function CommandDashboardWidget() {
 }
 
 export default function Admin() {
-  const isMobile = useIsMobile();
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [, navigate] = useLocation();
   
@@ -113,13 +108,11 @@ export default function Admin() {
   const isComandante = isAuthenticated && isCommandRole;
   const isAuthorized = isAdminOrMaster || isXerife || isComandante;
 
-  // Xerife Geral (strictly master, admin, or principal assignment; commanders excluded)
   const isXerifeGeral = Boolean(
     (isAdminOrMaster || scaleAccess?.assignment?.level === "principal") && 
     !isCommandRole
   );
   
-  // Can manage global content (Xerife Geral + CAL & CFAP commanders)
   const canManageGlobalContent = Boolean(
     isXerifeGeral || 
     user?.role === "comandante_corpo" ||
