@@ -1,19 +1,16 @@
-name: Validate CFAP Gallery
+name: Validate QG Digital
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'client/src/pages/CfapHistory.tsx'
-      - 'client/src/pages/CfapCommanderDetail.tsx'
-      - 'client/src/components/CommanderPortrait.tsx'
-      - 'client/src/data/cfapHistory.ts'
-      - 'client/src/data/cfapHistory.test.ts'
-      - 'client/src/data/cfapCommanderSprite.ts'
-      - 'client/src/data/cfapSprite/**'
-      - 'client/src/App.tsx'
-      - 'client/src/components/BottomNavigation.tsx'
-      - 'client/src/components/Footer.tsx'
+      - 'client/src/**'
+      - 'shared/**'
+      - 'server/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.*'
+      - 'tsconfig.json'
       - '.github/workflows/cfap-gallery-check.yml'
 
 jobs:
@@ -32,7 +29,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: TypeScript
         run: pnpm check
-      - name: Gallery data tests
+      - name: CFAP history data tests
         run: pnpm exec vitest run client/src/data/cfapHistory.test.ts
       - name: Production build
         run: pnpm build
