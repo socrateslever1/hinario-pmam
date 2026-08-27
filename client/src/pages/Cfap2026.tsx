@@ -11,7 +11,6 @@ import {
   Send,
   Shield,
   Camera,
-  Image as ImageIcon,
   Loader2,
   FileText,
   ExternalLink,
