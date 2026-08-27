@@ -29,7 +29,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: TypeScript
         run: pnpm check
-      - name: CFAP history data tests
-        run: pnpm exec vitest run client/src/data/cfapHistory.test.ts
+      - name: Regression tests
+        run: pnpm exec vitest run client/src/data/cfapHistory.test.ts client/src/lib/imageResize.test.ts
       - name: Production build
         run: pnpm build
