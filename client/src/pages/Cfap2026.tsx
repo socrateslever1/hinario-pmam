@@ -136,7 +136,7 @@ function MissionCard({
         } else {
           if (height > maxDim) {
             width = Math.round((width * maxDim) / height);
-            width = maxDim;
+            height = maxDim;
           }
         }
 
