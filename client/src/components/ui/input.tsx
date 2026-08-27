@@ -1,7 +1,7 @@
-import { useDialogComposition } from "@/components/ui/dialog"
-import { useComposition } from "@/hooks/useComposition"
-import { cn } from "@/lib/utils"
-import * as React from "react"
+import { useDialogComposition } from "@/components/ui/dialog";
+import { useComposition } from "@/hooks/useComposition";
+import { cn } from "@/lib/utils";
+import * as React from "react";
 
 function Input({
   className,
@@ -11,7 +11,7 @@ function Input({
   onCompositionEnd,
   ...props
 }: React.ComponentProps<"input">) {
-  const dialogComposition = useDialogComposition()
+  const dialogComposition = useDialogComposition();
 
   const {
     onCompositionStart: handleCompositionStart,
@@ -19,26 +19,22 @@ function Input({
     onKeyDown: handleKeyDown,
   } = useComposition<HTMLInputElement>({
     onKeyDown: (e) => {
-      const isComposing = (e.nativeEvent as any).isComposing || dialogComposition.justEndedComposing()
-
-      if (e.key === "Enter" && isComposing) {
-        return
-      }
-
-      onKeyDown?.(e)
+      const isComposing = (e.nativeEvent as any).isComposing || dialogComposition.justEndedComposing();
+      if (e.key === "Enter" && isComposing) return;
+      onKeyDown?.(e);
     },
     onCompositionStart: e => {
-      dialogComposition.setComposing(true)
-      onCompositionStart?.(e)
+      dialogComposition.setComposing(true);
+      onCompositionStart?.(e);
     },
     onCompositionEnd: e => {
-      dialogComposition.markCompositionEnd()
+      dialogComposition.markCompositionEnd();
       setTimeout(() => {
-        dialogComposition.setComposing(false)
-      }, 100)
-      onCompositionEnd?.(e)
+        dialogComposition.setComposing(false);
+      }, 100);
+      onCompositionEnd?.(e);
     },
-  })
+  });
 
   return (
     <input
@@ -55,7 +51,7 @@ function Input({
       onKeyDown={handleKeyDown}
       {...props}
     />
-  )
+  );
 }
 
-export { Input }
+export { Input };
