@@ -14,7 +14,7 @@ import { saveEmailSession } from "@/lib/emailSession";
 const BRASAO_URL = "/logo/IMG_7728.PNG";
 
 const REMEMBER_ME_KEY = "hinario-remember-me";
-const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 dias em ms
+const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000;
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -23,7 +23,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Carregar credenciais salvas ao montar o componente
   useEffect(() => {
     const saved = localStorage.getItem(REMEMBER_ME_KEY);
     if (saved) {
@@ -33,7 +32,6 @@ export default function Login() {
           setEmail(savedEmail);
           setRememberMe(true);
         } else {
-          // Expirou, limpar
           localStorage.removeItem(REMEMBER_ME_KEY);
         }
       } catch (e) {
@@ -46,8 +44,7 @@ export default function Login() {
   const loginMut = trpc.auth.loginEmail.useMutation({
     onSuccess: async (result) => {
       toast.success("Login realizado com sucesso!");
-      
-      // Salvar credenciais se "Lembrar de mim" foi marcado
+
       if (rememberMe) {
         localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify({
           email,
@@ -57,7 +54,7 @@ export default function Login() {
         localStorage.removeItem(REMEMBER_ME_KEY);
       }
       saveEmailSession(result.sessionToken, rememberMe);
-      
+
       const optimisticUser: User = {
         id: result.user.id,
         openId: `session-${result.user.id}`,
@@ -75,8 +72,6 @@ export default function Login() {
       utils.auth.me.setData(undefined, optimisticUser);
       localStorage.setItem("auth-user-info", JSON.stringify(optimisticUser));
 
-      // O cookie HttpOnly precisa ser confirmado na primeira leitura antes de trocar de rota.
-      // Isto evita que uma resposta antiga de cache pareça logout logo após o login.
       try {
         const verifiedUser = await utils.auth.me.fetch();
         if (!verifiedUser) {
@@ -86,11 +81,9 @@ export default function Login() {
           localStorage.setItem("auth-user-info", JSON.stringify(verifiedUser));
         }
       } catch {
-        // Se a rede falhar neste instante, preserva o estado otimista em vez de forçar logout.
         utils.auth.me.setData(undefined, optimisticUser);
       }
-      
-      // Redirecionar baseado no role e na flag de primeiro acesso
+
       const role = result.user.role;
       if ((result.user as any).forcePasswordChange) {
         navigate("/alterar-senha");
@@ -131,7 +124,6 @@ export default function Login() {
 
   return (
     <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
-      {/* Header bar */}
       <div className="checkerboard-pattern w-full" />
       <div className="bg-card border-b border-border/40 py-6">
         <div className="container text-center">
@@ -139,7 +131,7 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
             Posto de Comando
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Painel de Gerenciamento — Hinário PMAM</p>
+          <p className="text-muted-foreground text-sm mt-1">QG Digital — Plataforma Militar</p>
         </div>
       </div>
 
@@ -227,7 +219,7 @@ export default function Login() {
               <Link href="/">
                 <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
                   <ArrowLeft className="h-4 w-4" />
-                  Voltar ao Hinário
+                  Voltar ao QG Digital
                 </Button>
               </Link>
             </div>
