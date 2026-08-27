@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { fitImageWithinMaxDimension } from "./imageResize";
 
@@ -33,5 +35,18 @@ describe("fitImageWithinMaxDimension", () => {
   it("rejects invalid dimensions", () => {
     expect(() => fitImageWithinMaxDimension(0, 100, 350)).toThrow();
     expect(() => fitImageWithinMaxDimension(100, 100, 0)).toThrow();
+  });
+});
+
+describe("CFAP 2026 portrait upload regression", () => {
+  it("limits portrait height instead of overwriting the proportional width", () => {
+    const sourcePath = fileURLToPath(new URL("../pages/Cfap2026.tsx", import.meta.url));
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("width = Math.round((width * maxDim) / height);");
+    expect(source).toContain("height = maxDim;");
+    expect(source).not.toMatch(
+      /width = Math\.round\(\(width \* maxDim\) \/ height\);\s*width = maxDim;/,
+    );
   });
 });
