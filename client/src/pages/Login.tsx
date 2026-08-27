@@ -133,22 +133,22 @@ export default function Login() {
       <div className="border-b border-border/40 bg-card py-6">
         <div className="container text-center">
           <img src={BRASAO_URL} alt="Brasão PMAM" className="mx-auto mb-3 h-16 w-16 object-contain" />
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6900]">QG Digital</p>
-          <h1 className="mt-1 text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a6900]">QG Digital</p>
+          <h1 className="mt-1 text-[28px] font-bold leading-tight text-[#1a3a2a] md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
             Posto de Comando
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Plataforma Militar — acesso administrativo e de comando</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Plataforma Militar — acesso administrativo e de comando</p>
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-4 py-10 md:py-12">
+      <div className="flex flex-1 items-start justify-center px-4 py-6 sm:items-center sm:py-10 md:py-12">
         <Card className="w-full max-w-md border-border/50 shadow-lg">
-          <CardContent className="p-6 md:p-8">
+          <CardContent className="p-5 sm:p-6 md:p-8">
             <div className="mb-7 text-center md:mb-8">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1a3a2a]">
                 <Shield className="h-8 w-8 text-[#c4a84b]" />
               </div>
-              <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
+              <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
                 Acesso Restrito
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -177,6 +177,7 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -186,7 +187,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground md:h-8 md:w-8"
+                    className="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a84b] md:h-8 md:w-8"
                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -194,7 +195,7 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex min-h-11 items-center space-x-2">
                 <Checkbox
                   id="remember-me"
                   checked={rememberMe}
@@ -217,7 +218,7 @@ export default function Login() {
 
             <div className="mt-6 text-center">
               <Link href="/">
-                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                <Button variant="ghost" className="gap-2 text-muted-foreground">
                   <ArrowLeft className="h-4 w-4" />
                   Voltar ao QG Digital
                 </Button>
