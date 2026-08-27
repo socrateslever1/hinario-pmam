@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
 
 export function ChangePassword() {
   const [, navigate] = useLocation();
@@ -68,20 +67,12 @@ export function ChangePassword() {
       setNewPassword('');
       setConfirmPassword('');
 
-      // Redirecionar após 2 segundos
       setTimeout(() => {
         navigate(getPostPasswordPath());
       }, 2000);
     } catch (error: any) {
       setError(error.message || 'Erro ao alterar senha');
     }
-  };
-
-  const handleSkip = () => {
-    sessionStorage.setItem("skip-password-change", "true");
-    toast.warning("Atenção: Troque sua senha provisória no seu perfil assim que possível.");
-    
-    navigate(getPostPasswordPath());
   };
 
   if (meQuery.isLoading) {
@@ -129,6 +120,7 @@ export function ChangePassword() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Digite sua senha atual/provisória"
               disabled={changePasswordMutation.isPending || success}
+              className="mt-1 h-11"
             />
           </div>
 
@@ -140,6 +132,7 @@ export function ChangePassword() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Digite sua nova senha"
               disabled={changePasswordMutation.isPending || success}
+              className="mt-1 h-11"
             />
           </div>
 
@@ -151,25 +144,21 @@ export function ChangePassword() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirme sua nova senha"
               disabled={changePasswordMutation.isPending || success}
+              className="mt-1 h-11"
             />
           </div>
 
           <Button
             onClick={handleChangePassword}
             disabled={changePasswordMutation.isPending || success || !currentPassword || !newPassword || !confirmPassword}
-            className="w-full"
+            className="h-11 w-full bg-[#1a3a2a] text-white hover:bg-[#214936]"
           >
             {changePasswordMutation.isPending ? 'Alterando...' : 'Alterar Senha'}
           </Button>
 
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            disabled={changePasswordMutation.isPending || success}
-            className="w-full text-xs text-muted-foreground hover:text-foreground mt-2"
-          >
-            Sair e continuar com a senha padrão
-          </Button>
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
+            Por segurança, o primeiro acesso só é concluído depois da troca da senha provisória.
+          </p>
         </CardContent>
       </Card>
     </div>
