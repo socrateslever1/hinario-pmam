@@ -12,8 +12,8 @@ import type { User } from "@shared/types";
 import { saveEmailSession } from "@/lib/emailSession";
 
 const BRASAO_URL = "/logo/IMG_7728.PNG";
-
-const REMEMBER_ME_KEY = "hinario-remember-me";
+const REMEMBER_ME_KEY = "qg-digital-remember-me";
+const LEGACY_REMEMBER_ME_KEY = "hinario-remember-me";
 const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000;
 
 export default function Login() {
@@ -24,19 +24,23 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(REMEMBER_ME_KEY);
-    if (saved) {
-      try {
-        const { email: savedEmail, expiresAt } = JSON.parse(saved);
-        if (expiresAt > Date.now()) {
-          setEmail(savedEmail);
-          setRememberMe(true);
-        } else {
-          localStorage.removeItem(REMEMBER_ME_KEY);
-        }
-      } catch (e) {
+    const saved = localStorage.getItem(REMEMBER_ME_KEY) || localStorage.getItem(LEGACY_REMEMBER_ME_KEY);
+    if (!saved) return;
+
+    try {
+      const { email: savedEmail, expiresAt } = JSON.parse(saved);
+      if (expiresAt > Date.now()) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+        localStorage.setItem(REMEMBER_ME_KEY, saved);
+        localStorage.removeItem(LEGACY_REMEMBER_ME_KEY);
+      } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(LEGACY_REMEMBER_ME_KEY);
       }
+    } catch {
+      localStorage.removeItem(REMEMBER_ME_KEY);
+      localStorage.removeItem(LEGACY_REMEMBER_ME_KEY);
     }
   }, []);
 
@@ -52,6 +56,7 @@ export default function Login() {
         }));
       } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(LEGACY_REMEMBER_ME_KEY);
       }
       saveEmailSession(result.sessionToken, rememberMe);
 
@@ -87,21 +92,21 @@ export default function Login() {
       const role = result.user.role;
       if ((result.user as any).forcePasswordChange) {
         navigate("/alterar-senha");
-      } else if (role === 'student') {
+      } else if (role === "student") {
         navigate("/notas-do-curso");
       } else if (
-        role === 'admin' ||
-        role === 'master' ||
+        role === "admin" ||
+        role === "master" ||
         [
-          'comandante_corpo',
-          'subcomandante_corpo',
-          'sub_comandante_corpo',
-          'comandante_cfap',
-          'subcomandante_cfap',
-          'sub_comandante_cfap',
-          'comandante_cia',
-          'comandante_pel',
-        ].includes(role || '')
+          "comandante_corpo",
+          "subcomandante_corpo",
+          "sub_comandante_corpo",
+          "comandante_cfap",
+          "subcomandante_cfap",
+          "sub_comandante_cfap",
+          "comandante_cia",
+          "comandante_pel",
+        ].includes(role || "")
       ) {
         navigate("/xerife");
       } else {
@@ -109,7 +114,7 @@ export default function Login() {
       }
     },
     onError: (e) => {
-      toast.error(e.message || "Email ou senha inválidos");
+      toast.error(e.message || "Usuário ou senha inválidos");
     },
   });
 
@@ -123,30 +128,31 @@ export default function Login() {
   };
 
   return (
-    <div className="mobile-safe-bottom min-h-screen flex flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
+    <div className="mobile-safe-bottom flex min-h-screen flex-col bg-[#f5f2e8] dark:bg-[#020a0f] md:bg-background dark:md:bg-[#020a0f]">
       <div className="checkerboard-pattern w-full" />
-      <div className="bg-card border-b border-border/40 py-6">
+      <div className="border-b border-border/40 bg-card py-6">
         <div className="container text-center">
-          <img src={BRASAO_URL} alt="Brasão PMAM" className="h-16 w-16 object-contain mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: 'Merriweather, serif' }}>
+          <img src={BRASAO_URL} alt="Brasão PMAM" className="mx-auto mb-3 h-16 w-16 object-contain" />
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a6900]">QG Digital</p>
+          <h1 className="mt-1 text-2xl font-bold text-[#1a3a2a]" style={{ fontFamily: "Merriweather, serif" }}>
             Posto de Comando
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">QG Digital — Plataforma Militar</p>
+          <p className="mt-1 text-sm text-muted-foreground">Plataforma Militar — acesso administrativo e de comando</p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center py-12 px-4">
-        <Card className="max-w-md w-full border-border/50 shadow-lg">
-          <CardContent className="p-8">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-[#1a3a2a] flex items-center justify-center mx-auto mb-4">
+      <div className="flex flex-1 items-center justify-center px-4 py-10 md:py-12">
+        <Card className="w-full max-w-md border-border/50 shadow-lg">
+          <CardContent className="p-6 md:p-8">
+            <div className="mb-7 text-center md:mb-8">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1a3a2a]">
                 <Shield className="h-8 w-8 text-[#c4a84b]" />
               </div>
-              <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: 'Merriweather, serif' }}>
+              <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "Merriweather, serif" }}>
                 Acesso Restrito
               </h2>
-              <p className="text-sm text-muted-foreground mt-2">
-                Informe suas credenciais para acessar o painel de gerenciamento
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Informe suas credenciais para acessar os recursos correspondentes à sua função.
               </p>
             </div>
 
@@ -158,11 +164,10 @@ export default function Login() {
                   type="text"
                   inputMode="text"
                   autoComplete="username"
-                  placeholder="Ex: cmt.pel1 ou 0000"
+                  placeholder="Ex.: cmt.pel1 ou 0000"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-11"
                 />
               </div>
 
@@ -176,12 +181,13 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-11 pr-10"
+                    className="pr-11"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground md:h-8 md:w-8"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -194,24 +200,18 @@ export default function Login() {
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                 />
-                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                <Label htmlFor="remember-me" className="cursor-pointer text-sm font-normal">
                   Lembrar de mim por 30 dias
                 </Label>
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-[#1a3a2a] hover:bg-[#1a3a2a]/90 text-white gap-2 font-semibold"
+                className="w-full bg-[#1a3a2a] font-semibold text-white hover:bg-[#1a3a2a]/90"
                 disabled={loginMut.isPending}
               >
-                {loginMut.isPending ? (
-                  <>Entrando...</>
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4" />
-                    Entrar
-                  </>
-                )}
+                <LogIn className="h-4 w-4" />
+                {loginMut.isPending ? "Entrando..." : "Entrar"}
               </Button>
             </form>
 
