@@ -230,8 +230,8 @@ export function CommandSoundButton({
           {isPlaying ? <Volume2 className="h-[62%] w-[62%] animate-pulse" strokeWidth={2.8} /> : <Icon className="h-[62%] w-[62%]" strokeWidth={2.8} />}
         </span>
       </button>
-      <strong className={`mt-1.5 line-clamp-2 leading-tight ${darkSurface ? "text-white" : "text-foreground"} ${compact ? "text-[10px]" : "text-xs sm:text-sm"}`}>{title}</strong>
-      {subtitle && <span className={`mt-0.5 line-clamp-1 max-w-full text-[11px] ${darkSurface ? "text-white/60" : "text-muted-foreground"}`}>{subtitle}</span>}
+      <strong className={`mt-1.5 line-clamp-2 leading-tight ${darkSurface ? "text-white" : "text-foreground"} ${compact ? "text-xs" : "text-xs sm:text-sm"}`}>{title}</strong>
+      {subtitle && <span className={`mt-0.5 line-clamp-1 max-w-full text-xs ${darkSurface ? "text-white/60" : "text-muted-foreground"}`}>{subtitle}</span>}
       {action}
     </div>
   );
