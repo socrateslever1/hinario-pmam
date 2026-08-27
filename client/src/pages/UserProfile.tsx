@@ -212,12 +212,12 @@ export default function UserProfilePage() {
         <Navbar />
         <main className="flex flex-1 items-center justify-center px-4 py-10">
           <Card className="w-full max-w-md border-border/50 bg-white text-foreground shadow-md dark:bg-zinc-950">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-6 text-center md:p-8">
               <User className="mx-auto mb-4 h-14 w-14 text-[#c4a84b]" />
-              <h1 className="mb-2 text-2xl font-bold text-[#1a3a2a] dark:text-[#c4a84b]" style={{ fontFamily: "Merriweather, serif" }}>
+              <h1 className="mb-2 text-[28px] font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b]" style={{ fontFamily: "Merriweather, serif" }}>
                 Ficha de Cadastro
               </h1>
-              <p className="mb-6 text-sm text-muted-foreground">
+              <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
                 Entre pelo Posto de Comando para preencher sua ficha particular.
               </p>
               <Link href="/login">
@@ -239,18 +239,18 @@ export default function UserProfilePage() {
   return (
     <div className="mobile-safe-bottom flex min-h-screen flex-col bg-[#f5f2e8] text-foreground dark:bg-[#050d12]">
       <Navbar />
-      <main className="container max-w-5xl flex-1 px-4 py-4 pb-24 md:py-8">
-        <div className="mb-4 flex flex-col justify-between gap-2 md:mb-6 md:flex-row md:items-center md:gap-4 md:p-0">
+      <main className="container max-w-5xl flex-1 px-4 py-5 pb-24 md:py-8">
+        <div className="mb-5 flex flex-col justify-between gap-3 md:mb-6 md:flex-row md:items-center md:gap-4">
           <div>
-            <h1 className="flex items-center gap-1.5 text-xl font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b] md:gap-2 md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
-              <Shield className="h-5 w-5 shrink-0 text-[#c4a84b] md:h-8 md:w-8" />
+            <h1 className="flex items-start gap-2 text-[28px] font-bold leading-tight text-[#1a3a2a] dark:text-[#c4a84b] md:items-center md:text-3xl" style={{ fontFamily: "Merriweather, serif" }}>
+              <Shield className="mt-0.5 h-7 w-7 shrink-0 text-[#c4a84b] md:mt-0 md:h-8 md:w-8" />
               <span>Ficha de Cadastro do Comando</span>
             </h1>
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground md:mt-1 md:text-sm">
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
               Dados particulares facultativos, foto funcional e senha de acesso.
             </p>
           </div>
-          <div className="w-fit max-w-full rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#1a3a2a] shadow-sm dark:text-[#c4a84b] md:rounded-lg md:px-4 md:py-2 md:text-xs">
+          <div className="w-fit max-w-full rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-3 py-2 text-xs font-semibold leading-tight text-[#1a3a2a] shadow-sm dark:text-[#c4a84b] md:rounded-lg md:px-4">
             {ROLE_LABELS[user.role || ""] || user.role || "Posto de Comando"}
           </div>
         </div>
@@ -259,11 +259,11 @@ export default function UserProfilePage() {
           <div className="flex flex-col gap-4 md:gap-6">
             <Card className="overflow-hidden border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
               <CardHeader className="border-b bg-muted/20 px-4 py-3 text-center md:px-6">
-                <CardTitle className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Identidade Visual</CardTitle>
-                <CardDescription className="text-[10px]">Foto funcional do perfil</CardDescription>
+                <CardTitle className="text-base font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Identidade Visual</CardTitle>
+                <CardDescription className="text-xs">Foto funcional do perfil</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col items-center gap-3 p-4 md:gap-4 md:p-6">
-                <div className="group relative flex aspect-[3/4] w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 shadow-inner md:w-44">
+              <CardContent className="flex flex-col items-center gap-4 p-4 md:p-6">
+                <div className="group relative flex aspect-[3/4] w-40 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50 shadow-inner md:w-44">
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 animate-spin text-[#c4a84b]" />
                   ) : photoUrl && !photoLoadFailed ? (
@@ -276,17 +276,17 @@ export default function UserProfilePage() {
                   ) : (
                     <div className="flex flex-col items-center gap-2 p-4 text-center text-muted-foreground">
                       <User className="h-14 w-14 opacity-40" />
-                      <span className="text-[10px] font-medium leading-tight">Sem foto cadastrada</span>
+                      <span className="text-xs font-medium leading-tight">Sem foto cadastrada</span>
                     </div>
                   )}
-                  <label htmlFor="command-photo-upload" className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <label htmlFor="command-photo-upload" className="absolute inset-0 hidden cursor-pointer flex-col items-center justify-center bg-black/60 text-white transition-opacity md:flex md:opacity-0 md:group-hover:opacity-100">
                     <Camera className="mb-1 h-6 w-6" />
                     <span className="text-xs font-bold">Enviar Foto</span>
                   </label>
                 </div>
                 <input id="command-photo-upload" ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 w-full gap-2 text-xs">
-                  <Camera className="h-3.5 w-3.5" />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full gap-2">
+                  <Camera className="h-4 w-4" />
                   Selecionar Imagem
                 </Button>
               </CardContent>
@@ -294,23 +294,23 @@ export default function UserProfilePage() {
 
             <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
               <CardHeader className="border-b bg-muted/20 px-4 py-3 md:px-6">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-[#1a3a2a] dark:text-[#c4a84b]">
                   <KeyRound className="h-4 w-4 text-[#c4a84b]" />
                   Alterar Senha
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 p-4">
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Senha atual</Label>
-                  <Input type="password" value={senhaAtual} onChange={(event) => setSenhaAtual(event.target.value)} className="h-9 text-sm" />
+              <CardContent className="flex flex-col gap-4 p-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Senha atual</Label>
+                  <Input type="password" autoComplete="current-password" value={senhaAtual} onChange={(event) => setSenhaAtual(event.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Nova senha</Label>
-                  <Input type="password" value={senhaNova} onChange={(event) => setSenhaNova(event.target.value)} className="h-9 text-sm" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Nova senha</Label>
+                  <Input type="password" autoComplete="new-password" value={senhaNova} onChange={(event) => setSenhaNova(event.target.value)} />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Confirmar nova senha</Label>
-                  <Input type="password" value={confirmarSenha} onChange={(event) => setConfirmarSenha(event.target.value)} className="h-9 text-sm" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Confirmar nova senha</Label>
+                  <Input type="password" autoComplete="new-password" value={confirmarSenha} onChange={(event) => setConfirmarSenha(event.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -318,46 +318,46 @@ export default function UserProfilePage() {
 
           <Card className="border-border/50 bg-white py-0 text-foreground shadow-sm dark:bg-zinc-950">
             <CardHeader className="border-b bg-muted/20 px-4 py-3 md:px-6">
-              <CardTitle className="text-base font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Dados Cadastrais</CardTitle>
-              <CardDescription className="text-xs">Preencha somente o que desejar manter no seu perfil particular.</CardDescription>
+              <CardTitle className="text-lg font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Dados Cadastrais</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">Preencha somente o que desejar manter no seu perfil particular.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4 p-4 md:gap-5 md:p-6">
-              <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Nome completo</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Nome completo</Label>
                   <Input value={profile.nomeCompleto} onChange={(event) => updateField("nomeCompleto", event.target.value)} required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Nome de guerra / exibição</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Nome de guerra / exibição</Label>
                   <Input value={profile.nomeGuerra} onChange={(event) => updateField("nomeGuerra", event.target.value)} placeholder="Como aparecerá no sistema" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Função</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Função</Label>
                   <Input value={profile.funcao} onChange={(event) => updateField("funcao", event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">RG / CI</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">RG / CI</Label>
                   <Input value={profile.rg} onChange={(event) => updateField("rg", event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">CPF</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">CPF</Label>
                   <Input value={profile.cpf} onChange={(event) => updateField("cpf", event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Telefone</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Telefone</Label>
                   <Input value={profile.telefone} onChange={(event) => updateField("telefone", event.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">E-mail</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">E-mail</Label>
                   <Input type="email" value={profile.emailContato} onChange={(event) => updateField("emailContato", event.target.value)} />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Setor / lotação</Label>
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Setor / lotação</Label>
                   <Input value={profile.setor} onChange={(event) => updateField("setor", event.target.value)} placeholder="Ex: Corpo de Alunos, 1ª Cia, CFAP" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Observações</Label>
-                  <Textarea value={profile.observacoes} onChange={(event) => updateField("observacoes", event.target.value)} className="min-h-24" />
+                  <Label className="text-sm font-bold text-[#1a3a2a] dark:text-[#c4a84b]">Observações</Label>
+                  <Textarea value={profile.observacoes} onChange={(event) => updateField("observacoes", event.target.value)} className="min-h-28" />
                 </div>
               </div>
 
