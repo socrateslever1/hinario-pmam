@@ -67,6 +67,37 @@ const marchFields = {
   isActive: z.boolean().default(true),
 };
 
+const PUBLIC_BUGLE_PANEL_CACHE_MS = 60_000;
+let publicBuglePanelCache: { expiresAt: number; data: any } | null = null;
+let publicBuglePanelPromise: Promise<any> | null = null;
+
+function clearPublicBuglePanelCache() {
+  publicBuglePanelCache = null;
+  publicBuglePanelPromise = null;
+}
+
+async function getPublicBuglePanel() {
+  const now = Date.now();
+  if (publicBuglePanelCache && publicBuglePanelCache.expiresAt > now) {
+    return publicBuglePanelCache.data;
+  }
+  if (!publicBuglePanelPromise) {
+    publicBuglePanelPromise = Promise.all([
+      bugleDb.listBugleCalls(true),
+      bugleDb.listMarches(true),
+    ]).then(([calls, marches]) => {
+      const data = { calls, marches };
+      publicBuglePanelCache = { expiresAt: Date.now() + PUBLIC_BUGLE_PANEL_CACHE_MS, data };
+      publicBuglePanelPromise = null;
+      return data;
+    }).catch((error) => {
+      publicBuglePanelPromise = null;
+      throw error;
+    });
+  }
+  return publicBuglePanelPromise;
+}
+
 const cfapPersonnelInputSchema = z.object({
   category: z.enum(["comando", "administracao", "corpo_alunos", "apoio"]),
   rank: z.string().trim().min(2).max(60),
@@ -1364,17 +1395,17 @@ export const appRouter = router({
   }),
 
   buglePanel: router({
-    list: publicProcedure.query(async () => ({
-      calls: await bugleDb.listBugleCalls(true),
-      marches: await bugleDb.listMarches(true),
-    })),
+    list: publicProcedure.query(async () => getPublicBuglePanel()),
     listAll: masterProcedure.query(async () => ({
       calls: await bugleDb.listBugleCalls(false),
       marches: await bugleDb.listMarches(false),
     })),
     createCall: masterProcedure
       .input(z.object(bugleCallFields))
-      .mutation(async ({ input }) => ({ id: await bugleDb.createBugleCall(input) })),
+      .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
+        return { id: await bugleDb.createBugleCall(input) };
+      }),
     updateCall: masterProcedure
       .input(z.object({
         id: z.number().int().positive(),
@@ -1388,6 +1419,7 @@ export const appRouter = router({
         isActive: bugleCallFields.isActive.optional(),
       }))
       .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
         const { id, ...data } = input;
         await bugleDb.updateBugleCall(id, data);
         return { success: true };
@@ -1395,12 +1427,16 @@ export const appRouter = router({
     deleteCall: masterProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
         await bugleDb.deleteBugleCall(input.id);
         return { success: true };
       }),
     createMarch: masterProcedure
       .input(z.object(marchFields))
-      .mutation(async ({ input }) => ({ id: await bugleDb.createMarch(input) })),
+      .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
+        return { id: await bugleDb.createMarch(input) };
+      }),
     updateMarch: masterProcedure
       .input(z.object({
         id: z.number().int().positive(),
@@ -1412,6 +1448,7 @@ export const appRouter = router({
         isActive: marchFields.isActive.optional(),
       }))
       .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
         const { id, ...data } = input;
         await bugleDb.updateMarch(id, data);
         return { success: true };
@@ -1419,6 +1456,7 @@ export const appRouter = router({
     deleteMarch: masterProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ input }) => {
+        clearPublicBuglePanelCache();
         await bugleDb.deleteMarch(input.id);
         return { success: true };
       }),
@@ -1449,6 +1487,7 @@ export const appRouter = router({
           else await bugleDb.updateMarch(input.id, { audioUrl: url });
           return { url };
         });
+        clearPublicBuglePanelCache();
         return { success: true, url };
       }),
   }),

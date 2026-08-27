@@ -166,6 +166,71 @@ function favoriteLabel(label: string) {
     .replace(/^Chefe do Estado-Maior$/i, "Ch. Estado-Maior");
 }
 
+const ORDINARIO_MARCHE_BD_AUDIO_URL = "/uploads/ordinario%20marche%20bumbo%20e%20dobrado.mp3";
+const ORDINARIO_MARCHE_B_AUDIO_URL = "/uploads/pmam_bugle_calls_90001_ordin_rio_marche_b.mp3";
+const ORDINARIO_MARCHE_AUDIO_URL = "/uploads/ordinario%20marche.mp3";
+
+function normalizePlaybackText(value: string) {
+  return normalizeDrillCommand(value)
+    .replace(/\+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeDecodeAudioUrl(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function buildPlaybackCandidates(label: string, audioUrl: string) {
+  const candidates: string[] = [];
+  const normalizedLabel = normalizePlaybackText(label);
+  const normalizedUrl = normalizePlaybackText(safeDecodeAudioUrl(audioUrl));
+
+  const isOrdinarioMarcheBD = (
+    normalizedLabel.includes("ordinario marche b d")
+    || normalizedLabel.includes("ordinario marche bd")
+    || normalizedLabel.includes("ordinario marche bumbo dobrado")
+    || normalizedLabel.includes("ordinario marche bumbo e dobrado")
+    || normalizedUrl.includes("ordinario marche bumbo e dobrado")
+  );
+
+  const isOrdinarioMarcheB = (
+    normalizedLabel.includes("ordinario marche b")
+    || normalizedUrl.includes("90001")
+    || normalizedUrl.includes("ordin rio marche b")
+    || normalizedUrl.includes("ordinario marche")
+  );
+
+  if (isOrdinarioMarcheBD) candidates.push(ORDINARIO_MARCHE_BD_AUDIO_URL);
+  candidates.push(audioUrl);
+  if (isOrdinarioMarcheB || isOrdinarioMarcheBD) {
+    candidates.push(ORDINARIO_MARCHE_B_AUDIO_URL, ORDINARIO_MARCHE_AUDIO_URL);
+  }
+  if (audioUrl.endsWith(".wav")) candidates.push(audioUrl.replace(/\.wav$/, ".mp3"));
+  if (audioUrl.endsWith(".mp3")) candidates.push(audioUrl.replace(/\.mp3$/, ".wav"));
+
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+async function playHtmlAudio(audio: HTMLAudioElement, candidates: string[]) {
+  let lastError: unknown;
+  for (const candidate of candidates) {
+    audio.src = candidate;
+    audio.load();
+    try {
+      await audio.play();
+      return { ok: true as const, url: candidate };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  return { ok: false as const, error: lastError };
+}
+
 function safeSetLocalStorage(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
@@ -439,14 +504,14 @@ export default function Drill() {
     const audio = useSfx ? sfxAudioRef.current : audioRef.current;
     if (!audio) return;
     audio.loop = false;
-    audio.src = queued.audioUrl;
-    audio.load();
     try {
-      await audio.play();
+      const result = await playHtmlAudio(audio, buildPlaybackCandidates(queued.label, queued.audioUrl));
+      if (!result.ok) throw result.error;
       setPlayingKey(queued.key);
       setPlayingLabel(queued.label);
       if (queued.nextState) setDrillState(queued.nextState);
-    } catch {
+    } catch (error) {
+      console.warn("[Drill Audio] Falha ao iniciar proximo audio da sequencia:", queued.label, error);
       audioQueueRef.current = [];
       setPlayingKey(null);
       setPlayingLabel(null);
@@ -535,39 +600,18 @@ export default function Drill() {
     if (sfx) { sfx.pause(); sfx.loop = false; }
     if (!audio) return false;
 
-    const primaryUrl = audioUrl;
-    const fallbackUrl = audioUrl.endsWith(".wav")
-      ? audioUrl.replace(/\.wav$/, ".mp3")
-      : audioUrl.endsWith(".mp3")
-      ? audioUrl.replace(/\.mp3$/, ".wav")
-      : null;
-
-    audio.src = primaryUrl;
-    audio.load();
-    try {
-      await audio.play();
+    const candidates = buildPlaybackCandidates(label, audioUrl);
+    const result = await playHtmlAudio(audio, candidates);
+    if (result.ok) {
       setPlayingKey(key);
       setPlayingLabel(label);
       return true;
-    } catch (primaryErr) {
-      if (fallbackUrl) {
-        try {
-          audio.src = fallbackUrl;
-          audio.load();
-          await audio.play();
-          setPlayingKey(key);
-          setPlayingLabel(label);
-          return true;
-        } catch {
-          // ignore fallback failure and report primary error
-        }
-      }
-      console.warn("[Drill Audio] Falha ao reproduzir áudio:", primaryUrl, primaryErr);
-      setPlayingKey(null);
-      setPlayingLabel(null);
-      toast.error(`Não foi possível reproduzir "${label}". Verifique a conexão ou envie o arquivo no painel.`);
-      return false;
     }
+    console.warn("[Drill Audio] Falha ao reproduzir audio:", { label, candidates, error: result.error });
+    setPlayingKey(null);
+    setPlayingLabel(null);
+    toast.error(`Não foi possível reproduzir "${label}". Verifique a conexão ou envie o arquivo no painel.`);
+    return false;
   };
 
   const incrementCallUsage = (id: number) => {

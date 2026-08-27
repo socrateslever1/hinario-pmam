@@ -22,9 +22,63 @@ if (typeof window !== "undefined") {
     console.warn("[Vite] Chunk preload failed (likely new deployment). Reloading page...", event);
     void recoverFromStaleDeployment();
   });
+
+  window.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    const link = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+    if (!link || link.hasAttribute("download")) return;
+
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || !link.target || link.target === "_self") return;
+
+    event.preventDefault();
+    window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
 }
 
-const queryClient = new QueryClient();
+const API_REQUEST_TIMEOUT_MS = 8_000;
+const PUBLIC_CATALOG_PROCEDURES = new Set([
+  "blog.list",
+  "buglePanel.list",
+  "hymns.list",
+  "ordemUnidaAudio.list",
+  "ordemUnidaAudio.listVoiceProfiles",
+]);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+  const upstreamSignal = init?.signal;
+
+  if (upstreamSignal) {
+    if (upstreamSignal.aborted) {
+      controller.abort();
+    } else {
+      upstreamSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+
+  return globalThis.fetch(input, {
+    ...(init ?? {}),
+    signal: controller.signal,
+  }).finally(() => window.clearTimeout(timeout));
+}
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -74,7 +128,7 @@ const trpcClient = trpc.createClient({
             headers.set("x-email-session", emailSessionToken);
           }
         }
-        return globalThis.fetch(input, {
+        return fetchWithTimeout(input, {
           ...(init ?? {}),
           headers,
           ...authenticatedFetchOptions,

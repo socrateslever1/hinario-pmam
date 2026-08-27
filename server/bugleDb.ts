@@ -4,6 +4,144 @@ export type BugleContentKind = "call" | "march";
 
 let schemaPromise: Promise<void> | null = null;
 
+const FALLBACK_SOURCE_URL = "https://cpmlondrina.com.br/alunos/toques-corneta/";
+
+const fallbackCallRows = [
+  ["À vontade", "01-a_vontade", "relaxed", "À vontade", "comandos"],
+  ["Acelerado", "02-acelerado", "gauge", "Em acelerado", "marcha"],
+  ["Ajudante-geral", "03-ajudante_geral", "user", null, "autoridades"],
+  ["Alto", "04-alto", "hand", "Alto", "comandos"],
+  ["Alvorada", "05-alvorada", "sun", null, "rotina"],
+  ["Apresentar arma", "06-apresentar_arma", "shield", "Apresentar arma", "armas"],
+  ["Avançar ao rancho", "07-avancar_ao_rancho", "utensils", "Avançar ao rancho", "rotina"],
+  ["Bandeira Nacional", "08-bandeira_nacional", "flag", null, "cerimonial"],
+  ["Batalhão", "09-batalhao", "users", null, "frações"],
+  ["Bombeiro", "10-bombeiro", "flame", null, "institucional"],
+  ["Cavalaria", "11-cavalaria", "shield", null, "institucional"],
+  ["Cessar o À vontade", null, "relaxed", "Descansar", "comandos"],
+  ["Chefe do Estado-Maior", "12-chefe_estado_maior", "user", null, "autoridades"],
+  ["Comandante de batalhão", "13-cmt_batalhao", "user", null, "autoridades"],
+  ["Comandante de companhia", "14-cmt_companhia", "user", null, "autoridades"],
+  ["Comandante-geral", "15-cmt_geral", "user", null, "autoridades"],
+  ["Cobrir", "16-cobrir", "users", "Cobrir", "comandos"],
+  ["Companhia", "17-companhia", "users", null, "frações"],
+  ["Contingente", "18-contingente", "users", null, "frações"],
+  ["Cruzar arma", "19-cruzar_arma", "shield", "Cruzar arma", "armas"],
+  ["Descansar", "20-descansar", "relaxed", "Descansar", "comandos"],
+  ["Descansar arma", "21-descansar_arma", "shield", "Descansar arma", "armas"],
+  ["Direita volver", "22-direita_volver", "rotate", "Direita volver", "comandos"],
+  ["Em continência", "23-em_continencia", "salute", "Em continência", "cerimonial"],
+  ["Em direção à direita", "24-em_direcao_a_direita", "arrow-right", "Em direção à direita", "comandos"],
+  ["Em direção à esquerda", "25-em_direcao_a_esquerda", "arrow-left", "Em direção à esquerda", "comandos"],
+  ["Escola", "26-escola", "school", null, "institucional"],
+  ["Esquerda volver", "27-esquerda_volver", "rotate", "Esquerda volver", "comandos"],
+  ["Firme", "28-firme", "shield", "Firme", "comandos"],
+  ["Governador", "29-governador", "user", null, "autoridades"],
+  ["Granadeira", "30-granadeira", "shield", null, "institucional"],
+  ["Início do expediente", "31-inicio_expediente", "clock", "Início do expediente", "rotina"],
+  ["Inspeções policiais", "32-inspecoes_policiais", "search", null, "institucional"],
+  ["Marcar passo", "33-marcar_passo", "footprints", "Marcar passo", "marcha"],
+  ["Marcha batida", "34-marcha_batida", "footprints", "Em marcha", "marcha"],
+  ["Meia-volta volver", "35-meia_volta_volver", "rotate", "Meia-volta volver", "comandos"],
+  ["Oficial superior", "36-oficial_superior", "user", null, "autoridades"],
+  ["Olhar à direita", "37-olhar_a_direita", "eye", "Olhar à direita", "comandos"],
+  ["Olhar em frente", "38-olhar_em_frente", "eye", "Olhar em frente", "comandos"],
+  ["Ombro arma", "39-ombro_arma", "shield", "Ombro arma", "armas"],
+  ["Ordem", "40-ordem", "volume", null, "comandos"],
+  ["Ordinário marche", "41-ordinario_marche", "footprints", "Em marcha", "marcha"],
+  ["Para prontidão", "42-para_a_prontidao", "bell", "Em prontidão", "comandos"],
+  ["Pelotão", "43-pelotao", "users", null, "frações"],
+  ["Polícia Militar", "44-policia_militar", "shield", null, "institucional"],
+  ["Presidente", "45-presidente", "user", null, "autoridades"],
+  ["Reunir", "46-reunir", "users", "Reunir", "comandos"],
+  ["Revista do recolher", "47-revista_do_recolher", "search", "Revista do recolher", "rotina"],
+  ["Sentido", "48-sentido", "shield", "Sentido", "comandos"],
+  ["Silêncio", "49-silencio", "volume-off", "Em silêncio", "rotina"],
+  ["Término do expediente", "50-termino_expediente", "clock", "Término do expediente", "rotina"],
+  ["Última forma", "51-ultima_forma", "users", "Última forma", "comandos"],
+] as const;
+
+function fallbackAudioUrl(slug: string | null, sortOrder: number, name: string) {
+  const normalized = name.toLocaleLowerCase("pt-BR");
+  if (normalized.includes("cessar")) return "/uploads/pmam_bugle_calls_30001_cessar_o___vontade.mp3";
+  if (normalized.includes("b+d") || normalized.includes("bumbo e dobrado")) return "/uploads/ordinario%20marche%20bumbo%20e%20dobrado.mp3";
+  if (normalized.includes("ordinário marche")) return "/uploads/pmam_bugle_calls_90001_ordin_rio_marche_b.mp3";
+  if (!slug) return null;
+  return `https://cpmlondrina.com.br/wp-content/uploads/2018/06/${slug}.mp3`;
+}
+
+function fallbackBugleCalls(activeOnly = true) {
+  const calls: ReturnType<typeof mapBugleCall>[] = fallbackCallRows.map(([name, slug, iconKey, troopState, category], index) => {
+    const sortOrder = index + 1;
+    return {
+      id: sortOrder,
+      name,
+      audioUrl: fallbackAudioUrl(slug, sortOrder, name),
+      iconKey,
+      troopState,
+      category,
+      sourceUrl: FALLBACK_SOURCE_URL,
+      sortOrder,
+      isActive: true,
+      createdAt: null,
+      updatedAt: null,
+    };
+  });
+
+  calls.push({
+    id: 60001,
+    name: "Bumbo",
+    audioUrl: "/uploads/pmam_bugle_calls_60001_bumbo.mp3",
+    iconKey: "music",
+    troopState: null,
+    category: "marcha",
+    sourceUrl: null,
+    sortOrder: 60001,
+    isActive: true,
+    createdAt: null,
+    updatedAt: null,
+  });
+
+  return activeOnly ? calls.filter((item) => item.isActive) : calls;
+}
+
+function fallbackMarches(activeOnly = true) {
+  const marches = [
+    {
+      id: 60001,
+      title: "Dobrado Baptista de Mello",
+      composer: "Manoel Alves",
+      audioUrl: "/uploads/pmam_marches_60001_dobrado_baptista_de_mello.m4a",
+      sourceUrl: null,
+      sortOrder: 1,
+      isActive: true,
+      createdAt: null,
+      updatedAt: null,
+    },
+  ];
+
+  return activeOnly ? marches.filter((item) => item.isActive) : marches;
+}
+
+async function withFastPublicFallback<T>(promise: Promise<T>, fallback: () => T, message: string) {
+  let settled = false;
+  promise.finally(() => {
+    settled = true;
+  }).catch(() => {});
+
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => {
+      setTimeout(() => {
+        if (!settled) {
+          console.warn(message);
+          resolve(fallback());
+        }
+      }, 700);
+    }),
+  ]);
+}
+
 export async function ensureBugleSchema() {
   // Tabelas e alterações são aplicadas pelas migrações, não durante leituras.
   schemaPromise ??= Promise.resolve();
@@ -64,15 +202,31 @@ function mapMarch(row: any) {
 export async function listBugleCalls(activeOnly = true) {
   await ensureBugleSchema();
   const where = activeOnly ? "WHERE is_active = 1" : "";
-  const rows = await query(`SELECT * FROM pmam_bugle_calls ${where} ORDER BY sort_order, name`);
-  return rows.map(mapBugleCall);
+  const dbRead = query(`SELECT * FROM pmam_bugle_calls ${where} ORDER BY sort_order, name`).then((rows) => rows.map(mapBugleCall));
+  if (activeOnly) {
+    return withFastPublicFallback(dbRead, () => fallbackBugleCalls(activeOnly), "[BuglePanel] Leitura publica demorou; usando fallback local de toques.");
+  }
+  try {
+    return await dbRead;
+  } catch (error) {
+    console.warn("[BuglePanel] Banco indisponível; usando fallback local de toques.", (error as any)?.code || String((error as any)?.message || error));
+    return fallbackBugleCalls(activeOnly);
+  }
 }
 
 export async function listMarches(activeOnly = true) {
   await ensureBugleSchema();
   const where = activeOnly ? "WHERE is_active = 1" : "";
-  const rows = await query(`SELECT * FROM pmam_marches ${where} ORDER BY sort_order, title`);
-  return rows.map(mapMarch);
+  const dbRead = query(`SELECT * FROM pmam_marches ${where} ORDER BY sort_order, title`).then((rows) => rows.map(mapMarch));
+  if (activeOnly) {
+    return withFastPublicFallback(dbRead, () => fallbackMarches(activeOnly), "[BuglePanel] Leitura publica demorou; usando fallback local de dobrados.");
+  }
+  try {
+    return await dbRead;
+  } catch (error) {
+    console.warn("[BuglePanel] Banco indisponível; usando fallback local de dobrados.", (error as any)?.code || String((error as any)?.message || error));
+    return fallbackMarches(activeOnly);
+  }
 }
 
 export async function createBugleCall(input: any) {

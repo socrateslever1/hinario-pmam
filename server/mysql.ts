@@ -2,6 +2,58 @@ import { connect } from '@tidbcloud/serverless';
 import { ENV } from './_core/env';
 
 let connection: ReturnType<typeof connect> | null = null;
+const DEFAULT_QUERY_TIMEOUT_MS = ENV.isProduction ? 5_000 : 1_200;
+const DB_UNAVAILABLE_RETRY_MS = ENV.isProduction ? 30_000 : 60_000;
+let databaseUnavailableUntil = 0;
+
+function getQueryTimeoutMs() {
+  const raw = process.env.DB_QUERY_TIMEOUT_MS || process.env.TIDB_QUERY_TIMEOUT_MS;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_QUERY_TIMEOUT_MS;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, sql: string): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      const error = new Error(`Database query timed out after ${timeoutMs}ms`);
+      (error as any).code = "DB_QUERY_TIMEOUT";
+      (error as any).sqlPreview = sql.replace(/\s+/g, " ").trim().slice(0, 160);
+      reject(error);
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) clearTimeout(timeout);
+  });
+}
+
+function createDatabaseUnavailableError(reason: string) {
+  const error = new Error(reason);
+  (error as any).code = "DB_TEMPORARILY_UNAVAILABLE";
+  return error;
+}
+
+function isTransientDatabaseError(error: unknown) {
+  const err = error as any;
+  const message = String(err?.message ?? error ?? "");
+  const causeCode = String(err?.cause?.code ?? err?.code ?? "");
+
+  return (
+    causeCode === "DB_QUERY_TIMEOUT" ||
+    causeCode === "DB_TEMPORARILY_UNAVAILABLE" ||
+    causeCode === "UND_ERR_CONNECT_TIMEOUT" ||
+    message.includes("fetch failed") ||
+    message.includes("Connect Timeout") ||
+    message.includes("Database query timed out")
+  );
+}
+
+function isCooldownError(error: unknown) {
+  const err = error as any;
+  return String(err?.cause?.code ?? err?.code ?? "") === "DB_TEMPORARILY_UNAVAILABLE";
+}
 
 function getConnection() {
   if (!ENV.tidbConfigured) {
@@ -28,7 +80,15 @@ function getConnection() {
 // Helper to execute queries
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
-    const result = await getConnection().execute(sql, params);
+    if (Date.now() < databaseUnavailableUntil) {
+      throw createDatabaseUnavailableError("Database temporarily unavailable; waiting before retrying remote connection");
+    }
+
+    const result = await withTimeout(
+      getConnection().execute(sql, params),
+      getQueryTimeoutMs(),
+      sql,
+    );
     // The execute function from @tidbcloud/serverless might return an object { rows } or an array depending on internal options.
     const rawRows = result && !Array.isArray(result) && 'rows' in (result as any) ? (result as any).rows : result;
     
@@ -67,8 +127,20 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
 
     return rows as T[];
   } catch (error) {
-    console.error('[MySQL Error] Original Query:', sql);
-    console.error('[MySQL Error] Message:', error);
+    if (isCooldownError(error)) {
+      throw error;
+    }
+
+    if (isTransientDatabaseError(error)) {
+      databaseUnavailableUntil = Date.now() + DB_UNAVAILABLE_RETRY_MS;
+      console.warn(
+        "[MySQL] Banco remoto indisponível; usando fallback quando existir. Nova tentativa após cooldown.",
+        (error as any)?.code || (error as any)?.cause?.code || String((error as any)?.message || error)
+      );
+    } else {
+      console.error('[MySQL Error] Original Query:', sql);
+      console.error('[MySQL Error] Message:', error);
+    }
     throw error;
   }
 }

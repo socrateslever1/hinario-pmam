@@ -73,13 +73,18 @@ const audioListSelect = `SELECT
 
 export async function listVoiceProfiles(activeOnly = true): Promise<VoiceProfileRecord[]> {
   await ensureOrdemUnidaAudioSchema();
-  const rows = await query(`SELECT profile_key, name, CASE WHEN photo_url LIKE 'data:%' THEN NULL ELSE photo_url END photo_url, (photo_url LIKE 'data:%') has_inline_photo, is_active FROM pmam_voice_profiles ${activeOnly ? "WHERE is_active = 1" : ""} ORDER BY name`);
-  return rows.map((row: any) => ({
-    profileKey: row.profile_key,
-    name: row.name,
-    photoUrl: row.photo_url ?? (row.has_inline_photo ? `/api/voice-profile-photo/${encodeURIComponent(row.profile_key)}` : null),
-    isActive: row.is_active === 1 || row.is_active === true,
-  }));
+  try {
+    const rows = await query(`SELECT profile_key, name, CASE WHEN photo_url LIKE 'data:%' THEN NULL ELSE photo_url END photo_url, (photo_url LIKE 'data:%') has_inline_photo, is_active FROM pmam_voice_profiles ${activeOnly ? "WHERE is_active = 1" : ""} ORDER BY name`);
+    return rows.map((row: any) => ({
+      profileKey: row.profile_key,
+      name: row.name,
+      photoUrl: row.photo_url ?? (row.has_inline_photo ? `/api/voice-profile-photo/${encodeURIComponent(row.profile_key)}` : null),
+      isActive: row.is_active === 1 || row.is_active === true,
+    }));
+  } catch (error) {
+    console.warn("[OrdemUnidaAudio] Banco indisponivel; usando perfil padrao.", (error as any)?.code || String((error as any)?.message || error));
+    return [{ profileKey: "default", name: "Comandante", photoUrl: null, isActive: true }];
+  }
 }
 
 export async function upsertVoiceProfile(input: { profileKey: string; name: string; photoUrl?: string | null }) {
@@ -97,8 +102,13 @@ export async function upsertVoiceProfile(input: { profileKey: string; name: stri
 
 export async function listActiveOrdemUnidaAudios() {
   await ensureOrdemUnidaAudioSchema();
-  const rows = await query(`${audioListSelect} WHERE is_active = 1 ORDER BY item_type, item_title`);
-  return rows.map(mapAudio);
+  try {
+    const rows = await query(`${audioListSelect} WHERE is_active = 1 ORDER BY item_type, item_title`);
+    return rows.map(mapAudio);
+  } catch (error) {
+    console.warn("[OrdemUnidaAudio] Banco indisponivel; sem audios de voz no fallback.", (error as any)?.code || String((error as any)?.message || error));
+    return [];
+  }
 }
 
 export async function listAllOrdemUnidaAudios() {

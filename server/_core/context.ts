@@ -12,10 +12,57 @@ export type TrpcContext = {
   user: User | null;
 };
 
+function isTransientDatabaseError(error: unknown) {
+  const err = error as any;
+  const message = String(err?.message ?? error ?? "");
+  const causeCode = String(err?.cause?.code ?? err?.code ?? "");
+
+  return (
+    causeCode === "DB_QUERY_TIMEOUT" ||
+    causeCode === "DB_TEMPORARILY_UNAVAILABLE" ||
+    causeCode === "UND_ERR_CONNECT_TIMEOUT" ||
+    message.includes("fetch failed") ||
+    message.includes("Connect Timeout") ||
+    message.includes("Database query timed out")
+  );
+}
+
+function isCooldownError(error: unknown) {
+  const err = error as any;
+  return String(err?.cause?.code ?? err?.code ?? "") === "DB_TEMPORARILY_UNAVAILABLE";
+}
+
+const PUBLIC_CATALOG_PROCEDURES = new Set([
+  "blog.list",
+  "buglePanel.list",
+  "hymns.list",
+  "ordemUnidaAudio.list",
+  "ordemUnidaAudio.listVoiceProfiles",
+]);
+
+function isPublicCatalogRequest(req: CreateExpressContextOptions["req"]) {
+  if (req.method !== "GET") return false;
+  const originalUrl = req.originalUrl || req.url || "";
+  const marker = "/api/trpc/";
+  const markerIndex = originalUrl.indexOf(marker);
+  if (markerIndex === -1) return false;
+  const procedurePath = originalUrl.slice(markerIndex + marker.length).split("?")[0] || "";
+  const procedures = decodeURIComponent(procedurePath).split(",").filter(Boolean);
+  return procedures.length > 0 && procedures.every((procedure) => PUBLIC_CATALOG_PROCEDURES.has(procedure));
+}
+
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
   let user: User | null = null;
+
+  if (isPublicCatalogRequest(opts.req)) {
+    return {
+      req: opts.req,
+      res: opts.res,
+      user: null,
+    };
+  }
 
   try {
     user = await sdk.authenticateRequest(opts.req);
@@ -24,6 +71,13 @@ export async function createContext(
     // Falhas transitórias de banco/infraestrutura não podem apagar a sessão ativa no cliente.
     if (error instanceof HttpError && error.statusCode === 403) {
       user = null;
+    } else if (isTransientDatabaseError(error)) {
+      if (isCooldownError(error)) {
+        user = null;
+      } else {
+      // Banco remoto indisponivel: tratar como anonimo sem poluir o log local.
+      user = null;
+      }
     } else {
       throw error;
     }
@@ -38,7 +92,11 @@ export async function createContext(
       try {
         user = await sdk.authenticateSessionToken(String(emailSessionToken));
       } catch (error) {
-        if (!(error instanceof HttpError && error.statusCode === 403)) {
+        if (isTransientDatabaseError(error)) {
+          if (!isCooldownError(error)) {
+          // Banco remoto indisponivel: tratar como anonimo sem poluir o log local.
+          }
+        } else if (!(error instanceof HttpError && error.statusCode === 403)) {
           throw error;
         }
       }

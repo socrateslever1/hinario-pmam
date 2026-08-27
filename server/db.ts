@@ -333,7 +333,7 @@ let hymnSchemaPromise: Promise<void> | null = null;
 
 async function ensureHymnSchema() {
   hymnSchemaPromise ??= restoreBundledHymnsIfNeeded().catch((error) => {
-    console.error("[Hymns] TiDB indisponível; usando catálogo global interno.", error);
+    console.warn("[Hymns] TiDB indisponivel; usando catalogo global interno.", (error as any)?.code || String((error as any)?.message || error));
   });
   await hymnSchemaPromise;
 }
