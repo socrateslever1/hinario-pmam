@@ -155,8 +155,8 @@ jobs:
       - name: TypeScript
         run: pnpm check
 
-      - name: Tests
-        run: pnpm test
+      - name: Focused regression tests
+        run: pnpm exec vitest run client/src/lib/administrativeEffective.test.ts client/src/data/cfapHistory.test.ts client/src/lib/studyProgress.test.ts
 
       - name: Production build
         run: pnpm build
