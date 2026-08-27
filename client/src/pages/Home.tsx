@@ -383,7 +383,7 @@ function HymnCollection({ hymns }: { hymns: any[] | undefined }) {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {categories.map((category) => {
-            const count = hymns?.filter((hymn: any) => hymn.category === category.key).length ?? 0;
+            const count = hymns?.filter((hymn: any) => (hymn.category ?? hymn.collection) === category.key).length ?? 0;
             return (
               <Link key={category.key} href={`/hinos?categoria=${category.key}`}>
                 <Card className="h-full cursor-pointer border-border/50 py-0 transition-colors hover:border-[#c4a84b]/50">
