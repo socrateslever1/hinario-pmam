@@ -1,0 +1,70 @@
+name: Apply grades mobile polish
+
+on:
+  push:
+    branches:
+      - feat/qg-digital-ui-polish-v1
+    paths:
+      - .github/workflows/apply-ui-grades.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply grades mobile readability improvements
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("client/src/pages/Grades.tsx")
+          text = path.read_text(encoding="utf-8")
+
+          def rep(old, new, count=1):
+              global text
+              actual = text.count(old)
+              if actual != count:
+                  raise SystemExit(f"expected {count}, found {actual}: {old[:120]!r}")
+              text = text.replace(old, new, count)
+
+          rep('className="text-xl font-bold text-[#1a3a2a] md:text-3xl"', 'className="text-2xl font-bold text-[#1a3a2a] md:text-3xl"')
+          rep('className="mx-auto mt-1.5 max-w-2xl text-xs leading-snug text-muted-foreground md:mt-3 md:text-base md:leading-normal"', 'className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground md:mt-3 md:text-base"')
+          rep('className="mb-6 flex flex-wrap gap-2 justify-end"', 'className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end"')
+          rep('className="gap-2 bg-[#1a3a2a] hover:bg-[#0f2620] text-white"', 'className="w-full gap-2 bg-[#1a3a2a] text-white hover:bg-[#0f2620] sm:w-auto"')
+          rep('className="gap-2"', 'className="w-full gap-2 sm:w-auto"', 1)
+          rep('className="mb-5 grid grid-cols-3 gap-2 sm:mb-8 sm:gap-4"', 'className="mb-5 grid grid-cols-1 gap-2 sm:mb-8 sm:grid-cols-3 sm:gap-4"')
+          rep('className="text-[11px] leading-tight text-muted-foreground sm:text-sm"', 'className="text-sm leading-tight text-muted-foreground"', 3)
+          rep('className="flex gap-2.5 p-3 text-xs font-medium md:gap-3 md:p-6 md:text-sm"', 'className="flex gap-2.5 p-3 text-sm font-medium leading-relaxed md:gap-3 md:p-6"')
+          rep('text-white text-[10px]">Em Andamento', 'text-white text-xs">Em Andamento')
+          rep('className="text-[10px]">Finalizado', 'className="text-xs">Finalizado')
+          rep('text-white text-[10px]">Em Breve', 'text-white text-xs">Em Breve')
+
+          path.write_text(text, encoding="utf-8")
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript
+        run: pnpm check
+      - name: Regression tests
+        run: pnpm exec vitest run client/src/data/cfapHistory.test.ts client/src/lib/imageResize.test.ts
+      - name: Production build
+        run: pnpm build
+      - name: Commit validated grades polish
+        run: |
+          rm .github/workflows/apply-ui-grades.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor(ui): improve grades mobile readability"
+          git push origin feat/qg-digital-ui-polish-v1
