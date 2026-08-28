@@ -2104,6 +2104,7 @@ export const appRouter = router({
       z.object({
         companhia: z.number().int().min(1).max(5).optional(),
         peloton: z.number().int().min(1).max(2).optional(),
+        registeredOnly: z.boolean().optional(),
       }).optional()
     ).query(async ({ ctx, input }) => {
       const assignment = await serviceScaleDb.getXerifeAssignment(ctx.user.id);
@@ -2124,7 +2125,7 @@ export const appRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Xerife sem escopo configurado" });
       }
 
-      return serviceScaleDb.listStudents({ companhia, peloton });
+      return serviceScaleDb.listStudents({ companhia, peloton, activeOnly: input?.registeredOnly === true });
     }),
 
     getPlatoon: scaleManagerProcedure.input(
@@ -2913,6 +2914,7 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
       return serviceScaleDb.listStudentObservations(input.studentId);
     }),
@@ -2924,6 +2926,7 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno nÃ£o encontrado" });
+      requireActivatedStudent(student);
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
       return serviceScaleDb.listStudentLcCases(input.studentId);
     }),
@@ -2936,6 +2939,7 @@ export const appRouter = router({
     ).query(async ({ ctx, input }) => {
       const student = await studentDb.getStudentById(input.studentId);
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
+      requireActivatedStudent(student);
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
       return serviceScaleDb.getFoCodeBalance(student.id, input.foCode);
     }),
