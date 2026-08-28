@@ -39,8 +39,7 @@ export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [studentSession, setStudentSession] = useState<StudentSession | null>(() => getStudentSession());
   const [moreOpen, setMoreOpen] = useState(false);
-  const { data: user } = trpc.auth.me.useQuery();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const profileQuery = trpc.student.getProfile.useQuery(
     { id: studentSession?.id ?? 0, sessionToken: studentSession?.sessionToken ?? "" },
@@ -77,6 +76,8 @@ export default function BottomNavigation() {
     !isStudent &&
     user?.role &&
       [
+        "master",
+        "admin",
         "comandante_corpo",
         "subcomandante_corpo",
         "sub_comandante_corpo",

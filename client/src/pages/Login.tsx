@@ -11,7 +11,7 @@ import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
 import { saveEmailSession } from "@/lib/emailSession";
 
-const BRASAO_URL = "/logo/IMG_7728.PNG";
+const BRASAO_URL = "/documents/images/pmam-brasao.png";
 
 const REMEMBER_ME_KEY = "hinario-remember-me";
 const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 dias em ms

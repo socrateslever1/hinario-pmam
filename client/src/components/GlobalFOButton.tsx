@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { FOProofUploader } from "@/components/FOProofUploader";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
 import { useModalHistory } from "@/hooks/useModalHistory";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type FOType = "positive" | "negative";
 
@@ -52,8 +53,11 @@ const COMMAND_ROLES = new Set([
 
 export function GlobalFOButton() {
   const utils = trpc.useUtils();
+  const { user } = useAuth();
   const { data: access } = trpc.serviceScale.myAccess.useQuery();
-  const canUseFO = COMMAND_ROLES.has(String(access?.role || ""));
+  const authenticatedRole = String(user?.role || "");
+  const scopedRole = String(access?.role || "");
+  const canUseFO = COMMAND_ROLES.has(authenticatedRole) || COMMAND_ROLES.has(scopedRole);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -74,14 +78,14 @@ export function GlobalFOButton() {
     clearItems,
   } = useUploadProgress();
 
-  const studentsQuery = trpc.serviceScale.students.useQuery(undefined, {
+  const studentsQuery = trpc.serviceScale.students.useQuery({ registeredOnly: true }, {
     enabled: canUseFO,
   });
   const addStudentObservation = trpc.serviceScale.addStudentObservation.useMutation();
   const uploadFoProof = trpc.foProofs.uploadProof.useMutation();
 
   const filteredStudents = useMemo(() => {
-    const students = studentsQuery.data ?? [];
+    const students = (studentsQuery.data ?? []).filter((student: any) => student.registrationStatus === "active");
     const value = search.trim().toLowerCase();
     const sorted = [...students].sort((a: any, b: any) => Number(a.numerica) - Number(b.numerica));
     if (!value) return sorted.slice(0, 20);

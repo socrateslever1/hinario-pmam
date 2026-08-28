@@ -35,6 +35,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 const LOGO_URL = "/logo/IMG_7728.PNG";
 
 const COMMAND_ROLES = new Set([
+  "master",
+  "admin",
   "comandante_corpo",
   "subcomandante_corpo",
   "sub_comandante_corpo",
@@ -190,8 +192,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<StudentSession | null>(() => getStudentSession());
   const themeContext = useTheme();
-  const { data: user } = trpc.auth.me.useQuery();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const profileQuery = trpc.student.getProfile.useQuery(
     { id: student?.id ?? 0, sessionToken: student?.sessionToken ?? "" },

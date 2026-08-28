@@ -801,7 +801,7 @@ export default function AdministrativeRoom() {
                   <div className="grid gap-2 sm:grid-cols-2">
                     <select value={contestStudentId} onChange={(event) => { setContestStudentId(event.target.value); setContestObservationId(""); }} className="h-9 rounded-md border bg-background px-3 text-sm">
                       <option value="">Aluno...</option>
-                      {students.map((student: any) => (
+                      {filteredStudents.map((student: any) => (
                         <option key={student.id} value={String(student.id)}>{student.numerica} - {student.nomeGuerra}</option>
                       ))}
                     </select>

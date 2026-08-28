@@ -840,7 +840,7 @@ export async function deleteXerifeAssignment(id: number) {
   await query("DELETE FROM pmam_xerife_assignments WHERE id = ?", [id]);
 }
 
-export async function listStudents(scope?: { companhia?: number; peloton?: number }): Promise<ServiceStudent[]> {
+export async function listStudents(scope?: { companhia?: number; peloton?: number; activeOnly?: boolean }): Promise<ServiceStudent[]> {
   await ensureServiceScaleTables();
   const where: string[] = [];
   const params: any[] = [];
@@ -852,6 +852,9 @@ export async function listStudents(scope?: { companhia?: number; peloton?: numbe
   if (scope?.peloton) {
     where.push("peloton = ?");
     params.push(scope.peloton);
+  }
+  if (scope?.activeOnly) {
+    where.push("registration_status = 'active'");
   }
 
   const rows = await query(`
