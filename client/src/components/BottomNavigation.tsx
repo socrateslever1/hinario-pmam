@@ -151,7 +151,7 @@ export default function BottomNavigation() {
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ];
 
-  const gridItems = allGridItems.filter((item) => !navPaths.has(item.path));
+  const gridItems = allGridItems.filter((item) => !navPaths.has(item.path) && item.path !== "/entrar" && item.path !== "/xerife");
 
   const isActive = (path: string) => {
     if (path === "__more") {
@@ -231,97 +231,40 @@ export default function BottomNavigation() {
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent
           side="bottom"
-          className="mx-auto max-w-md rounded-t-2xl border-white/10 bg-[#062417]/95 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 text-white backdrop-blur-xl md:hidden animate-in fade-in-50 slide-in-from-bottom-10 duration-300"
+          className="mx-auto max-w-md rounded-t-[28px] border-t border-[#c4a84b]/35 bg-gradient-to-b from-[#082419] via-[#051b12] to-[#020e09] px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-2.5 text-white backdrop-blur-2xl md:hidden shadow-[0_-14px_45px_rgba(0,0,0,0.7)] animate-in fade-in-50 slide-in-from-bottom-10 duration-300"
         >
-          <SheetHeader className="flex flex-row items-center justify-between border-b border-white/10 px-1 pb-3 pt-1 text-left">
-            <SheetTitle className="text-base font-bold text-white">Menu & Acessos</SheetTitle>
+          {/* Top Notch Indicator */}
+          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" />
+
+          <SheetHeader className="flex flex-row items-center justify-between border-b border-white/[0.08] px-1 pb-3 pt-0 text-left">
+            <SheetTitle className="font-serif text-[17px] font-black tracking-tight text-white">
+              Menu & Acessos
+            </SheetTitle>
           </SheetHeader>
 
-          <div className="max-h-[68vh] space-y-4 overflow-y-auto py-3 pr-0.5">
-            {isStudent ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-3">
-                <button
-                  type="button"
-                  onClick={() => goTo("/perfil-aluno")}
-                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
-                >
-                  <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
-                    {studentPhoto ? (
-                      <img src={studentPhoto} alt="Foto" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center">
-                        <User className="h-5 w-5 text-[#c4a84b]" />
-                      </span>
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-[#f0bd3a]">{studentName}</p>
-                    <p className="text-xs text-white/65">Ver meu perfil</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStudentLogout}
-                  className="flex min-h-11 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/15 px-3 text-xs font-bold text-red-200 transition-colors hover:bg-red-500/25"
-                  title="Sair da sessão"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </button>
-              </div>
-            ) : user ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#c4a84b]/30 bg-[#145c3a]/30 p-3">
-                <button
-                  type="button"
-                  onClick={() => goTo("/perfil")}
-                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
-                >
-                  <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/50 bg-[#1a3a2a] shadow-inner">
-                    {userPhoto ? (
-                      <img src={userPhoto} alt="Foto" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center">
-                        <User className="h-5 w-5 text-[#c4a84b]" />
-                      </span>
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-[#f0bd3a]">{userName}</p>
-                    <p className="text-xs text-white/65">Ver meu perfil</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUserLogout}
-                  className="flex min-h-11 items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/15 px-3 text-xs font-bold text-red-200 transition-colors hover:bg-red-500/25"
-                  title="Sair da sessão"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => goTo("/entrar")}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/40 bg-[#1a3a2a] px-3 text-center text-sm font-bold text-[#f0bd3a] shadow-sm transition-all hover:bg-[#234b36]"
-                >
-                  <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
-                  <span>Acesso Aluno</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goTo("/xerife")}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#c4a84b]/20 bg-white/5 px-3 text-center text-sm font-bold text-white/90 transition-all hover:border-[#c4a84b]/40 hover:bg-white/10"
-                >
-                  <Star className="h-4 w-4 text-[#c4a84b]" />
-                  <span>Posto Comando</span>
-                </button>
-              </div>
-            )}
+          <div className="max-h-[68vh] space-y-3.5 overflow-y-auto py-3 pr-0.5 scrollbar-none">
+            {/* Botões de Acesso Rápido Principais (Sempre visíveis no topo) */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => goTo(isStudent ? "/perfil-aluno" : "/entrar")}
+                className="group flex min-h-[46px] items-center justify-center gap-2 rounded-2xl border border-[#f0bd3a]/60 bg-[#0f3523]/90 px-3 text-center text-sm font-extrabold text-[#f0bd3a] shadow-[0_2px_12px_rgba(240,189,58,0.15)] transition-all hover:bg-[#164730] hover:border-[#f0bd3a] active:scale-[0.98]"
+              >
+                <GraduationCap className="h-4 w-4 text-[#f0bd3a] transition-transform group-hover:scale-110" />
+                <span>Acesso Aluno</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo("/xerife")}
+                className="group flex min-h-[46px] items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-3 text-center text-sm font-bold text-white/95 shadow-sm transition-all hover:border-[#c4a84b]/50 hover:bg-white/10 active:scale-[0.98]"
+              >
+                <Star className="h-4 w-4 text-[#c4a84b] transition-transform group-hover:scale-110" />
+                <span>Posto Comando</span>
+              </button>
+            </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-1">
+            {/* Grade de 3 Colunas */}
+            <div className="grid grid-cols-3 gap-2.5 pt-1">
               {gridItems.map((item) => {
                 const Icon = item.icon;
                 const active = location === item.path || location.startsWith(`${item.path}/`);
@@ -330,27 +273,61 @@ export default function BottomNavigation() {
                     key={item.path}
                     type="button"
                     onClick={() => goTo(item.path)}
-                    className={`flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-xl border p-2.5 text-center transition-all duration-200 ${
+                    className={`group relative flex min-h-[82px] flex-col items-center justify-center gap-2 rounded-2xl border p-2.5 text-center transition-all duration-200 active:scale-95 ${
                       active
-                        ? "border-[#f0bd3a]/40 bg-[#145c3a]/50 text-[#f0bd3a] shadow-md shadow-[#145c3a]/20"
-                        : "border-white/5 bg-white/5 text-white/85 hover:border-[#c4a84b]/20 hover:bg-white/10"
+                        ? "border-[#f0bd3a]/70 bg-gradient-to-b from-[#164830] to-[#0e3020] text-[#f0bd3a] shadow-[0_4px_16px_rgba(240,189,58,0.2)] ring-1 ring-[#f0bd3a]/30"
+                        : "border-white/[0.08] bg-[#0c251a]/60 text-white/85 hover:border-[#c4a84b]/40 hover:bg-[#123626]/80 hover:text-white shadow-sm"
                     }`}
                     aria-current={active ? "page" : undefined}
                   >
                     <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 ${
                         active
-                          ? "border-[#f0bd3a]/30 bg-[#0b3323] text-[#f0bd3a]"
-                          : "border-[#c4a84b]/20 bg-[#c4a84b]/10 text-[#c4a84b]"
+                          ? "border-[#f0bd3a]/50 bg-[#0d2a1c] text-[#f0bd3a] shadow-inner"
+                          : "border-[#c4a84b]/25 bg-[#123323] text-[#c4a84b] group-hover:border-[#f0bd3a]/50 group-hover:text-[#f0bd3a] group-hover:scale-105"
                       }`}
                     >
-                      <Icon className="h-4 w-4 stroke-[2]" />
+                      <Icon className="h-4 w-4 stroke-[2.2]" />
                     </span>
-                    <span className="line-clamp-2 text-xs font-bold leading-tight">{item.label}</span>
+                    <span className="line-clamp-2 text-[11px] font-bold leading-tight">{item.label}</span>
                   </button>
                 );
               })}
             </div>
+
+            {/* Rodapé de Identificação da Sessão (quando logado) */}
+            {(isStudent || user) && (
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => goTo(isStudent ? "/perfil-aluno" : "/perfil")}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#f0bd3a]/60 bg-[#1a3a2a]">
+                    {(isStudent ? studentPhoto : userPhoto) ? (
+                      <img src={(isStudent ? studentPhoto : userPhoto)!} alt="Foto" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center">
+                        <User className="h-4 w-4 text-[#f0bd3a]" />
+                      </span>
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-[#f0bd3a]">{isStudent ? studentName : userName}</p>
+                    <p className="text-[10px] text-white/60">{isStudent ? "Aluno CFAP" : "Comando"} • Ver perfil</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={isStudent ? handleStudentLogout : handleUserLogout}
+                  className="flex items-center gap-1 rounded-xl border border-red-500/30 bg-red-500/15 px-2.5 py-1.5 text-xs font-bold text-red-200 transition-colors hover:bg-red-500/25 active:scale-95"
+                  title="Sair da sessão"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sair
+                </button>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

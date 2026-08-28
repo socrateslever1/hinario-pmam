@@ -195,23 +195,23 @@ function QuickAccess() {
   const items = isCommand ? commandItems : student ? studentItems : publicItems;
 
   return (
-    <section className="bg-background px-4 py-6 md:py-8">
+    <section className="bg-background px-4 py-4 md:py-5">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-5">
+        <div className="mb-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a]/65 dark:text-[#c4a84b]">QG Digital</p>
-          <h2 className="mt-1 font-serif text-2xl font-black tracking-tight text-foreground md:text-3xl">Acesso rápido</h2>
+          <h2 className="mt-1 font-serif text-xl font-black tracking-tight text-foreground md:text-2xl">Acesso rápido</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {items.map((item) => (
             <Link key={item.label} href={item.href} className="h-full">
-              <Card className="h-full cursor-pointer border-border/60 bg-card py-0 shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/60 hover:shadow-md rounded-2xl">
-                <CardContent className="flex h-full flex-col justify-between p-4">
+              <Card className="h-full cursor-pointer rounded-xl border-border/60 bg-card py-0 shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#c4a84b]/60 hover:shadow-md">
+                <CardContent className="flex h-full flex-col justify-between p-3">
                   <div>
-                    <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#1a3a2a]/10 text-[#1a3a2a] dark:text-[#c4a84b]">
-                      <item.icon className="h-5 w-5" />
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a3a2a]/10 text-[#1a3a2a] dark:text-[#c4a84b]">
+                      <item.icon className="h-4 w-4" />
                     </div>
-                    <p className="text-sm font-black leading-tight text-foreground">{item.label}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
+                    <p className="text-xs font-black leading-tight text-foreground md:text-[13px]">{item.label}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted-foreground">{item.desc}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -324,8 +324,12 @@ function StudentHighlights() {
   );
 }
 
+const cfapMission = "Treina e estudar pra servir e proteger";
+
+const honorCommitmentHtml = "<strong>Ao</strong> ingressar na Polícia Militar do Amazonas, <strong>prometo</strong> regular a minha conduta pelos preceitos da moral, <strong>cumprir</strong> rigorosamente as ordens das autoridades a que estiver subordinado e <strong>dedicar-me</strong> inteiramente ao serviço policial militar, à manutenção da ordem pública e à segurança da comunidade, mesmo com o risco da própria vida.";
+
 const institutionalGuidelines = [
-  { icon: Target, title: "Missão", text: "Preservar a Ordem Pública e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelência." },
+  { icon: Target, title: "Missão PMAM", text: "Preservar a Ordem Pública e o Meio Ambiente no Estado do Amazonas, mediante um Policiamento Ostensivo de Excelência." },
   { icon: Eye, title: "Visão", text: "Ser referência nacional como Instituição de preservação da Ordem Pública e do Meio Ambiente." },
   { icon: Award, title: "Princípios", text: "Hierarquia, Disciplina e Eficácia." },
   { icon: HeartHandshake, title: "Valores", text: "Devotamento, Civismo, Coragem, Camaradagem, Honestidade, Justiça, Aprimoramento, Verdade e Espírito de preservação do meio ambiente." },
@@ -333,30 +337,58 @@ const institutionalGuidelines = [
 
 function InstitutionalGuidelines() {
   return (
-    <section className="bg-background px-4 py-6 md:py-8">
+    <section className="bg-background px-4 py-4 md:py-5">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6">
+        <div className="mb-3">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1a3a2a]/65 dark:text-[#c4a84b]">Identidade PMAM</p>
-          <h2 className="mt-1 font-serif text-2xl font-black text-foreground md:text-3xl">
+          <h2 className="mt-1 font-serif text-xl font-black text-foreground md:text-2xl">
             Diretrizes Institucionais
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+          <p className="mt-1 text-xs text-muted-foreground">
             Princípios que orientam a atuação e a formação policial militar no Amazonas.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+
+        <div className="mb-3 grid gap-2.5 lg:grid-cols-[0.82fr_1.18fr]">
+          <Card className="rounded-xl border-[#c4a84b]/45 bg-[#092719] py-0 text-white shadow-sm">
+            <CardContent className="flex items-center gap-3 p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0bd3a] text-[#062417]">
+                <Shield className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d6bd66]">Missão do CFAP</p>
+                <p className="mt-0.5 text-sm font-black leading-snug text-white md:text-base">“{cfapMission}”</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl border-[#c4a84b]/30 bg-card py-0 shadow-sm">
+            <CardContent className="p-3">
+              <div className="mb-1.5 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#c4a84b]" />
+                <h3 className="text-xs font-black uppercase tracking-[0.16em] text-foreground">Compromisso de Honra</h3>
+              </div>
+              <p
+                className="text-xs leading-relaxed text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: honorCommitmentHtml }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {institutionalGuidelines.map((item) => (
-            <Card key={item.title} className="h-full overflow-hidden border-border/50 bg-card py-0 shadow-xs hover:border-[#c4a84b]/50 rounded-2xl">
-              <div className="h-1.5 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
-              <CardContent className="flex h-full flex-col justify-between p-4.5">
+            <Card key={item.title} className="h-full overflow-hidden rounded-xl border-border/50 bg-card py-0 shadow-xs hover:border-[#c4a84b]/50">
+              <div className="h-1 bg-gradient-to-r from-[#1a3a2a] via-[#2d5a27] to-[#c4a84b]" />
+              <CardContent className="flex h-full flex-col justify-between p-3">
                 <div>
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a3a2a]">
-                      <item.icon className="h-5 w-5 text-[#c4a84b]" />
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1a3a2a]">
+                      <item.icon className="h-4 w-4 text-[#c4a84b]" />
                     </div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">{item.title}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">{item.title}</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{item.text}</p>
                 </div>
               </CardContent>
             </Card>
