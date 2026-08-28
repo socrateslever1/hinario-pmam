@@ -173,9 +173,11 @@ export function CfapHistoryTab() {
   const handlePortraitUpload = async (file: File) => {
     setUploadingPortrait(true);
     try {
+      if (!editor) throw new Error("Selecione um comandante antes de enviar a foto.");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "commanders"); // Organiza na pasta 'commanders'
+      formData.append("assetSlug", draftSlug ?? selected?.slug ?? slugify(editor.name || file.name));
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -185,13 +187,16 @@ export function CfapHistoryTab() {
         throw new Error(errorData?.error || "Erro ao fazer upload da imagem");
       }
       const result = await response.json();
-      if (!editor) throw new Error("Selecione um comandante antes de enviar a foto.");
       const nextEditor = { ...editor, portraitUrl: result.url };
       setEditor(nextEditor);
       const payload = commanderPayload(nextEditor);
       if (payload && !draftSlug) {
-        await save.mutateAsync(payload);
-        toast.success("Foto aplicada ao comandante e publicada no mural.");
+        try {
+          await save.mutateAsync(payload);
+          toast.success("Foto aplicada ao comandante e publicada no mural.");
+        } catch (publishError: any) {
+          toast.error(publishError?.message || "Foto carregada, mas não foi possível publicar o vínculo agora.");
+        }
       } else {
         toast.success("Foto carregada. Conclua os dados e publique o novo comandante.");
       }
@@ -376,7 +381,7 @@ export function CfapHistoryTab() {
               </span>
             </div>
 
-            {/* FOTO DO RETRATO (PASTA: commanders) */}
+            {/* Foto do retrato */}
             <div className="grid gap-6 md:grid-cols-[240px_1fr] bg-muted/15 p-5 rounded-2xl border border-border/60">
               <div className="space-y-3 flex flex-col items-center">
                 <div className="relative w-full max-w-[220px] aspect-square overflow-hidden rounded-2xl border-2 border-[#c4a84b]/50 bg-black/40 shadow-md">
@@ -409,10 +414,6 @@ export function CfapHistoryTab() {
                   <Upload className="h-4 w-4 text-[#f0bd3a]" />
                   {uploadingPortrait ? "Carregando..." : "Carregar Foto do Retrato"}
                 </Button>
-
-                <p className="text-[10px] text-muted-foreground text-center">
-                  Pasta no servidor: <span className="font-mono text-[#c4a84b]">/commanders/</span>
-                </p>
 
                 {editor.portraitUrl && (
                   <Button
@@ -461,13 +462,13 @@ export function CfapHistoryTab() {
                 )}
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs font-bold">URL do Retrato no Banco</Label>
+                  <Label className="text-xs font-bold">Foto do comandante</Label>
                   <Input
                     value={editor.portraitUrl}
                     onChange={(event) =>
                       setEditor({ ...editor, portraitUrl: event.target.value })
                     }
-                    placeholder="/history/commanders/retrato.webp ou faça upload acima"
+                    placeholder="Será preenchido automaticamente após o upload"
                     className="h-10 text-xs"
                   />
                 </div>

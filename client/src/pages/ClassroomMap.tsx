@@ -2483,7 +2483,7 @@ export default function ClassroomMap() {
                         </div>
                         {adit.conteudo && <p className="text-xs text-muted-foreground whitespace-pre-wrap">{adit.conteudo}</p>}
                         {adit.pdfUrl && (
-                          <a href={adit.pdfUrl} target="_blank" rel="noreferrer" className="text-xs text-[#c4a84b] hover:underline flex items-center gap-1 font-semibold mt-1">
+                          <a href={adit.pdfUrl} rel="noreferrer" className="text-xs text-[#c4a84b] hover:underline flex items-center gap-1 font-semibold mt-1">
                             Abrir arquivo digital
                           </a>
                         )}

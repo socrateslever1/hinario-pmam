@@ -31,12 +31,19 @@ if (typeof window !== "undefined") {
     const link = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
     if (!link || link.hasAttribute("download")) return;
 
-    const url = new URL(link.href, window.location.href);
-    if (url.origin !== window.location.origin || !link.target || link.target === "_self") return;
+    if (link.target && link.target === "_blank") {
+      link.target = "_self";
+    }
 
-    event.preventDefault();
-    window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+
+    const isAsset = /\.(pdf|png|jpg|jpeg|webp|gif|mp3|mp4|wav|ogg|docx?|xlsx?|zip)$/i.test(url.pathname) || url.pathname.startsWith("/api/");
+    if (!isAsset) {
+      event.preventDefault();
+      window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
   });
 }
 
@@ -80,6 +87,31 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   }).finally(() => window.clearTimeout(timeout));
 }
 
+function isPublicCatalogRequest(input: RequestInfo | URL, init?: RequestInit) {
+  if (typeof window === "undefined") return false;
+
+  const method = String(init?.method || "GET").toUpperCase();
+  if (method !== "GET") return false;
+
+  const rawUrl =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url;
+
+  const url = new URL(rawUrl, window.location.href);
+  if (url.origin !== window.location.origin) return false;
+  if (!url.pathname.startsWith("/api/trpc/")) return false;
+
+  const procedures = decodeURIComponent(url.pathname.slice("/api/trpc/".length))
+    .split(",")
+    .map((procedure) => procedure.trim())
+    .filter(Boolean);
+
+  return procedures.length > 0 && procedures.every((procedure) => PUBLIC_CATALOG_PROCEDURES.has(procedure));
+}
+
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -116,7 +148,9 @@ const trpcClient = trpc.createClient({
       transformer: superjson,
       fetch(input, init) {
         const headers = new Headers(init?.headers ?? {});
-        if (typeof window !== "undefined") {
+        const isPublicCatalog = isPublicCatalogRequest(input, init);
+
+        if (typeof window !== "undefined" && !isPublicCatalog) {
           const studentId = window.localStorage.getItem("gradeStudentId");
           const token = window.localStorage.getItem("gradeStudentToken");
           if (studentId && token) {
@@ -131,7 +165,7 @@ const trpcClient = trpc.createClient({
         return fetchWithTimeout(input, {
           ...(init ?? {}),
           headers,
-          ...authenticatedFetchOptions,
+          ...(isPublicCatalog ? { credentials: "omit" as RequestCredentials } : authenticatedFetchOptions),
         });
       },
     }),

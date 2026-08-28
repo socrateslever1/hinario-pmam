@@ -531,7 +531,6 @@ export default function Grades() {
                             <a
                               href={disciplineInfo.studyMaterialUrl}
                               download
-                              target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs font-bold border p-2 rounded-lg bg-black/10 hover:bg-black/20 border-white/10 md:bg-muted/30 md:border-border/50"
                             >
@@ -563,7 +562,6 @@ export default function Grades() {
                                   <a
                                     key={i}
                                     href={vid.url}
-                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-xs text-blue-300 hover:text-blue-100 bg-blue-950/40 px-2 py-1 rounded border border-blue-800/40 font-medium md:text-blue-600 md:hover:text-blue-800 md:bg-blue-50 md:border-blue-100"
                                   >

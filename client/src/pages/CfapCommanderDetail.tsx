@@ -80,7 +80,7 @@ export default function CfapCommanderDetail() {
             return (
               <div className="container relative mx-auto mb-8 max-w-6xl overflow-hidden rounded-3xl border border-[#c4a84b]/25 bg-[#07110d] shadow-2xl shadow-black/35">
                 <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 text-[#dfc462]"><Film className="h-4 w-4" /></span><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d6bd66]">Memória audiovisual</p><h2 className="text-sm font-black text-white">{featured.title}</h2></div></div>
-                {embedUrl ? <iframe src={embedUrl} title={featured.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="aspect-video max-h-[560px] w-full border-0 bg-black" /> : <a href={featured.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-6 text-sm font-bold text-white no-underline"><span>Abrir registro audiovisual</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" /></a>}
+                {embedUrl ? <iframe src={embedUrl} title={featured.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="aspect-video max-h-[560px] w-full border-0 bg-black" /> : <a href={featured.url} rel="noreferrer" className="flex items-center justify-between p-6 text-sm font-bold text-white no-underline"><span>Abrir registro audiovisual</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" /></a>}
               </div>
             );
           })()}
@@ -171,7 +171,7 @@ export default function CfapCommanderDetail() {
                             <p className="px-3 py-2 text-xs font-bold text-white/75">{video.title}</p>
                           </div>
                         ) : (
-                          <a key={`${video.title}-${video.url}`} href={video.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white no-underline hover:border-[#c4a84b]/45">
+                          <a key={`${video.title}-${video.url}`} href={video.url} rel="noreferrer" className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white no-underline hover:border-[#c4a84b]/45">
                             <span>{video.title}</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" />
                           </a>
                         );
@@ -193,7 +193,7 @@ export default function CfapCommanderDetail() {
                       {Boolean(commander.sources?.length) && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {commander.sources?.map((source) => (
-                            <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-[#c4a84b]/25 px-3 py-1.5 text-[11px] font-bold text-[#e5c65d] no-underline">
+                            <a key={source.url} href={source.url} rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-[#c4a84b]/25 px-3 py-1.5 text-[11px] font-bold text-[#e5c65d] no-underline">
                               {source.title}<ExternalLink className="h-3 w-3" />
                             </a>
                           ))}

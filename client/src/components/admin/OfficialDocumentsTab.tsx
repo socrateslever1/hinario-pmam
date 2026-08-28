@@ -177,7 +177,7 @@ export function OfficialDocumentsTab() {
                   {item.fileName} · {formatBytes(item.fileSize)}
                 </p>
               </div>
-              <a href={item.fileUrl} target="_blank" rel="noreferrer" download={item.fileName}>
+              <a href={item.fileUrl} rel="noreferrer" download={item.fileName}>
                 <Button variant="ghost" size="icon" title="Baixar arquivo">
                   <Download className="h-4 w-4" />
                 </Button>

@@ -60,12 +60,12 @@ export default function Footer() {
               {(settings?.footer_instagram || settings?.footer_facebook) && (
                 <div className="mt-1 flex items-center gap-3">
                   {settings?.footer_instagram && (
-                    <a href={settings.footer_instagram} target="_blank" rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
+                    <a href={settings.footer_instagram} rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
                       <Instagram className="h-4 w-4" />
                     </a>
                   )}
                   {settings?.footer_facebook && (
-                    <a href={settings.footer_facebook} target="_blank" rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
+                    <a href={settings.footer_facebook} rel="noopener noreferrer" className="text-white/60 transition-colors hover:text-[#c4a84b]">
                       <Facebook className="h-4 w-4" />
                     </a>
                   )}

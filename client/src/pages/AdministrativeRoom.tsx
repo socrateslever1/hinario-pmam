@@ -1150,7 +1150,7 @@ export default function AdministrativeRoom() {
                     </div>
                     <div className="mt-2 space-y-1">
                       {item.documents?.map((doc: any) => (
-                        <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="block rounded-md border bg-muted/20 px-2 py-1 text-[11px] font-semibold text-[#1a3a2a] hover:underline">
+                        <a key={doc.id} href={doc.fileUrl} rel="noreferrer" className="block rounded-md border bg-muted/20 px-2 py-1 text-[11px] font-semibold text-[#1a3a2a] hover:underline">
                           {doc.hpmHomologated ? "HPM - " : ""}{doc.fileName} · {getBaixadoKindLabel(doc.baixadoKind)}
                         </a>
                       ))}

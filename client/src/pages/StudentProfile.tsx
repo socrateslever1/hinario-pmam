@@ -453,7 +453,6 @@ export default function StudentProfilePage() {
                         <a
                           key={doc.id}
                           href={doc.fileUrl}
-                          target="_blank"
                           rel="noreferrer"
                           className="block rounded-md border bg-muted/20 px-2 py-1 text-[11px] font-semibold text-[#1a3a2a] hover:underline"
                         >

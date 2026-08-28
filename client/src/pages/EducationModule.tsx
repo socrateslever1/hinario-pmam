@@ -240,14 +240,14 @@ export default function EducationModule({ params }: EducationModuleProps) {
                     limpo e usar a página como biblioteca de referência.
                   </div>
                   {libraryItem.pdfUrl && (
-                    <a href={libraryItem.pdfUrl} target="_blank" rel="noreferrer">
+                    <a href={libraryItem.pdfUrl} rel="noreferrer">
                       <Button className="w-full bg-[#1a3a2a] text-white hover:bg-[#10281d] lg:w-auto">
                         <ExternalLink className="mr-2 h-4 w-4" />
                         Abrir PDF
                       </Button>
                     </a>
                   )}
-                  <a href={module.textPath} target="_blank" rel="noreferrer">
+                  <a href={module.textPath} rel="noreferrer">
                     <Button variant="outline" className="w-full lg:w-auto">
                       <FolderOpen className="mr-2 h-4 w-4" />
                       Texto extraído

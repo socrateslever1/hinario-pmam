@@ -15,6 +15,7 @@ import crypto from "crypto";
 import { getVersionInfo } from "./version";
 import cors from "cors";
 import path from "path";
+import fs from "fs/promises";
 import {
   MAX_BUGLE_AUDIO_SIZE,
   canManageBugleUploads,
@@ -32,6 +33,63 @@ function isPortAvailable(port: number): Promise<boolean> {
     });
     server.on("error", () => resolve(false));
   });
+}
+
+function safeAssetSlug(value: unknown, fallback: string) {
+  const raw = String(value || fallback || "comandante");
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 160);
+  return normalized || `comandante-${Date.now()}`;
+}
+
+async function saveCommanderPortraitAsset(input: {
+  buffer: Buffer;
+  extension: string;
+  mimeType: string;
+  slug: string;
+  originalName: string;
+  uploadedBy: number;
+}) {
+  const fileName = `${safeAssetSlug(input.slug, input.originalName)}.${input.extension}`;
+  const publicHistoryDir = path.resolve(process.cwd(), "client", "public", "history", "commanders");
+  const distHistoryDir = path.resolve(process.cwd(), "dist", "public", "history", "commanders");
+  const publicTarget = path.resolve(publicHistoryDir, fileName);
+  const distTarget = path.resolve(distHistoryDir, fileName);
+
+  if (!publicTarget.startsWith(publicHistoryDir + path.sep)) {
+    throw new Error("Nome de arquivo inválido para o retrato do comandante.");
+  }
+
+  await fs.mkdir(publicHistoryDir, { recursive: true });
+  await fs.writeFile(publicTarget, input.buffer);
+
+  try {
+    await fs.mkdir(distHistoryDir, { recursive: true });
+    await fs.writeFile(distTarget, input.buffer);
+  } catch {
+    // dist/public é saída de build; em desenvolvimento pode não existir ou ser recriada.
+  }
+
+  const url = `/history/commanders/${encodeURIComponent(fileName)}`;
+  const key = `history/commanders/${fileName}`;
+
+  try {
+    await query<any>(
+      `INSERT INTO pmam_upload_registry
+        (file_key, file_url, file_name, mime_type, file_size, folder, status, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, 'stored', ?)`,
+      [key, url, input.originalName, input.mimeType, input.buffer.length, "history/commanders", input.uploadedBy],
+    );
+  } catch (error) {
+    console.warn("[Commander portrait upload] Arquivo salvo localmente, mas registro no banco falhou.", (error as any)?.code || String((error as any)?.message || error));
+  }
+
+  return { url, key, folder: "history/commanders" };
 }
 
 async function findAvailablePort(startPort: number = 3002): Promise<number> {
@@ -134,6 +192,18 @@ async function startServer(): Promise<{ app: express.Application; server: any; p
         const cleanPrefix = safeFolder.replace(/[/_]/g, "-");
         const filename = `${cleanPrefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
         const fileKey = `${safeFolder}/${filename}`;
+
+        if (safeFolder === "commanders") {
+          const result = await saveCommanderPortraitAsset({
+            buffer: req.file.buffer,
+            extension: ext,
+            mimeType: validation.mimeType,
+            slug: safeAssetSlug(req.body?.assetSlug || req.body?.slug || req.file.originalname, req.file.originalname),
+            originalName: req.file.originalname,
+            uploadedBy: (req as any).uploadUser.id,
+          });
+          return res.json(result);
+        }
 
         const result = await storagePutWithRollback(
           fileKey,

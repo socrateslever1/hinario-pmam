@@ -243,7 +243,7 @@ export default function DrillDetail() {
 
                   <div className="flex flex-wrap gap-3">
                     {drill.videoUrl && (
-                      <a href={drill.videoUrl} target="_blank" rel="noreferrer">
+                      <a href={drill.videoUrl} rel="noreferrer">
                         <Button className="bg-[#1a3a2a] text-white hover:bg-[#10281d]">
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Abrir vídeo original
@@ -251,7 +251,7 @@ export default function DrillDetail() {
                       </a>
                     )}
                     {drill.youtubeUrl && (
-                      <a href={drill.youtubeUrl} target="_blank" rel="noreferrer">
+                      <a href={drill.youtubeUrl} rel="noreferrer">
                         <Button className="bg-red-600 text-white hover:bg-red-700">
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Ver no YouTube
@@ -259,7 +259,7 @@ export default function DrillDetail() {
                       </a>
                     )}
                     {drill.imageUrl && (
-                      <a href={drill.imageUrl} target="_blank" rel="noreferrer">
+                      <a href={drill.imageUrl} rel="noreferrer">
                         <Button variant="outline">
                           <ImageIcon className="mr-2 h-4 w-4" />
                           Abrir imagem
@@ -267,7 +267,7 @@ export default function DrillDetail() {
                       </a>
                     )}
                     {drill.pdfUrl && (
-                      <a href={drill.pdfUrl} target="_blank" rel="noreferrer">
+                      <a href={drill.pdfUrl} rel="noreferrer">
                         <Button variant="outline">
                           <FileText className="mr-2 h-4 w-4" />
                           Abrir PDF

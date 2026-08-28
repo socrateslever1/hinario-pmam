@@ -570,7 +570,6 @@ export default function Cfap2026() {
                           <div className="flex-shrink-0 flex items-center">
                             <a
                               href={adit.pdfUrl}
-                              target="_blank"
                               rel="noreferrer"
                               className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#1a3a2a] text-white hover:bg-[#153023] px-4 py-2 text-xs font-bold transition-colors shadow-sm dark:bg-zinc-800 dark:hover:bg-zinc-700"
                             >
