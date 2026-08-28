@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { getCompanhiaLabel, getPelotonLabel, validateNumerica } from "@shared/studentValidation";
 import Navbar from "@/components/Navbar";
-import { saveStudentSession, clearStudentSession } from "@/lib/studentSession";
+import { saveStudentSession } from "@/lib/studentSession";
 import { notifySessionChange } from "@/components/BottomNavigation";
 
 function cleanNumerica(value: string) {
@@ -74,180 +74,190 @@ export default function GradesLogin() {
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#f5f2e8] text-foreground dark:bg-[#050d12]">
       <Navbar />
-      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
-      <Card className="w-full max-w-md border-[#c4a84b]/30 bg-white text-foreground dark:bg-zinc-950 dark:border-[#c4a84b]/40">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-[#c4a84b] rounded-full p-3">
-              <BookOpen className="w-6 h-6 text-[#1a3a2a]" />
+      <main className="flex min-h-[calc(100vh-4rem)] items-start justify-center px-4 py-6 sm:items-center sm:py-10">
+        <Card className="w-full max-w-md border-[#c4a84b]/30 bg-white text-foreground shadow-sm dark:border-[#c4a84b]/40 dark:bg-zinc-950">
+          <CardHeader className="px-5 pb-4 pt-6 text-center sm:px-6">
+            <div className="mb-4 flex justify-center">
+              <div className="rounded-full bg-[#c4a84b] p-3">
+                <BookOpen className="h-6 w-6 text-[#1a3a2a]" />
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-2xl">Acesso do Aluno</CardTitle>
-          <CardDescription>Use sua numérica para entrar ou ativar a vaga reservada na sua sala</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+            <CardTitle className="text-[28px] leading-tight">Acesso do Aluno</CardTitle>
+            <CardDescription className="mx-auto max-w-sm text-sm leading-relaxed">
+              Use sua numérica para entrar ou ativar a vaga reservada na sua sala.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-5 pb-6 sm:px-6">
+            {error && (
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" className="gap-2">
-                <LogIn className="h-4 w-4" />
-                Entrar
-              </TabsTrigger>
-              <TabsTrigger value="register" className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                Primeiro acesso
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="pt-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-numerica">Numérica</Label>
-                  <Input
-                    id="login-numerica"
-                    inputMode="numeric"
-                    placeholder="1111"
-                    value={loginData.numerica}
-                    onChange={(event) =>
-                      setLoginData({ ...loginData, numerica: cleanNumerica(event.target.value) })
-                    }
-                    className="text-center text-lg tracking-widest"
-                    disabled={isBusy}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-senha">Senha</Label>
-                  <Input
-                    id="login-senha"
-                    type="password"
-                    value={loginData.senha}
-                    onChange={(event) => setLoginData({ ...loginData, senha: event.target.value })}
-                    disabled={isBusy}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login" className="gap-2">
+                  <LogIn className="h-4 w-4" />
                   Entrar
-                </Button>
-              </form>
-            </TabsContent>
+                </TabsTrigger>
+                <TabsTrigger value="register" className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Primeiro acesso
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="register" className="pt-4">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome-guerra">Nome de guerra</Label>
-                  <Input
-                    id="nome-guerra"
-                    value={registerData.nomeGuerra}
-                    onChange={(event) =>
-                      setRegisterData({ ...registerData, nomeGuerra: event.target.value })
-                    }
-                    disabled={isBusy}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-numerica">Numérica</Label>
-                  <Input
-                    id="register-numerica"
-                    inputMode="numeric"
-                    placeholder="1111"
-                    value={registerData.numerica}
-                    onChange={(event) =>
-                      setRegisterData({
-                        ...registerData,
-                        numerica: cleanNumerica(event.target.value),
-                      })
-                    }
-                    className="text-center text-lg tracking-widest"
-                    disabled={isBusy}
-                    required
-                  />
-                  {registerData.numerica.length === 4 && (
-                    <p className={numericaInfo.isValid ? "text-xs text-muted-foreground" : "text-xs text-red-600"}>
-                      {numericaInfo.isValid
-                        ? `${getCompanhiaLabel(numericaInfo.companhia)} - ${getPelotonLabel(numericaInfo.peloton)}`
-                        : numericaInfo.error}
-                    </p>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+              <TabsContent value="login" className="pt-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Companhia</Label>
-                    <Input value={numericaInfo.isValid ? `${numericaInfo.companhia}ª` : ""} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pelotão</Label>
-                    <Input value={numericaInfo.isValid ? `${numericaInfo.peloton}º` : ""} disabled />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-cpf">CPF (confirmação/recuperação)</Label>
+                    <Label htmlFor="login-numerica">Numérica</Label>
                     <Input
-                      id="register-cpf"
-                      placeholder="Somente números"
-                      value={registerData.cpf}
+                      id="login-numerica"
+                      inputMode="numeric"
+                      placeholder="1111"
+                      value={loginData.numerica}
                       onChange={(event) =>
-                        setRegisterData({ ...registerData, cpf: event.target.value.replace(/\D/g, "").slice(0, 11) })
+                        setLoginData({ ...loginData, numerica: cleanNumerica(event.target.value) })
                       }
+                      className="text-center text-lg tracking-widest"
                       disabled={isBusy}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-rg">RG (confirmação/recuperação)</Label>
+                    <Label htmlFor="login-senha">Senha</Label>
                     <Input
-                      id="register-rg"
-                      placeholder="Somente números"
-                      value={registerData.rg}
-                      onChange={(event) =>
-                        setRegisterData({ ...registerData, rg: event.target.value.replace(/\D/g, "") })
-                      }
+                      id="login-senha"
+                      type="password"
+                      autoComplete="current-password"
+                      value={loginData.senha}
+                      onChange={(event) => setLoginData({ ...loginData, senha: event.target.value })}
                       disabled={isBusy}
+                      required
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="register-senha">Senha</Label>
-                  <Input
-                    id="register-senha"
-                    type="password"
-                    value={registerData.senha}
-                    onChange={(event) =>
-                      setRegisterData({ ...registerData, senha: event.target.value })
-                    }
-                    disabled={isBusy}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmar-senha">Confirmar senha</Label>
-                  <Input
-                    id="confirmar-senha"
-                    type="password"
-                    value={registerData.confirmarSenha}
-                    onChange={(event) =>
-                      setRegisterData({ ...registerData, confirmarSenha: event.target.value })
-                    }
-                    disabled={isBusy}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
-                  Ativar minha vaga
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                  <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
+                    Entrar
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="register" className="pt-4">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome-guerra">Nome de guerra</Label>
+                    <Input
+                      id="nome-guerra"
+                      autoComplete="name"
+                      value={registerData.nomeGuerra}
+                      onChange={(event) =>
+                        setRegisterData({ ...registerData, nomeGuerra: event.target.value })
+                      }
+                      disabled={isBusy}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-numerica">Numérica</Label>
+                    <Input
+                      id="register-numerica"
+                      inputMode="numeric"
+                      placeholder="1111"
+                      value={registerData.numerica}
+                      onChange={(event) =>
+                        setRegisterData({
+                          ...registerData,
+                          numerica: cleanNumerica(event.target.value),
+                        })
+                      }
+                      className="text-center text-lg tracking-widest"
+                      disabled={isBusy}
+                      required
+                    />
+                    {registerData.numerica.length === 4 && (
+                      <p className={numericaInfo.isValid ? "text-sm text-muted-foreground" : "text-sm text-red-600"}>
+                        {numericaInfo.isValid
+                          ? `${getCompanhiaLabel(numericaInfo.companhia)} - ${getPelotonLabel(numericaInfo.peloton)}`
+                          : numericaInfo.error}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Companhia</Label>
+                      <Input value={numericaInfo.isValid ? `${numericaInfo.companhia}ª` : ""} disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pelotão</Label>
+                      <Input value={numericaInfo.isValid ? `${numericaInfo.peloton}º` : ""} disabled />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="register-cpf">CPF</Label>
+                      <p className="text-xs leading-relaxed text-muted-foreground">Usado para confirmação e recuperação.</p>
+                      <Input
+                        id="register-cpf"
+                        inputMode="numeric"
+                        placeholder="Somente números"
+                        value={registerData.cpf}
+                        onChange={(event) =>
+                          setRegisterData({ ...registerData, cpf: event.target.value.replace(/\D/g, "").slice(0, 11) })
+                        }
+                        disabled={isBusy}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-rg">RG</Label>
+                      <p className="text-xs leading-relaxed text-muted-foreground">Usado para confirmação e recuperação.</p>
+                      <Input
+                        id="register-rg"
+                        inputMode="numeric"
+                        placeholder="Somente números"
+                        value={registerData.rg}
+                        onChange={(event) =>
+                          setRegisterData({ ...registerData, rg: event.target.value.replace(/\D/g, "") })
+                        }
+                        disabled={isBusy}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-senha">Senha</Label>
+                    <Input
+                      id="register-senha"
+                      type="password"
+                      autoComplete="new-password"
+                      value={registerData.senha}
+                      onChange={(event) =>
+                        setRegisterData({ ...registerData, senha: event.target.value })
+                      }
+                      disabled={isBusy}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmar-senha">Confirmar senha</Label>
+                    <Input
+                      id="confirmar-senha"
+                      type="password"
+                      autoComplete="new-password"
+                      value={registerData.confirmarSenha}
+                      onChange={(event) =>
+                        setRegisterData({ ...registerData, confirmarSenha: event.target.value })
+                      }
+                      disabled={isBusy}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-[#1a3a2a] text-white hover:bg-[#214936] dark:bg-[#c4a84b] dark:text-[#07120d] dark:hover:bg-[#d8bd63]" disabled={isBusy}>
+                    Ativar minha vaga
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

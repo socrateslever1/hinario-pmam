@@ -110,22 +110,22 @@ export default function Hymns() {
 
       <section className="military-gradient py-6 md:py-8">
         <div className="container text-center">
-          <Music className="mx-auto mb-2 h-7 w-7 text-[#c4a84b] md:h-9 md:w-9" />
+          <Music className="mx-auto mb-2 h-8 w-8 text-[#c4a84b] md:h-9 md:w-9" />
           <h1
-            className="text-2xl font-bold text-white md:text-3xl"
+            className="text-[28px] font-bold leading-tight text-white md:text-3xl"
             style={{ fontFamily: "Merriweather, serif" }}
           >
             Catálogo de Hinos
           </h1>
-          <p className="mt-2 text-sm text-white/60 md:text-base">
+          <p className="mt-2 text-sm leading-relaxed text-white/70 md:text-base">
             {hymns?.length ?? 0} hinos, canções e orações militares
           </p>
         </div>
         <div className="checkerboard-pattern mt-5 w-full md:mt-6" />
       </section>
 
-      <section className="bg-background py-8">
-        <div className="container space-y-8">
+      <section className="bg-background py-6 md:py-8">
+        <div className="container space-y-7 md:space-y-8">
           <div className="relative mx-auto max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -133,6 +133,7 @@ export default function Hymns() {
               className="pl-10"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              aria-label="Buscar hinos"
             />
           </div>
 
@@ -144,6 +145,7 @@ export default function Hymns() {
                 size="sm"
                 className={`gap-2 ${activeCategory === key ? "bg-[#1a3a2a] text-white hover:bg-[#1a3a2a]/90" : ""}`}
                 onClick={() => setActiveCategory(key)}
+                aria-pressed={activeCategory === key}
               >
                 <cfg.icon className="h-4 w-4" />
                 {cfg.label}
@@ -158,20 +160,19 @@ export default function Hymns() {
             accentColor={activeCategoryConfig.color}
           />
 
-          <div className="flex flex-col gap-2 rounded-2xl border border-[#c4a84b]/30 bg-white/95 p-5 shadow-sm shadow-black/5 dark:border-[#c4a84b]/35 dark:bg-[#10261d] dark:shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[#c4a84b]/30 bg-white/95 p-5 shadow-sm shadow-black/5 dark:border-[#c4a84b]/35 dark:bg-[#10261d] dark:shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#7a6425] dark:text-[#d8c46a]">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#7a6425] dark:text-[#d8c46a]">
                 Seleção atual
               </p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-[#173629] dark:text-[#f6f0dc]">
                 {activeCategoryConfig.label}
               </h2>
-              <p className="mt-1 text-sm text-[#4d5b54] dark:text-[#d8d1bd]">
-                {filteredHymns.length} item(ns) prontos para ouvir
-                individualmente ou em sequência.
+              <p className="mt-1 text-sm leading-relaxed text-[#4d5b54] dark:text-[#d8d1bd]">
+                {filteredHymns.length} item(ns) prontos para ouvir individualmente ou em sequência.
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-[#1a3a2a]/15 bg-[#1a3a2a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#173629] dark:border-[#d8c46a]/30 dark:bg-[#d8c46a]/15 dark:text-[#f1d866]">
+            <div className="flex min-h-10 items-center gap-2 self-start rounded-full border border-[#1a3a2a]/15 bg-[#1a3a2a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#173629] dark:border-[#d8c46a]/30 dark:bg-[#d8c46a]/15 dark:text-[#f1d866] sm:self-auto">
               <ListMusic className="h-4 w-4" />
               Player em lista
             </div>
@@ -186,7 +187,7 @@ export default function Hymns() {
           ) : filteredHymns.length === 0 ? (
             <div className="py-16 text-center">
               <Music className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground md:text-base">
                 Nenhum hino encontrado com os filtros selecionados.
               </p>
             </div>
@@ -202,8 +203,8 @@ export default function Hymns() {
                           className="h-1 w-full"
                           style={{ backgroundColor: cfg.color }}
                         />
-                        <div className="p-5">
-                          <div className="flex items-start gap-4">
+                        <div className="p-4 md:p-5">
+                          <div className="flex items-start gap-3.5 md:gap-4">
                             <div
                               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm"
                               style={{ backgroundColor: cfg.color }}
@@ -212,27 +213,27 @@ export default function Hymns() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p
-                                className="mb-1 text-[10px] font-black uppercase tracking-[0.2em]"
+                                className="mb-1 text-xs font-black uppercase tracking-[0.16em]"
                                 style={{ color: cfg.color }}
                               >
                                 {cfg.label}
                               </p>
-                              <h3 className="text-base font-bold leading-tight text-foreground">
+                              <h3 className="text-base font-bold leading-snug text-foreground">
                                 {hymn.title}
                               </h3>
                               {hymn.subtitle && (
-                                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                                <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                                   {hymn.subtitle}
                                 </p>
                               )}
                               {hymn.author && (
-                                <p className="mt-2 text-xs text-muted-foreground">
+                                <p className="mt-2 text-[13px] text-muted-foreground">
                                   {hymn.author}
                                 </p>
                               )}
                             </div>
-                            <div className="opacity-0 transition-opacity group-hover:opacity-100">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c4a84b] shadow-md">
+                            <div className="opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c4a84b] shadow-md" aria-hidden="true">
                                 <Play className="h-4 w-4 fill-white text-white" />
                               </div>
                             </div>

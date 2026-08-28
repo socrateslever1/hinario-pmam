@@ -165,7 +165,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-2xl font-black text-foreground sm:text-3xl">Usuários e Acessos</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Contas administrativas e níveis de acesso do sistema</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Contas administrativas e níveis de acesso do sistema</p>
         </div>
 
         {!canManageAccess && (
@@ -286,7 +286,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       <code className="bg-card px-2 py-1 rounded text-xs flex-1 break-all border">{createAccessMutation.data.tempPassword}</code>
                       <button
                         onClick={() => copyToClipboard(createAccessMutation.data.tempPassword)}
-                        className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg transition-colors"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-emerald-100 dark:hover:bg-emerald-900"
                       >
                         {copiedPassword === createAccessMutation.data.tempPassword ? (
                           <Check className="w-4 h-4 text-emerald-600" />
@@ -412,7 +412,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                 
                 <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/40">
                   {canEditAccess(access) && (
-                    <Button variant="outline" size="sm" onClick={() => openEditAccess(access)} className="h-9 text-xs sm:text-sm font-semibold">
+                    <Button variant="outline" size="sm" onClick={() => openEditAccess(access)} className="h-10 text-xs font-semibold sm:h-9 sm:text-sm">
                       <Edit2 className="w-3.5 h-3.5 mr-1.5" />
                       Editar
                     </Button>
@@ -423,7 +423,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       size="sm"
                       disabled={setActiveMutation.isPending}
                       onClick={() => handleSetActive(access.id, access.isActive === false)}
-                      className="h-9 text-xs sm:text-sm font-semibold"
+                      className="h-10 text-xs font-semibold sm:h-9 sm:text-sm"
                     >
                       {access.isActive === false ? <Power className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> : <PowerOff className="mr-1.5 h-3.5 w-3.5 text-amber-600" />}
                       {access.isActive === false ? 'Reativar' : 'Desativar'}
@@ -434,7 +434,7 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteAccess(access.id)}
-                      className="h-9 text-xs sm:text-sm font-semibold"
+                      className="h-10 text-xs font-semibold sm:h-9 sm:text-sm"
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       Deletar
