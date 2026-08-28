@@ -157,20 +157,20 @@ export default function CfapHistory() {
                   {flanksEnabled && (
                     <>
                       {leftPhoto && (
-                        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-1/2 sm:w-2/5 overflow-hidden z-0 opacity-25 dark:opacity-30 [mask-image:linear-gradient(to_right,rgba(0,0,0,1)_0%,transparent_100%)]">
+                        <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-0 hidden w-[44%] overflow-hidden opacity-25 mix-blend-luminosity md:block [mask-image:linear-gradient(to_right,rgba(0,0,0,.9)_0%,rgba(0,0,0,.55)_45%,transparent_100%)] dark:opacity-30">
                           <img
                             src={leftPhoto}
                             alt="Foto lateral esquerda"
-                            className="h-full w-full object-cover object-left-top mix-blend-luminosity filter contrast-125 brightness-90"
+                            className="h-full w-full object-cover object-left-top filter contrast-125 brightness-90"
                           />
                         </div>
                       )}
                       {rightPhoto && (
-                        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-1/2 sm:w-2/5 overflow-hidden z-0 opacity-25 dark:opacity-30 [mask-image:linear-gradient(to_left,rgba(0,0,0,1)_0%,transparent_100%)]">
+                        <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-0 hidden w-[58%] overflow-hidden opacity-20 mix-blend-luminosity md:block [mask-image:linear-gradient(to_left,rgba(0,0,0,.85)_0%,rgba(0,0,0,.45)_48%,transparent_100%)] lg:w-[52%] dark:opacity-24">
                           <img
                             src={rightPhoto}
                             alt="Foto lateral direita"
-                            className="h-full w-full object-cover object-right-top mix-blend-luminosity filter contrast-125 brightness-90"
+                            className="h-full w-full object-cover object-[75%_center] filter contrast-110 brightness-75"
                           />
                         </div>
                       )}
@@ -196,7 +196,7 @@ export default function CfapHistory() {
 
                   <div className="relative z-10 flex flex-col md:flex-row items-center md:items-stretch gap-5 sm:gap-7">
                     {/* Retrato Maior com Moldura e Detalhes Militares */}
-                    <div className="shrink-0 flex justify-center">
+                    <div className="shrink-0 flex w-full justify-center md:w-auto">
                       <Link
                         href={`/historia-cfap/comandantes/${currentCommander.slug}`}
                         className="group relative block no-underline focus:outline-none"
@@ -210,12 +210,12 @@ export default function CfapHistory() {
                             <MilitaryCorner position="bottom-left" />
                             <MilitaryCorner position="bottom-right" />
 
-                            <div className="w-48 h-56 sm:w-56 sm:h-64 md:w-64 md:h-72 overflow-hidden flex items-center justify-center bg-white">
+                            <div className="h-[24rem] w-[20rem] max-w-[88vw] overflow-hidden bg-white flex items-center justify-center sm:h-[25rem] sm:w-[21rem] md:h-72 md:w-64">
                               <CommanderPortrait
                                 portraitIndex={currentCommander.portraitIndex}
                                 portraitUrl={currentCommander.portraitUrl}
                                 name={currentCommander.name}
-                                sizes="(max-width: 640px) 200px, (max-width: 1024px) 260px, 300px"
+                                sizes="(max-width: 640px) 320px, (max-width: 1024px) 336px, 300px"
                                 className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                               />
                             </div>
@@ -369,9 +369,6 @@ export default function CfapHistory() {
                     <p className="mt-2 text-sm text-muted-foreground dark:text-white/60">{CFAP_HISTORY_SOURCE.publication}</p>
                     <p className="mt-3 text-xs leading-relaxed text-muted-foreground dark:text-white/48">
                       Autores: {CFAP_HISTORY_SOURCE.authors.join("; ")}.
-                    </p>
-                    <p className="mt-4 text-xs leading-relaxed text-muted-foreground dark:text-white/48">
-                      Os retratos e períodos exibidos na galeria foram organizados a partir do arquivo fotográfico de comandantes e da documentação histórica reunida para esta digitalização.
                     </p>
                   </div>
                 </div>

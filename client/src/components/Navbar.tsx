@@ -81,21 +81,44 @@ const commandLinks = [
   { href: "/sobre", label: "Sobre", icon: Info },
 ];
 
+function normalizeImageUrl(src?: string | null) {
+  const value = src?.trim();
+  if (!value) return null;
+  if (/^(data:|blob:|https?:\/\/)/i.test(value)) return value;
+
+  const normalized = value.replace(/\\/g, "/");
+  const publicIndex = normalized.lastIndexOf("/client/public/");
+  if (publicIndex >= 0) {
+    return encodeURI(normalized.slice(publicIndex + "/client/public".length));
+  }
+
+  const uploadsIndex = normalized.lastIndexOf("/uploads/");
+  if (uploadsIndex >= 0) {
+    return encodeURI(normalized.slice(uploadsIndex));
+  }
+
+  if (/^[a-z]:\//i.test(normalized)) return null;
+  return encodeURI(normalized.startsWith("/") ? normalized : `/${normalized}`);
+}
+
 function ProfileAvatar({ src, alt }: { src?: string | null; alt: string }) {
+  const imageUrl = normalizeImageUrl(src);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [imageUrl]);
+
   return (
     <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c4a84b]/40 bg-[#1a3a2a]/10 dark:bg-zinc-800 shadow-sm">
       <span className="absolute inset-0 flex h-full w-full items-center justify-center">
         <User className="h-4 w-4 text-[#c4a84b]" />
       </span>
-      {src ? (
+      {imageUrl && !failed ? (
         <img
-          src={src}
+          src={imageUrl}
           alt={alt}
           draggable={false}
           className="relative block h-full w-full object-cover object-center"
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
+          onError={() => setFailed(true)}
         />
       ) : null}
     </span>
@@ -214,90 +237,43 @@ export default function Navbar() {
   const userName = user?.name || "Comandante";
 
   const menu = (
-    <div className="flex flex-col gap-2">
-      {links.map((item) => (
-        <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-          <Button
-            variant={active(item.href) ? "default" : "ghost"}
-            className={`w-full justify-start gap-3 ${
-              active(item.href)
-                ? "bg-[#1a3a2a] text-white hover:bg-[#234b36] hover:text-white"
-                : "text-[#26332b] hover:bg-[#1a3a2a]/10 hover:text-[#1a3a2a] dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white"
-            }`}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.label}
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Link href={student ? "/perfil-aluno" : "/entrar"} onClick={() => setOpen(false)}>
+          <Button className="h-11 w-full gap-2 rounded-lg border border-[#d6bd66]/45 bg-[#173c29] text-[11px] font-black text-[#f0bd3a] hover:bg-[#214d37] hover:text-[#f7d96b]">
+            <GraduationCap className="h-3.5 w-3.5" />
+            Acesso Aluno
           </Button>
         </Link>
-      ))}
-      {isCommand && (
-        <Link href="/documentos" onClick={() => setOpen(false)}>
-          <Button variant="ghost" className="w-full justify-start gap-3">
-            <FileText className="h-4 w-4" />
-            Documentos Recebidos
+        <Link href="/xerife" onClick={() => setOpen(false)}>
+          <Button className="h-11 w-full gap-2 rounded-lg border border-[#d6bd66]/45 bg-[#173c29] text-[11px] font-black text-[#f0bd3a] hover:bg-[#214d37] hover:text-[#f7d96b]">
+            <Star className="h-3.5 w-3.5" />
+            Posto Comando
           </Button>
         </Link>
-      )}
-      <Link href="/xerife" onClick={() => setOpen(false)}>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
-        >
-          <Star className="h-4 w-4" />
-          Posto de Comando
-        </Button>
-      </Link>
+      </div>
 
-      <div className="my-2 border-t border-border/40 pt-2">
-        {student ? (
-          <div className="flex flex-col gap-2">
-            <Link href="/notas-do-curso" onClick={() => setOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start gap-3">
-                <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
-                Notas do Curso
-              </Button>
-            </Link>
-            <ProfileIdentityLink
-              href="/perfil-aluno"
-              label={studentName}
-              photoUrl={studentPhoto}
-              photoAlt="Foto do Aluno"
-              tone="student"
-              compact
-              onClick={() => setOpen(false)}
-            />
+      <div className="grid grid-cols-3 gap-2">
+        {links.map((item) => (
+          <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
             <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-red-600 hover:bg-red-500/10 dark:text-red-400"
-              onClick={handleStudentLogout}
+              variant={active(item.href) ? "default" : "ghost"}
+              className={`h-16 w-full flex-col gap-1 rounded-lg border px-1.5 text-center text-[9px] font-black leading-tight ${
+                active(item.href)
+                  ? "border-[#f0bd3a]/60 bg-[#f0bd3a]/18 text-[#f0bd3a] hover:bg-[#f0bd3a]/24 hover:text-[#f7d96b]"
+                  : "border-white/10 bg-white/[0.04] text-white/82 hover:bg-white/[0.08] hover:text-white"
+              }`}
             >
-              Sair da sessão do aluno
+              <item.icon className="h-4 w-4 text-[#d6bd66]" />
+              <span className="line-clamp-2">{item.label}</span>
             </Button>
-          </div>
-        ) : user ? (
-          <div className="flex flex-col gap-2">
-            <ProfileIdentityLink
-              href="/perfil"
-              label={userName}
-              photoUrl={userPhoto}
-              photoAlt="Foto do Comandante"
-              tone="command"
-              compact
-              onClick={() => setOpen(false)}
-            />
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-red-600 hover:bg-red-500/10 dark:text-red-400"
-              onClick={handleLogout}
-            >
-              Sair
-            </Button>
-          </div>
-        ) : (
-          <Link href="/entrar" onClick={() => setOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start gap-3">
-              <GraduationCap className="h-4 w-4 text-[#c4a84b]" />
-              Acesso do Aluno
+          </Link>
+        ))}
+        {isCommand && (
+          <Link href="/documentos" onClick={() => setOpen(false)}>
+            <Button variant="ghost" className="h-16 w-full flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-1.5 text-center text-[9px] font-black leading-tight text-white/82 hover:bg-white/[0.08] hover:text-white">
+              <FileText className="h-4 w-4 text-[#d6bd66]" />
+              <span className="line-clamp-2">Documentos Recebidos</span>
             </Button>
           </Link>
         )}
@@ -362,12 +338,13 @@ export default function Navbar() {
               </SheetTrigger>
               <SheetContent
                 side="right"
-                className="w-72 bg-[#f8f4e8] text-[#17251d] dark:bg-[#15151a] dark:text-foreground"
+                className="w-[86vw] max-w-[21rem] border-l border-[#d6bd66]/20 bg-[#082017] p-4 text-[#f6f1df] dark:bg-[#082017] dark:text-[#f6f1df] [&>button]:text-[#f6f1df] [&>button]:opacity-80"
               >
-                <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
-                <div className="mt-8">
-                  <Brand />
-                  <div className="mt-6">{menu}</div>
+                <SheetTitle className="border-b border-[#d6bd66]/20 pb-3 font-serif text-base font-black text-[#f6f1df]">
+                  Menu &amp; Acessos
+                </SheetTitle>
+                <div className="mt-3">
+                  {menu}
                 </div>
               </SheetContent>
             </Sheet>

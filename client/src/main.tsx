@@ -47,7 +47,8 @@ if (typeof window !== "undefined") {
   });
 }
 
-const API_REQUEST_TIMEOUT_MS = 8_000;
+const API_READ_REQUEST_TIMEOUT_MS = 8_000;
+const API_WRITE_REQUEST_TIMEOUT_MS = 30_000;
 const PUBLIC_CATALOG_PROCEDURES = new Set([
   "blog.list",
   "buglePanel.list",
@@ -70,7 +71,9 @@ const queryClient = new QueryClient({
 
 function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+  const method = String(init?.method || "GET").toUpperCase();
+  const timeoutMs = method === "GET" ? API_READ_REQUEST_TIMEOUT_MS : API_WRITE_REQUEST_TIMEOUT_MS;
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const upstreamSignal = init?.signal;
 
   if (upstreamSignal) {

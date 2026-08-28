@@ -6,7 +6,7 @@ import { CommanderPortrait } from "@/components/CommanderPortrait";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CFAP_HISTORY_SOURCE, getCfapCommander, mergeCfapCommanders } from "@/data/cfapHistory";
+import { CFAP_HISTORY_SOURCE, getCfapCommander, isCurrentCommander, mergeCfapCommanders } from "@/data/cfapHistory";
 import { trpc } from "@/lib/trpc";
 import { useMemo } from "react";
 
@@ -57,6 +57,10 @@ export default function CfapCommanderDetail() {
   const previous = index > 0 ? commanders[index - 1] : undefined;
   const next = index >= 0 && index < commanders.length - 1 ? commanders[index + 1] : undefined;
   const hasSpecificHistory = Boolean(commander.highlights?.length);
+  const isCurrent = isCurrentCommander(commander);
+  const featuredVideo = commander.videos?.[0];
+  const featuredVideoEmbedUrl = featuredVideo ? getVideoEmbedUrl(featuredVideo.url) : null;
+  const messageTitle = isCurrent ? "Mensagem do Comandante" : "Mensagem do Ex-Comandante";
 
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#061019] text-white">
@@ -71,21 +75,11 @@ export default function CfapCommanderDetail() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden px-4 py-8 md:py-14">
+        <section className="relative overflow-hidden px-4 py-8 md:overflow-visible md:py-14">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(196,168,75,.12),transparent_30%),radial-gradient(circle_at_90%_20%,rgba(20,87,54,.22),transparent_35%)]" />
           <div className="pointer-events-none absolute inset-0 opacity-[.035] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:42px_42px]" />
-          {Boolean(commander.videos?.length) && (() => {
-            const featured = commander.videos![0];
-            const embedUrl = getVideoEmbedUrl(featured.url);
-            return (
-              <div className="container relative mx-auto mb-8 max-w-6xl overflow-hidden rounded-3xl border border-[#c4a84b]/25 bg-[#07110d] shadow-2xl shadow-black/35">
-                <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 text-[#dfc462]"><Film className="h-4 w-4" /></span><div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d6bd66]">Memória audiovisual</p><h2 className="text-sm font-black text-white">{featured.title}</h2></div></div>
-                {embedUrl ? <iframe src={embedUrl} title={featured.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="aspect-video max-h-[560px] w-full border-0 bg-black" /> : <a href={featured.url} rel="noreferrer" className="flex items-center justify-between p-6 text-sm font-bold text-white no-underline"><span>Abrir registro audiovisual</span><ExternalLink className="h-4 w-4 text-[#d6bd66]" /></a>}
-              </div>
-            );
-          })()}
           <div className="container mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
-            <div>
+            <div className="md:sticky md:top-24 md:self-start">
               <div className="relative rounded-[2rem] border border-[#c4a84b]/45 bg-gradient-to-b from-[#d8bd61] via-[#715d22] to-[#d8bd61] p-[2px] shadow-[0_24px_70px_rgba(0,0,0,.45)]">
                 <div className="relative rounded-[1.9rem] border-[7px] border-[#10281d] bg-[#07110d] p-3">
                   <div className="absolute left-1/2 top-0 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#c4a84b]/60 bg-[#0b2117] p-2 shadow-xl">
@@ -97,11 +91,6 @@ export default function CfapCommanderDetail() {
                   <div className="mt-3 flex items-center justify-center gap-2 border-t border-[#c4a84b]/20 pt-3 text-[9px] font-black uppercase tracking-[.22em] text-[#d6bd66]"><Medal className="h-3.5 w-3.5" /> Centro de Formação e Aperfeiçoamento de Praças</div>
                 </div>
               </div>
-              {commander.portraitIndex === undefined && (
-                <p className="mt-3 text-center text-[11px] leading-relaxed text-white/42">
-                  O arquivo fotográfico fornecido não continha retrato identificado para este registro.
-                </p>
-              )}
             </div>
 
             <div>
@@ -123,6 +112,39 @@ export default function CfapCommanderDetail() {
                   </div>
                 ))}
               </div>
+
+              {featuredVideo && (
+                <div className="mt-6 overflow-hidden rounded-2xl border border-[#c4a84b]/25 bg-[#07110d] shadow-xl shadow-black/25">
+                  <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 text-[#dfc462]">
+                      <Film className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#d6bd66]">Vídeo</p>
+                      <h2 className="text-sm font-black text-white">{messageTitle}</h2>
+                    </div>
+                  </div>
+                  {featuredVideoEmbedUrl ? (
+                    <iframe
+                      src={featuredVideoEmbedUrl}
+                      title={messageTitle}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="aspect-video w-full border-0 bg-black"
+                    />
+                  ) : (
+                    <a
+                      href={featuredVideo.url}
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-4 text-sm font-bold text-white no-underline"
+                    >
+                      <span>Abrir vídeo</span>
+                      <ExternalLink className="h-4 w-4 text-[#d6bd66]" />
+                    </a>
+                  )}
+                </div>
+              )}
 
               <Card className="mt-7 overflow-hidden border-[#c4a84b]/20 bg-[#091812]/95 text-white shadow-xl shadow-black/20">
                 <CardContent className="p-5 md:p-6">

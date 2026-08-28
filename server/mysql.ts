@@ -2,7 +2,7 @@ import { connect } from '@tidbcloud/serverless';
 import { ENV } from './_core/env';
 
 let connection: ReturnType<typeof connect> | null = null;
-const DEFAULT_QUERY_TIMEOUT_MS = ENV.isProduction ? 5_000 : 1_200;
+const DEFAULT_QUERY_TIMEOUT_MS = ENV.isProduction ? 8_000 : 12_000;
 const DB_UNAVAILABLE_RETRY_MS = ENV.isProduction ? 30_000 : 60_000;
 let databaseUnavailableUntil = 0;
 
@@ -10,6 +10,10 @@ function getQueryTimeoutMs() {
   const raw = process.env.DB_QUERY_TIMEOUT_MS || process.env.TIDB_QUERY_TIMEOUT_MS;
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_QUERY_TIMEOUT_MS;
+}
+
+function isReadOnlyQuery(sql: string) {
+  return /^\s*(SELECT|SHOW|DESCRIBE|DESC)\b/i.test(sql);
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, sql: string): Promise<T> {
@@ -80,7 +84,9 @@ function getConnection() {
 // Helper to execute queries
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
-    if (Date.now() < databaseUnavailableUntil) {
+    const readOnly = isReadOnlyQuery(sql);
+
+    if (readOnly && Date.now() < databaseUnavailableUntil) {
       throw createDatabaseUnavailableError("Database temporarily unavailable; waiting before retrying remote connection");
     }
 
@@ -132,7 +138,9 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
     }
 
     if (isTransientDatabaseError(error)) {
-      databaseUnavailableUntil = Date.now() + DB_UNAVAILABLE_RETRY_MS;
+      if (isReadOnlyQuery(sql)) {
+        databaseUnavailableUntil = Date.now() + DB_UNAVAILABLE_RETRY_MS;
+      }
       console.warn(
         "[MySQL] Banco remoto indisponível; usando fallback quando existir. Nova tentativa após cooldown.",
         (error as any)?.code || (error as any)?.cause?.code || String((error as any)?.message || error)

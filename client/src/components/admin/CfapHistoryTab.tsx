@@ -99,7 +99,6 @@ export function CfapHistoryTab() {
   const [uploadingPortrait, setUploadingPortrait] = useState(false);
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
-  // Background Flanks state (Pasta: cfap-backgrounds)
   const [flanksForm, setFlanksForm] = useState({
     cfap_current_commander_flanks_enabled: "false",
     cfap_current_commander_left_photo: "",
@@ -213,7 +212,7 @@ export function CfapHistoryTab() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("folder", "cfap-backgrounds"); // Organiza na pasta 'cfap-backgrounds'
+      formData.append("folder", "cfap-backgrounds");
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -228,7 +227,7 @@ export function CfapHistoryTab() {
       } else {
         setFlanksForm((f) => ({ ...f, cfap_current_commander_right_photo: result.url }));
       }
-      toast.success(`Foto lateral ${side === "left" ? "esquerda" : "direita"} carregada na pasta 'cfap-backgrounds'!`);
+      toast.success(`Foto lateral ${side === "left" ? "esquerda" : "direita"} carregada com sucesso.`);
     } catch (err: any) {
       toast.error(err.message || "Falha no upload");
     } finally {
@@ -587,7 +586,7 @@ export function CfapHistoryTab() {
                       </h4>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Exibição de fotos operacionais/institucionais suaves no fundo lateral da página. Salvas na pasta <code className="text-[#f0bd3a] font-mono text-xs">/cfap-backgrounds/</code>.
+                      Exibição de fotos institucionais suaves no fundo do destaque do comandante atual.
                     </p>
                   </div>
                   
