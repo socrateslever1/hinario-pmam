@@ -35,6 +35,50 @@ export const notifySessionChange = () => {
   }
 };
 
+function normalizeImageUrl(src?: string | null) {
+  const value = src?.trim();
+  if (!value) return null;
+  if (/^(data:|blob:|https?:\/\/)/i.test(value)) return value;
+
+  const normalized = value.replace(/\\/g, "/");
+  const publicIndex = normalized.lastIndexOf("/client/public/");
+  if (publicIndex >= 0) {
+    return encodeURI(normalized.slice(publicIndex + "/client/public".length));
+  }
+
+  const uploadsIndex = normalized.lastIndexOf("/uploads/");
+  if (uploadsIndex >= 0) {
+    return encodeURI(normalized.slice(uploadsIndex));
+  }
+
+  if (/^[a-z]:\//i.test(normalized)) return null;
+  return encodeURI(normalized.startsWith("/") ? normalized : `/${normalized}`);
+}
+
+function UserAvatar({ src, alt }: { src?: string | null; alt: string }) {
+  const imageUrl = normalizeImageUrl(src);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [imageUrl]);
+
+  return (
+    <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#f0bd3a]/60 bg-[#1a3a2a] shadow-inner">
+      <span className="absolute inset-0 flex h-full w-full items-center justify-center">
+        <User className="h-4 w-4 text-[#f0bd3a]" />
+      </span>
+      {imageUrl && !failed ? (
+        <img
+          src={imageUrl}
+          alt={alt}
+          draggable={false}
+          className="relative block h-full w-full object-cover object-center"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </span>
+  );
+}
+
 export default function BottomNavigation() {
   const [location, setLocation] = useLocation();
   const [studentSession, setStudentSession] = useState<StudentSession | null>(() => getStudentSession());
@@ -303,15 +347,10 @@ export default function BottomNavigation() {
                   onClick={() => goTo(isStudent ? "/perfil-aluno" : "/perfil")}
                   className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
-                  <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#f0bd3a]/60 bg-[#1a3a2a]">
-                    {(isStudent ? studentPhoto : userPhoto) ? (
-                      <img src={(isStudent ? studentPhoto : userPhoto)!} alt="Foto" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center">
-                        <User className="h-4 w-4 text-[#f0bd3a]" />
-                      </span>
-                    )}
-                  </span>
+                  <UserAvatar
+                    src={isStudent ? studentPhoto : userPhoto}
+                    alt={isStudent ? studentName : userName}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-bold text-[#f0bd3a]">{isStudent ? studentName : userName}</p>
                     <p className="text-[10px] text-white/60">{isStudent ? "Aluno CFAP" : "Comando"} • Ver perfil</p>
