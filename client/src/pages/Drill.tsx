@@ -890,15 +890,7 @@ export default function Drill() {
                 {playingLabel ? `Executando agora: ${playingLabel}` : "Nenhum toque em execução"}
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:w-[26rem]">
-              <Button
-                type="button"
-                onClick={triggerManualBumbo}
-                className="h-9 border border-[#ead46e]/40 bg-[#ead46e]/20 px-2 text-xs font-black text-[#ead46e] hover:bg-[#ead46e]/30 active:scale-95 transition-transform md:h-10 md:text-sm shadow-sm"
-                title="Disparar bumbo manual (coringa) sobreposto ao áudio atual"
-              >
-                🥁 Bumbo
-              </Button>
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 md:w-[18rem]">
               <Button
                 type="button"
                 variant="outline"
@@ -937,22 +929,6 @@ export default function Drill() {
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-base font-black md:text-lg">Toques favoritos</h2>
-                <div className="flex items-center gap-1.5 rounded-md border border-[#c4a84b]/40 bg-white/50 px-2 py-1 dark:border-white/10 dark:bg-black/20">
-                  <label htmlFor="bumbo-overlap" className="text-[10px] font-bold uppercase tracking-wider text-[#1a3a2a] dark:text-[#d8c46a] md:text-xs">
-                    Avanço (Bumbo/Dobrado):
-                  </label>
-                  <input
-                    id="bumbo-overlap"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="30"
-                    value={bumboOverlap}
-                    onChange={(e) => setBumboOverlap(Number(e.target.value))}
-                    className="w-14 bg-transparent text-center text-sm font-bold focus:outline-none dark:text-white"
-                  />
-                  <span className="text-xs text-muted-foreground">s</span>
-                </div>
               </div>
               <div className="flex shrink-0 gap-1 sm:gap-2">
                 {preparedWorkItems.length > 0 && (
