@@ -32,6 +32,8 @@ type EditorState = {
   portraitUrl: string;
   biography: string;
   highlights: string;
+  commandPhrase: string;
+  memoryGallery: string;
   videos: string;
   sources: string;
   inMemoriam: boolean;
@@ -56,6 +58,22 @@ function textToLinks(value: string) {
     });
 }
 
+function memoryItemsToText(items?: { title: string; description: string; imageUrl: string }[]) {
+  return (items ?? []).map((item) => `${item.title} | ${item.description} | ${item.imageUrl}`).join("\n");
+}
+
+function textToMemoryItems(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [title = "", description = "", imageUrl = ""] = line.split("|").map((part) => part.trim());
+      return { title, description, imageUrl };
+    })
+    .filter((item) => item.title && item.description && item.imageUrl);
+}
+
 function commanderToEditor(commander: CfapCommander): EditorState {
   return {
     rank: commander.rank,
@@ -64,6 +82,8 @@ function commanderToEditor(commander: CfapCommander): EditorState {
     portraitUrl: commander.portraitUrl ?? "",
     biography: commander.biography ?? "",
     highlights: (commander.highlights ?? []).join("\n"),
+    commandPhrase: commander.commandPhrase ?? "",
+    memoryGallery: memoryItemsToText(commander.memoryGallery),
     videos: linksToText(commander.videos),
     sources: linksToText(commander.sources),
     inMemoriam: Boolean(commander.inMemoriam),
@@ -97,7 +117,9 @@ export function CfapHistoryTab() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [draftSlug, setDraftSlug] = useState<string | null>(null);
   const [uploadingPortrait, setUploadingPortrait] = useState(false);
+  const [uploadingMemoryImage, setUploadingMemoryImage] = useState(false);
   const portraitFileRef = useRef<HTMLInputElement>(null);
+  const memoryImageFileRef = useRef<HTMLInputElement>(null);
 
   const [flanksForm, setFlanksForm] = useState({
     cfap_current_commander_flanks_enabled: "false",
@@ -161,6 +183,8 @@ export function CfapHistoryTab() {
       portraitUrl: currentEditor.portraitUrl.trim() || null,
       biography: currentEditor.biography.trim() || null,
       highlights: currentEditor.highlights.split("\n").map((item) => item.trim()).filter(Boolean),
+      commandPhrase: currentEditor.commandPhrase.trim() || null,
+      memoryGallery: textToMemoryItems(currentEditor.memoryGallery),
       videos: textToLinks(currentEditor.videos),
       sources: textToLinks(currentEditor.sources),
       inMemoriam: currentEditor.inMemoriam,
@@ -203,6 +227,41 @@ export function CfapHistoryTab() {
       toast.error(err.message || "Falha no upload");
     } finally {
       setUploadingPortrait(false);
+    }
+  };
+
+  const handleMemoryImageUpload = async (file: File) => {
+    setUploadingMemoryImage(true);
+    try {
+      if (!editor) throw new Error("Selecione um comandante antes de enviar a imagem.");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "cfap-memory");
+      formData.append("assetSlug", draftSlug ?? selected?.slug ?? slugify(editor.name || file.name));
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Erro ao fazer upload da imagem");
+      }
+      const result = await response.json();
+      const nextLine = `Novo registro | Descreva este momento histórico. | ${result.url}`;
+      setEditor((prev) =>
+        prev
+          ? {
+              ...prev,
+              memoryGallery: [prev.memoryGallery.trim(), nextLine].filter(Boolean).join("\n"),
+            }
+          : prev
+      );
+      toast.success("Imagem enviada e adicionada ao campo Memória visual.");
+    } catch (err: any) {
+      toast.error(err.message || "Falha no upload");
+    } finally {
+      setUploadingMemoryImage(false);
+      if (memoryImageFileRef.current) memoryImageFileRef.current.value = "";
     }
   };
 
@@ -270,6 +329,8 @@ export function CfapHistoryTab() {
       portraitUrl: "",
       biography: "",
       highlights: "",
+      commandPhrase: "",
+      memoryGallery: "",
       videos: "",
       sources: "",
       inMemoriam: false,
@@ -543,6 +604,60 @@ export function CfapHistoryTab() {
                 placeholder="Destaques da gestão..."
                 className="text-sm leading-relaxed"
               />
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs font-bold">
+                  <Sparkles className="h-4 w-4 text-[#c4a84b]" />
+                  Frase de comando
+                </Label>
+                <Textarea
+                  rows={3}
+                  value={editor.commandPhrase}
+                  onChange={(event) => setEditor({ ...editor, commandPhrase: event.target.value })}
+                  placeholder="Registre uma frase curta usada ou associada ao comandante."
+                  className="text-sm leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-xs font-bold">
+                  <ImageIcon className="h-4 w-4 text-[#c4a84b]" />
+                  Memória visual
+                </Label>
+                <Textarea
+                  rows={3}
+                  value={editor.memoryGallery}
+                  onChange={(event) => setEditor({ ...editor, memoryGallery: event.target.value })}
+                  placeholder="Título | Texto curto | /uploads/imagem.jpg"
+                  className="text-xs leading-relaxed"
+                />
+                <input
+                  type="file"
+                  ref={memoryImageFileRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleMemoryImageUpload(file);
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-9 gap-2 text-xs font-bold border-[#c4a84b]/40 bg-[#c4a84b]/10"
+                  onClick={() => memoryImageFileRef.current?.click()}
+                  disabled={uploadingMemoryImage}
+                >
+                  <Upload className="h-4 w-4 text-[#c4a84b]" />
+                  {uploadingMemoryImage ? "Enviando imagem..." : "Enviar imagem"}
+                </Button>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Um item por linha. Use imagens locais do sistema ou links HTTPS.
+                </p>
+              </div>
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">

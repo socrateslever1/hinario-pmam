@@ -117,6 +117,14 @@ const cfapHistoryLinkSchema = z.object({
   title: z.string().trim().min(1).max(180),
   url: z.string().trim().url().max(2000),
 });
+const cfapHistoryMemoryItemSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(600),
+  imageUrl: z.string().trim().max(2000).refine(
+    (value) => value.startsWith("/") || value.startsWith("https://") || value.startsWith("data:image/"),
+    { message: "Informe uma imagem local, HTTPS ou data URL vÃ¡lida." },
+  ),
+});
 const cfapHistoryInputSchema = z.object({
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(160),
   rank: z.string().trim().min(2).max(80),
@@ -128,6 +136,8 @@ const cfapHistoryInputSchema = z.object({
   ).nullable(),
   biography: z.string().trim().max(30000).nullable(),
   highlights: z.array(z.string().trim().min(3).max(2000)).max(30),
+  commandPhrase: z.string().trim().max(500).nullable(),
+  memoryGallery: z.array(cfapHistoryMemoryItemSchema).max(20),
   videos: z.array(cfapHistoryLinkSchema).max(20),
   sources: z.array(cfapHistoryLinkSchema).max(30),
   inMemoriam: z.boolean(),
@@ -194,8 +204,10 @@ const COMMAND_ACCESS_ROLES = [
   "master",
   "comandante_corpo",
   "subcomandante_corpo",
+  "sub_comandante_corpo",
   "comandante_cfap",
   "subcomandante_cfap",
+  "sub_comandante_cfap",
   "comandante_cia",
   "comandante_pel",
 ] as const;
@@ -355,7 +367,7 @@ function canApproveStudentDocuments(user: any) {
 }
 
 function canHomologateFoLc(user: any) {
-  return user?.role === "master" || user?.role === "admin" || user?.role === "comandante_corpo";
+  return user?.role === "master" || user?.role === "admin" || isGeneralCommandRole(user?.role);
 }
 
 function requireFoLcHomologationAccess(user: any) {

@@ -125,6 +125,28 @@ export interface StudentData {
   deskNumber?: number | null;
 }
 
+function sanitizeAvailableStudent(student: StudentData | null): StudentData | null {
+  if (!student || student.registrationStatus !== "available") return student;
+
+  return {
+    ...student,
+    nomeGuerra: "Vaga disponível",
+    nomeCompleto: undefined,
+    sessionToken: undefined,
+    fotoUrl: undefined,
+    rg: undefined,
+    email: undefined,
+    cpf: undefined,
+    phone: undefined,
+    address: undefined,
+    birthDate: undefined,
+    bloodType: undefined,
+    emergencyContact: undefined,
+    emergencyPhone: undefined,
+    condition: undefined,
+  };
+}
+
 export async function createStudent(
   numerica: string,
   nomeGuerra: string,
@@ -210,7 +232,7 @@ export async function getStudentByNumerica(
     const rows = await dbQuery(query, [numerica]);
     const students = rows as any[];
 
-    return students[0] || null;
+    return sanitizeAvailableStudent(students[0] || null);
   } finally {
     
   }
@@ -284,7 +306,7 @@ export async function getStudentById(id: number): Promise<StudentData | null> {
     const rows = await dbQuery(query, [id]);
     const students = rows as any[];
 
-    return students[0] || null;
+    return sanitizeAvailableStudent(students[0] || null);
   } finally {
     
   }
@@ -303,7 +325,7 @@ export async function getAllStudents(): Promise<StudentData[]> {
     `;
 
     const rows = await dbQuery(query);
-    return (rows as any[]) || [];
+    return ((rows as any[]) || []).map((student) => sanitizeAvailableStudent(student) as StudentData);
   } finally {
     
   }
@@ -641,7 +663,7 @@ export async function getStudentByRg(
     const rows = await dbQuery(query, [rg]);
     const students = rows as any[];
 
-    return students[0] || null;
+    return sanitizeAvailableStudent(students[0] || null);
   } finally {
     
   }

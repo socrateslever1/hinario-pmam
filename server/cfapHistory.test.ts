@@ -11,6 +11,10 @@ describe("CFAP historical archive", () => {
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS `pmam_cfap_history_audit`");
     expect(migration).toContain("`videos_json` longtext NOT NULL");
     expect(migration).toContain("`sources_json` longtext NOT NULL");
+
+    const memoryMigration = fs.readFileSync(path.join(root, "drizzle/0015_cfap_history_memory.sql"), "utf8");
+    expect(memoryMigration).toContain("`command_phrase` longtext");
+    expect(memoryMigration).toContain("`memory_gallery_json` longtext");
   });
 
   it("keeps public reading separate from command editing", () => {
@@ -19,6 +23,8 @@ describe("CFAP historical archive", () => {
     expect(router).toContain("list: publicProcedure.query");
     expect(router).toContain("listAdmin: masterProcedure.query");
     expect(router).toContain("upsert: masterProcedure.input(cfapHistoryInputSchema)");
+    expect(router).toContain("commandPhrase: z.string().trim().max(500).nullable()");
+    expect(router).toContain("memoryGallery: z.array(cfapHistoryMemoryItemSchema).max(20)");
   });
 
   it("ships one high resolution file for each identified portrait", () => {

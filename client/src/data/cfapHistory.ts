@@ -7,6 +7,8 @@ export type CfapCommander = {
   inMemoriam?: boolean;
   isCurrent?: boolean;
   highlights?: string[];
+  commandPhrase?: string | null;
+  memoryGallery?: { title: string; description: string; imageUrl: string }[];
   portraitUrl?: string | null;
   biography?: string | null;
   videos?: { title: string; url: string }[];
@@ -227,7 +229,7 @@ export const CFAP_HISTORY_ARTICLE_URL = "https://journalppc.com/RPPC/article/vie
 
 export type CfapCommanderOverride = Required<Pick<CfapCommander,
   "slug" | "rank" | "name" | "periods" | "inMemoriam" | "isVisible" | "sortOrder"
->> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "videos" | "sources" | "isCurrent">;
+>> & Pick<CfapCommander, "portraitUrl" | "biography" | "highlights" | "commandPhrase" | "memoryGallery" | "videos" | "sources" | "isCurrent">;
 
 function defaultBiography(commander: CfapCommander) {
   const periodText = commander.periods.join(" e ");
@@ -257,6 +259,8 @@ export function mergeCfapCommanders(overrides: CfapCommanderOverride[] = [], opt
           ? null
           : `/history/commanders/${commander.slug}.webp`,
         biography: commander.biography ?? defaultBiography(commander),
+        commandPhrase: commander.commandPhrase ?? null,
+        memoryGallery: commander.memoryGallery ?? [],
         videos: commander.videos ?? [],
         sources: [
           { title: CFAP_HISTORY_SOURCE.title, url: CFAP_HISTORY_ARTICLE_URL },

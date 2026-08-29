@@ -2986,7 +2986,7 @@ export default function ClassroomMap() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-[#c4a84b]" />
-                Atalho FO
+                Fato Observado
               </DialogTitle>
               <DialogDescription>
                 Pesquise a numérica ou o nome do aluno e escolha se o Fato Observado será positivo ou negativo.

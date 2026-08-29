@@ -237,51 +237,6 @@ export default function Navbar() {
   const userPhoto = (user as any)?.fotoUrl || null;
   const userName = user?.name || "Comandante";
 
-  const menu = (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Link href={student ? "/perfil-aluno" : "/entrar"} onClick={() => setOpen(false)}>
-          <Button className="h-11 w-full gap-2 rounded-lg border border-[#d6bd66]/45 bg-[#173c29] text-[11px] font-black text-[#f0bd3a] hover:bg-[#214d37] hover:text-[#f7d96b]">
-            <GraduationCap className="h-3.5 w-3.5" />
-            Acesso Aluno
-          </Button>
-        </Link>
-        <Link href="/xerife" onClick={() => setOpen(false)}>
-          <Button className="h-11 w-full gap-2 rounded-lg border border-[#d6bd66]/45 bg-[#173c29] text-[11px] font-black text-[#f0bd3a] hover:bg-[#214d37] hover:text-[#f7d96b]">
-            <Star className="h-3.5 w-3.5" />
-            Posto Comando
-          </Button>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {links.map((item) => (
-          <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-            <Button
-              variant={active(item.href) ? "default" : "ghost"}
-              className={`h-16 w-full flex-col gap-1 rounded-lg border px-1.5 text-center text-[9px] font-black leading-tight ${
-                active(item.href)
-                  ? "border-[#f0bd3a]/60 bg-[#f0bd3a]/18 text-[#f0bd3a] hover:bg-[#f0bd3a]/24 hover:text-[#f7d96b]"
-                  : "border-white/10 bg-white/[0.04] text-white/82 hover:bg-white/[0.08] hover:text-white"
-              }`}
-            >
-              <item.icon className="h-4 w-4 text-[#d6bd66]" />
-              <span className="line-clamp-2">{item.label}</span>
-            </Button>
-          </Link>
-        ))}
-        {isCommand && (
-          <Link href="/documentos" onClick={() => setOpen(false)}>
-            <Button variant="ghost" className="h-16 w-full flex-col gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-1.5 text-center text-[9px] font-black leading-tight text-white/82 hover:bg-white/[0.08] hover:text-white">
-              <FileText className="h-4 w-4 text-[#d6bd66]" />
-              <span className="line-clamp-2">Documentos Recebidos</span>
-            </Button>
-          </Link>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <>
       {/* Header Mobile */}
@@ -324,31 +279,15 @@ export default function Navbar() {
                 <Search className="h-3.5 w-3.5 text-[#c4a84b]" />
               </Button>
             </Link>
-            <NotificationBell />
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="rounded-full"
-                  aria-label="Abrir menu"
-                  onClick={() => window.dispatchEvent(new Event("open-menu-and-acessos"))}
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="right"
-                className="w-[86vw] max-w-[21rem] border-l border-[#d6bd66]/20 bg-[#082017] p-4 text-[#f6f1df] dark:bg-[#082017] dark:text-[#f6f1df] [&>button]:text-[#f6f1df] [&>button]:opacity-80"
-              >
-                <SheetTitle className="border-b border-[#d6bd66]/20 pb-3 font-serif text-base font-black text-[#f6f1df]">
-                  Menu &amp; Acessos
-                </SheetTitle>
-                <div className="mt-3">
-                  {menu}
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="rounded-full"
+              aria-label="Abrir Menu & Acessos"
+              onClick={() => window.dispatchEvent(new Event("open-menu-and-acessos"))}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>

@@ -1,5 +1,5 @@
 import { Link, useParams } from "wouter";
-import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Film, Medal, Shield } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Film, Medal, Quote, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CommanderPortrait } from "@/components/CommanderPortrait";
@@ -61,6 +61,10 @@ export default function CfapCommanderDetail() {
   const featuredVideo = commander.videos?.[0];
   const featuredVideoEmbedUrl = featuredVideo ? getVideoEmbedUrl(featuredVideo.url) : null;
   const messageTitle = isCurrent ? "Mensagem do Comandante" : "Mensagem do Ex-Comandante";
+  const commandPhrase = commander.commandPhrase?.trim();
+  const memoryGallery = commander.memoryGallery?.filter((item) =>
+    item.title?.trim() && item.description?.trim() && item.imageUrl?.trim()
+  ) ?? [];
 
   return (
     <div className="mobile-safe-bottom min-h-screen bg-[#061019] text-white">
@@ -79,14 +83,14 @@ export default function CfapCommanderDetail() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(196,168,75,.12),transparent_30%),radial-gradient(circle_at_90%_20%,rgba(20,87,54,.22),transparent_35%)]" />
           <div className="pointer-events-none absolute inset-0 opacity-[.035] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:42px_42px]" />
           <div className="container mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
-            <div className="md:sticky md:top-24 md:self-start">
+            <div className="md:sticky md:top-36 md:self-start">
               <div className="relative rounded-[2rem] border border-[#c4a84b]/45 bg-gradient-to-b from-[#d8bd61] via-[#715d22] to-[#d8bd61] p-[2px] shadow-[0_24px_70px_rgba(0,0,0,.45)]">
                 <div className="relative rounded-[1.9rem] border-[7px] border-[#10281d] bg-[#07110d] p-3">
                   <div className="absolute left-1/2 top-0 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#c4a84b]/60 bg-[#0b2117] p-2 shadow-xl">
                     <img src="/documents/images/brasao_cfap.png" alt="Emblema do CFAP" className="h-full w-full object-contain" />
                   </div>
                   <div className="overflow-hidden rounded-2xl border border-[#c4a84b]/25 bg-white">
-                    <CommanderPortrait portraitIndex={commander.portraitIndex} portraitUrl={commander.portraitUrl} name={commander.name} />
+                    <CommanderPortrait portraitIndex={commander.portraitIndex} portraitUrl={commander.portraitUrl} name={commander.name} className="object-contain object-center" />
                   </div>
                   <div className="mt-3 flex items-center justify-center gap-2 border-t border-[#c4a84b]/20 pt-3 text-[9px] font-black uppercase tracking-[.22em] text-[#d6bd66]"><Medal className="h-3.5 w-3.5" /> Centro de Formação e Aperfeiçoamento de Praças</div>
                 </div>
@@ -112,6 +116,22 @@ export default function CfapCommanderDetail() {
                   </div>
                 ))}
               </div>
+
+              {commandPhrase && (
+                <div className="mt-6 rounded-2xl border border-[#c4a84b]/25 bg-[#c4a84b]/10 p-5 shadow-xl shadow-black/10">
+                  <div className="flex gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#c4a84b]/30 bg-[#07110d] text-[#d6bd66]">
+                      <Quote className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#d6bd66]">Frase de comando</p>
+                      <blockquote className="mt-2 font-serif text-xl font-black leading-snug text-white md:text-2xl">
+                        “{commandPhrase}”
+                      </blockquote>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {featuredVideo && (
                 <div className="mt-6 overflow-hidden rounded-2xl border border-[#c4a84b]/25 bg-[#07110d] shadow-xl shadow-black/25">
@@ -144,6 +164,44 @@ export default function CfapCommanderDetail() {
                     </a>
                   )}
                 </div>
+              )}
+
+              {memoryGallery.length > 0 && (
+                <Card className="mt-6 overflow-hidden rounded-[1.75rem] border border-[#c4a84b]/30 bg-gradient-to-br from-[#0c2b1d] via-[#07110d] to-[#0b1b2a] text-white shadow-[0_24px_70px_rgba(0,0,0,.28)]">
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#c4a84b]/15 bg-black/10 px-5 py-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[.22em] text-[#d6bd66]">Acervo da gestão</p>
+                        <h2 className="font-serif text-xl font-black">Memória visual</h2>
+                      </div>
+                      <span className="rounded-full border border-[#c4a84b]/25 bg-[#c4a84b]/10 px-3 py-1 text-[10px] font-black text-[#d6bd66]">
+                        {memoryGallery.length} registro(s)
+                      </span>
+                    </div>
+                    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 py-5 [scrollbar-color:#c4a84b_#07110d]">
+                      {memoryGallery.map((item) => (
+                        <article
+                          key={`${item.title}-${item.imageUrl}`}
+                          className="group min-w-[82%] snap-start overflow-hidden rounded-[1.35rem] border border-[#c4a84b]/25 bg-[#061019]/80 p-1 shadow-xl shadow-black/25 sm:min-w-[48%] lg:min-w-[38%]"
+                        >
+                          <div className="overflow-hidden rounded-[1.1rem] border border-white/10 bg-black">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                            />
+                          </div>
+                          <div className="p-4">
+                            <h3 className="font-serif text-lg font-black leading-tight text-white">{item.title}</h3>
+                            <p className="mt-2 text-sm leading-relaxed text-white/72">{item.description}</p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               <Card className="mt-7 overflow-hidden border-[#c4a84b]/20 bg-[#091812]/95 text-white shadow-xl shadow-black/20">

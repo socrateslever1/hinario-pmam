@@ -253,29 +253,29 @@ export function GlobalFOButton() {
 
   return (
     <>
-      <Button
+      <button
         type="button"
         onClick={() => {
           setSearch("");
           setSearchOpen(true);
         }}
-        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-[#1a3a2a] p-0 text-base font-black text-white shadow-xl ring-2 ring-[#c4a84b]/70 transition-transform duration-150 hover:bg-[#12281d] active:scale-[0.96] md:bottom-8 md:right-8"
-        aria-label="Abrir atalho de Fato Observado"
-        title="Abrir FO"
+        className="fixed bottom-24 right-4 z-50 flex h-14 w-14 min-w-14 flex-none aspect-square items-center justify-center rounded-full border-0 bg-[#1a3a2a] p-0 text-base font-black leading-none text-white shadow-xl ring-2 ring-[#c4a84b]/70 transition-transform duration-150 hover:bg-[#12281d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#c4a84b]/80 active:scale-[0.96] md:bottom-8 md:right-8 md:h-16 md:w-16 md:min-w-16"
+        aria-label="Abrir Fato Observado"
+        title="Fato Observado"
       >
         <span className="relative z-10">FO</span>
         <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3 w-3" aria-hidden="true">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e7c957]/80" />
           <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-[#1a3a2a] bg-[#e7c957]" />
         </span>
-      </Button>
+      </button>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[720px] max-h-[calc(100dvh-6rem)] gap-0 overflow-hidden border border-border bg-white p-0 text-foreground dark:bg-zinc-950 sm:rounded-xl">
           <DialogHeader className="border-b bg-muted/20 px-4 pb-3 pt-4 text-left sm:px-5">
             <DialogTitle className="flex items-center gap-2 text-xl font-black leading-tight text-[#1a3a2a] dark:text-[#c4a84b]" style={{ fontFamily: "Merriweather, serif" }}>
               <ClipboardList className="h-5 w-5 shrink-0 text-[#c4a84b]" />
-              Atalho FO
+              Fato Observado
             </DialogTitle>
             <DialogDescription className="text-sm leading-snug">
               Pesquise o aluno. Toque no nome para abrir o FO, ou use FO+ / FO-.

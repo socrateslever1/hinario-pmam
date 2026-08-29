@@ -41,9 +41,19 @@ export async function recoverFromStaleDeployment(force = false) {
       await Promise.all(registrations.map((registration) => registration.unregister()));
     }
   } finally {
-    const freshUrl = new URL(window.location.href);
-    freshUrl.searchParams.set("app-refresh", Date.now().toString());
-    window.location.replace(freshUrl.toString());
+    const fallbackHref = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
+    const currentHref = typeof window.location.href === "string" && window.location.href
+      ? window.location.href
+      : fallbackHref;
+
+    try {
+      const freshUrl = new URL(currentHref, window.location.origin || undefined);
+      freshUrl.searchParams.set("app-refresh", Date.now().toString());
+      window.location.replace(freshUrl.toString());
+    } catch {
+      const separator = fallbackHref.includes("?") ? "&" : "?";
+      window.location.replace(`${fallbackHref}${separator}app-refresh=${Date.now()}`);
+    }
   }
 
   return true;
