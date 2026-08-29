@@ -735,7 +735,9 @@ export function canAccessScope(
     user.role === "sub_comandante_corpo" ||
     user.role === "comandante_cfap" ||
     user.role === "subcomandante_cfap" ||
-    user.role === "sub_comandante_cfap"
+    user.role === "sub_comandante_cfap" ||
+    user.role === "oficial_dia" ||
+    user.role === "fiscal_dia"
   ) return true;
   if (user.role === "comandante_cia") {
     return user.companhiaId === companhia;
@@ -763,7 +765,9 @@ export function getDefaultScope(
     user.role === "sub_comandante_corpo" ||
     user.role === "comandante_cfap" ||
     user.role === "subcomandante_cfap" ||
-    user.role === "sub_comandante_cfap"
+    user.role === "sub_comandante_cfap" ||
+    user.role === "oficial_dia" ||
+    user.role === "fiscal_dia"
   ) {
     return { unrestricted: true };
   }

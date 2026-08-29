@@ -42,6 +42,8 @@ const COMMAND_ROLES = new Set([
   "sub_comandante_cfap",
   "comandante_cia",
   "comandante_pel",
+  "oficial_dia",
+  "fiscal_dia",
 ]);
 
 const categories = [

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { AlertCircle, BookOpen, LogIn, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { getCompanhiaLabel, getPelotonLabel, validateNumerica } from "@shared/studentValidation";
 import Navbar from "@/components/Navbar";
-import { saveStudentSession } from "@/lib/studentSession";
+import { getStudentSession, saveStudentSession } from "@/lib/studentSession";
 import { notifySessionChange } from "@/components/BottomNavigation";
 
 function cleanNumerica(value: string) {
@@ -19,6 +19,7 @@ function cleanNumerica(value: string) {
 
 export default function GradesLogin() {
   const [, setLocation] = useLocation();
+  const meQuery = trpc.auth.me.useQuery();
   const [activeTab, setActiveTab] = useState("login");
   const [error, setError] = useState("");
   const [loginData, setLoginData] = useState({ numerica: "", senha: "" });
@@ -33,6 +34,16 @@ export default function GradesLogin() {
 
   const loginMutation = trpc.student.login.useMutation();
   const registerMutation = trpc.student.register.useMutation();
+
+  useEffect(() => {
+    if (getStudentSession()) {
+      setLocation("/notas-do-curso");
+      return;
+    }
+    if (meQuery.data) {
+      setLocation("/");
+    }
+  }, [meQuery.data, setLocation]);
 
   const numericaInfo = useMemo(
     () => validateNumerica(registerData.numerica),

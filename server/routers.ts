@@ -190,6 +190,8 @@ const COMMAND_ROLES = [
   "sub_comandante_cfap",
   "comandante_cia",
   "comandante_pel",
+  "oficial_dia",
+  "fiscal_dia",
 ] as const;
 const GLOBAL_COMMAND_ROLES = [
   "comandante_corpo",
@@ -198,6 +200,14 @@ const GLOBAL_COMMAND_ROLES = [
   "comandante_cfap",
   "subcomandante_cfap",
   "sub_comandante_cfap",
+] as const;
+const FO_DIRECT_APPROVAL_ROLES = [
+  "master",
+  "admin",
+  "comandante_corpo",
+  "comandante_cfap",
+  "oficial_dia",
+  "fiscal_dia",
 ] as const;
 const COMMAND_ACCESS_ROLES = [
   "admin",
@@ -210,6 +220,8 @@ const COMMAND_ACCESS_ROLES = [
   "sub_comandante_cfap",
   "comandante_cia",
   "comandante_pel",
+  "oficial_dia",
+  "fiscal_dia",
 ] as const;
 const STUDENT_DOCUMENT_APPROVER_ROLES = [
   "master",
@@ -234,6 +246,14 @@ function isGeneralCommandRole(role?: string | null) {
   return STUDENT_DOCUMENT_APPROVER_ROLES.includes(String(role || "") as any);
 }
 
+function canLaunchFatoObservado(role?: string | null) {
+  const value = String(role || "");
+  return value === "master" || value === "admin" || isCommandRole(value);
+}
+
+function isFoDirectApprovalRole(role?: string | null) {
+  return FO_DIRECT_APPROVAL_ROLES.includes(String(role || "") as any);
+}
 
 async function requireStudentSession(studentId: number, sessionToken: string) {
   const isValid = await studentDb.verifyStudentSession(studentId, sessionToken);
@@ -333,6 +353,13 @@ const scaleManagerProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     return next({ ctx });
   }
   throw new TRPCError({ code: "FORBIDDEN", message: "Acesso restrito a comandantes, administradores ou xerifes" });
+});
+
+const foLauncherProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canLaunchFatoObservado(ctx.user.role)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Fato Observado é restrito ao comando." });
+  }
+  return next({ ctx });
 });
 
 async function requireServiceScaleAccess(
@@ -2871,7 +2898,7 @@ export const appRouter = router({
       return { id };
     }),
 
-    addStudentObservation: scaleManagerProcedure.input(
+    addStudentObservation: foLauncherProcedure.input(
       z.object({
         studentId: z.number().int(),
         type: z.enum(["positive", "negative", "neutral"]).default("neutral"),
@@ -2883,8 +2910,6 @@ export const appRouter = router({
       if (!student) throw new TRPCError({ code: "NOT_FOUND", message: "Aluno não encontrado" });
       requireActivatedStudent(student);
       await requireClassroomViewAccess(ctx.user, student.companhia, student.peloton);
-      const isComandante = isGlobalCommandRole(ctx.user.role);
-      const general = await isXerifeGeral(ctx.user);
       const needsValidation = input.type === "positive" || input.type === "negative";
       const foCode = input.foCode ? normalizeFoCode(input.foCode) : "";
       if (input.type === "positive" || input.type === "negative") {
@@ -2895,7 +2920,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Código de FO inválido para este tipo." });
         }
       }
-      const isApprovedDirectly = isComandante || general || !needsValidation;
+      const isApprovedDirectly = isFoDirectApprovalRole(ctx.user.role) || !needsValidation;
       const id = await serviceScaleDb.createStudentObservation({
         studentId: student.id,
         companhia: student.companhia,
@@ -3840,7 +3865,7 @@ export const appRouter = router({
    * Fato Observado (FO) - Upload de Provas (Fotos/Vídeos)
    */
   foProofs: router({
-    uploadProof: scaleManagerProcedure.input(
+    uploadProof: foLauncherProcedure.input(
       z.object({
         studentObservationId: z.number().int(),
         fileName: z.string().trim().min(1).max(255),
@@ -3927,7 +3952,7 @@ export const appRouter = router({
       return foDb.listFatoObservadoProvas(input.studentObservationId);
     }),
 
-    deleteProof: scaleManagerProcedure.input(
+    deleteProof: foLauncherProcedure.input(
       z.object({
         provaId: z.number().int(),
       })

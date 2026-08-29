@@ -10,6 +10,7 @@ import { useLocation, Link } from "wouter";
 import { Shield, LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { User } from "@shared/types";
 import { saveEmailSession } from "@/lib/emailSession";
+import { getStudentSession } from "@/lib/studentSession";
 
 const BRASAO_URL = "/documents/images/pmam-brasao.png";
 
@@ -18,10 +19,21 @@ const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 dias em ms
 
 export default function Login() {
   const [, navigate] = useLocation();
+  const meQuery = trpc.auth.me.useQuery();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    if (getStudentSession()) {
+      navigate("/perfil-aluno");
+      return;
+    }
+    if (meQuery.data) {
+      navigate("/");
+    }
+  }, [meQuery.data, navigate]);
 
   // Carregar credenciais salvas ao montar o componente
   useEffect(() => {

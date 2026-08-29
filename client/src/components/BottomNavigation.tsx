@@ -130,6 +130,8 @@ export default function BottomNavigation() {
         "sub_comandante_cfap",
         "comandante_cia",
         "comandante_pel",
+        "oficial_dia",
+        "fiscal_dia",
       ].includes(user.role)
   );
 
@@ -178,7 +180,6 @@ export default function BottomNavigation() {
         { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Meus Documentos", path: "/documentos" },
-        { icon: Star, label: "Posto Comando", path: "/xerife" },
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ]
     : [
@@ -288,10 +289,11 @@ export default function BottomNavigation() {
 
           <div className="max-h-[68vh] space-y-3.5 overflow-y-auto py-3 pr-0.5 scrollbar-none">
             {/* Botões de Acesso Rápido Principais (Sempre visíveis no topo) */}
+            {!isStudent && !user && (
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => goTo(isStudent ? "/perfil-aluno" : "/entrar")}
+                onClick={() => goTo("/entrar")}
                 className="group flex min-h-[46px] items-center justify-center gap-2 rounded-2xl border border-[#f0bd3a]/60 bg-[#0f3523]/90 px-3 text-center text-sm font-extrabold text-[#f0bd3a] shadow-[0_2px_12px_rgba(240,189,58,0.15)] transition-all hover:bg-[#164730] hover:border-[#f0bd3a] active:scale-[0.98]"
               >
                 <GraduationCap className="h-4 w-4 text-[#f0bd3a] transition-transform group-hover:scale-110" />
@@ -306,6 +308,7 @@ export default function BottomNavigation() {
                 <span>Posto Comando</span>
               </button>
             </div>
+            )}
 
             {/* Grade de 3 Colunas */}
             <div className="grid grid-cols-3 gap-2.5 pt-1">
