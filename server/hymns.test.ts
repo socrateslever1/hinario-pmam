@@ -112,6 +112,7 @@ const dbMock = vi.hoisted(() => ({
   getAllMissions: vi.fn(),
   getStats: vi.fn(),
   getSetting: vi.fn(),
+  getAllSettings: vi.fn(),
   setSetting: vi.fn(),
   upsertSetting: vi.fn(),
   getAllUsers: vi.fn(),
@@ -249,6 +250,7 @@ beforeEach(() => {
     totalUsers: state.users.length,
   });
   dbMock.getSetting.mockImplementation(async (key: string) => state.settings.get(key) ?? null);
+  dbMock.getAllSettings.mockImplementation(async () => Object.fromEntries(state.settings));
   dbMock.upsertSetting.mockImplementation(async (key: string, value: string) => {
     state.settings.set(key, value);
   });

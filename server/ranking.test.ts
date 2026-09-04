@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as gradeDb from './gradeDb';
+import { ENV } from './_core/env';
 
-describe('Grade Ranking System', () => {
+describe.skipIf(!ENV.tidbConfigured)('Grade Ranking System', () => {
   let studentId1: number;
   let studentId2: number;
   let studentId3: number;

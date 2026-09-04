@@ -315,8 +315,8 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 const masterOnlyProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "master" && ctx.user.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral ou Administrador" });
+  if (ctx.user.role !== "master") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Gestão de usuários restrita ao Xerife Geral" });
   }
   return next({ ctx });
 });

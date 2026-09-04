@@ -11,7 +11,7 @@ type StorageConfig = { baseUrl: string; apiKey: string };
 type R2BucketLike = {
   put: (
     key: string,
-    value: Uint8Array,
+    value: Uint8Array | ReadableStream<Uint8Array>,
     options?: { httpMetadata?: { contentType?: string; cacheControl?: string } },
   ) => Promise<unknown>;
   delete: (key: string) => Promise<unknown>;
@@ -169,7 +169,9 @@ export async function storagePut(
   // ephemeral there, and binary audio must not be embedded in a TiDB row.
   const bucket = getCloudflareBucket();
   if (bucket) {
-    await bucket.put(key, new Uint8Array(buffer), {
+    const body = new Response(new Uint8Array(buffer)).body;
+    if (!body) throw new Error("Não foi possível preparar o arquivo para envio ao R2.");
+    await bucket.put(key, body, {
       httpMetadata: {
         contentType,
         cacheControl: "public, max-age=31536000, immutable",

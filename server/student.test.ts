@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as studentDb from "./studentDb";
 import { validateNumerica, getCompanhiaLabel, getPelotonLabel } from "../shared/studentValidation";
+import { ENV } from "./_core/env";
 
-describe("Student Authentication System", () => {
+describe.skipIf(!ENV.tidbConfigured)("Student Authentication System", () => {
   let testNumerica = "";
   let missingNumerica = "";
   const testNomeGuerra = "Soldado Teste " + Math.random().toString(36).substring(7);

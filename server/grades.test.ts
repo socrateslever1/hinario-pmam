@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as gradeDb from './gradeDb';
+import { ENV } from './_core/env';
 
 function generateRandomNumber() {
   return Math.floor(Math.random() * 1000000).toString().padStart(4, '0');
@@ -15,7 +16,7 @@ function generateRandomCPF() {
   return parts.join('.');
 }
 
-describe('Grade Management System', () => {
+describe.skipIf(!ENV.tidbConfigured)('Grade Management System', () => {
   let studentId: number;
   let disciplineId: number;
   const testStudentNumber = generateRandomNumber();

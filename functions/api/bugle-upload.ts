@@ -107,17 +107,19 @@ export const onRequestPost: PagesFunction<UploadEnv> = async (context) => {
       return { url };
     });
 
-    const edgeCache = (caches as unknown as { default: Cache }).default;
-    const publicUrl = new URL(url, context.request.url).toString();
-    context.waitUntil(edgeCache.put(new Request(publicUrl), new Response(data.slice(), {
-      headers: {
-        "content-type": validation.mimeType,
-        "content-length": String(file.size),
-        "cache-control": "public, max-age=31536000, immutable",
-        "accept-ranges": "bytes",
-        "x-content-type-options": "nosniff",
-      },
-    })));
+    const edgeCache = (globalThis.caches as unknown as { default?: Cache } | undefined)?.default;
+    if (edgeCache) {
+      const publicUrl = new URL(url, context.request.url).toString();
+      context.waitUntil(edgeCache.put(new Request(publicUrl), new Response(data.slice(), {
+        headers: {
+          "content-type": validation.mimeType,
+          "content-length": String(file.size),
+          "cache-control": "public, max-age=31536000, immutable",
+          "accept-ranges": "bytes",
+          "x-content-type-options": "nosniff",
+        },
+      })));
+    }
 
     const previousKey = r2KeyFromPublicUrl(previousUrl);
     if (previousKey && previousKey !== createdKey) {

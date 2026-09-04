@@ -37,27 +37,23 @@ const COMPANHIA_OPTIONS = [
 export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const [, setLocation] = useLocation();
   const { data: user } = trpc.auth.me.useQuery();
-  const { data: myAccess } = trpc.serviceScale.myAccess.useQuery();
   const [isCreating, setIsCreating] = useState(false);
   const [editingAccess, setEditingAccess] = useState<any | null>(null);
   const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
   
-  const canManageAccess = user?.role === 'master' || user?.role === 'admin';
-  const canDeleteAccess = (_access: any) => user?.role === 'master' || user?.role === 'admin';
-  const canEditAccess = (_access: any) => user?.role === 'master' || user?.role === 'admin';
+  const canManageAccess = user?.role === 'master';
+  const canDeleteAccess = (_access: any) => canManageAccess;
+  const canEditAccess = (_access: any) => canManageAccess;
 
   useEffect(() => {
-    if (!isTab && user !== undefined && myAccess !== undefined) {
+    if (!isTab && user !== undefined) {
       if (!user) {
         setLocation("/login");
-      } else {
-        const canManage = user.role === 'master' || user.role === 'admin';
-        if (!canManage) {
-          setLocation("/xerife");
-        }
+      } else if (!canManageAccess) {
+        setLocation("/xerife");
       }
     }
-  }, [isTab, user, myAccess, setLocation]);
+  }, [canManageAccess, isTab, user, setLocation]);
   
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -71,7 +67,9 @@ export function AccessManagement({ isTab = false }: { isTab?: boolean }) {
   const updateAccessMutation = trpc.access.updateAccess.useMutation();
   const deleteAccessMutation = trpc.access.deleteAccess.useMutation();
   const setActiveMutation = trpc.access.setActive.useMutation();
-  const listAccessesQuery = trpc.access.listAccesses.useQuery();
+  const listAccessesQuery = trpc.access.listAccesses.useQuery(undefined, {
+    enabled: canManageAccess,
+  });
 
   const handleCreateAccess = async () => {
     try {

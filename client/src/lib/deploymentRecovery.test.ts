@@ -7,18 +7,25 @@ import {
 
 describe("deployment recovery", () => {
   const storage = new Map<string, string>();
-  const reload = vi.fn();
+  const replace = vi.fn();
 
   beforeEach(() => {
     storage.clear();
-    reload.mockClear();
+    replace.mockClear();
     vi.stubGlobal("window", {
       sessionStorage: {
         getItem: (key: string) => storage.get(key) ?? null,
         setItem: (key: string, value: string) => storage.set(key, value),
         removeItem: (key: string) => storage.delete(key),
       },
-      location: { reload },
+      location: {
+        href: "https://example.test/",
+        pathname: "/",
+        search: "",
+        hash: "",
+        origin: "https://example.test",
+        replace,
+      },
     });
     vi.stubGlobal("navigator", {});
   });
@@ -42,7 +49,7 @@ describe("deployment recovery", () => {
     expect(deleteCache).toHaveBeenCalledWith("hinario-pmam-cache-v8");
     expect(deleteCache).toHaveBeenCalledWith("hinario-pmam-cache-v9");
     expect(deleteCache).not.toHaveBeenCalledWith("hinario-pmam-audio-v2");
-    expect(reload).toHaveBeenCalledOnce();
+    expect(replace).toHaveBeenCalledOnce();
     expect(hasAttemptedDeploymentRecovery()).toBe(true);
   });
 

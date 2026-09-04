@@ -124,6 +124,7 @@ export default function Admin() {
   );
   
   const canManagePlatoonContent = canManageGlobalContent || isXerife;
+  const canManageAccess = user?.role === "master";
 
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -144,6 +145,16 @@ export default function Admin() {
       setActiveTab(tab);
     }
   }, [window.location.search]);
+
+  useEffect(() => {
+    if (loading || activeTab !== "access" || canManageAccess) return;
+
+    const fallbackTab = canManageGlobalContent ? "settings" : "service_scale";
+    setActiveTab(fallbackTab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", fallbackTab);
+    window.history.replaceState({}, "", url.pathname + url.search);
+  }, [activeTab, canManageAccess, canManageGlobalContent, loading]);
 
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: canManageGlobalContent === true });
   const { data: hymns } = trpc.hymns.listAll.useQuery(undefined, { enabled: isXerifeGeral === true });
@@ -359,7 +370,9 @@ export default function Admin() {
                 <>
                   <TabsTrigger value="cfap_history" className="min-h-10 shrink-0 gap-2 px-3"><History className="h-4 w-4" /> Memória Histórica</TabsTrigger>
                   <TabsTrigger value="settings" className="min-h-10 shrink-0 gap-2 px-3"><Settings className="h-4 w-4" /> Configurações</TabsTrigger>
-                  <TabsTrigger value="access" className="min-h-10 shrink-0 gap-2 px-3"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>
+                  {canManageAccess && (
+                    <TabsTrigger value="access" className="min-h-10 shrink-0 gap-2 px-3"><Users className="h-4 w-4" /> Usuários e Acessos</TabsTrigger>
+                  )}
                 </>
               )}
               <TabsTrigger value="profile" className="min-h-10 shrink-0 gap-2 px-3"><User className="h-4 w-4" /> Meu Perfil</TabsTrigger>
@@ -612,7 +625,7 @@ export default function Admin() {
               <SettingsTab />
             </TabsContent>
 
-            {canManageGlobalContent && (
+            {canManageAccess && (
               <TabsContent value="access">
                 <AccessManagement isTab={true} />
               </TabsContent>

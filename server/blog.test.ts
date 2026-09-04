@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import * as db from "./db";
+import { ENV } from "./_core/env";
 
-describe("Blog Posts CRUD", () => {
+describe.skipIf(!ENV.tidbConfigured)("Blog Posts CRUD", () => {
   let createdPostId: number | null = null;
 
   beforeAll(async () => {
