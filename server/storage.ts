@@ -9,16 +9,12 @@ import { normalizeStorageKey, publicStorageUrl } from './storagePath';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 type R2BucketLike = {
-<<<<<<< Updated upstream
   put: (
     key: string,
     value: Uint8Array,
     options?: { httpMetadata?: { contentType?: string; cacheControl?: string } },
   ) => Promise<unknown>;
   delete: (key: string) => Promise<unknown>;
-=======
-  put: (key: string, value: Uint8Array, options?: { httpMetadata?: { contentType?: string; cacheControl?: string } }) => Promise<unknown>;
->>>>>>> Stashed changes
 };
 
 function getStorageConfig(): StorageConfig & { isLocalFallback?: boolean } {
@@ -169,18 +165,11 @@ export async function storagePut(
   const key = normalizeKey(relKey);
   const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
 
-<<<<<<< Updated upstream
   // Cloudflare Pages must use persistent object storage. Filesystem writes are
   // ephemeral there, and binary audio must not be embedded in a TiDB row.
   const bucket = getCloudflareBucket();
   if (bucket) {
     await bucket.put(key, new Uint8Array(buffer), {
-=======
-  const bucket = getCloudflareBucket();
-  if (bucket) {
-    const value = typeof data === "string" ? new TextEncoder().encode(data) : data;
-    await bucket.put(key, value as Uint8Array, {
->>>>>>> Stashed changes
       httpMetadata: {
         contentType,
         cacheControl: "public, max-age=31536000, immutable",
@@ -189,7 +178,6 @@ export async function storagePut(
     return { key, url: publicStorageUrl(key) };
   }
 
-<<<<<<< Updated upstream
   // 1. If Forge API is configured, upload to Forge
   if (!config.isLocalFallback) {
     const { baseUrl, apiKey } = config;
@@ -206,20 +194,6 @@ export async function storagePut(
       throw new Error(
         `Storage upload failed (${response.status} ${response.statusText}): ${message}`
       );
-=======
-  if (config.isLocalFallback) {
-    if (isCloudflareRuntime()) {
-      throw new Error("Armazenamento de arquivos não configurado no Cloudflare. Vincule o bucket R2 UPLOADS_BUCKET e tente novamente.");
-    }
-    const [{ default: fs }, { default: path }] = await Promise.all([
-      import("node:fs"),
-      import("node:path"),
-    ]);
-    const fileName = key.split("/").pop() ?? key;
-    const uploadsDir = path.resolve(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
->>>>>>> Stashed changes
     }
     const url = (await response.json()).url;
     return { key, url };
@@ -256,21 +230,11 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 
   if (config.isLocalFallback) {
     if (isCloudflareRuntime()) {
-<<<<<<< Updated upstream
       return { key, url: publicStorageUrl(key) };
     }
     // Reconstruct the same path used by storagePut
     const safeFileName = key.replace(/[^a-zA-Z0-9/_.-]/g, "_");
     return { key, url: `/uploads/${safeFileName}` };
-=======
-      throw new Error("Armazenamento de arquivos não configurado no Cloudflare. Vincule o bucket R2 UPLOADS_BUCKET e tente novamente.");
-    }
-    const fileName = key.split("/").pop() ?? key;
-    return {
-      key,
-      url: `/uploads/${fileName}`,
-    };
->>>>>>> Stashed changes
   }
 
   const { baseUrl, apiKey } = config;

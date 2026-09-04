@@ -1672,15 +1672,13 @@ export async function listReviewedStudentObservations(scope?: { companhia?: numb
      INNER JOIN pmam_students s ON s.id = o.student_id
      LEFT JOIN pmam_users u ON u.id = o.created_by
      LEFT JOIN pmam_users vu ON vu.id = o.validated_by
-     LEFT JOIN pmam_lc_cases lc ON o.validation_status = 'approved' AND lc.id = (
-       SELECT lc2.id
-       FROM pmam_lc_cases lc2
-       WHERE lc2.student_id = o.student_id
-         AND lc2.fo_code = o.fo_code
-         AND lc2.source = 'fo_reincidence'
-       ORDER BY lc2.created_at DESC, lc2.id DESC
-       LIMIT 1
-     )
+     LEFT JOIN (
+       SELECT student_id, fo_code, MAX(id) AS latest_id
+       FROM pmam_lc_cases
+       WHERE source = 'fo_reincidence'
+       GROUP BY student_id, fo_code
+     ) lc_latest ON o.validation_status = 'approved' AND lc_latest.student_id = o.student_id AND lc_latest.fo_code = o.fo_code
+     LEFT JOIN pmam_lc_cases lc ON lc.id = lc_latest.latest_id
      WHERE ${where.join(" AND ")}
      ORDER BY COALESCE(o.validated_at, o.created_at) DESC
      LIMIT 300`,

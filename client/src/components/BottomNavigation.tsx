@@ -192,11 +192,10 @@ export default function BottomNavigation() {
         { icon: Medal, label: "Memória do CFAP", path: "/historia-cfap" },
         { icon: Shield, label: "CFAP 2026", path: "/cfap-2026" },
         { icon: FileText, label: "Documentos", path: "/documentos" },
-        { icon: Star, label: "Posto Comando", path: "/xerife" },
         { icon: Info, label: "Sobre o QG", path: "/sobre" },
       ];
 
-  const gridItems = allGridItems.filter((item) => !navPaths.has(item.path) && item.path !== "/entrar" && item.path !== "/xerife");
+  const gridItems = allGridItems.filter((item) => !navPaths.has(item.path) && item.path !== "/entrar");
 
   const isActive = (path: string) => {
     if (path === "__more") {

@@ -337,6 +337,16 @@ export default function Navbar() {
                   photoAlt="Foto do Comandante"
                   tone="command"
                 />
+                <Link href="/xerife" data-navigation-role="desktop-command-settings">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-[#c4a84b]/45 text-xs font-bold text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:border-[#c4a84b]/35 dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                    Posto de Comando
+                  </Button>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -347,15 +357,27 @@ export default function Navbar() {
                 </Button>
               </div>
             ) : (
-              <Link href="/entrar">
-                <Button
-                  size="sm"
-                  className="gap-1.5 text-xs bg-[#1a3a2a] text-[#f0bd3a] hover:bg-[#234b36] font-bold border border-[#c4a84b]/40 shadow-sm"
-                >
-                  <GraduationCap className="h-4 w-4" />
-                  Acesso do Aluno
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/entrar">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs bg-[#1a3a2a] text-[#f0bd3a] hover:bg-[#234b36] font-bold border border-[#c4a84b]/40 shadow-sm"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    Acesso do Aluno
+                  </Button>
+                </Link>
+                <Link href="/xerife" data-navigation-role="desktop-command-settings">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-[#c4a84b]/45 text-xs font-bold text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:border-[#c4a84b]/35 dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                    Posto de Comando
+                  </Button>
+                </Link>
+              </div>
             )}
             {toggleTheme && (
               <Button
@@ -393,16 +415,6 @@ export default function Navbar() {
                 </Button>
               </Link>
             ))}
-            <Link href="/xerife">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-[#8a6900] hover:bg-[#c4a84b]/10 hover:text-[#6f5500] dark:text-[#d6bd66] dark:hover:text-[#ecd77f]"
-              >
-                <Star className="h-3.5 w-3.5" />
-                Posto de Comando
-              </Button>
-            </Link>
           </nav>
         </div>
       </header>
